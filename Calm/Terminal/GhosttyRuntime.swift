@@ -11,15 +11,31 @@ enum GhosttyRuntime {
     static func initializeProcess() {
         guard initResult == nil else { return }
 
-        // libghostty looks for themes and shell integration here. Resources are copied
-        // into the app bundle at build time (see project.yml); respect an explicit override.
-        if ProcessInfo.processInfo.environment["GHOSTTY_RESOURCES_DIR"] == nil,
-           let resources = Bundle.main.resourceURL?.appendingPathComponent("ghostty"),
-           FileManager.default.fileExists(atPath: resources.path) {
-            setenv("GHOSTTY_RESOURCES_DIR", resources.path, 1)
+        cleanInheritedEnvironment()
+
+        // libghostty finds themes, shell integration and terminfo here. Calm always uses its
+        // own bundled copy (see project.yml); `CALM_GHOSTTY_RESOURCES_DIR` overrides it for development.
+        let override = ProcessInfo.processInfo.environment["CALM_GHOSTTY_RESOURCES_DIR"]
+        if let resources = override ?? Bundle.main.resourceURL?.appendingPathComponent("ghostty").path,
+           FileManager.default.fileExists(atPath: resources) {
+            setenv("GHOSTTY_RESOURCES_DIR", resources, 1)
         }
 
         initResult = ghostty_init(UInt(CommandLine.argc), CommandLine.unsafeArgv)
+    }
+
+    /// When Calm is launched from another terminal, that terminal's variables would leak into
+    /// every shell Calm starts (and point libghostty at the other app's resources). Drop them.
+    static let inheritedVariablesToDrop = [
+        "GHOSTTY_RESOURCES_DIR", "GHOSTTY_BIN_DIR", "GHOSTTY_SHELL_FEATURES", "GHOSTTY_SHELL_INTEGRATION_NO_SUDO",
+        "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "TERM_SESSION_ID", "ITERM_SESSION_ID",
+        "WARP_IS_LOCAL_SHELL_SESSION", "CMUX_SESSION_ID", "TMUX", "TMUX_PANE", "ZELLIJ", "STY",
+    ]
+
+    private static func cleanInheritedEnvironment() {
+        for name in inheritedVariablesToDrop {
+            unsetenv(name)
+        }
     }
 
     static var isReady: Bool {

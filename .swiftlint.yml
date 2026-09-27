@@ -1,0 +1,47 @@
+included:
+  - Calm
+  - CalmTests
+  - CLI
+  - Packages/CalmKit/Sources
+  - Packages/CalmKit/Tests
+excluded:
+  - build
+  - Frameworks
+  - vendor
+  - Packages/CalmKit/.build
+
+disabled_rules:
+  - todo
+  - trailing_comma            # swiftformat owns trailing commas
+  - opening_brace             # conflicts with swiftformat's multi-line wrapping
+
+opt_in_rules:
+  - empty_count
+  - first_where
+  - sorted_first_last
+  - redundant_nil_coalescing
+
+line_length:
+  warning: 140
+  error: 180
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 400
+  error: 700
+
+file_length:
+  warning: 700
+  error: 1200
+
+function_body_length:
+  warning: 80
+  error: 150
+
+identifier_name:
+  min_length: 1
+  excluded: [x, y, w, h, id]
+
+nesting:
+  type_level: 3

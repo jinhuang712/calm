@@ -1,33 +1,34 @@
 import AppKit
 import SwiftUI
 
-/// What the terminal area shows with no session open (FEATURES.md → F2): a welcome on Calm's
-/// very first launch, and the same quiet page whenever the last session is closed. Calm never
-/// opens a session nobody asked for.
+/// What the window shows with no session open (FEATURES.md → F2): a welcome on Calm's very
+/// first launch, and the same quiet page whenever the last session is closed. It covers the whole
+/// window, sidebar included: with nothing open there's nothing for the sidebar to show. Calm
+/// never opens a session nobody asked for.
 @MainActor
 final class WelcomePage {
-    private weak var mainArea: NSView?
+    private weak var container: NSView?
     private var host: NSHostingView<WelcomeView>?
 
-    init(mainArea: NSView) {
-        self.mainArea = mainArea
+    init(container: NSView) {
+        self.container = container
     }
 
     var isShowing: Bool {
         host != nil
     }
 
-    func show(firstUse: Bool, style: SidebarStyle, actions: WelcomeView.Actions) {
-        let view = WelcomeView(firstUse: firstUse, style: style, actions: actions)
+    func show(firstUse: Bool, style: SidebarStyle, background: NSColor, actions: WelcomeView.Actions) {
+        let view = WelcomeView(firstUse: firstUse, style: style, background: Color(nsColor: background), actions: actions)
         if let host {
             host.rootView = view
             return
         }
-        guard let mainArea else { return }
+        guard let container else { return }
         let host = NSHostingView(rootView: view)
-        host.frame = mainArea.bounds
+        host.frame = container.bounds
         host.autoresizingMask = [.width, .height]
-        mainArea.addSubview(host, positioned: .above, relativeTo: nil)
+        container.addSubview(host, positioned: .above, relativeTo: nil)
         self.host = host
         Motion.fadeIn(host, duration: 0.2)
     }
@@ -49,6 +50,8 @@ struct WelcomeView: View {
 
     let firstUse: Bool
     let style: SidebarStyle
+    /// The terminal's background: the page stands where the sessions would.
+    let background: Color
     let actions: Actions
 
     var body: some View {
@@ -82,7 +85,8 @@ struct WelcomeView: View {
         }
         .frame(width: 420, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.clear)
+        // Under the title bar too, so only the traffic lights show above it.
+        .background(background.ignoresSafeArea())
         .environment(\.colorScheme, style.isDark ? .dark : .light)
     }
 

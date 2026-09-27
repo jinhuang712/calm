@@ -26,7 +26,8 @@ A fast, correct terminal on libghostty.
   - **Scratch**, on top: sessions started with **⌘⇧N** (or the dashed button at the bottom of the sidebar), each in a new empty folder of its own that Calm keeps out of sight. They're short-lived: a row's **×** closes one when you're done. Closing one whose folder is empty removes the folder; one that made files asks: **Move to Trash**, **Keep as Project…** (the folder moves where you pick and becomes a project), or Cancel. Only ⌘⇧N makes scratch sessions: ⌘T or a split from one opens a normal session in your home folder.
   - **Projects** you made (+ New Project, dropping a folder on the sidebar, or `calm open <folder>`): each opens with a session in it. A session started in a project stays in it, even when its shell `cd`s elsewhere; ⌘T and splits from it stay there too. Right-click: **Move to Project** (any session), **Let It Follow Its Folder** (a project session goes back to grouping by folder).
   - **Folders**, for every other session: grouped by the git repository's root, or by the folder outside a repository, and moving when the shell `cd`s. A folder group holds only its own repository or folder, so one for your home folder doesn't swallow everything under it; groups appear and disappear on their own. A session whose folder is inside a project you made joins that project while it's there. Right-click a group: **Make Project** keeps it and its sessions.
-- **At launch**, Calm starts where you left off. The very first launch shows a welcome page (New Session ⌘T, New Scratch Session ⌘⇧N, New Project…, and a way to set up agents); with nothing open later, the same quiet page says so. Calm never opens a session nobody asked for.
+- **At launch**, Calm starts where you left off. The very first launch shows a welcome page (New Session ⌘T, New Scratch Session ⌘⇧N, New Project…, and a way to set up agents); with nothing open later, the same quiet page says so. It fills the whole window, with no sidebar until a session opens. Calm never opens a session nobody asked for.
+- The sidebar's footer starts things, one row each: **New Session ⌘T**, **New Scratch Session ⌘⇧N**, **New Project…**.
 - Each agent session is a **session card** (Claude Code today; other agents' transcripts follow) showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message, and the worktree name with its diff size when the session runs in a git worktree. Plain shells are one compact line.
 - Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
 - The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
@@ -83,6 +84,7 @@ A fast, correct terminal on libghostty.
 
 ## F7 — Search all sessions 🚧
 
+- Opened with **⌘K**, or the **Search sessions** field at the top of the sidebar.
 - **⌘K** opens a search box over every past and present session, across all agents.
 - Results are sessions, not lines: agent, project, title, last active time and the matching snippet.
 - **Enter** jumps to the session if it is open; otherwise it offers to resume it in its project folder.

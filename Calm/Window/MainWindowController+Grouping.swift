@@ -123,8 +123,9 @@ extension MainWindowController {
             welcomePage.hide()
             return
         }
+        let background = TerminalEngine.shared.config?.backgroundColor ?? NSColor(white: 0.15, alpha: 1)
         welcomePage.show(
-            firstUse: manager.isFirstUse, style: sidebarStyle,
+            firstUse: manager.isFirstUse, style: sidebarStyle, background: background,
             actions: WelcomeView.Actions(
                 newSession: { [weak self] in self?.newSession() },
                 newScratchSession: { [weak self] in self?.newScratchSession() },

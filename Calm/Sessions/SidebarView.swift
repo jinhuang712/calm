@@ -98,6 +98,9 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Room for the window's traffic lights.
             Color.clear.frame(height: 38)
+            searchField
+                .padding(.horizontal, 10)
+                .padding(.bottom, 12)
 
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
@@ -317,36 +320,63 @@ struct SidebarView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// New Project, and the two ways to start a session. Sized like the rows above it, with
-    /// hit areas that light up on hover, so the corner is easy to find and to click.
-    private var footer: some View {
-        HStack(spacing: 2) {
-            FooterButton(style: style, help: "New Project", action: onNewProject) {
-                Label("New Project", systemImage: "plus")
+    /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.
+    private var searchField: some View {
+        FooterButton(style: style, help: "Search Sessions (⌘K)", action: actions.search) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .medium))
+                Text("Search sessions")
                     .font(.system(size: 13))
-                    .labelStyle(FooterLabelStyle())
-                    .padding(.horizontal, 8)
+                Spacer(minLength: 4)
+                Text("⌘K")
+                    .font(.system(size: 12))
+                    .foregroundStyle(style.tertiary)
             }
-            Spacer()
-            FooterButton(style: style, help: "New Scratch Session (⌘⇧N)", action: actions.newScratchSession) {
-                Image(systemName: "square.dashed")
-                    .font(.system(size: 14))
-                    .frame(width: 28)
-            }
-            .accessibilityLabel("New scratch session")
-            FooterButton(style: style, help: "New Session (⌘T)", action: onNewSession) {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 14))
-                    .frame(width: 28)
-            }
-            .accessibilityLabel("New session")
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(style.tertiary.opacity(0.25)))
+        }
+        .accessibilityLabel("Search sessions")
+    }
+
+    /// The three ways to start something, one row each with its shortcut, so the corner reads at
+    /// a glance and every target is a full row.
+    private var footer: some View {
+        VStack(spacing: 1) {
+            footerRow("New Session", symbol: "square.and.pencil", shortcut: "⌘T", action: onNewSession)
+            footerRow("New Scratch Session", symbol: "square.dashed", shortcut: "⌘⇧N", action: actions.newScratchSession)
+            footerRow("New Project…", symbol: "plus", shortcut: nil, action: onNewProject)
         }
         .padding(.horizontal, 10)
-        .frame(height: 46)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+        .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
+    }
+
+    private func footerRow(_ title: String, symbol: String, shortcut: String?, action: @escaping () -> Void) -> some View {
+        FooterButton(style: style, help: shortcut.map { "\(title) (\($0))" } ?? title, action: action) {
+            HStack(spacing: 9) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13))
+                    .frame(width: 18)
+                Text(title)
+                    .font(.system(size: 13))
+                Spacer(minLength: 4)
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 12))
+                        .foregroundStyle(style.tertiary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
-/// A footer control: a 28-point target with a quiet hover background.
+/// A sidebar control: a full-height target with a quiet hover background.
 private struct FooterButton<Label: View>: View {
     let style: SidebarStyle
     let help: String
@@ -368,21 +398,13 @@ private struct FooterButton<Label: View>: View {
     }
 }
 
-private struct FooterLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 6) {
-            configuration.icon.font(.system(size: 12, weight: .medium))
-            configuration.title
-        }
-    }
-}
-
 /// The sidebar's session actions, handled by the window controller.
 struct SidebarActions {
     let rename: (Session.ID, String?) -> Void
     let resume: (Session.ID) -> Void
     let fork: (Session.ID, MainWindowController.ForkDestination) -> Void
     let newScratchSession: () -> Void
+    let search: () -> Void
     let newSessionIn: (Project) -> Void
     let addProjects: ([URL]) -> Void
     let makeProject: (Project.ID) -> Void

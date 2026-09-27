@@ -23,7 +23,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
-    lazy var welcomePage = WelcomePage(mainArea: mainArea)
+    lazy var welcomePage = WelcomePage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth = SidebarView.width
@@ -115,6 +115,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
                 resume: { [weak self] id in self?.resumeConversation(in: id) },
                 fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
                 newScratchSession: { [weak self] in self?.newScratchSession() },
+                search: { [weak self] in self?.toggleSearch() },
                 newSessionIn: { [weak self] project in self?.newSession(in: project) },
                 addProjects: { [weak self] urls in self?.addProjects(urls) },
                 makeProject: { [weak self] id in self?.manager.makeProject(id) },

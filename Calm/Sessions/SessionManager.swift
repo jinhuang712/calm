@@ -196,7 +196,9 @@ final class SessionManager {
 
     /// The session the user is looking at: the focused one, while Calm is the active app.
     var lookingAtSessionID: Session.ID? {
-        guard NSApp.isActive, NSApp.keyWindow === TerminalWindowManager.shared.mainController?.window else { return nil }
+        guard Headless.isOn || NSApp.isActive && NSApp.keyWindow === TerminalWindowManager.shared.mainController?.window else {
+            return nil
+        }
         return workspace.selectedLayout?.focusedSessionID
     }
 

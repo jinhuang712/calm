@@ -3,6 +3,7 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_: Notification) {
+        Headless.prepareApp()
         UserDefaults.standard.register(defaults: [
             // Holding a key should repeat it, not open the accent picker.
             "ApplePressAndHoldEnabled": false,
@@ -24,7 +25,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AttentionCenter.shared.start()
             TerminalWindowManager.shared.openMainWindow()
         }
-        NSApp.activate()
+        if !Headless.isOn {
+            NSApp.activate()
+        }
 
         #if DEBUG
             SelfTest.scheduleIfRequested()

@@ -172,7 +172,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func showAndFocus() {
-        window?.makeKeyAndOrderFront(nil)
+        if let window, Headless.isOn {
+            Headless.present(window)
+        } else {
+            window?.makeKeyAndOrderFront(nil)
+        }
         showSelectedLayout(animated: false)
     }
 

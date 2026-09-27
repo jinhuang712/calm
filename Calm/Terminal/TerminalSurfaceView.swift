@@ -341,7 +341,8 @@ final class TerminalSurfaceView: NSView {
 
     private func occlusionDidChange() {
         guard let surface, let window else { return }
-        let visible = window.occlusionState.contains(.visible)
+        // A headless self-test's window is transparent, which counts as occluded; keep rendering.
+        let visible = window.occlusionState.contains(.visible) || Headless.isOn
         guard visible != isWindowVisible else { return }
         isWindowVisible = visible
         ghostty_surface_set_occlusion(surface, visible)
@@ -372,7 +373,8 @@ final class TerminalSurfaceView: NSView {
     }
 
     func syncFocus() {
-        let shouldFocus = window?.isKeyWindow == true && window?.firstResponder === self
+        // A headless self-test's window never becomes key (it would take the user's typing).
+        let shouldFocus = (window?.isKeyWindow == true || Headless.isOn) && window?.firstResponder === self
         guard let surface, shouldFocus != focused else { return }
         focused = shouldFocus
         ghostty_surface_set_focus(surface, shouldFocus)

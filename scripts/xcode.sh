@@ -29,12 +29,11 @@ case "${1:-build}" in
     open "$app"
     ;;
   snapshot)
-    # Launch the Debug app, save a PNG of its window, and quit (see Calm/App/SelfTest.swift).
+    # Launch the Debug app headless and isolated, save a PNG of its window, and quit
+    # (see scripts/selftest.sh and Calm/App/SelfTest.swift).
     out="${2:?usage: $0 snapshot <out.png> [delay-seconds]}"
-    app="$derived/Build/Products/Debug/Calm.app"
-    pkill -x Calm 2>/dev/null || true
-    CALM_SNAPSHOT="$out" CALM_SNAPSHOT_DELAY="${3:-1.5}" CALM_SNAPSHOT_QUIT=1 \
-      "$app/Contents/MacOS/Calm" 2>&1 | grep -E '^calm-selftest:' || true
+    CALM_SELFTEST_OUT="$(dirname "$out")" "$root/scripts/selftest.sh" "$(basename "$out" .png)" --delay "${3:-1.5}" \
+      | grep -E '^calm-selftest:' || true
     ;;
   *)
     echo "usage: $0 build|test|run|snapshot" >&2

@@ -92,6 +92,9 @@
                 log("pane layer \(layer?.frame ?? .zero) presentation \(layer?.presentation()?.frame ?? .zero) contents \(surface)")
             }
             log("layout: \(controller.layoutForTesting)")
+            if let window = controller.window {
+                log("app active \(NSApp.isActive), window key \(window.isKeyWindow), alpha \(window.alphaValue), headless \(Headless.isOn)")
+            }
         }
 
         /// Runs comma-separated binding actions, Calm's own as `calm.<name>`, or `wait` (one second).

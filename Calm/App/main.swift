@@ -8,7 +8,9 @@ MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate
-    app.setActivationPolicy(.regular)
+    // Headless self-tests run as an accessory app, set before launch so AppKit never brings
+    // Calm to the front (see Headless.swift).
+    app.setActivationPolicy(Headless.isOn ? .accessory : .regular)
     withExtendedLifetime(delegate) {
         app.run()
     }

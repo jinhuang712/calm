@@ -20,7 +20,11 @@ enum PersistentShell {
     /// Calm's own zmx directory, so Calm's sessions never mix with other apps' zmx sessions.
     /// Kept short: zmx puts a Unix socket per session here, and socket paths are length-limited.
     static var directory: String {
-        (NSTemporaryDirectory() as NSString).appendingPathComponent("calm-zmx")
+        // Self-tests use their own (CALM_ZMX_DIR), so they never touch a real Calm's shells.
+        if let override = ProcessInfo.processInfo.environment["CALM_ZMX_DIR"], !override.isEmpty {
+            return override
+        }
+        return (NSTemporaryDirectory() as NSString).appendingPathComponent("calm-zmx")
     }
 
     /// The terminal command for a session (run through `/bin/sh -c` by libghostty).

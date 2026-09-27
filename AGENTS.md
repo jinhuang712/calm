@@ -37,6 +37,6 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 
 - Work in a git worktree, not directly on `main`, so parallel sessions don't collide.
 - Commands: `mise run setup` (tools, GhosttyKit, Xcode project), `mise run build`, `mise run test`, `mise run lint`, `mise run format`, `mise run run`.
-- Visual self-test: `scripts/xcode.sh snapshot <out.png> [delay]` launches the Debug app, saves a PNG of its window and quits. It needs no Screen Recording permission.
+- Self-tests: `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` launches the Debug app, drives it, saves a PNG of its window, the screen text and a log, and quits; `scripts/xcode.sh snapshot <out.png> [delay]` is the short form. They need no Screen Recording permission and run **headless** by default (no window, no focus taken; `--visible` to watch), isolated from a Calm you may be running (own state, socket, config and zmx directory).
 - `Calm.xcodeproj` is generated from `project.yml`; never edit the project file by hand.
 - Run tests and lint before calling work done; report failures honestly.

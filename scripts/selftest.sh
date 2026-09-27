@@ -2,10 +2,14 @@
 # Launch the Debug app once, drive it, capture a snapshot and the screen text, then quit.
 # Needs no Screen Recording permission (see Calm/App/SelfTest.swift).
 #
-#   scripts/selftest.sh <name> [--type TEXT] [--actions a,b,c] [--delay SECONDS]
+#   scripts/selftest.sh <name> [--type TEXT] [--actions a,b,c] [--delay SECONDS] …
 #
 # Writes $CALM_SELFTEST_OUT/<name>.png, <name>.txt and <name>.log
 # (default out dir: /tmp/calm-selftest).
+#
+# Runs are isolated from a Calm the user may be running: headless by default (no window, no
+# focus taken, see Calm/App/Headless.swift), and with their own state file, socket, config and
+# zmx directory. Only the instance this script starts is ever stopped.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,26 +28,27 @@ resize=""
 persist=""
 state=""
 config=""
+headless=1
 shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --type) type_text="$2"; shift 2 ;;
     --actions) actions="$2"; shift 2 ;;
-    --after) after="$2"; shift 2 ;;   # actions to run after typing (e.g. calm.new_session)
+    --after) after="$2"; shift 2 ;;       # actions to run after typing (e.g. calm.new_session)
     --delay) delay="$2"; shift 2 ;;
-    --keys) keys="$2"; shift 2 ;;   # typed through real key events; "\r" in the text means Return
-    --drag) drag=1; shift ;;         # drag-select the first rows, copy, and log the clipboard
-    --resize) resize="$2"; shift 2 ;; # e.g. 700x420: resize the window and log the grid size
-    --persist) persist=1; shift ;;   # keep zmx persistence on (default: off, so runs leave nothing behind)
-    --state) state="$2"; shift 2 ;;  # use this state file (default: a fresh one per run)
+    --keys) keys="$2"; shift 2 ;;         # typed through real key events; "\r" in the text means Return
+    --drag) drag=1; shift ;;              # drag-select the first rows, copy, and log the clipboard
+    --resize) resize="$2"; shift 2 ;;     # e.g. 700x420: resize the window and log the grid size
+    --persist) persist=1; shift ;;        # keep zmx persistence on (default: off, so runs leave nothing behind)
+    --state) state="$2"; shift 2 ;;       # use this state file (default: a fresh one per run)
     --plain-shell) shell=/bin/bash; shift ;; # persistent sessions get no shell integration (no OSC 7)
-    --config) config="$2"; shift 2 ;; # Calm settings text for config.toml (default: none, so defaults)
+    --config) config="$2"; shift 2 ;;     # Calm settings text for config.toml (default: none, so defaults)
+    --visible) headless=0; shift ;;       # show the window and take focus (default: headless)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
 
 app="$root/build/DerivedData/Build/Products/Debug/Calm.app/Contents/MacOS/Calm"
-pkill -x Calm 2>/dev/null || true
 
 if [[ -z "$state" ]]; then
   state="$out/$name.state.json"
@@ -53,10 +58,17 @@ fi
 config_file="$out/$name.config.toml"
 printf '%b' "$config" > "$config_file"
 
+# Self-tests' persistent shells live apart from a real Calm's: at launch Calm ends calm-*
+# shells its state doesn't know, and a test's state knows none of the user's. Kept short:
+# zmx puts a Unix socket per session here.
+zmx_dir="${TMPDIR:-/tmp}/calm-zmx-test"
+
 env \
   CALM_STATE_FILE="$state" \
   CALM_CONFIG_FILE="$config_file" \
+  CALM_ZMX_DIR="$zmx_dir" \
   CALM_NO_NOTIFICATIONS=1 \
+  CALM_HEADLESS="$headless" \
   SHELL="$shell" \
   CALM_SOCKET="/tmp/calm-selftest-$name.sock" \
   CALM_NO_PERSISTENCE="$([[ -n "$persist" ]] && echo 0 || echo 1)" \
@@ -71,7 +83,15 @@ env \
   CALM_SNAPSHOT_DELAY="$delay" \
   CALM_SNAPSHOT_QUIT=1 \
   OS_ACTIVITY_DT_MODE=1 \
-  "$app" > "$out/$name.log" 2>&1 || true
+  "$app" > "$out/$name.log" 2>&1 &
+pid=$!
+
+# A watchdog for a run that hangs: it stops this instance only, never another Calm.
+limit=$(( ${delay%.*} + 60 ))
+( sleep "$limit"; kill "$pid" 2>/dev/null && echo "calm-selftest: stopped after ${limit}s" >> "$out/$name.log" ) &
+watchdog=$!
+wait "$pid" || true
+kill "$watchdog" 2>/dev/null || true
 
 grep -E '^calm-selftest:|^calm:' "$out/$name.log" || true
 grep -i -E 'shader|error' "$out/$name.log" | grep -v -E 'linkd|synchronousRemoteObjectProxy|Process Instance Registry|intents framework|CVDisplayLink|display link' | head -20 || true

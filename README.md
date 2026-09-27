@@ -4,7 +4,20 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status:** pre-alpha. Design documents only; no app yet.
+> **Status:** pre-alpha. See the [roadmap](ROADMAP.md) for what works so far.
+
+## Build from source
+
+Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
+
+```sh
+xcodebuild -downloadComponent MetalToolchain   # once, for Ghostty's shaders
+mise run setup                                 # tools, GhosttyKit, Xcode project
+mise run build                                 # or: mise run run
+mise run test
+```
+
+The first `setup` builds Ghostty's engine from source and takes a while; later runs reuse the cached build.
 
 ## Documents
 

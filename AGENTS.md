@@ -36,5 +36,7 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 ## Workflow
 
 - Work in a git worktree, not directly on `main`, so parallel sessions don't collide.
-- Commands (once phase 0 lands): `mise run setup`, `mise run build`, `mise run test`, `mise run lint`, `mise run format`.
+- Commands: `mise run setup` (tools, GhosttyKit, Xcode project), `mise run build`, `mise run test`, `mise run lint`, `mise run format`, `mise run run`.
+- Visual self-test: `scripts/xcode.sh snapshot <out.png> [delay]` launches the Debug app, saves a PNG of its window and quits. It needs no Screen Recording permission.
+- `Calm.xcodeproj` is generated from `project.yml`; never edit the project file by hand.
 - Run tests and lint before calling work done; report failures honestly.

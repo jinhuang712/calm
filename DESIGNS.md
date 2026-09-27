@@ -12,9 +12,31 @@ Technical design of Calm Terminal. What the features do is in [FEATURES.md](FEAT
 | Storage | SQLite (app state, search index with FTS5) |
 | Build | XcodeGen (`project.yml`) + `mise` tasks |
 | Quality | swiftformat, swiftlint, Swift Testing |
-| Minimum OS | macOS 26 (**Decision:** confirm; it keeps the codebase free of old-version branches) |
+| Minimum OS | macOS 26, Apple silicon (decided in M0.1; keeps the codebase free of old-version branches) |
 
-**GhosttyKit source:** built from upstream Ghostty (`ghostty-org/ghostty`) at a pinned commit, with the Zig version Ghostty requires (0.16 at the time of writing), locally and in CI. No third-party forks or prebuilt binaries.
+**GhosttyKit source:** built from upstream Ghostty (`ghostty-org/ghostty`) at the commit pinned in `scripts/ghostty.env`, with the Zig version Ghostty requires (pinned in `mise.toml`), locally and in CI. No third-party forks or prebuilt binaries.
+
+- `scripts/ghosttykit.sh` builds `GhosttyKit.xcframework` (native arm64, ReleaseFast, no i18n or Sentry) plus Ghostty's resources (themes, shell integration, terminfo), caches them per commit in `~/Library/Caches/calm/ghostty/<commit>`, and copies them into `Frameworks/` (not tracked).
+- `scripts/ghostty-deps.py` prefetches Ghostty's Zig packages with curl into the project-local `zig-pkg/`, because Zig's HTTP client fails behind some local HTTP proxies.
+- A Ghostty `main` commit is pinned rather than the v1.3.1 release: v1.3.1 needs Zig 0.15.2, which cannot link against the macOS 26.5 SDK. Move to the next Ghostty release once it supports Zig 0.16.
+- Building needs Xcode's Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`) for Ghostty's shaders.
+
+## Project layout
+
+```
+project.yml              XcodeGen spec (generates Calm.xcodeproj, not tracked)
+mise.toml                toolchain pins and tasks
+Calm/                    app target (AppKit + SwiftUI)
+  App/                   entry point, app delegate, menus
+  Terminal/              the only code that imports GhosttyKit
+CalmTests/               app-hosted tests (engine smoke tests)
+CLI/                     the `calm` command-line tool
+Packages/CalmKit/        UI-free Swift package: CalmModel, later Agents, Attention, Search
+scripts/                 GhosttyKit build, xcodebuild wrapper
+Frameworks/              built GhosttyKit + Ghostty resources (not tracked)
+```
+
+Ghostty's resources are copied into `Calm.app/Contents/Resources/{ghostty,terminfo}` at build time, and `GHOSTTY_RESOURCES_DIR` points at them unless already set.
 
 ## Module map
 

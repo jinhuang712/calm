@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Xcode / SwiftPM
+build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+.swiftpm/
+.build/
+
+# Vendored engine builds
+vendor/ghostty/
+Frameworks/GhosttyKit.xcframework/
+
+# Local tools
+.serena/
+.claude/settings.local.json

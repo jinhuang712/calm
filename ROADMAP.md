@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M3 — Attention (M1 waits only on the author's dogfooding day, M1.12)
+**Current milestone:** M4 — Recall. M1 and M3 are built and wait only on the author's real use (M1.12's dogfooding day; M3's week of work with agents).
 
 ## How to read this
 
@@ -106,7 +106,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
 - [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code done, including the agent's own title and Esc interruptions; Codex, OpenCode, pi and omp readers follow the same `TranscriptReading` protocol.*
-- [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
+- [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
 - [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
@@ -115,6 +115,8 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 **Exit criteria**
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.
 - No *needs you* is missed.
+
+*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: Codex hooks (need Codex's /hooks approval; its own notifications already work), diff size on cards (with the files column, M5), and the week of real use.*
 
 ---
 

@@ -1,4 +1,5 @@
 import AppKit
+import CalmAgents
 import CalmModel
 import SwiftUI
 
@@ -13,6 +14,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
     private var agentsHost: NSView?
+    private var searchHost: NSView?
     private var sidebarWidth: NSLayoutConstraint?
     private var peek: SidebarPeek?
     private lazy var switcher = SessionSwitcher(controller: self)
@@ -317,6 +319,62 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         ])
         paletteHost = host
         window?.makeFirstResponder(host)
+    }
+
+    // MARK: Search
+
+    /// ⌘K: search every session (FEATURES.md → F7).
+    func toggleSearch(query: String = "") {
+        if searchHost != nil {
+            hideSearch()
+            return
+        }
+        let project = manager.workspace.selectedLayout
+            .flatMap { manager.workspace.session($0.focusedSessionID) }
+            .flatMap { manager.workspace.project($0.projectID)?.path }
+        let isDark = window?.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let view = SearchPanelView(
+            model: SearchPanelModel(query: query, currentProject: project),
+            isDark: isDark,
+            onOpen: { [weak self] item in self?.openSearchResult(item) },
+            onDismiss: { [weak self] in self?.hideSearch() },
+        )
+        let host = NSHostingView(rootView: view)
+        host.frame = container.bounds
+        host.autoresizingMask = [.width, .height]
+        container.addSubview(host, positioned: .above, relativeTo: nil)
+        searchHost = host
+        Motion.fadeIn(host, duration: 0.12)
+        window?.makeFirstResponder(host)
+    }
+
+    private func hideSearch() {
+        guard let host = searchHost else { return }
+        searchHost = nil
+        Motion.fadeOutAndRemove(host, duration: 0.1)
+        if let focusedPane {
+            window?.makeFirstResponder(focusedPane)
+        }
+    }
+
+    /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session.
+    func openSearchResult(_ item: SearchPanelModel.Item) {
+        hideSearch()
+        if let id = item.openSession {
+            select(id)
+            return
+        }
+        let result = item.result
+        guard let command = Agents.adapter(for: result.agent)?
+            .resumeCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath)
+        else { return }
+        var directory = FileManager.default.homeDirectoryForCurrentUser.path
+        if let folder = result.directory, FileManager.default.fileExists(atPath: folder) {
+            directory = folder
+        }
+        let session = manager.newSession(in: directory)
+        showSelectedLayout(animated: true)
+        manager.panes[session.id]?.run(command)
     }
 
     // MARK: Agents panel

@@ -33,11 +33,17 @@ enum SearchService {
     @MainActor
     static func start() {
         guard timer == nil else { return }
+        timer = makeRefreshTimer()
+    }
+
+    /// Built outside the main actor: the handler runs on the refresh queue, and a closure written
+    /// inside a `@MainActor` function would inherit main-actor isolation and trap there.
+    private nonisolated static func makeRefreshTimer() -> DispatchSourceTimer {
         let source = DispatchSource.makeTimerSource(queue: refreshQueue)
         source.schedule(deadline: .now(), repeating: .seconds(180), leeway: .seconds(20))
         source.setEventHandler { refresh() }
         source.resume()
-        timer = source
+        return source
     }
 
     /// Indexes what's new (blocking; call off the main thread).

@@ -92,9 +92,10 @@ Rules:
 
 ## Search (⌘K)
 
-- A centered, native-feeling panel with one text field.
+- A centered, native-feeling panel with one text field; it hugs a short list of results.
 - Results update as the user types; each row shows agent icon, title, project, relative time and a highlighted snippet.
-- ↑/↓ to move, Enter to jump or resume, Esc to close.
+- ↑/↓ to move, Enter to jump or resume, Esc to close. The selected row says what Enter does: "↵ Open" for a session open in Calm, "↵ Resume in <folder>" otherwise (a new session runs the agent's resume command there).
+- An empty field lists the most recent sessions.
 - The current project's sessions rank slightly higher.
 
 ## Color
@@ -178,7 +179,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 
 Audited against Ghostty's macOS defaults (M1.10):
 
-- **⌘K** is Ghostty's *clear screen*. Calm takes it for search when search lands (M4); Calm's built-in defaults then move clear screen to ⌘⇧K. Calm's defaults load before the user's Ghostty config, so the user's own keybindings still win.
+- **⌘K** is Ghostty's *clear screen*. Calm takes it for search (M4): Calm's built-in defaults unbind it and move clear screen to **⌘⇧K** (the Edit menu shows it there). Calm's defaults load before the user's Ghostty config, so the user's own keybindings still win.
 - **⌘⇧J** is Ghostty's *write screen to file*, so "jump to the next session that needs you" uses **⌘⇧A** (A for attention).
 - **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - ⌘P, ⌘⇧E, ⌘⇧I are free in Ghostty's defaults. ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).

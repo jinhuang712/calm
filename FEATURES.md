@@ -79,7 +79,7 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none.
 
-## F7 — Search all sessions 📝
+## F7 — Search all sessions 🚧
 
 - **⌘K** opens a search box over every past and present session, across all agents.
 - Results are sessions, not lines: agent, project, title, last active time and the matching snippet.

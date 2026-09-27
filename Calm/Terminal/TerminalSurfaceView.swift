@@ -332,6 +332,26 @@ final class TerminalSurfaceView: NSView {
         }
     }
 
+    /// Types a command into the shell and presses Return, as if from the keyboard (e.g. resuming
+    /// an agent session). Text sent before the prompt is ready waits in the shell's input.
+    func run(_ command: String) {
+        guard let surface else { return }
+        command.withCString { ghostty_surface_text(surface, $0, UInt(command.utf8.count)) }
+        var key = ghostty_input_key_s()
+        key.action = GHOSTTY_ACTION_PRESS
+        key.keycode = 36 // Return
+        key.mods = GHOSTTY_MODS_NONE
+        key.consumed_mods = GHOSTTY_MODS_NONE
+        key.unshifted_codepoint = 13
+        "\r".withCString { pointer in
+            key.text = pointer
+            _ = ghostty_surface_key(surface, key)
+        }
+        key.action = GHOSTTY_ACTION_RELEASE
+        key.text = nil
+        _ = ghostty_surface_key(surface, key)
+    }
+
     /// Hidden panes (in layouts not on screen) stop rendering until shown again.
     func setVisible(_ visible: Bool) {
         guard let surface, visible != isWindowVisible else { return }

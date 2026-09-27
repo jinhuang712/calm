@@ -61,7 +61,7 @@ enum MainMenu {
         menu.addItem(withTitle: "Paste", action: #selector(TerminalSurfaceView.paste(_:)), keyEquivalent: "v")
         menu.addItem(withTitle: "Select All", action: #selector(NSResponder.selectAll(_:)), keyEquivalent: "a")
         menu.addItem(.separator())
-        menu.addItem(terminalItem("Clear Screen", "clear_screen", key: "k"))
+        menu.addItem(terminalItem("Clear Screen", "clear_screen", key: "k", mods: [.command, .shift])) // ⌘K is Search Sessions
         return menu
     }
 
@@ -102,6 +102,8 @@ enum MainMenu {
             mods: [.command, .shift],
         ))
         menu.addItem(actionItem("Show Arrival Card", #selector(TerminalMenuTarget.showArrivalCard(_:)), key: "i", mods: [.command, .shift]))
+        menu.addItem(.separator())
+        menu.addItem(actionItem("Search Sessions", #selector(TerminalMenuTarget.searchSessions(_:)), key: "k"))
         return menu
     }
 
@@ -122,7 +124,7 @@ enum MainMenu {
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
-        let targeted = ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession", "showArrivalCard"]
+        let targeted = ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession", "showArrivalCard", "searchSessions"]
         if targeted.contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
         }
@@ -158,6 +160,11 @@ final class TerminalMenuTarget: NSObject {
         let current = manager.workspace.selectedLayout?.focusedSessionID
         guard let waiting = manager.workspace.sessionsNeedingYou.first(where: { $0.id != current }) else { return }
         TerminalWindowManager.shared.openMainWindow().select(waiting.id)
+    }
+
+    /// ⌘K: search every session.
+    @objc func searchSessions(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().toggleSearch()
     }
 
     @objc func showAgentsPanel(_: Any?) {

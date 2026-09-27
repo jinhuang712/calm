@@ -14,6 +14,12 @@
                 peekForTesting()
             case "agents":
                 showAgentsPanel()
+            case let search where search.hasPrefix("search:"):
+                toggleSearch(query: String(search.dropFirst(7)))
+            case let search where search.hasPrefix("search_open:"):
+                searchAndOpenForTesting(String(search.dropFirst(12)))
+            case "cmd_k":
+                pressKeyEquivalentForTesting(keyCode: 40, characters: "k")
             case "arrival":
                 showArrivalCard()
             case "jump_waiting":
@@ -28,6 +34,55 @@
                 return false
             }
             return true
+        }
+
+        /// What AppKit does with a key equivalent when the window is key (a headless window never
+        /// is): the focused terminal first, then the menu item with that equivalent. The item's
+        /// action is performed directly: a headless (accessory) app has no live menu bar, so
+        /// `NSMenu.performKeyEquivalent` matches the item but doesn't dispatch it.
+        private func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String) {
+            guard let window, let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, characters: characters,
+                charactersIgnoringModifiers: characters, isARepeat: false, keyCode: keyCode,
+            ) else { return }
+            let terminalTookIt = focusedPane?.performKeyEquivalent(with: event) ?? false
+            var menuItem: String?
+            if !terminalTookIt, let menu = NSApp.mainMenu, let (owner, index) = Self.item(in: menu, key: characters, modifiers: .command) {
+                menuItem = owner.items[index].title
+                owner.performActionForItem(at: index)
+            }
+            FileHandle.standardError
+                .write(Data("calm-selftest: ⌘\(characters): terminal \(terminalTookIt), menu item \(menuItem ?? "none")\n".utf8))
+        }
+
+        private static func item(in menu: NSMenu, key: String, modifiers: NSEvent.ModifierFlags) -> (NSMenu, Int)? {
+            for (index, item) in menu.items.enumerated() {
+                if item.keyEquivalent == key, item.keyEquivalentModifierMask.intersection(.deviceIndependentFlagsMask) == modifiers {
+                    return (menu, index)
+                }
+                if let submenu = item.submenu, let found = self.item(in: submenu, key: key, modifiers: modifiers) {
+                    return found
+                }
+            }
+            return nil
+        }
+
+        /// Searches, waits for results, and opens the first, as Enter would.
+        private func searchAndOpenForTesting(_ query: String) {
+            let model = SearchPanelModel(query: query, currentProject: nil)
+            Task {
+                for _ in 0 ..< 30 where model.items.isEmpty {
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+                guard let first = model.items.first else {
+                    FileHandle.standardError.write(Data("calm-selftest: no search results for \(query)\n".utf8))
+                    return
+                }
+                FileHandle.standardError
+                    .write(Data("calm-selftest: opening \(first.result.title) (open session: \(first.openSession != nil))\n".utf8))
+                openSearchResult(first)
+            }
         }
 
         private func postKey(_ type: NSEvent.EventType, keyCode: UInt16, characters: String, flags: NSEvent.ModifierFlags) {

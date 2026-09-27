@@ -29,6 +29,7 @@ persist=""
 state=""
 config=""
 headless=1
+search_home=""
 shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -44,6 +45,7 @@ while [[ $# -gt 0 ]]; do
     --plain-shell) shell=/bin/bash; shift ;; # persistent sessions get no shell integration (no OSC 7)
     --config) config="$2"; shift 2 ;;     # Calm settings text for config.toml (default: none, so defaults)
     --visible) headless=0; shift ;;       # show the window and take focus (default: headless)
+    --search-home) search_home="$2"; shift 2 ;; # transcripts to index for search (default: none, never the real home)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -63,10 +65,21 @@ printf '%b' "$config" > "$config_file"
 # zmx puts a Unix socket per session here.
 zmx_dir="${TMPDIR:-/tmp}/calm-zmx-test"
 
+# Search gets its own index, and an empty home unless one is given: tests never index the
+# user's real transcripts.
+index_file="$out/$name.index.sqlite"
+rm -f "$index_file"*
+if [[ -z "$search_home" ]]; then
+  search_home="$out/$name.search-home"
+  mkdir -p "$search_home"
+fi
+
 env \
   CALM_STATE_FILE="$state" \
   CALM_CONFIG_FILE="$config_file" \
   CALM_ZMX_DIR="$zmx_dir" \
+  CALM_INDEX_FILE="$index_file" \
+  CALM_SEARCH_HOME="$search_home" \
   CALM_NO_NOTIFICATIONS=1 \
   CALM_HEADLESS="$headless" \
   SHELL="$shell" \

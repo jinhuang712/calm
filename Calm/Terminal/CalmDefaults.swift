@@ -16,6 +16,9 @@ enum CalmDefaults {
     /// The settings Calm applies by default.
     static func contents(reduceMotion: Bool, cursorShader: URL?) -> String {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
+        // ⌘K searches sessions in Calm (UIUX.md → Keyboard); clear screen moves to ⌘⇧K.
+        lines.append("keybind = super+k=unbind")
+        lines.append("keybind = super+shift+k=clear_screen")
         if !reduceMotion, let cursorShader {
             // A soft cursor glide (UIUX.md → Motion). The animation loop only runs in the focused pane.
             lines.append("custom-shader = \(cursorShader.path)")

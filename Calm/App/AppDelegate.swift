@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ControlServer.shared.start()
             SessionProbe.shared.start()
             AttentionCenter.shared.start()
+            AgentIntegrations.prepare()
             TerminalWindowManager.shared.openMainWindow()
         }
         if !Headless.isOn {

@@ -29,6 +29,10 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var session: String?
     public var state: String?
     public var message: String?
+    /// From agents' hooks (`calm hook`): which agent, its own session id and transcript file.
+    public var agent: String?
+    public var agentSession: String?
+    public var transcript: String?
 
     public init(
         cmd: Command,
@@ -36,6 +40,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         session: String? = nil,
         state: String? = nil,
         message: String? = nil,
+        agent: String? = nil,
+        agentSession: String? = nil,
+        transcript: String? = nil,
     ) {
         v = ControlProtocol.version
         self.cmd = cmd
@@ -43,6 +50,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.session = session
         self.state = state
         self.message = message
+        self.agent = agent
+        self.agentSession = agentSession
+        self.transcript = transcript
     }
 }
 

@@ -125,6 +125,8 @@ targets:
     dependencies:
       - package: CalmKit
         product: CalmControl
+      - package: CalmKit
+        product: CalmAgents
     settings:
       base:
         PRODUCT_NAME: calm

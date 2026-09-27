@@ -113,6 +113,7 @@ final class SessionManager {
                 inherited: process,
             )) { current, _ in current }
         }
+        options.environment.merge(AgentIntegrations.environment(settings: settings)) { current, _ in current }
         let pane = TerminalSurfaceView(id: session.id, options: options)
         pane.host = host
         panes[session.id] = pane
@@ -227,6 +228,11 @@ final class SessionManager {
         case .ignore:
             break
         }
+    }
+
+    func noteAgentSession(_ id: Session.ID, kind: AgentKind, agentSessionID: String?, transcriptPath: String?) {
+        workspace.noteAgentSession(id, kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath)
+        scheduleSave()
     }
 
     /// The session's foreground job changed; an agent may have started or exited.

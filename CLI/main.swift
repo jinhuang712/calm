@@ -1,3 +1,4 @@
+import CalmAgents
 import CalmControl
 import Foundation
 
@@ -14,6 +15,8 @@ Usage:
   calm status <state> [message]     Report this session's state (for agents' hooks):
                                     working, needs-you, done, failed or idle
   calm notify <message>             Notify about this session at the next pause
+  calm hook <agent>                 Read an agent's hook payload on stdin and report it
+                                    (used by the hooks Calm installs; agent: claude-code)
   calm --version                    Print the version
   calm --help                       Show this help
 
@@ -51,7 +54,7 @@ func send(_ request: ControlRequest) -> ControlResponse {
 /// For hooks: report quietly and never fail the agent. No session or no Calm means nothing to do.
 func report(_ request: ControlRequest) -> Never {
     guard request.session != nil else { exit(0) }
-    guard let response = try? ControlClient.send(request) else { exit(0) }
+    guard let response = try? ControlClient.send(request, timeout: 1) else { exit(0) }
     if !response.ok, let error = response.error {
         FileHandle.standardError.write(Data("calm: \(error)\n".utf8))
     }
@@ -97,6 +100,16 @@ case "status":
     guard let state = words.first else { fail("give a state: working, needs-you, done, failed or idle", code: 64) }
     let message = words.dropFirst().joined(separator: " ")
     report(ControlRequest(cmd: .status, session: session, state: state, message: message.isEmpty ? nil : message))
+case "hook":
+    // Called by agents' hooks on every event: read the payload, report, never fail the agent.
+    guard arguments.count > 1, let reporter = Agents.hookReporter(named: arguments[1]) else { exit(0) }
+    let (session, _) = sessionAndWords([])
+    let payload = FileHandle.standardInput.readData(ofLength: 4_000_000)
+    guard let hook = reporter.hookReport(from: payload) else { exit(0) }
+    report(ControlRequest(
+        cmd: .status, session: session, state: hook.state.reportName, message: hook.message,
+        agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
+    ))
 case "notify":
     let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
     guard !words.isEmpty else { fail("give a message", code: 64) }

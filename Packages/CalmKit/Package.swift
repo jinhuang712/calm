@@ -18,6 +18,6 @@ let package = Package(
         .target(name: "CalmAgents", dependencies: ["CalmModel"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
-        .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"]),
+        .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"], resources: [.copy("Fixtures")]),
     ],
 )

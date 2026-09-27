@@ -61,7 +61,9 @@ A fast, correct terminal on libghostty.
 - **done** and **failed** never interrupt; they show in the sidebar until the session is visited.
 - A **needs you** is never dropped: if delivery is deferred, it waits, and it stays visible in the sidebar until handled.
 
-**Settings:** 2 — which states notify (default: only *needs you*); notification sound on/off (default off).
+- With Claude Code, Calm's hooks are on by default inside Calm (a plugin Claude loads only in Calm's shells; nothing is written to Claude's settings), so *needs you* arrives the moment Claude asks, with what it asks.
+
+**Settings:** 2 — which states notify (default: only *needs you*); notification sound on/off (default off). In the config file only: `claude-code-hooks = false` under `[agents]`.
 
 ## F6 — Arrival card 📝
 

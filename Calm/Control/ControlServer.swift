@@ -123,6 +123,9 @@ final class ControlServer {
             guard let state = request.state.flatMap(SessionState.init(reportName:)) else {
                 return .failure("Unknown state '\(request.state ?? "")'; use working, needs-you, done, failed or idle.")
             }
+            if let kind = request.agent.flatMap(AgentKind.init(rawValue:)) {
+                manager.noteAgentSession(id, kind: kind, agentSessionID: request.agentSession, transcriptPath: request.transcript)
+            }
             manager.report(id, StatusReport(state: state, message: request.message, source: .hook))
             return .success()
         case .notify:

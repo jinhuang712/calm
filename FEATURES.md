@@ -69,13 +69,14 @@ A fast, correct terminal on libghostty.
 
 ## F6 — Arrival card ✅
 
-- When the user switches into an agent session, a small strip at the top of the pane shows:
+- When the user switches into an agent session while the sidebar is hidden, and something happened there since they last left it, a small strip at the top of the pane shows:
   - the session title;
   - its state;
   - the last thing the agent said or asked, in one or two lines;
   - how long ago that was.
 - It uses titles and messages the agent already wrote. Nothing is generated.
 - It fades as soon as the user types or after a few seconds (five), and can be recalled with **⌘⇧I**. Clicking it dismisses it.
+- With the sidebar showing it stays away: the session's card there already shows the same title, state and recap. Switching back and forth between sessions with nothing new doesn't show it either.
 
 **Settings:** none.
 

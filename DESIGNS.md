@@ -214,6 +214,10 @@ CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER)
 
 - **Title bar double-click:** Calm's content fills the window under a transparent title bar (`fullSizeContentView`), so a double-click at the top reaches Calm's views, not the title bar, and AppKit never zooms. `CalmWindow.sendEvent` catches the second click of a double-click in the top strip (30 points, or the title bar's height if taller), skipping controls such as the traffic lights, and does what `AppleActionOnDoubleClick` says: Zoom (`performZoom`, also when unset), Minimize, nothing, or Fill. Fill has no public API, so the window takes the screen's visible frame and the next double-click restores it.
 
+## Arrival card
+
+- `ArrivalCard` remembers when the user left each session (not saved; after a relaunch every session counts as unseen). Arriving shows the card only if the sidebar is hidden and the session's last activity (`lastReport.date`, else the agent's start) is newer than that (`ArrivalCard.shouldShow`, tested). Found in real use: with the sidebar showing, the card repeated the sidebar card beside it and covered the top of the agent's screen.
+
 ## Session actions
 
 - **As built (M7):** `Session.customName` (the user's name; `displayTitle` and `title(agentTitle:)` put it first) and `Session.lastConversation`, an `AgentConversation` (agent, session id, transcript, title) kept by `endAgentRun` when the run's id or transcript was known. Both are optional in the state file, so older files load.

@@ -89,7 +89,7 @@ Rules:
 
 ## Arrival card
 
-- Appears at the top of the pane when switching into an agent session.
+- Appears at the top of the pane when switching into an agent session, only when it adds something: the sidebar is hidden (its card would say the same) and the session had activity since the user left it. ⌘⇧I shows it any time.
 - Content: state mark, title · state · time since last activity, and one or two lines: what the agent asked while it needs you, otherwise the last thing it said.
 - Fades out on the first keystroke or after a few seconds. A shortcut shows it again.
 - Never covers the agent's input line.

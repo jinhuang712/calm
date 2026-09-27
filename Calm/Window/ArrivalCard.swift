@@ -15,9 +15,33 @@ final class ArrivalCard {
     private var keyMonitor: Any?
 
     static let visibleFor: Duration = .seconds(5)
+    /// When the user last left each session, to tell whether anything happened since.
+    private var leftAt: [Session.ID: Date] = [:]
 
     init(container: NSView) {
         self.container = container
+    }
+
+    func noteLeft(_ id: Session.ID) {
+        leftAt[id] = Date()
+    }
+
+    /// Whether arriving at `session` should show the card on its own (⌘⇧I always does).
+    func isWorthShowing(for session: Session?, sidebarShown: Bool) -> Bool {
+        guard let session, let agent = session.agent else { return false }
+        return Self.shouldShow(
+            activity: session.lastReport?.date ?? agent.startedAt,
+            leftAt: leftAt[session.id],
+            sidebarShown: sidebarShown,
+        )
+    }
+
+    /// Only when it adds something: with the sidebar showing, the session's card there already
+    /// says the same, and a session with no activity since the user left it has nothing new.
+    static func shouldShow(activity: Date, leftAt: Date?, sidebarShown: Bool) -> Bool {
+        guard !sidebarShown else { return false }
+        guard let leftAt else { return true }
+        return activity > leftAt
     }
 
     /// Shows the card over the top of `pane` for an agent session; does nothing for plain shells.

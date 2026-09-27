@@ -203,9 +203,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     func select(_ id: Session.ID) {
         let previous = manager.workspace.selectedLayoutID
         let previousSession = manager.workspace.selectedLayout?.focusedSessionID
+        if let previousSession, previousSession != id {
+            arrivalCard.noteLeft(previousSession)
+        }
         manager.select(id)
         showSelectedLayout(animated: previous != manager.workspace.selectedLayoutID)
-        if previousSession != id {
+        let sidebarShown = (sidebarWidth?.constant ?? 0) > 0
+        if previousSession != id, arrivalCard.isWorthShowing(for: manager.workspace.session(id), sidebarShown: sidebarShown) {
             showArrivalCard()
         }
     }

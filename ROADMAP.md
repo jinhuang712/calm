@@ -128,7 +128,7 @@ Any past conversation, across every agent, is one search away.
 - [x] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
 - [x] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing with file watching and stored offsets; user and agent messages only.
 - [x] **M4.4 Ranking:** BM25 plus boosts for title matches, recency and the current project; unit-tested.
-- [ ] **M4.5 CLI:** `calm search <text>`.
+- [x] **M4.5 CLI:** `calm search <text>`.
 - [ ] **M4.6 Search panel:** ⌘K, live results, jump to an open session or resume a closed one.
 - [x] **M4.7 Performance:** measure query time and index size on the author's full history, and set targets from the results.
 

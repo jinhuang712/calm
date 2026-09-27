@@ -42,6 +42,14 @@ public final class SearchIndex: @unchecked Sendable {
             .appending(path: "Calm/index.sqlite")
     }
 
+    /// Where transcripts are looked for: the home folder, or `CALM_SEARCH_HOME` (self-tests).
+    public static var defaultHome: URL {
+        if let override = ProcessInfo.processInfo.environment["CALM_SEARCH_HOME"], !override.isEmpty {
+            return URL(filePath: override)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+    }
+
     public init(url: URL = SearchIndex.standardURL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         database = try SQLiteDatabase(path: url.path)
@@ -82,7 +90,7 @@ public final class SearchIndex: @unchecked Sendable {
     /// Indexes what's new in every transcript under `home`, and forgets transcripts that are gone.
     @discardableResult
     public func update(
-        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+        home: URL = SearchIndex.defaultHome,
         indexers: [any TranscriptIndexing] = Agents.indexers,
     ) -> IndexStats {
         queue.sync {
@@ -224,13 +232,14 @@ public final class SearchIndex: @unchecked Sendable {
         }
     }
 
-    /// The best-ranked message per session for one term: FTS5 for three characters or more,
-    /// a LIKE scan below that (trigrams can't match shorter text).
+    /// The best-ranked message per session for one term: FTS5 for three characters or more
+    /// (snippets are counted in trigram tokens, about one per character, so 64 is FTS5's maximum),
+    /// and a LIKE scan below that (trigrams can't match shorter text).
     private func matches(for term: String) -> [Int64: (rank: Double, snippet: String)] {
         var matches: [Int64: (rank: Double, snippet: String)] = [:]
         if term.count >= 3 {
             let sql = """
-            SELECT file_id, bm25(messages), snippet(messages, 0, char(2), char(3), '…', 12)
+            SELECT file_id, bm25(messages), snippet(messages, 0, char(2), char(3), '…', 64)
             FROM messages WHERE messages MATCH ? ORDER BY bm25(messages) LIMIT 5000
             """
             try? database.query(sql, [.text(SearchQuery.phrase(term))]) { row in

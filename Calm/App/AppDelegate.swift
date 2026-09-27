@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SessionProbe.shared.start()
             AttentionCenter.shared.start()
             AgentIntegrations.prepare()
+            SearchService.start()
             TerminalWindowManager.shared.openMainWindow()
         }
         if !Headless.isOn {

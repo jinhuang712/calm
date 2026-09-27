@@ -54,4 +54,13 @@ struct AgentSetupTests {
         try AgentSetupFiles.remove(files, home: home)
         #expect(try String(contentsOf: url, encoding: .utf8) == "// the user's own file\n")
     }
+
+    @Test func `resume commands per agent, quoted for the shell`() {
+        #expect(ClaudeCodeAdapter().resumeCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc'")
+        #expect(ClaudeCodeAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/x/def.jsonl") == "claude --resume 'def'")
+        #expect(CodexAdapter().resumeCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex resume '019a'")
+        #expect(CodexAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
+        #expect(PiAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/it's/s.jsonl") == #"pi --session '/it'\''s/s.jsonl'"#)
+        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
+    }
 }

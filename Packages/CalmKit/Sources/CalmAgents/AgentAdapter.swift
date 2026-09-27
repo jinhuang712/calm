@@ -61,6 +61,8 @@ public protocol AgentAdapter: Sendable {
     var configFolder: String? { get }
     /// How the agent connects to Calm (the Agents panel).
     var setup: AgentSetup { get }
+    /// The shell command that resumes one of the agent's past sessions, if it can.
+    func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
 }
 
 public extension AgentAdapter {
@@ -70,6 +72,10 @@ public extension AgentAdapter {
 
     var helperSubcommands: Set<String> {
         []
+    }
+
+    func resumeCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
+        nil
     }
 
     func matches(_ process: ProcessSnapshot) -> Bool {

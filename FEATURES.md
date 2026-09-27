@@ -87,7 +87,7 @@ A fast, correct terminal on libghostty.
 - Searches what the user and agents wrote; skips tool output and file dumps.
 - Works for English and Chinese text.
 - Ranking: text relevance (BM25), then recency, title matches and the current project.
-- Also available from the command line: `calm search <text>`.
+- Also available from the command line: `calm search <text>` (through the running app, or straight from the index when Calm isn't running).
 
 **Settings:** none. Agents are detected automatically.
 
@@ -144,7 +144,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 - `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer. Starts Calm if it isn't running.
 - `calm list` — list sessions: project, title, state and folder.
-- `calm search <text>` — search sessions from any shell.
+- `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.
 - `calm status <state> [message]` — report agent state; this is the contract agents' hooks call. Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm notify <message>` — show a notification for the current session.
 - Talks to the running app over a local socket.

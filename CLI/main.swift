@@ -1,5 +1,6 @@
 import CalmAgents
 import CalmControl
+import CalmSearch
 import Foundation
 
 // The `calm` command-line tool: talks to the running app over its local socket
@@ -12,6 +13,7 @@ calm \(version) — a minimal macOS terminal that keeps you calm and focused
 Usage:
   calm open <folder>                Add the folder as a project and open a session in it
   calm list                         List sessions
+  calm search <text>                Search every agent's past sessions
   calm status <state> [message]     Report this session's state (for agents' hooks):
                                     working, needs-you, done, failed or idle
   calm notify <message>             Notify about this session at the next pause
@@ -76,6 +78,27 @@ func sessionAndWords(_ words: [String]) -> (session: String?, words: [String]) {
     return (session, rest)
 }
 
+/// One session per result: when, which agent, project, title, then the matching text.
+func printSearchHits(_ hits: [ControlResponse.SearchHit]) {
+    let styled = isatty(STDOUT_FILENO) == 1
+    let bold = styled ? "\u{1B}[1m" : ""
+    let dim = styled ? "\u{1B}[2m" : ""
+    let reset = styled ? "\u{1B}[0m" : ""
+    for hit in hits {
+        let age = Date().timeIntervalSince1970 - hit.lastActive
+        let when = age < 3600 ? "\(max(Int(age / 60), 0))m" : age < 86400 ? "\(Int(age / 3600))h" : "\(Int(age / 86400))d"
+        let project = hit.directory.map { ($0 as NSString).lastPathComponent } ?? "-"
+        print("\(dim)\(when)\t\(hit.agent)\t\(project)\(reset)\t\(bold)\(hit.title)\(reset)")
+        let snippet = hit.snippet
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\u{2}", with: bold)
+            .replacingOccurrences(of: "\u{3}", with: reset)
+        if !snippet.isEmpty {
+            print("    \(snippet)")
+        }
+    }
+}
+
 let arguments = Array(CommandLine.arguments.dropFirst())
 switch arguments.first {
 case "--version", "-v":
@@ -110,6 +133,23 @@ case "hook":
         cmd: .status, session: session, state: hook.state.reportName, message: hook.message,
         agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
     ))
+case "search", "s":
+    let query = arguments.dropFirst().joined(separator: " ")
+    var hits: [ControlResponse.SearchHit]
+    if let response = try? ControlClient.send(ControlRequest(cmd: .search, query: query), timeout: 15), response.ok {
+        hits = response.results ?? []
+    } else {
+        // Calm isn't running: read the index directly, bringing it up to date first.
+        guard let index = try? SearchIndex() else { fail("couldn't open the search index") }
+        index.update()
+        hits = index.search(query, limit: 20).map { result in
+            ControlResponse.SearchHit(
+                title: result.title, agent: result.agent.displayName, directory: result.directory,
+                lastActive: result.lastActive.timeIntervalSince1970, snippet: result.snippet, transcript: result.transcriptPath,
+            )
+        }
+    }
+    printSearchHits(hits)
 case "notify":
     let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
     guard !words.isEmpty else { fail("give a message", code: 64) }

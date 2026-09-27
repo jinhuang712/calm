@@ -39,6 +39,8 @@ targets:
         product: CalmControl
       - package: CalmKit
         product: CalmAgents
+      - package: CalmKit
+        product: CalmSearch
       - target: calm-cli
         embed: false
         link: false
@@ -127,6 +129,8 @@ targets:
         product: CalmControl
       - package: CalmKit
         product: CalmAgents
+      - package: CalmKit
+        product: CalmSearch
     settings:
       base:
         PRODUCT_NAME: calm

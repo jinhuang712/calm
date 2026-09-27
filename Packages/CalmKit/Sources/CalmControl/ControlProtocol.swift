@@ -21,6 +21,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         case open
         case status
         case notify
+        case search
     }
 
     public var v: Int
@@ -33,6 +34,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var agent: String?
     public var agentSession: String?
     public var transcript: String?
+    /// For `search`.
+    public var query: String?
 
     public init(
         cmd: Command,
@@ -43,6 +46,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         agent: String? = nil,
         agentSession: String? = nil,
         transcript: String? = nil,
+        query: String? = nil,
     ) {
         v = ControlProtocol.version
         self.cmd = cmd
@@ -53,6 +57,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.agent = agent
         self.agentSession = agentSession
         self.transcript = transcript
+        self.query = query
     }
 }
 
@@ -76,16 +81,38 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         }
     }
 
+    /// A session found by `search`.
+    public struct SearchHit: Codable, Sendable, Equatable {
+        public var title: String
+        public var agent: String
+        public var directory: String?
+        /// Seconds since 1970.
+        public var lastActive: Double
+        /// The best match, with matches between U+0002 and U+0003.
+        public var snippet: String
+        public var transcript: String
+
+        public init(title: String, agent: String, directory: String?, lastActive: Double, snippet: String, transcript: String) {
+            self.title = title
+            self.agent = agent
+            self.directory = directory
+            self.lastActive = lastActive
+            self.snippet = snippet
+            self.transcript = transcript
+        }
+    }
+
     public var ok: Bool
     public var error: String?
     public var sessions: [SessionInfo]?
+    public var results: [SearchHit]?
 
-    public static func success(sessions: [SessionInfo]? = nil) -> ControlResponse {
-        ControlResponse(ok: true, error: nil, sessions: sessions)
+    public static func success(sessions: [SessionInfo]? = nil, results: [SearchHit]? = nil) -> ControlResponse {
+        ControlResponse(ok: true, error: nil, sessions: sessions, results: results)
     }
 
     public static func failure(_ message: String) -> ControlResponse {
-        ControlResponse(ok: false, error: message, sessions: nil)
+        ControlResponse(ok: false, error: message, sessions: nil, results: nil)
     }
 }
 

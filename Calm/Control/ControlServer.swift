@@ -87,8 +87,13 @@ final class ControlServer {
         let line = received.split(separator: 0x0A, maxSplits: 1).first ?? Data()
 
         let response: ControlResponse = if let request = try? JSONDecoder().decode(ControlRequest.self, from: line) {
-            DispatchQueue.main.sync {
-                MainActor.assumeIsolated { ControlServer.shared.handle(request) }
+            if request.cmd == .search {
+                // The index has its own queue; searching needs nothing from the main thread.
+                SearchService.respond(to: request)
+            } else {
+                DispatchQueue.main.sync {
+                    MainActor.assumeIsolated { ControlServer.shared.handle(request) }
+                }
             }
         } else {
             .failure("Couldn't read the request.")
@@ -128,6 +133,8 @@ final class ControlServer {
             }
             manager.report(id, StatusReport(state: state, message: request.message, source: .hook))
             return .success()
+        case .search:
+            return SearchService.respond(to: request)
         case .notify:
             guard let id = session(request.session) else { return .failure("No such session.") }
             guard let message = request.message, !message.isEmpty else { return .failure("Give a message.") }

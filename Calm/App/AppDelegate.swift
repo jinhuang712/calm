@@ -1,28 +1,21 @@
 import AppKit
-import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window: NSWindow?
+    func applicationWillFinishLaunching(_: Notification) {
+        UserDefaults.standard.register(defaults: [
+            // Holding a key should repeat it, not open the accent picker.
+            "ApplePressAndHoldEnabled": false,
+            // On macOS 26 the autofill heuristics cost a lot of CPU in terminal views.
+            "NSAutoFillHeuristicControllerEnabled": false,
+        ])
+    }
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.mainMenu = MainMenu.make()
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false,
-        )
-        window.title = "Calm"
-        window.titlebarAppearsTransparent = true
-        window.isReleasedWhenClosed = false
-        window.center()
-        window.setFrameAutosaveName("CalmMainWindow")
-        window.contentView = NSHostingView(rootView: PlaceholderView())
-        window.makeKeyAndOrderFront(nil)
-        self.window = window
-
+        TerminalEngine.shared.delegate = TerminalWindowManager.shared
+        TerminalEngine.shared.start()
+        TerminalWindowManager.shared.openWindow()
         NSApp.activate()
 
         #if DEBUG
@@ -30,23 +23,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
     }
 
+    func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
+        guard TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = "Quit Calm?"
+        alert.informativeText = "Processes are still running in some terminals."
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         true
     }
-}
 
-/// Shown until the terminal lands in Milestone 1.
-private struct PlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Text("Calm")
-                .font(.system(size: 28, weight: .medium))
-                .foregroundStyle(Color(white: 0.85))
-            Text(GhosttyRuntime.statusLine)
-                .font(.system(size: 13))
-                .foregroundStyle(Color(white: 0.55))
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows {
+            TerminalWindowManager.shared.openWindow()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(white: 0.15))
+        return true
     }
 }

@@ -56,6 +56,9 @@ targets:
         NSHighResolutionCapable: true
         NSPrincipalClass: NSApplication
         NSHumanReadableCopyright: "Copyright © 2026 Jin Huang. Apache-2.0."
+        # Tells libghostty it was launched from the desktop, so new shells start in the home folder.
+        LSEnvironment:
+          GHOSTTY_MAC_LAUNCH_SOURCE: app
     entitlements:
       path: Calm/Calm.entitlements
       properties:

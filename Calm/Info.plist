@@ -22,6 +22,11 @@
 	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
+	<key>LSEnvironment</key>
+	<dict>
+		<key>GHOSTTY_MAC_LAUNCH_SOURCE</key>
+		<string>app</string>
+	</dict>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>NSHighResolutionCapable</key>

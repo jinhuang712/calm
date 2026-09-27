@@ -317,34 +317,63 @@ struct SidebarView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// New Project, and the two ways to start a session. Sized like the rows above it, with
+    /// hit areas that light up on hover, so the corner is easy to find and to click.
     private var footer: some View {
-        HStack(spacing: 4) {
-            Button(action: onNewProject) {
+        HStack(spacing: 2) {
+            FooterButton(style: style, help: "New Project", action: onNewProject) {
                 Label("New Project", systemImage: "plus")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
+                    .labelStyle(FooterLabelStyle())
+                    .padding(.horizontal, 8)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(style.secondary)
             Spacer()
-            Button(action: actions.newScratchSession) {
+            FooterButton(style: style, help: "New Scratch Session (⌘⇧N)", action: actions.newScratchSession) {
                 Image(systemName: "square.dashed")
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
+                    .frame(width: 28)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(style.secondary)
-            .help("New Scratch Session (⌘⇧N)")
             .accessibilityLabel("New scratch session")
-            Button(action: onNewSession) {
+            FooterButton(style: style, help: "New Session (⌘T)", action: onNewSession) {
                 Image(systemName: "square.and.pencil")
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
+                    .frame(width: 28)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(style.secondary)
-            .help("New Session (⌘T)")
-            .padding(.leading, 8)
+            .accessibilityLabel("New session")
         }
-        .padding(.horizontal, 16)
-        .frame(height: 40)
+        .padding(.horizontal, 10)
+        .frame(height: 46)
+    }
+}
+
+/// A footer control: a 28-point target with a quiet hover background.
+private struct FooterButton<Label: View>: View {
+    let style: SidebarStyle
+    let help: String
+    let action: () -> Void
+    @ViewBuilder let label: Label
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .frame(height: 28)
+                .foregroundStyle(hovering ? style.primary : style.secondary)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hovering ? style.selection : .clear))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help)
+    }
+}
+
+private struct FooterLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon.font(.system(size: 12, weight: .medium))
+            configuration.title
+        }
     }
 }
 

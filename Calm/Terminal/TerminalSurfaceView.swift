@@ -1,4 +1,5 @@
 import AppKit
+import CalmControl
 import GhosttyKit
 
 /// Whoever lays out terminal panes (a window's split container) and reacts to their requests.
@@ -126,6 +127,7 @@ final class TerminalSurfaceView: NSView {
 
         var env = options.environment
         env["CALM_SESSION_ID"] = id.uuidString
+        env["CALM_SOCKET"] = ControlProtocol.defaultSocketPath
         let keys = env.keys.sorted().map { strdup($0) }
         let values = env.keys.sorted().map { strdup(env[$0] ?? "") }
         defer {

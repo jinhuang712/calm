@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         if !isTesting {
             SessionManager.shared.restore()
+            ControlServer.shared.start()
             TerminalWindowManager.shared.openMainWindow()
         }
         NSApp.activate()
@@ -40,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_: Notification) {
+        ControlServer.shared.stop()
         SessionManager.shared.prepareForQuit()
     }
 

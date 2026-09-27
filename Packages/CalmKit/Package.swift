@@ -9,9 +9,12 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "CalmModel", targets: ["CalmModel"]),
+        .library(name: "CalmControl", targets: ["CalmControl"]),
     ],
     targets: [
         .target(name: "CalmModel"),
+        .target(name: "CalmControl"),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"]),
+        .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
     ],
 )

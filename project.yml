@@ -35,6 +35,11 @@ targets:
     dependencies:
       - package: CalmKit
         product: CalmModel
+      - package: CalmKit
+        product: CalmControl
+      - target: calm-cli
+        embed: false
+        link: false
       - framework: Frameworks/GhosttyKit.xcframework
         embed: false
       - sdk: Carbon.framework
@@ -81,6 +86,11 @@ targets:
           if [[ -d "$share/terminfo" ]]; then
             rsync -a --delete "$share/terminfo/" "$dest/terminfo/"
           fi
+          # The `calm` command-line tool, next to zmx.
+          if [[ -x "${BUILT_PRODUCTS_DIR}/calm" ]]; then
+            mkdir -p "$dest/bin"
+            cp "${BUILT_PRODUCTS_DIR}/calm" "$dest/bin/calm"
+          fi
           # zmx keeps shells alive across quits (scripts/zmx.sh).
           if [[ -x "${PROJECT_DIR}/Frameworks/bin/zmx" ]]; then
             mkdir -p "$dest/bin"
@@ -110,6 +120,9 @@ targets:
     platform: macOS
     sources:
       - path: CLI
+    dependencies:
+      - package: CalmKit
+        product: CalmControl
     settings:
       base:
         PRODUCT_NAME: calm

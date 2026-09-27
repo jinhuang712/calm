@@ -46,6 +46,7 @@ fi
 
 env \
   CALM_STATE_FILE="$state" \
+  CALM_SOCKET="/tmp/calm-selftest-$name.sock" \
   CALM_NO_PERSISTENCE="$([[ -n "$persist" ]] && echo 0 || echo 1)" \
   CALM_SNAPSHOT="$out/$name.png" \
   CALM_SELFTEST_TEXT="$out/$name.txt" \

@@ -98,6 +98,21 @@ struct ThemeTests {
         #expect(library.problems.count == 3)
     }
 
+    @Test func `the Ghostty theme a Ghostty config sets`() {
+        #expect(CalmTheme.ghosttyThemePair(configText: "font-size = 13\n") == nil)
+        let single = CalmTheme.ghosttyThemePair(configText: "theme = Nord\n")
+        #expect(single?.light == "Nord" && single?.dark == "Nord")
+        let pair = CalmTheme.ghosttyThemePair(configText: """
+        # theme = Old
+        theme = "Old"
+        theme = light:Paper Light, dark:Ink Dark
+        """)
+        #expect(pair?.light == "Paper Light" && pair?.dark == "Ink Dark")
+        let darkOnly = CalmTheme.ghosttyThemePair(configText: "theme = dark:Night\n")
+        #expect(darkOnly?.light == "Night" && darkOnly?.dark == "Night")
+        #expect(CalmTheme.ghosttyThemePair(configText: "theme = Nord\ntheme =\n") == nil) // reset
+    }
+
     // MARK: The built-in set
 
     private static let builtInFolder = URL(filePath: #filePath)

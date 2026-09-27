@@ -26,6 +26,9 @@ enum MainMenu {
         let menu = NSMenu(title: "Calm")
         menu.addItem(withTitle: "About Calm", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         menu.addItem(.separator())
+        let settings = NSMenuItem(title: "Settings…", action: #selector(TerminalMenuTarget.showSettings(_:)), keyEquivalent: ",")
+        settings.target = TerminalMenuTarget.shared
+        menu.addItem(settings)
         let agents = NSMenuItem(title: "Agents…", action: #selector(TerminalMenuTarget.showAgentsPanel(_:)), keyEquivalent: "")
         agents.target = TerminalMenuTarget.shared
         menu.addItem(agents)
@@ -173,6 +176,10 @@ final class TerminalMenuTarget: NSObject {
     /// ⌘K: search every session.
     @objc func searchSessions(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().toggleSearch()
+    }
+
+    @objc func showSettings(_: Any?) {
+        SettingsWindowController.shared.show()
     }
 
     @objc func showAgentsPanel(_: Any?) {

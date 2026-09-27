@@ -115,7 +115,10 @@
 
         /// Renders the whole window frame (title bar included) through AppKit's cache.
         static func snapshotKeyWindow(to url: URL) -> Bool {
-            guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible),
+            // CALM_SNAPSHOT_WINDOW picks a window by title (e.g. Settings); else the key or first visible one.
+            let title = ProcessInfo.processInfo.environment["CALM_SNAPSHOT_WINDOW"].flatMap { $0.isEmpty ? nil : $0 }
+            let titled = title.flatMap { title in NSApp.windows.first { $0.title == title && $0.isVisible } }
+            guard let window = titled ?? NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible),
                   let frameView = window.contentView?.superview
             else { return false }
             let bounds = frameView.bounds

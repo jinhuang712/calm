@@ -93,6 +93,40 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
         self.dark = dark
     }
 
+    /// The Ghostty theme a Ghostty config sets (the last `theme =` line): one name, or a
+    /// `light:…,dark:…` pair.
+    public static func ghosttyThemePair(configText: String) -> (light: String, dark: String)? {
+        var pair: (light: String, dark: String)?
+        for line in configText.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.hasPrefix("#"), let equals = trimmed.firstIndex(of: "="),
+                  trimmed[..<equals].trimmingCharacters(in: .whitespaces) == "theme" else { continue }
+            var value = trimmed[trimmed.index(after: equals)...].trimmingCharacters(in: .whitespaces)
+            if value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
+                value = String(value.dropFirst().dropLast())
+            }
+            guard !value.isEmpty else {
+                pair = nil
+                continue
+            }
+            var light: String?
+            var dark: String?
+            for part in value.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+                if part.hasPrefix("light:") {
+                    light = String(part.dropFirst(6))
+                } else if part.hasPrefix("dark:") {
+                    dark = String(part.dropFirst(5))
+                }
+            }
+            if light == nil, dark == nil {
+                pair = (value, value)
+            } else if let either = light ?? dark {
+                pair = (light ?? either, dark ?? either)
+            }
+        }
+        return pair
+    }
+
     /// `#rrggbb` (lowercased), from `#rrggbb` or `rrggbb`.
     static func hex(_ text: String) -> String? {
         var value = text.trimmingCharacters(in: .whitespaces).lowercased()

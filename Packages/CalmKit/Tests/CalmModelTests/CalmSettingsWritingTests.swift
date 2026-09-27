@@ -59,4 +59,16 @@ struct CalmSettingsWritingTests {
         #expect(saved.notificationSound)
         #expect(CalmSettings.load(from: url).notificationSound)
     }
+
+    @Test func `removing a key keeps everything else, and the same name in another section`() throws {
+        let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
+        #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")
+        #expect(CalmSettings.removing("agents.sound", in: text).contains("sound") == false)
+        #expect(CalmSettings.removing("nothing", in: text) == text)
+
+        let url = FileManager.default.temporaryDirectory.appending(path: "calm-\(UUID().uuidString)/config.toml")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try CalmSettings.save("theme", "Dune", to: url)
+        #expect(try CalmSettings.save("theme", nil, to: url).themeName == nil)
+    }
 }

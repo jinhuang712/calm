@@ -65,11 +65,30 @@ public extension CalmSettings {
         return result
     }
 
-    /// Writes one setting to config.toml (creating it if needed) and returns the settings as saved.
+    /// Removes one key from config.toml text, keeping every other line (the default applies again).
+    static func removing(_ key: String, in text: String) -> String {
+        let parts = key.split(separator: ".", maxSplits: 1).map(String.init)
+        let (section, name) = parts.count == 2 ? (parts[0], parts[1]) : ("", parts[0])
+        var current = ""
+        var lines = text.components(separatedBy: "\n")
+        lines.removeAll { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("["), trimmed.hasSuffix("]") {
+                current = String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+                return false
+            }
+            guard current == section, let equals = trimmed.firstIndex(of: "=") else { return false }
+            return trimmed[..<equals].trimmingCharacters(in: .whitespaces) == name
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Writes one setting to config.toml (creating it if needed), or removes it for `nil`, and
+    /// returns the settings as saved.
     @discardableResult
-    static func save(_ key: String, _ value: String, to url: URL = standardURL) throws -> CalmSettings {
+    static func save(_ key: String, _ value: String?, to url: URL = standardURL) throws -> CalmSettings {
         let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        let updated = setting(key, to: value, in: text)
+        let updated = value.map { setting(key, to: $0, in: text) } ?? removing(key, in: text)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try updated.write(to: url, atomically: true, encoding: .utf8)
         return CalmSettings(text: updated)

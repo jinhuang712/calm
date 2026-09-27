@@ -65,7 +65,68 @@ final class TerminalConfig: @unchecked Sendable {
         return config
     }
 
+    /// The colors the user's own Ghostty config sets for one appearance, read without Calm's
+    /// files; `nil` when it leaves them at Ghostty's defaults. The theme picker offers these as the
+    /// "Ghostty" choice.
+    ///
+    /// A config only resolves `theme = light:…,dark:…` inside a surface, so the pair is read from
+    /// the files and the probe gets one extra line naming the variant; colors the user set
+    /// directly still win over it, as they do in the terminal.
+    @MainActor
+    static func userColors(dark: Bool) -> Colors? {
+        guard ProcessInfo.processInfo.environment["CALM_GHOSTTY_CONFIG"] != "none", let raw = ghostty_config_new() else {
+            return nil
+        }
+        ghostty_config_load_default_files(raw)
+        let text = userConfigFiles.compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+        if let pair = CalmTheme.ghosttyThemePair(configText: text) {
+            let probe = CalmDefaults.directory.appending(path: "ghostty-theme-probe.ghostty")
+            try? FileManager.default.createDirectory(at: CalmDefaults.directory, withIntermediateDirectories: true)
+            if (try? "theme = \(dark ? pair.dark : pair.light)\n".write(to: probe, atomically: true, encoding: .utf8)) != nil {
+                probe.path.withCString { ghostty_config_load_file(raw, $0) }
+            }
+        }
+        ghostty_config_load_recursive_files(raw)
+        ghostty_config_finalize(raw)
+        let config = TerminalConfig(owning: raw)
+        guard let background = config.color("background"), let foreground = config.color("foreground") else { return nil }
+        // Ghostty's own defaults (Config.zig): the user set no colors.
+        if background.hexString == "#282c34", foreground.hexString == "#ffffff" {
+            return nil
+        }
+        return Colors(background: background, foreground: foreground, palette: config.palette)
+    }
+
+    struct Colors {
+        var background: NSColor
+        var foreground: NSColor
+        var palette: [NSColor]
+    }
+
+    /// The files `ghostty_config_load_default_files` reads on macOS, in its order.
+    private static var userConfigFiles: [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let xdg = ProcessInfo.processInfo.environment["XDG_CONFIG_HOME"].map { URL(filePath: $0) }
+            ?? home.appending(path: ".config")
+        let support = home.appending(path: "Library/Application Support/com.mitchellh.ghostty")
+        return [
+            xdg.appending(path: "ghostty/config"), xdg.appending(path: "ghostty/config.ghostty"),
+            support.appending(path: "config"), support.appending(path: "config.ghostty"),
+        ]
+    }
+
     // MARK: Typed reads
+
+    /// The 16 ANSI colors.
+    var palette: [NSColor] {
+        var value = ghostty_config_palette_s()
+        guard get("palette", into: &value) else { return [] }
+        return withUnsafeBytes(of: value.colors) { bytes in
+            bytes.bindMemory(to: ghostty_config_color_s.self).prefix(16).map {
+                NSColor(srgbRed: CGFloat($0.r) / 255, green: CGFloat($0.g) / 255, blue: CGFloat($0.b) / 255, alpha: 1)
+            }
+        }
+    }
 
     func bool(_ key: String) -> Bool? {
         var value = false

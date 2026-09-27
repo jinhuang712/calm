@@ -34,6 +34,7 @@ headless=1
 search_home=""
 ghostty_config=none
 appearance=""
+snapshot_window=""
 shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --search-home) search_home="$2"; shift 2 ;; # transcripts to index for search (default: none, never the real home)
     --ghostty-config) ghostty_config=user; shift ;; # read the user's Ghostty config too (default: Calm's defaults only)
     --appearance) appearance="$2"; shift 2 ;; # light or dark instead of the system's
+    --window) snapshot_window="$2"; shift 2 ;; # snapshot the window with this title (e.g. Settings)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -89,6 +91,7 @@ env \
   CALM_SUPPORT_DIR="$support_dir" \
   CALM_GHOSTTY_CONFIG="$ghostty_config" \
   CALM_APPEARANCE="$appearance" \
+  CALM_SNAPSHOT_WINDOW="$snapshot_window" \
   CALM_CONFIG_FILE="$config_file" \
   CALM_ZMX_DIR="$zmx_dir" \
   CALM_INDEX_FILE="$index_file" \

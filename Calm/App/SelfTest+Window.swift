@@ -13,6 +13,11 @@
                 toggleSidebar()
             case "toggle_files":
                 toggleFiles()
+            case "settings":
+                TerminalMenuTarget.shared.showSettings(nil)
+            case let theme where theme.hasPrefix("pick_theme:"):
+                // What a click on a theme in Settings does
+                SettingsWindowController.shared.themes.pick(String(theme.dropFirst(11)).lowercased())
             case "viewer_text":
                 Task { @MainActor in
                     let text = await fileViewer.renderedTextForTesting() ?? "no page"
@@ -51,6 +56,8 @@
                 searchAndOpenForTesting(String(search.dropFirst(12)))
             case "cmd_k":
                 pressKeyEquivalentForTesting(keyCode: 40, characters: "k")
+            case "cmd_comma":
+                pressKeyEquivalentForTesting(keyCode: 43, characters: ",")
             case "cmd_shift_e":
                 pressKeyEquivalentForTesting(keyCode: 14, characters: "e", modifiers: [.command, .shift])
             case "arrival":

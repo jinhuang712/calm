@@ -163,7 +163,7 @@ Calm looks right out of the box, and making it yours takes a minute.
 
 - [x] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs. *Built: six families in light and dark, generated and contrast-checked; the default gives way to the user's Ghostty theme, a picked one (`theme` in config.toml) wins and follows the appearance.*
 - [x] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme. *Built: the theme's sidebar, text, accent and red when its background is on screen; derived from the terminal otherwise.*
-- [ ] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance.
+- [x] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance. *Built: Settings (⌘,) → Theme, a grid of previews in the current appearance, plus a Ghostty choice when the user's Ghostty config has its own colors.*
 - [ ] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background.
 - [ ] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys.
 - [ ] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast.

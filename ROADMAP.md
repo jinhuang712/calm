@@ -21,7 +21,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | 🟨 |
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
-| **M4** Recall | search across every agent's history | F7 | M2 | ⬜ |
+| **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ⬜ |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | ⬜ |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ⬜ |
@@ -120,12 +120,12 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 
 ---
 
-## M4 — Recall (F7) ⬜
+## M4 — Recall (F7) 🟨
 
 Any past conversation, across every agent, is one search away.
 
-- [ ] **M4.1 Transcript parsers:** one per agent, tested against fixture files from real sessions; failures degrade quietly.
-- [ ] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
+- [x] **M4.1 Transcript parsers:** one per agent, tested against fixture files from real sessions; failures degrade quietly.
+- [x] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
 - [ ] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing with file watching and stored offsets; user and agent messages only.
 - [ ] **M4.4 Ranking:** BM25 plus boosts for title matches, recency and the current project; unit-tested.
 - [ ] **M4.5 CLI:** `calm search <text>`.

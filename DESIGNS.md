@@ -172,8 +172,9 @@ Window titles aren't used: agents' title formats vary and change. Calm never pla
 ## Search
 
 - **Engine:** SQLite FTS5 with `bm25()` ranking, in `~/Library/Application Support/Calm/index.sqlite`.
-- **Tokenizer — Decision:** `trigram` handles Chinese and partial words but makes the index larger and can't match one- or two-character queries; `unicode61` is smaller but cannot segment Chinese. Benchmark both on real transcripts before choosing; a hybrid of two tables is possible.
+- **Tokenizer — Decided (M4.2): `trigram`, with a `LIKE` scan for queries under three characters.** Benchmark on the author's history (2026-09-27; 13,879 messages, 4.3M characters extracted from 1.4 GB of Claude Code, Codex and pi transcripts): trigram matched plain substring search on every test query (whole words, partial words such as `persist`/`notif`, Chinese such as `终端`/`审核记录`); unicode61 missed partial words (6 of 15, 1 of 13) and most Chinese (7 of 56, 0 of 6). Trigram index 35 MB vs 18 MB, built in 0.6 s; queries ≤ 1 ms, 2-character `LIKE` ≈ 10 ms.
 - **Indexed content:** user and agent messages only; tool calls, tool output and file dumps are skipped.
+- **Parsers (M4.1):** `TranscriptIndexing` adapters read complete JSONL records from a byte offset (`JSONLReader` stops at the last newline, so a file being written is read again later from there). Claude Code: `user` text (string or blocks; not `isMeta`, not tag-wrapped) and `assistant` text blocks, top-level files only (not `subagents/`). Codex: `response_item` messages with role user/assistant, skipping `developer` messages, tag-wrapped context and the injected `# AGENTS.md instructions` block. pi and omp: `message` text blocks of user/assistant (no thinking, tool calls or results). Each also gathers the session id, folder, title and first prompt. Checked against the real history: the Swift counts match the benchmark's (Codex 5,747 and pi 3,103 messages exactly).
 - **Incremental indexing:** FSEvents watches the agents' transcript folders; each file's byte offset is stored so only new lines are parsed.
 - **Schema sketch:**
 

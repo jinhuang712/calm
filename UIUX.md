@@ -123,9 +123,9 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 | Motion | Behavior |
 |---|---|
-| Smooth scrolling | scrollback glides with the trackpad instead of jumping line by line |
-| Smooth cursor | the cursor glides to its new position instead of teleporting (through Ghostty's custom-shader support) |
-| Cursor trail | a faint, short trail behind fast cursor moves; subtle enough to go unnoticed until it's gone |
+| Smooth scrolling | scrollback glides with the trackpad instead of jumping line by line. **Blocked:** upstream Ghostty scrolls by whole rows; pixel-smooth scrolling needs an engine change (see DESIGNS.md) |
+| Smooth cursor | a soft smear follows the cursor when it jumps (not when typing moves it one cell), fading in about 140 ms. Calm's own shader `cursor_glide.glsl`, loaded through Ghostty's custom-shader support |
+| Cursor trail | part of the same shader: the smear's tail catches up with its head, so it reads as a short trail |
 
 **Window**
 

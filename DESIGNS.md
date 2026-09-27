@@ -196,6 +196,11 @@ layout = "edge"           # or "card"
 
 Built-in themes are bundled; user themes live in `~/.config/calm/themes/`.
 
+## Motion in the terminal
+
+- **Cursor glide:** `Calm/Resources/Shaders/cursor_glide.glsl`, a Ghostty custom shader using the `iCurrentCursor`/`iPreviousCursor`/`iTimeCursorChange` uniforms. `CalmDefaults` writes `~/Library/Application Support/Calm/defaults.ghostty` on each launch with `custom-shader` and `custom-shader-animation = true`, and loads it **before** the user's Ghostty config, so the user's settings win. It is skipped when Reduce Motion is on. Cost: while a custom shader is active, the focused pane runs an animation loop (Ghostty's docs estimate under 10% CPU).
+- **Smooth scrolling:** not possible with upstream Ghostty today. The renderer only draws whole rows; sub-row offsets need an engine change. **Decision (later):** propose it upstream, or carry a small patch in `scripts/ghosttykit.sh`. Until then Calm scrolls like Ghostty.
+
 ## Configuration
 
 - One file: `~/.config/calm/config.toml`. The settings screen reads and writes it.

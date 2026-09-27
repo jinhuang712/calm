@@ -28,6 +28,10 @@ final class TerminalConfig: @unchecked Sendable {
         guard let raw = ghostty_config_new() else {
             fatalError("libghostty could not allocate a config")
         }
+        // Calm's defaults go first so anything in the user's own config wins.
+        if let defaults = CalmDefaults.write() {
+            defaults.path.withCString { ghostty_config_load_file(raw, $0) }
+        }
         ghostty_config_load_default_files(raw)
         if FileManager.default.fileExists(atPath: overridesURL.path) {
             overridesURL.path.withCString { ghostty_config_load_file(raw, $0) }

@@ -16,12 +16,17 @@ description = "Install tools, build GhosttyKit, generate the Xcode project"
 run = [
   "mise install",
   "scripts/ghosttykit.sh",
+  "scripts/zmx.sh",
   "xcodegen generate --quiet",
 ]
 
 [tasks.ghosttykit]
 description = "Build (or reuse the cached) GhosttyKit.xcframework for the pinned Ghostty"
 run = "scripts/ghosttykit.sh"
+
+[tasks.zmx]
+description = "Download the pinned zmx (session persistence) into Frameworks/bin"
+run = "scripts/zmx.sh"
 
 [tasks.generate]
 description = "Generate Calm.xcodeproj from project.yml"

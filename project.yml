@@ -81,6 +81,11 @@ targets:
           if [[ -d "$share/terminfo" ]]; then
             rsync -a --delete "$share/terminfo/" "$dest/terminfo/"
           fi
+          # zmx keeps shells alive across quits (scripts/zmx.sh).
+          if [[ -x "${PROJECT_DIR}/Frameworks/bin/zmx" ]]; then
+            mkdir -p "$dest/bin"
+            cp "${PROJECT_DIR}/Frameworks/bin/zmx" "$dest/bin/zmx"
+          fi
     scheme:
       testTargets:
         - CalmTests

@@ -110,10 +110,36 @@ Rules:
 
 ## Motion
 
+Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by default; it is soft, never showy.
+
+**Principles**
+
 - Motion explains change: rows slide when sessions move between projects, panels ease in and out.
 - Durations are short and easing is gentle; nothing bounces or flashes.
 - The *working* pulse is slow and low-contrast so it never pulls the eye.
 - Everything respects **Reduce Motion**.
+
+**Terminal**
+
+| Motion | Behavior |
+|---|---|
+| Smooth scrolling | scrollback glides with the trackpad instead of jumping line by line |
+| Smooth cursor | the cursor glides to its new position instead of teleporting (through Ghostty's custom-shader support) |
+| Cursor trail | a faint, short trail behind fast cursor moves; subtle enough to go unnoticed until it's gone |
+
+**Window**
+
+| Motion | Behavior |
+|---|---|
+| Splits | new panes grow into place and closed panes fold away |
+| Sidebar | when hidden, it peeks in as the pointer nears the edge and slides away again |
+| Session switching | cycling sessions shows small live previews, then settles on the chosen one |
+| Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping |
+| Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
+| Arrival card | fades in on arrival and dissolves when you type |
+| Adaptive background | the window's chrome gently follows the background color a full-screen app paints |
+
+**Settings:** Settings → Appearance holds one motion control (full, reduced or off). Individual effects stay adjustable in the config file.
 
 ## Themes
 
@@ -125,7 +151,7 @@ Rules:
 
 | Section | Contents |
 |---|---|
-| **Appearance** | theme picker, font and size, glass or solid |
+| **Appearance** | theme picker, font and size, glass or solid, motion (full, reduced, off) |
 | **General** | editor, where paths open, auto-grouping |
 | **Agents** | which states notify, sound |
 | **Keys** | shortcuts |

@@ -62,8 +62,9 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [ ] **M1.5 Clipboard:** copy, paste, OSC 52.
 - [ ] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
 - [ ] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
-- [ ] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers.
+- [ ] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
 - [ ] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
+- [ ] **M1.13 Terminal motion:** smooth scrolling, smooth cursor, subtle cursor trail (see UIUX.md → Motion).
 - [ ] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
 - [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Optional for this milestone; may move later.*
 - [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found.
@@ -82,7 +83,7 @@ The core model arrives: sessions grouped under projects, restored after quitting
 - [ ] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
 - [ ] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
 - [ ] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
-- [ ] **M2.6 Motion:** animated moves between projects; respects Reduce Motion.
+- [ ] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
 - [ ] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first).
 - [ ] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.
 - [ ] **M2.9 Control socket and CLI:** the `calm` CLI with `open` and `list` over the local socket.
@@ -157,7 +158,7 @@ Calm looks right out of the box, and making it yours takes a minute.
 - [ ] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs.
 - [ ] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme.
 - [ ] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance.
-- [ ] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout.
+- [ ] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background.
 - [ ] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys.
 - [ ] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast.
 

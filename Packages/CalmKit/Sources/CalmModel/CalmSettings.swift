@@ -1,0 +1,82 @@
+import Foundation
+
+/// Calm's own settings from `~/.config/calm/config.toml`.
+///
+/// Only flat `key = value` lines are needed (strings, booleans, numbers), so this reads that
+/// subset of TOML: comments with `#`, `[sections]` flatten to `section.key`. Unknown keys are
+/// kept, so a future settings screen can write the file back without losing anything.
+public struct CalmSettings: Equatable, Sendable {
+    public private(set) var values: [String: String] = [:]
+    public private(set) var problems: [String] = []
+
+    public init() {}
+
+    public init(text: String) {
+        var section = ""
+        for (number, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+            let line = Self.stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
+            if line.isEmpty {
+                continue
+            }
+            if line.hasPrefix("["), line.hasSuffix("]") {
+                section = String(line.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+                continue
+            }
+            guard let equals = line.firstIndex(of: "=") else {
+                problems.append("line \(number + 1): expected key = value")
+                continue
+            }
+            let key = line[..<equals].trimmingCharacters(in: .whitespaces)
+            var value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespaces)
+            if value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
+                value = String(value.dropFirst().dropLast())
+            }
+            values[section.isEmpty ? key : "\(section).\(key)"] = value
+        }
+    }
+
+    /// `~/.config/calm/config.toml`, overridable with `CALM_CONFIG_FILE` (self-tests, development).
+    public static var standardURL: URL {
+        if let override = ProcessInfo.processInfo.environment["CALM_CONFIG_FILE"], !override.isEmpty {
+            return URL(filePath: override)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.appending(path: ".config/calm/config.toml")
+    }
+
+    public static func load(from url: URL = standardURL) -> CalmSettings {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return CalmSettings() }
+        return CalmSettings(text: text)
+    }
+
+    public func bool(_ key: String, default fallback: Bool) -> Bool {
+        switch values[key]?.lowercased() {
+        case "true", "yes", "on", "1": true
+        case "false", "no", "off", "0": false
+        default: fallback
+        }
+    }
+
+    public func string(_ key: String) -> String? {
+        values[key]
+    }
+
+    // MARK: Known settings
+
+    /// Sessions move between projects when their folder changes (FEATURES.md → F2).
+    public var autoGrouping: Bool {
+        bool("auto-grouping", default: true)
+    }
+
+    private static func stripComment(_ line: String) -> String {
+        var inQuotes = false
+        for (index, character) in line.enumerated() {
+            if character == "\"" {
+                inQuotes.toggle()
+            }
+            if character == "#", !inQuotes {
+                return String(line.prefix(index))
+            }
+        }
+        return line
+    }
+}

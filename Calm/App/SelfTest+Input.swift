@@ -11,19 +11,26 @@
             "l": 37, "j": 38, "k": 40, ";": 41, ",": 43, "/": 44, "n": 45, "m": 46, ".": 47, " ": 49,
         ]
 
+        /// Characters typed with Shift on a US layout, and the key they share.
+        private static let shifted: [Character: Character] = [
+            "!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0",
+            "_": "-", "+": "=", ":": ";", "<": ",", ">": ".", "?": "/",
+        ]
+
         /// Sends each character as a real key-down/key-up pair through the keyboard path
-        /// (performKeyEquivalent is skipped: these keys have no modifiers).
+        /// (performKeyEquivalent is skipped: these keys use at most Shift).
         func pressKeysForTesting(_ text: String) -> Int {
             guard let window else { return 0 }
             var sent = 0
             for character in text {
-                guard let code = Self.keyCodes[character] else { continue }
-                let string = String(character)
+                let base = Self.shifted[character] ?? Character(character.lowercased())
+                guard let code = Self.keyCodes[base] else { continue }
+                let flags: NSEvent.ModifierFlags = base == character ? [] : .shift
                 for type in [NSEvent.EventType.keyDown, .keyUp] {
                     guard let event = NSEvent.keyEvent(
-                        with: type, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                        windowNumber: window.windowNumber, context: nil, characters: string,
-                        charactersIgnoringModifiers: string, isARepeat: false, keyCode: code,
+                        with: type, location: .zero, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: window.windowNumber, context: nil, characters: String(character),
+                        charactersIgnoringModifiers: String(base), isARepeat: false, keyCode: code,
                     ) else { continue }
                     if type == .keyDown {
                         keyDown(with: event)

@@ -22,6 +22,8 @@ drag=""
 resize=""
 persist=""
 state=""
+config=""
+shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --type) type_text="$2"; shift 2 ;;
@@ -32,6 +34,8 @@ while [[ $# -gt 0 ]]; do
     --resize) resize="$2"; shift 2 ;; # e.g. 700x420: resize the window and log the grid size
     --persist) persist=1; shift ;;   # keep zmx persistence on (default: off, so runs leave nothing behind)
     --state) state="$2"; shift 2 ;;  # use this state file (default: a fresh one per run)
+    --plain-shell) shell=/bin/bash; shift ;; # persistent sessions get no shell integration (no OSC 7)
+    --config) config="$2"; shift 2 ;; # Calm settings text for config.toml (default: none, so defaults)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -44,8 +48,13 @@ if [[ -z "$state" ]]; then
   rm -f "$state"
 fi
 
+config_file="$out/$name.config.toml"
+printf '%b' "$config" > "$config_file"
+
 env \
   CALM_STATE_FILE="$state" \
+  CALM_CONFIG_FILE="$config_file" \
+  SHELL="$shell" \
   CALM_SOCKET="/tmp/calm-selftest-$name.sock" \
   CALM_NO_PERSISTENCE="$([[ -n "$persist" ]] && echo 0 || echo 1)" \
   CALM_SNAPSHOT="$out/$name.png" \

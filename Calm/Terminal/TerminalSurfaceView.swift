@@ -58,6 +58,8 @@ final class TerminalSurfaceView: NSView {
     weak var host: TerminalSurfaceHost?
 
     private(set) var title = ""
+    /// Whether the shell reports its folder itself (OSC 7); if not, Calm looks it up.
+    var reportsWorkingDirectory = false
     var workingDirectory: String? {
         didSet {
             if workingDirectory != oldValue {

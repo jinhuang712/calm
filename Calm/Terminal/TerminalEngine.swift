@@ -1,4 +1,5 @@
 import AppKit
+import CalmModel
 import GhosttyKit
 
 /// Receives app-level requests from the engine (new windows, quitting).
@@ -124,6 +125,7 @@ final class TerminalEngine {
         let fresh = TerminalConfig.load()
         ghostty_app_update_config(app, fresh.raw)
         config = fresh
+        SessionManager.shared.settings = CalmSettings.load()
     }
 
     private func reloadConfig(surface: ghostty_surface_t, soft: Bool) {
@@ -235,6 +237,7 @@ final class TerminalEngine {
             view.setTitle(String(cString: title))
         case GHOSTTY_ACTION_PWD:
             guard let view, let pwd = action.action.pwd.pwd else { return false }
+            view.reportsWorkingDirectory = true
             view.workingDirectory = String(cString: pwd)
         case GHOSTTY_ACTION_MOUSE_SHAPE:
             view?.setMouseShape(action.action.mouse_shape)

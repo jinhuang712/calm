@@ -47,6 +47,27 @@ enum PersistentShell {
         return Set(output.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
     }
 
+    /// The shell process of each live zmx session, from `zmx list` (`name=… pid=… …` per line).
+    static func shellProcesses() -> [String: pid_t] {
+        guard let output = run(["list"]) else { return [:] }
+        return parseShellProcesses(output)
+    }
+
+    static func parseShellProcesses(_ listing: String) -> [String: pid_t] {
+        var result: [String: pid_t] = [:]
+        for line in listing.split(whereSeparator: \.isNewline) {
+            var fields: [Substring: Substring] = [:]
+            for field in line.split(whereSeparator: { $0 == "\t" || $0 == " " }) {
+                guard let equals = field.firstIndex(of: "=") else { continue }
+                fields[field[..<equals]] = field[field.index(after: equals)...]
+            }
+            if let name = fields["name"], let pid = fields["pid"].flatMap({ pid_t($0) }) {
+                result[String(name)] = pid
+            }
+        }
+        return result
+    }
+
     /// Ends a zmx session and the shell in it.
     static func kill(name: String) {
         _ = run(["kill", name, "--force"])

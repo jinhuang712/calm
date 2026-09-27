@@ -25,8 +25,13 @@ final class SessionManager {
     /// Turned off for the rest of the run if persistent shells fail to start.
     @ObservationIgnored var persistenceEnabled = true
 
+    /// Calm's own settings (`~/.config/calm/config.toml`); re-read with Reload Configuration.
+    @ObservationIgnored var settings = CalmSettings.load()
+
     /// Whether sessions move between projects when their folder changes (config: `auto-grouping`).
-    @ObservationIgnored var autoGrouping = true
+    var autoGrouping: Bool {
+        settings.autoGrouping
+    }
 
     init(store: WorkspaceStore = .standard) {
         self.store = store
@@ -90,7 +95,13 @@ final class SessionManager {
         options.context = GHOSTTY_SURFACE_CONTEXT_SPLIT
         if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
             options.command = command
-            options.environment = PersistentShell.environment
+            let process = ProcessInfo.processInfo.environment
+            options.environment = PersistentShell.environment.merging(ShellIntegration.environment(
+                shell: process["SHELL"],
+                mode: TerminalEngine.shared.config?.string("shell-integration"),
+                resourcesDirectory: process["GHOSTTY_RESOURCES_DIR"],
+                inherited: process,
+            )) { current, _ in current }
         }
         let pane = TerminalSurfaceView(id: session.id, options: options)
         pane.host = host

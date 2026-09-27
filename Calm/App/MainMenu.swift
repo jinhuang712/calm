@@ -26,6 +26,10 @@ enum MainMenu {
         let menu = NSMenu(title: "Calm")
         menu.addItem(withTitle: "About Calm", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         menu.addItem(.separator())
+        let agents = NSMenuItem(title: "Agents…", action: #selector(TerminalMenuTarget.showAgentsPanel(_:)), keyEquivalent: "")
+        agents.target = TerminalMenuTarget.shared
+        menu.addItem(agents)
+        menu.addItem(.separator())
         menu.addItem(terminalItem("Reload Configuration", "reload_config", key: ",", mods: [.command, .shift]))
         menu.addItem(.separator())
         menu.addItem(withTitle: "Hide Calm", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
@@ -154,6 +158,10 @@ final class TerminalMenuTarget: NSObject {
         let current = manager.workspace.selectedLayout?.focusedSessionID
         guard let waiting = manager.workspace.sessionsNeedingYou.first(where: { $0.id != current }) else { return }
         TerminalWindowManager.shared.openMainWindow().select(waiting.id)
+    }
+
+    @objc func showAgentsPanel(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().showAgentsPanel()
     }
 
     /// ⌘⇧I: what the focused agent session is and last said.

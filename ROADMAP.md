@@ -102,15 +102,15 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
 - [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
 - [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
-- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code done: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. Codex, OpenCode and pi need files in their own config folders, so they wait for the consent screen (M3.11).*
+- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from the Agents panel, with consent and Disconnect. Codex and omp: their own notifications (hooks would need Codex's /hooks approval; later). OpenCode: a hint until its shared service can be tied to a terminal.*
 - [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
 - [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code done, including the agent's own title and Esc interruptions; Codex, OpenCode, pi and omp readers follow the same `TranscriptReading` protocol.*
 - [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
-- [ ] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
-- [ ] **M3.12 Agents settings:** which states notify, sound on or off.
+- [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
+- [x] **M3.12 Agents settings:** which states notify, sound on or off.
 
 **Exit criteria**
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.

@@ -57,6 +57,10 @@ public protocol AgentAdapter: Sendable {
     var packagePaths: [String] { get }
     /// Subcommands that start one of the agent's background helpers rather than a session.
     var helperSubcommands: Set<String> { get }
+    /// The agent's config folder relative to home: its presence means the agent is installed.
+    var configFolder: String? { get }
+    /// How the agent connects to Calm (the Agents panel).
+    var setup: AgentSetup { get }
 }
 
 public extension AgentAdapter {

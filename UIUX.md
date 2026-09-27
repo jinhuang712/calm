@@ -155,7 +155,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 |---|---|
 | **Appearance** | theme picker, font and size, glass or solid, motion (full, reduced, off) |
 | **General** | editor, where paths open, auto-grouping |
-| **Agents** | which states notify, sound |
+| **Agents** | how each installed agent connects (Connect/Disconnect where Calm must add a file), which states notify, sound. Available now as Calm → Agents… |
 | **Keys** | shortcuts |
 | **Advanced** (collapsed) | open config file, updates, SSH options |
 

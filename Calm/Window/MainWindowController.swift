@@ -12,6 +12,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var sidebarHost: NSHostingView<SidebarView>?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
+    private var agentsHost: NSView?
     private var sidebarWidth: NSLayoutConstraint?
     private var peek: SidebarPeek?
     private lazy var switcher = SessionSwitcher(controller: self)
@@ -318,6 +319,30 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window?.makeFirstResponder(host)
     }
 
+    // MARK: Agents panel
+
+    /// Calm → Agents…, and once at first launch.
+    func showAgentsPanel() {
+        guard agentsHost == nil else { return }
+        let view = AgentsPanelView(model: AgentsPanelModel(), style: sidebarStyle) { [weak self] in self?.hideAgentsPanel() }
+        let host = NSHostingView(rootView: view)
+        host.frame = container.bounds
+        host.autoresizingMask = [.width, .height]
+        container.addSubview(host, positioned: .above, relativeTo: nil)
+        agentsHost = host
+        Motion.fadeIn(host, duration: 0.15)
+        window?.makeFirstResponder(host)
+    }
+
+    private func hideAgentsPanel() {
+        guard let host = agentsHost else { return }
+        agentsHost = nil
+        Motion.fadeOutAndRemove(host, duration: 0.12)
+        if let focusedPane {
+            window?.makeFirstResponder(focusedPane)
+        }
+    }
+
     private func hideCommandPalette() {
         guard let host = paletteHost else { return }
         paletteHost = nil
@@ -495,6 +520,12 @@ final class TerminalWindowManager: TerminalEngineDelegate {
             controller.window?.center()
         }
         controller.showAndFocus()
+        // First launch: say how each agent connects, once (M3.11).
+        let shownKey = "CalmAgentsPanelShown"
+        if !Headless.isOn, !UserDefaults.standard.bool(forKey: shownKey) {
+            UserDefaults.standard.set(true, forKey: shownKey)
+            controller.showAgentsPanel()
+        }
         return controller
     }
 

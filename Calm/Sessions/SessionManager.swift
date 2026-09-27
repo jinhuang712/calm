@@ -206,11 +206,17 @@ final class SessionManager {
     /// Applies a status report (from a hook or a terminal signal) and passes on what it means
     /// for notifications.
     func report(_ id: Session.ID, _ report: StatusReport) {
+        let previous = workspace.session(id)?.state
         var effect = AttentionEffect.none
         Motion.animate(.easeInOut(duration: 0.25)) {
             effect = workspace.report(id, report, focusedSessionID: lookingAtSessionID)
         }
         AttentionCenter.shared.apply(effect, for: id)
+        // Opted in (Agents panel): a turn finishing or failing where you aren't looking notifies too.
+        if settings.notifyStates == .all, let state = workspace.session(id)?.state, state != previous,
+           state == .done || state == .failed, id != lookingAtSessionID {
+            AttentionCenter.shared.notify(report.message ?? state.label, for: id)
+        }
         scheduleSave()
     }
 

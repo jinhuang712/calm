@@ -12,6 +12,8 @@
                 toggleSidebar()
             case "peek":
                 peekForTesting()
+            case "agents":
+                showAgentsPanel()
             case "arrival":
                 showArrivalCard()
             case "jump_waiting":

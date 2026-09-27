@@ -118,7 +118,7 @@ final class AttentionCenter: NSObject {
         content.body = item.message
         content.threadIdentifier = item.sessionID.uuidString
         content.userInfo = ["session": item.sessionID.uuidString]
-        content.sound = nil // UIUX.md: no sound by default
+        content.sound = manager.settings.notificationSound ? .default : nil // UIUX.md: no sound by default
         let request = UNNotificationRequest(identifier: Self.identifier(for: item.sessionID), content: content, trigger: nil)
         let authorization = authorization ?? Task {
             await (try? UNUserNotificationCenter.current().requestAuthorization(options: [.alert])) ?? false

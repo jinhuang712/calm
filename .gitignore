@@ -12,7 +12,7 @@ xcuserdata/
 
 # Vendored engine builds
 vendor/ghostty/
-Frameworks/GhosttyKit.xcframework/
+Frameworks/
 
 # Local tools
 .serena/

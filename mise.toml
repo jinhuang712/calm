@@ -1,0 +1,57 @@
+# Toolchain and tasks for Calm Terminal.
+# Versions are pinned so local builds and CI agree.
+
+[tools]
+zig = "0.16.0"          # must match Ghostty's minimum_zig_version for the pinned Ghostty
+xcodegen = "2.45.4"
+swiftformat = "0.63.0"
+swiftlint = "0.65.1"
+xcbeautify = "3.2.1"
+
+[settings]
+experimental = true
+
+[tasks.setup]
+description = "Install tools, build GhosttyKit, generate the Xcode project"
+run = [
+  "mise install",
+  "scripts/ghosttykit.sh",
+  "xcodegen generate --quiet",
+]
+
+[tasks.ghosttykit]
+description = "Build (or reuse the cached) GhosttyKit.xcframework for the pinned Ghostty"
+run = "scripts/ghosttykit.sh"
+
+[tasks.generate]
+description = "Generate Calm.xcodeproj from project.yml"
+run = "xcodegen generate --quiet"
+
+[tasks.build]
+description = "Build the app (Debug)"
+depends = ["generate"]
+run = "scripts/xcode.sh build"
+
+[tasks.test]
+description = "Run all tests"
+depends = ["generate"]
+run = "scripts/xcode.sh test"
+
+[tasks.run]
+description = "Build and launch the app"
+depends = ["build"]
+run = "scripts/xcode.sh run"
+
+[tasks.lint]
+description = "Check formatting and lint"
+run = [
+  "swiftformat --lint --quiet .",
+  "swiftlint lint --quiet --strict",
+]
+
+[tasks.format]
+description = "Format all Swift code"
+run = [
+  "swiftformat --quiet .",
+  "swiftlint lint --quiet --fix",
+]

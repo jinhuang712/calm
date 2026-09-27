@@ -69,6 +69,7 @@ enum MainMenu {
         let menu = NSMenu(title: "View")
         menu.addItem(actionItem("Command Palette", #selector(TerminalMenuTarget.toggleCommandPalette(_:)), key: "p"))
         menu.addItem(actionItem("Toggle Sidebar", #selector(TerminalMenuTarget.toggleSidebar(_:)), key: "s", mods: [.command, .control]))
+        menu.addItem(actionItem("Toggle Files", #selector(TerminalMenuTarget.toggleFiles(_:)), key: "e", mods: [.command, .shift]))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Bigger", "increase_font_size:1", key: "+"))
         menu.addItem(terminalItem("Smaller", "decrease_font_size:1", key: "-"))
@@ -124,7 +125,10 @@ enum MainMenu {
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
-        let targeted = ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession", "showArrivalCard", "searchSessions"]
+        let targeted = [
+            "newSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession", "showArrivalCard",
+            "searchSessions",
+        ]
         if targeted.contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
         }
@@ -139,6 +143,10 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func newSession(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().newSession()
+    }
+
+    @objc func toggleFiles(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.toggleFiles()
     }
 
     @objc func toggleSidebar(_: Any?) {

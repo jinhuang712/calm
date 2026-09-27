@@ -11,6 +11,12 @@
                 newSession()
             case "toggle_sidebar":
                 toggleSidebar()
+            case "toggle_files":
+                toggleFiles()
+            case let file where file.hasPrefix("files_open:"):
+                // What a click on a file row does (a headless window is never key, so AppKit won't
+                // deliver the click to the list).
+                openFromFilesForTesting(String(file.dropFirst(11)))
             case "peek":
                 peekForTesting()
             case "agents":
@@ -36,6 +42,8 @@
                 searchAndOpenForTesting(String(search.dropFirst(12)))
             case "cmd_k":
                 pressKeyEquivalentForTesting(keyCode: 40, characters: "k")
+            case "cmd_shift_e":
+                pressKeyEquivalentForTesting(keyCode: 14, characters: "e", modifiers: [.command, .shift])
             case "arrival":
                 showArrivalCard()
             case "jump_waiting":
@@ -56,15 +64,15 @@
         /// is): the focused terminal first, then the menu item with that equivalent. The item's
         /// action is performed directly: a headless (accessory) app has no live menu bar, so
         /// `NSMenu.performKeyEquivalent` matches the item but doesn't dispatch it.
-        private func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String) {
+        private func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = .command) {
             guard let window, let event = NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: window.windowNumber, context: nil, characters: characters,
                 charactersIgnoringModifiers: characters, isARepeat: false, keyCode: keyCode,
             ) else { return }
             let terminalTookIt = focusedPane?.performKeyEquivalent(with: event) ?? false
             var menuItem: String?
-            if !terminalTookIt, let menu = NSApp.mainMenu, let (owner, index) = Self.item(in: menu, key: characters, modifiers: .command) {
+            if !terminalTookIt, let menu = NSApp.mainMenu, let (owner, index) = Self.item(in: menu, key: characters, modifiers: modifiers) {
                 menuItem = owner.items[index].title
                 owner.performActionForItem(at: index)
             }

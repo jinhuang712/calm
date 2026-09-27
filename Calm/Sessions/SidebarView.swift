@@ -36,6 +36,7 @@ struct SidebarStyle: Equatable {
 
 /// Projects and their sessions: the periphery, where status lives.
 struct SidebarView: View {
+    static let width: CGFloat = 280
     let manager: SessionManager
     let style: SidebarStyle
     let onSelect: (Session.ID) -> Void
@@ -69,8 +70,11 @@ struct SidebarView: View {
 
             footer
         }
+        .frame(width: Self.width)
         .frame(maxHeight: .infinity)
         .background(style.background)
+        // Laid out at full width and clipped while the sidebar slides, never squeezed.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .dropDestination(for: URL.self) { urls, _ in
             let folders = urls.filter(\.hasDirectoryPath)
             folders.forEach { manager.addProject(path: $0.path) }

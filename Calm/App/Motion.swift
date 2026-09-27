@@ -47,6 +47,31 @@ enum Motion {
         }
     }
 
+    /// Changes constraints and animates `container`'s subviews to their new frames. Presentation-only:
+    /// frames take their final values at once and only the layers glide, so the terminal is resized
+    /// once, not on every step (each resize reaches the program running in it), and a layout that
+    /// never animates is still right. AppKit's `animator()` frame animation steps on a timer that
+    /// stalls outside event handling. Views that shrink should clip content laid out at full width.
+    static func animateLayout(of container: NSView, duration: TimeInterval = 0.2, _ change: () -> Void) {
+        let before = container.subviews.map { ($0, $0.frame) }
+        change()
+        container.layoutSubtreeIfNeeded()
+        guard !isReduced else { return }
+        for (view, old) in before where view.frame != old {
+            guard let layer = view.layer else { continue }
+            let anchor = layer.anchorPoint
+            let position = CABasicAnimation(keyPath: "position")
+            position.fromValue = NSPoint(x: old.minX + anchor.x * old.width, y: old.minY + anchor.y * old.height)
+            let size = CABasicAnimation(keyPath: "bounds.size")
+            size.fromValue = old.size
+            let group = CAAnimationGroup()
+            group.animations = [position, size]
+            group.duration = duration
+            group.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(group, forKey: "calm.layout")
+        }
+    }
+
     /// Applies a state change with animation, or directly when motion is reduced.
     static func animate(_ animation: Animation = .smooth(duration: 0.3), _ body: () -> Void) {
         if isReduced {

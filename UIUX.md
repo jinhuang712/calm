@@ -121,6 +121,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 - Durations are short and easing is gentle; nothing bounces or flashes.
 - The *working* pulse is slow and low-contrast so it never pulls the eye.
 - Everything respects **Reduce Motion**.
+- A panel that changes the terminal's size resizes it once; only the picture glides. Programs redraw on every resize, and a resize per frame would make an agent's screen flicker.
 
 **Terminal**
 

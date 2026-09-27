@@ -22,7 +22,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
 | **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
-| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ⬜ |
+| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | ⬜ |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ⬜ |
 
@@ -145,13 +145,15 @@ Agent output is easy to act on.
 
 - [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
 - [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
-- [ ] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session.
+- [x] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session. *Built: git listing off the main thread (or a bounded walk outside git), M/A/D/R/U markers and dots on changed folders, branch and change count in the header, 5 s refresh while shown, click opens the viewer with the viewed file highlighted. The sidebar and the column now slide without resizing the terminal on every frame.*
 - [x] **M5.4 Decision:** viewer rendering — native or a web view.
 - [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
 - [x] **M5.6 CLI:** `calm open <file>`.
 
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.
+
+*Status: every task is built and self-tested headless. Left: the author's real use to confirm the exit criterion, changed-file diffs in the viewer (FEATURES.md → Later) and diff size on session cards (M3.8).*
 
 ---
 

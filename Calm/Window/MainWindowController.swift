@@ -8,8 +8,8 @@ import SwiftUI
 @MainActor
 final class MainWindowController: NSWindowController, NSWindowDelegate, TerminalSurfaceHost {
     let manager: SessionManager
-    private let container = NSView()
-    private let mainArea = NSView()
+    let container = NSView()
+    let mainArea = NSView()
     private var sidebarHost: NSHostingView<SidebarView>?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
@@ -19,10 +19,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var peek: SidebarPeek?
     private lazy var switcher = SessionSwitcher(controller: self)
     private lazy var arrivalCard = ArrivalCard(container: container)
-    private lazy var fileViewer = FileViewer(container: container)
+    lazy var fileViewer = FileViewer(container: container)
+    lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
-    static let sidebarWidth: CGFloat = 280
+    static let sidebarWidth = SidebarView.width
 
     var focusedPane: TerminalSurfaceView? {
         guard let layout = manager.workspace.selectedLayout else { return nil }
@@ -73,6 +74,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         container.wantsLayer = true
         window.contentView = container
         let sidebar = NSHostingView(rootView: makeSidebar(style: sidebarStyle))
+        // Sized by its width constraint alone and clipped as it slides (Motion.animateLayout).
+        sidebar.sizingOptions = []
+        sidebar.clipsToBounds = true
         sidebarHost = sidebar
         for view in [sidebar, mainArea] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -80,12 +84,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         let width = sidebar.widthAnchor.constraint(equalToConstant: Self.sidebarWidth)
         sidebarWidth = width
+        let files = filesColumn.install(in: container, after: sidebar)
         NSLayoutConstraint.activate([
             sidebar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             sidebar.topAnchor.constraint(equalTo: container.topAnchor),
             sidebar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             width,
-            mainArea.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            mainArea.leadingAnchor.constraint(equalTo: files.trailingAnchor),
             mainArea.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             mainArea.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             // Leave the title bar strip above the terminal.
@@ -112,11 +117,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         guard let sidebarWidth else { return }
         let hidden = sidebarWidth.constant == 0
         peek?.isEnabled = !hidden
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Motion.duration(0.2)
-            context.allowsImplicitAnimation = true
-            sidebarWidth.animator().constant = hidden ? Self.sidebarWidth : 0
-            container.layoutSubtreeIfNeeded()
+        Motion.animateLayout(of: container) {
+            sidebarWidth.constant = hidden ? Self.sidebarWidth : 0
         }
     }
 
@@ -133,6 +135,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         if let pane = manager.panes[layout.focusedSessionID] {
             window?.makeFirstResponder(pane)
+        }
+        if filesColumn.isShown {
+            filesColumn.model.follow(focusedProjectPath)
         }
         applyAppearance()
     }
@@ -276,6 +281,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window.backgroundColor = background
         let style = SidebarStyle.derived(from: background)
         sidebarStyle = style
+        filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08) : NSColor(white: 0, alpha: 0.1)
@@ -518,38 +524,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal) {
         manager.terminalSignal(view.id, signal)
-    }
-
-    func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String) {
-        let session = manager.workspace.session(view.id)
-        let directory = view.workingDirectory ?? session?.workingDirectory
-        let project = session.flatMap { manager.workspace.project($0.projectID)?.path }
-        guard let link = LinkOpener.resolve(text, directory: directory, projectDirectory: project) else {
-            CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
-            return
-        }
-        if case let .file(path, line, _) = link, LinkOpener.prefersViewer, showFile(path, line: line) {
-            return
-        }
-        LinkOpener.openOutside(link)
-    }
-
-    // MARK: Viewer
-
-    /// Shows a file over the terminal area (FEATURES.md → F10); esc returns to the session.
-    /// Returns false for files Calm can't show.
-    @discardableResult
-    func showFile(_ path: String, line: Int? = nil) -> Bool {
-        let title = manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID)?.displayTitle } ?? "session"
-        let frame = NSRect(x: mainArea.frame.minX, y: 0, width: mainArea.frame.width, height: container.bounds.height)
-        return fileViewer.show(path, line: line, over: frame, sessionTitle: title, style: sidebarStyle) { [weak self] in
-            guard let self, let pane = focusedPane else { return }
-            window?.makeFirstResponder(pane)
-        }
-    }
-
-    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint) {
-        CopyToast.show("Cell copied", at: view.convert(point, to: container), in: container)
     }
 
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView) {

@@ -38,7 +38,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     init(manager: SessionManager) {
         self.manager = manager
-        let window = NSWindow(
+        let window = CalmWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1200, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,

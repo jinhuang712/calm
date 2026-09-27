@@ -35,6 +35,8 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 - **Files:** an optional column right of the sidebar, showing the focused session's project.
 - **Main area:** the session's terminal. Calm never draws over it, except the arrival card, which fades. A viewed file temporarily takes its place.
 
+**Title bar:** there's no visible title bar; the strip at the top of the window (over the sidebar and above the terminal) stands in for it. Dragging it moves the window, and double-clicking it does what System Settings → Desktop & Dock says (Zoom by default, or Fill, Minimize, nothing).
+
 ## Session cards
 
 | Line | Content | Shown when |

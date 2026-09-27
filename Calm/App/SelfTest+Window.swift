@@ -66,6 +66,13 @@
                 searchAndOpenForTesting(String(search.dropFirst(12)))
             case "cmd_k":
                 pressKeyEquivalentForTesting(keyCode: 40, characters: "k")
+            case let click where click.hasPrefix("double_click:"):
+                // double_click:<x>x<y> in window points from the top left, through the window's
+                // own event handling
+                let point = click.dropFirst(13).split(separator: "x").compactMap { Double($0) }
+                if point.count == 2 {
+                    doubleClickForTesting(at: NSPoint(x: point[0], y: point[1]))
+                }
             case "cmd_comma":
                 pressKeyEquivalentForTesting(keyCode: 43, characters: ",")
             case "cmd_shift_e":
@@ -132,6 +139,25 @@
             }
             FileHandle.standardError
                 .write(Data("calm-selftest: ⌘\(characters): terminal \(terminalTookIt), menu item \(menuItem ?? "none")\n".utf8))
+        }
+
+        private func doubleClickForTesting(at topLeft: NSPoint) {
+            guard let window else { return }
+            let before = window.frame
+            let location = NSPoint(x: topLeft.x, y: window.frame.height - topLeft.y)
+            for clicks in [1, 2] {
+                for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                    guard let event = NSEvent.mouseEvent(
+                        with: type, location: location, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: clicks, pressure: 1,
+                    ) else { continue }
+                    window.sendEvent(event)
+                }
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.6)) // the zoom animates
+                FileHandle.standardError.write(Data("calm-selftest: double-click at \(topLeft): frame \(before) → \(window.frame)\n".utf8))
+            }
         }
 
         private static func item(in menu: NSMenu, key: String, modifiers: NSEvent.ModifierFlags) -> (NSMenu, Int)? {

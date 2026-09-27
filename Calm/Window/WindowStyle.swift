@@ -34,7 +34,10 @@ final class WindowStyle {
             container.trailingAnchor.constraint(equalTo: mainArea.trailingAnchor),
             container.bottomAnchor.constraint(equalTo: mainArea.bottomAnchor),
         ]
-        NSLayoutConstraint.activate(insets + [mainArea.topAnchor.constraint(equalTo: container.topAnchor, constant: 30)])
+        NSLayoutConstraint.activate(insets + [mainArea.topAnchor.constraint(
+            equalTo: container.topAnchor,
+            constant: CalmWindow.titleStripHeight,
+        )])
     }
 
     /// Applies the options in `settings`: adjusts `style` for glass and returns the color the

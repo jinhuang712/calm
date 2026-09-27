@@ -210,6 +210,10 @@ CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER)
   - As built (M5.2): `CopyCell` and `TextGrid` in CalmModel. The grid is built with display widths (`CellWidth`: CJK, fullwidth and emoji take two cells), so columns match the terminal's. Borders include box-drawing lines and junctions, `|` and `+`; a rule is a row of rule characters with at least one dash. Tables with a rule after every row are delimited by the rules; tables with only a header rule treat each line as a row, except that a line whose first column is empty continues the row above. Wrapped lines join with a space, or without one between two wide characters.
   - The view reads the grid one row at a time (a whole-viewport read joins soft-wrapped lines and shifts the rows) and maps the click to a cell from cell (0,0)'s origin (`ghostty_text_s.tl_px_x/y`, in points from the top, as Ghostty's own app reads it) and the cell size. ⌥-double-click copies; the right-click menu (when the program isn't capturing the mouse) offers Copy Cell, Copy and Paste; a small "Cell copied" note fades by the pointer.
 
+## Window
+
+- **Title bar double-click:** Calm's content fills the window under a transparent title bar (`fullSizeContentView`), so a double-click at the top reaches Calm's views, not the title bar, and AppKit never zooms. `CalmWindow.sendEvent` catches the second click of a double-click in the top strip (30 points, or the title bar's height if taller), skipping controls such as the traffic lights, and does what `AppleActionOnDoubleClick` says: Zoom (`performZoom`, also when unset), Minimize, nothing, or Fill. Fill has no public API, so the window takes the screen's visible frame and the next double-click restores it.
+
 ## Session actions
 
 - **As built (M7):** `Session.customName` (the user's name; `displayTitle` and `title(agentTitle:)` put it first) and `Session.lastConversation`, an `AgentConversation` (agent, session id, transcript, title) kept by `endAgentRun` when the run's id or transcript was known. Both are optional in the state file, so older files load.

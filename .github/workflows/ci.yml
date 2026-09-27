@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      - name: Cache GhosttyKit
+        id: ghosttykit-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/calm/ghostty
+          key: ghosttykit-${{ runner.os }}-${{ hashFiles('scripts/ghostty.env', 'scripts/ghosttykit.sh', 'scripts/ghostty-deps.py', 'mise.toml') }}
+
+      - name: Install Metal toolchain
+        if: steps.ghosttykit-cache.outputs.cache-hit != 'true'
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      - name: Build GhosttyKit
+        run: mise run ghosttykit
+
+      - name: Lint
+        run: mise run lint
+
+      - name: Build
+        run: mise run build
+
+      - name: Test
+        run: mise run test

@@ -1,0 +1,20 @@
+# Calm: a soft theme for Calm Terminal, in light and dark.
+name = "Calm"
+
+[dark]
+background = "#211d1a"
+foreground = "#c2bdb7"
+cursor = "#c1ad9f"
+selection = "#383531"
+palette = "#36322e, #c68e88, #83aa84, #ae9e6c, #81a1ca, #b88fb3, #67acac, #b4b0ac, #75716d, #e0a29c, #97c197, #c5b37d, #94b7e4, #d0a3cb, #78c4c3, #d8d3cf"
+sidebar = "#1b1814"
+accent = "#cea081"
+
+[light]
+background = "#f6f4f1"
+foreground = "#4f4d4a"
+cursor = "#604e43"
+selection = "#dbd9d6"
+palette = "#494745, #955954, #4d784f, #7c6a31, #4b6e99, #865b82, #227a7a, #d3d0ce, #82807d, #844642, #3a673c, #6c5918, #385c8a, #754871, #00696a, #eae7e5"
+sidebar = "#efecea"
+accent = "#996845"

@@ -15,7 +15,29 @@ struct SidebarStyle: Equatable {
     var failure: Color
     var isDark: Bool
 
-    static func derived(from terminalBackground: NSColor) -> SidebarStyle {
+    /// With `theme` (the Calm theme whose background the terminal shows), the chrome takes the
+    /// theme's own sidebar, text, accent and red instead of derived ones (UIUX.md → Color).
+    static func derived(from terminalBackground: NSColor, theme: CalmTheme.Colors? = nil) -> SidebarStyle {
+        var style = derived(from: terminalBackground)
+        guard let theme else { return style }
+        if let sidebar = theme.sidebar.flatMap(NSColor.init(hex:)) {
+            style.background = Color(nsColor: sidebar)
+        }
+        if let foreground = NSColor(hex: theme.foreground) {
+            style.primary = Color(nsColor: foreground)
+            style.secondary = Color(nsColor: foreground.withAlphaComponent(0.66))
+            style.tertiary = Color(nsColor: foreground.withAlphaComponent(0.46))
+        }
+        if let accent = theme.accent.flatMap(NSColor.init(hex:)) {
+            style.attention = Color(nsColor: accent)
+        }
+        if theme.palette.count == 16, let red = NSColor(hex: theme.palette[1]) {
+            style.failure = Color(nsColor: red)
+        }
+        return style
+    }
+
+    private static func derived(from terminalBackground: NSColor) -> SidebarStyle {
         let base = terminalBackground.usingColorSpace(.sRGB) ?? terminalBackground
         let isDark = base.brightnessComponent < 0.5
         let shade = isDark ? NSColor.black : NSColor(white: 0.0, alpha: 1)

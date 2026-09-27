@@ -11,6 +11,14 @@ MainActor.assumeIsolated {
     // Headless self-tests run as an accessory app, set before launch so AppKit never brings
     // Calm to the front (see Headless.swift).
     app.setActivationPolicy(Headless.isOn ? .accessory : .regular)
+    #if DEBUG
+        // Self-tests check both variants of a theme without changing the system's appearance.
+        switch ProcessInfo.processInfo.environment["CALM_APPEARANCE"] {
+        case "light": app.appearance = NSAppearance(named: .aqua)
+        case "dark": app.appearance = NSAppearance(named: .darkAqua)
+        default: break
+        }
+    #endif
     withExtendedLifetime(delegate) {
         app.run()
     }

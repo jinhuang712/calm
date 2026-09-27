@@ -150,7 +150,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         /// Frames of the window's parts, for self-test logs.
         var layoutForTesting: String {
             let overlays = container.subviews.filter { $0 !== sidebarHost && $0 !== mainArea }.map { "\(type(of: $0)) \($0.frame)" }
-            return "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays)"
+            let background = window?.backgroundColor ?? .clear
+            let themed = TerminalTheme.chromeColors(matching: background) != nil
+            let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
+                + "accent \(NSColor(sidebarStyle.attention).hexString), theme chrome \(themed)"
+            return "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays); \(chrome)"
         }
     #endif
 
@@ -279,7 +283,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             ?? TerminalEngine.shared.config?.backgroundColor
             ?? NSColor(white: 0.15, alpha: 1)
         window.backgroundColor = background
-        let style = SidebarStyle.derived(from: background)
+        let style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background))
         sidebarStyle = style
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)

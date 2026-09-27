@@ -149,6 +149,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 - The picker is a grid of live previews (sidebar, tabs and terminal together), in Settings → Appearance.
 - Themes come in light and dark pairs and follow the system appearance.
+- Calm's default theme gives way to a theme set in the user's Ghostty config; a theme picked in Calm wins.
 - Optional glass background uses the system's material; the terminal can float as a rounded card or run edge to edge.
 
 ## Settings screen

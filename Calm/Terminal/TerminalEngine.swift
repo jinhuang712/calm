@@ -23,6 +23,7 @@ final class TerminalEngine {
 
     private var observers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
+    private var lastColorScheme: ghostty_color_scheme_e?
 
     private init() {}
 
@@ -105,6 +106,11 @@ final class TerminalEngine {
     private func syncColorScheme() {
         guard let app else { return }
         let scheme = colorScheme
+        // A theme picked in Calm is plain colors for one appearance: write the other and reload.
+        if scheme != lastColorScheme, lastColorScheme != nil, TerminalTheme.active()?.picked == true {
+            reloadConfig(soft: false)
+        }
+        lastColorScheme = scheme
         ghostty_app_set_color_scheme(app, scheme)
         for pane in SessionManager.shared.panes.values {
             pane.setColorScheme(scheme)

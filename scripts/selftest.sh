@@ -8,8 +8,10 @@
 # (default out dir: /tmp/calm-selftest).
 #
 # Runs are isolated from a Calm the user may be running: headless by default (no window, no
-# focus taken, see Calm/App/Headless.swift), and with their own state file, socket, config and
-# zmx directory. Only the instance this script starts is ever stopped.
+# focus taken, see Calm/App/Headless.swift), and with their own state file, socket, config,
+# generated Ghostty files and zmx directory. The user's Ghostty config is left out unless
+# --ghostty-config is given, so runs don't depend on it. Only the instance this script starts is
+# ever stopped.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,6 +32,8 @@ state=""
 config=""
 headless=1
 search_home=""
+ghostty_config=none
+appearance=""
 shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,6 +50,8 @@ while [[ $# -gt 0 ]]; do
     --config) config="$2"; shift 2 ;;     # Calm settings text for config.toml (default: none, so defaults)
     --visible) headless=0; shift ;;       # show the window and take focus (default: headless)
     --search-home) search_home="$2"; shift 2 ;; # transcripts to index for search (default: none, never the real home)
+    --ghostty-config) ghostty_config=user; shift ;; # read the user's Ghostty config too (default: Calm's defaults only)
+    --appearance) appearance="$2"; shift 2 ;; # light or dark instead of the system's
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -74,8 +80,15 @@ if [[ -z "$search_home" ]]; then
   mkdir -p "$search_home"
 fi
 
+# Calm writes its generated Ghostty files (defaults, themes) here instead of Application Support.
+support_dir="$out/$name.support"
+rm -rf "$support_dir"
+
 env \
   CALM_STATE_FILE="$state" \
+  CALM_SUPPORT_DIR="$support_dir" \
+  CALM_GHOSTTY_CONFIG="$ghostty_config" \
+  CALM_APPEARANCE="$appearance" \
   CALM_CONFIG_FILE="$config_file" \
   CALM_ZMX_DIR="$zmx_dir" \
   CALM_INDEX_FILE="$index_file" \

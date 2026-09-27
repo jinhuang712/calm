@@ -23,7 +23,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
 | **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |
-| **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | ⬜ |
+| **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ⬜ |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
@@ -157,12 +157,12 @@ Agent output is easy to act on.
 
 ---
 
-## M6 — Look and feel (F11, F14) ⬜
+## M6 — Look and feel (F11, F14) 🟨
 
 Calm looks right out of the box, and making it yours takes a minute.
 
-- [ ] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs.
-- [ ] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme.
+- [x] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs. *Built: six families in light and dark, generated and contrast-checked; the default gives way to the user's Ghostty theme, a picked one (`theme` in config.toml) wins and follows the appearance.*
+- [x] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme. *Built: the theme's sidebar, text, accent and red when its background is on screen; derived from the terminal otherwise.*
 - [ ] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance.
 - [ ] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background.
 - [ ] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys.

@@ -35,6 +35,11 @@ targets:
         excludes:
           - Resources/Viewer
           - Resources/Licenses
+          - Resources/Themes
+      # Built-in themes, read as a folder (TerminalTheme.library).
+      - path: Calm/Resources/Themes
+        type: folder
+        buildPhase: resources
       # The viewer page loads its scripts by relative path, so it's copied as a folder.
       - path: Calm/Resources/Viewer
         type: folder

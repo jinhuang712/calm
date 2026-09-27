@@ -1,0 +1,20 @@
+# Sage: a soft theme for Calm Terminal, in light and dark.
+name = "Sage"
+
+[dark]
+background = "#19201a"
+foreground = "#b5c1b7"
+cursor = "#9cbaa1"
+selection = "#303831"
+palette = "#2d352f, #c68e88, #83aa84, #ae9e6c, #81a1ca, #b88fb3, #67acac, #aab4ac, #6b746d, #e0a29c, #97c197, #c5b37d, #94b7e4, #d0a3cb, #78c4c3, #cdd7cf"
+sidebar = "#131a14"
+accent = "#8cb894"
+
+[light]
+background = "#f0f6f1"
+foreground = "#494f4a"
+cursor = "#3f5a44"
+selection = "#d5dbd6"
+palette = "#444945, #955954, #4d784f, #7c6a31, #4b6e99, #865b82, #227a7a, #cdd3ce, #7d827d, #844642, #3a673c, #6c5918, #385c8a, #754871, #00696a, #e4eae5"
+sidebar = "#e9efea"
+accent = "#51825b"

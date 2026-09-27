@@ -130,13 +130,14 @@ A quick, read-only look at the repository without leaving Calm.
 
 **Settings:** none.
 
-## F11 — Themes 📝
+## F11 — Themes 🚧
 
-- A theme styles the **whole window**: terminal colors, sidebar, tabs, panels, accent, corner radius, and glass or solid background.
-- A curated set of about twelve themes, in light and dark pairs, all soft (low contrast and low saturation).
-- A picker in Settings shows live previews; one click applies instantly.
+- A theme styles the **whole window**: terminal colors, sidebar, cards, panels, files column, viewer and accent. Glass or solid and the layout are window options beside it (Settings → Appearance).
+- A curated set of twelve themes, six light and dark pairs, all soft (low contrast and low saturation): **Calm** (the default), **Sage**, **Dune**, **Harbor**, **Heather** and **Ink**.
+- A picker in Settings shows live previews; one click applies instantly. Until it lands, `theme = "Sage"` in `config.toml` picks one.
 - Themes follow the system light/dark appearance.
-- Any Ghostty terminal theme can still be used as the terminal part of a theme.
+- The default gives way to a theme or colors in the user's Ghostty config, so any Ghostty theme can still be used; the chrome then derives its colors from it. A theme picked in Calm wins over the Ghostty config.
+- Your own themes go in `~/.config/calm/themes/` as small TOML files (DESIGNS.md → Themes).
 
 **Settings:** the picker itself.
 

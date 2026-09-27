@@ -1,0 +1,20 @@
+# Dune: a soft theme for Calm Terminal, in light and dark.
+name = "Dune"
+
+[dark]
+background = "#231d13"
+foreground = "#c6bcad"
+cursor = "#caab88"
+selection = "#3b342a"
+palette = "#383227, #c68e88, #83aa84, #ae9e6c, #81a1ca, #b88fb3, #67acac, #b8b0a3, #787165, #e0a29c, #97c197, #c5b37d, #94b7e4, #d0a3cb, #78c4c3, #dbd3c6"
+sidebar = "#1d170e"
+accent = "#c8a47a"
+
+[light]
+background = "#f8f4ec"
+foreground = "#514c45"
+cursor = "#684d2c"
+selection = "#ddd8d1"
+palette = "#4b4741, #955954, #4d784f, #7c6a31, #4b6e99, #865b82, #227a7a, #d5d0c9, #848079, #844642, #3a673c, #6c5918, #385c8a, #754871, #00696a, #ece7e0"
+sidebar = "#f1ece5"
+accent = "#936c3d"

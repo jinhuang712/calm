@@ -13,6 +13,15 @@
                 toggleSidebar()
             case "toggle_files":
                 toggleFiles()
+            case "viewer_text":
+                Task { @MainActor in
+                    let text = await fileViewer.renderedTextForTesting() ?? "no page"
+                    let head = text.prefix(80).replacingOccurrences(of: "\n", with: " ⏎ ")
+                    FileHandle.standardError.write(Data("calm-selftest: viewer text \(text.count) characters: \(head)\n".utf8))
+                }
+            case let appearance where appearance.hasPrefix("appearance:"):
+                // appearance:light|dark, as if the system's appearance changed
+                NSApp.appearance = NSAppearance(named: appearance.hasSuffix("light") ? .aqua : .darkAqua)
             case let file where file.hasPrefix("files_open:"):
                 // What a click on a file row does (a headless window is never key, so AppKit won't
                 // deliver the click to the list).

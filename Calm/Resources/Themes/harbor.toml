@@ -1,0 +1,20 @@
+# Harbor: a soft theme for Calm Terminal, in light and dark.
+name = "Harbor"
+
+[dark]
+background = "#171f26"
+foreground = "#b3c0cb"
+cursor = "#90b7cf"
+selection = "#2e373e"
+palette = "#2b343c, #c68e88, #83aa84, #ae9e6c, #81a1ca, #b88fb3, #67acac, #a8b3bc, #69737c, #e0a29c, #97c197, #c5b37d, #94b7e4, #d0a3cb, #78c4c3, #cbd6e0"
+sidebar = "#111920"
+accent = "#7fb2d1"
+
+[light]
+background = "#eff5fb"
+foreground = "#484e53"
+cursor = "#33576c"
+selection = "#d4dadf"
+palette = "#43484d, #955954, #4d784f, #7c6a31, #4b6e99, #865b82, #227a7a, #ccd2d7, #7b8186, #844642, #3a673c, #6c5918, #385c8a, #754871, #00696a, #e3e9ee"
+sidebar = "#e8eef3"
+accent = "#417c9d"

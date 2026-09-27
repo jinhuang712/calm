@@ -1,4 +1,5 @@
 import AppKit
+import CalmModel
 import GhosttyKit
 
 /// An owned libghostty config.
@@ -24,16 +25,27 @@ final class TerminalConfig: @unchecked Sendable {
         ghostty_config_free(raw)
     }
 
+    @MainActor
     static func load() -> TerminalConfig {
         guard let raw = ghostty_config_new() else {
             fatalError("libghostty could not allocate a config")
         }
+        TerminalTheme.refreshLibrary()
         // Calm's defaults go first so anything in the user's own config wins.
         if let defaults = CalmDefaults.write() {
             defaults.path.withCString { ghostty_config_load_file(raw, $0) }
         }
-        ghostty_config_load_default_files(raw)
-        if FileManager.default.fileExists(atPath: overridesURL.path) {
+        // Self-tests leave the user's own files out (CALM_GHOSTTY_CONFIG=none), so runs don't
+        // depend on them.
+        let readsUserConfig = ProcessInfo.processInfo.environment["CALM_GHOSTTY_CONFIG"] != "none"
+        if readsUserConfig {
+            ghostty_config_load_default_files(raw)
+        }
+        // A theme picked in Calm comes after the user's config, so its colors win.
+        if let theme = TerminalTheme.pickedFile(settings: CalmSettings.load(), directory: CalmDefaults.directory) {
+            theme.path.withCString { ghostty_config_load_file(raw, $0) }
+        }
+        if readsUserConfig, FileManager.default.fileExists(atPath: overridesURL.path) {
             overridesURL.path.withCString { ghostty_config_load_file(raw, $0) }
         }
         ghostty_config_load_recursive_files(raw)

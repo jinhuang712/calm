@@ -58,6 +58,7 @@ final class FileViewer: NSObject {
     private var keyMonitor: Any?
     private var onClose: (() -> Void)?
     private var pendingRender: String?
+    private weak var webView: WKWebView?
     private(set) var file: String?
 
     init(container: NSView) {
@@ -175,8 +176,17 @@ final class FileViewer: NSObject {
         let web = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         web.navigationDelegate = self
         web.setValue(false, forKey: "drawsBackground") // no white flash before the page's colors
+        webView = web
         return web
     }
+
+    #if DEBUG
+        /// The page's rendered text, read through the DOM: works when nothing can be painted (a
+        /// headless run with the display asleep).
+        func renderedTextForTesting() async -> String? {
+            try? await webView?.evaluateJavaScript("document.body.innerText") as? String
+        }
+    #endif
 
     private static func renderScript(kind: ViewableKind, text: String, line: Int?, style: SidebarStyle) -> String {
         var document: [String: Any] = ["text": text, "colors": style.viewerColors]

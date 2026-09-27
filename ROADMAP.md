@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M0 — Foundations
+**Current milestone:** M1 — A plain terminal
 
 ## How to read this
 
@@ -17,7 +17,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 
 | Milestone | Delivers | Features | Depends on | Status |
 |---|---|---|---|---|
-| **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ⬜ |
+| **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
 | **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ⬜ |
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ⬜ |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ⬜ |
@@ -30,20 +30,20 @@ M4 and M5 can run in parallel with M3 once M2 is done.
 
 ---
 
-## M0 — Foundations ⬜
+## M0 — Foundations ✅
 
 An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty.
 
-- [ ] **M0.1 Decision:** minimum macOS version (proposed: macOS 26).
-- [ ] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
-- [ ] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit and fetch it into `vendor/ghostty` (git-ignored).
-- [ ] **M0.4 GhosttyKit build:** `scripts/build-ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit, cached by commit hash so rebuilds are skipped.
-- [ ] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package for the UI-free modules (starting with `Model`), each with a test target.
-- [ ] **M0.6 App skeleton:** an empty window that launches; bundle ID `com.jinhuang.calm`; placeholder icon.
-- [ ] **M0.7 Engine smoke test:** the app initializes libghostty at launch, and a test proves GhosttyKit links.
-- [ ] **M0.8 Quality tools:** swiftformat and swiftlint configs; `mise run build`, `test`, `lint` and `format`.
-- [ ] **M0.9 CI:** a GitHub Actions workflow on a macOS runner (setup, cached GhosttyKit build, build, test, lint). Needs the GitHub repository.
-- [ ] **M0.10 Docs:** AGENTS.md commands confirmed; DESIGNS.md updated with the final project layout.
+- [x] **M0.1 Decision:** minimum macOS version (proposed: macOS 26).
+- [x] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
+- [x] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit and fetch it into `vendor/ghostty` (git-ignored).
+- [x] **M0.4 GhosttyKit build:** `scripts/build-ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit, cached by commit hash so rebuilds are skipped.
+- [x] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package for the UI-free modules (starting with `Model`), each with a test target.
+- [x] **M0.6 App skeleton:** an empty window that launches; bundle ID `com.jinhuang.calm`; placeholder icon.
+- [x] **M0.7 Engine smoke test:** the app initializes libghostty at launch, and a test proves GhosttyKit links.
+- [x] **M0.8 Quality tools:** swiftformat and swiftlint configs; `mise run build`, `test`, `lint` and `format`.
+- [x] **M0.9 CI:** a GitHub Actions workflow on a macOS runner (setup, cached GhosttyKit build, build, test, lint). Needs the GitHub repository.
+- [x] **M0.10 Docs:** AGENTS.md commands confirmed; DESIGNS.md updated with the final project layout.
 
 **Exit criteria**
 - `mise run setup && mise run build` on a clean clone produces an app that launches.

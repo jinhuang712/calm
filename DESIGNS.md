@@ -141,7 +141,18 @@ Transcript formats are undocumented and change between versions. Each adapter sh
 
 **State reporting.** Every shell Calm starts gets `CALM_SESSION_ID`, `CALM_SOCKET` and `CALM_CLI` (the bundled `calm`) in its environment. Agent hooks call `"$CALM_CLI" status <state> [message]`, which sends `{session, state, message}` over the socket. States are `working`, `needs-you`, `done`, `failed` and `idle`, with a few synonyms (`waiting`, `error`, `stop`…) so hook scripts can use their agent's words. Hooks run on every turn and in every terminal, so `status` and `notify` are silent no-ops that exit 0 outside a Calm session or when Calm isn't running (they never launch it), and the socket gives up after 2 seconds (`scripts/cli-hook-check.sh` checks this). Setting up hooks for each agent is offered once, with the user's consent, and written to the agent's own config.
 
-**Fallback signals** when no hook is installed: bell, OSC 9;4 progress, OSC 9/777 desktop notifications and command-finished events from libghostty, plus the agent's window title.
+**Fallback signals** when no hook is installed come from libghostty's actions, translated in `Terminal` into `TerminalSignal` and read by one pure function (`TerminalSignal.outcome`), with source `terminal` so hooks still win:
+
+| Signal | In an agent session | In a plain shell |
+|---|---|---|
+| OSC 9;4 progress set / indeterminate | working | working |
+| progress removed | done (if it was working) | idle (if it was working) |
+| progress error | failed | failed |
+| OSC 9 / 777 notification | read by its words: permission, approval, allow, confirm, question → *needs you*; error, failed → failed; "waiting for (your) input" and anything else → done. Only an explicit ask can notify | passed on as a notification (at the next pause, if you're elsewhere) |
+| bell | *needs you*, only if the agent was working | ignored |
+| command finished (OSC 133) | ignored (the agent run ends when it exits) | done or failed, if it ran 10 s or longer |
+
+Window titles aren't used: agents' title formats vary and change. Calm never plays the system beep for a bell (Ghostty's default is silent too).
 
 **State machine.** Per session: `idle → working → (needsYou | done | failed) → idle` (on visit). Reports are idempotent; the latest report wins, except that terminal guesses never override a hook report from the same agent run (the run ends when the agent exits). Each session keeps its last `StatusReport` (state, message, source, time) for cards and the arrival card. Applying a report returns an effect: *notify* only for a new *needs you* in a session the user isn't looking at, *withdraw* when a session leaves *needs you*. A session the user is looking at doesn't collect *done* or *failed*.
 

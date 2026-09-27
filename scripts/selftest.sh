@@ -16,6 +16,7 @@ mkdir -p "$out"
 
 type_text=""
 actions=""
+after=""
 delay="1.5"
 keys=""
 drag=""
@@ -28,6 +29,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --type) type_text="$2"; shift 2 ;;
     --actions) actions="$2"; shift 2 ;;
+    --after) after="$2"; shift 2 ;;   # actions to run after typing (e.g. calm.new_session)
     --delay) delay="$2"; shift 2 ;;
     --keys) keys="$2"; shift 2 ;;   # typed through real key events; "\r" in the text means Return
     --drag) drag=1; shift ;;         # drag-select the first rows, copy, and log the clipboard
@@ -61,6 +63,7 @@ env \
   CALM_SELFTEST_TEXT="$out/$name.txt" \
   CALM_SELFTEST_TYPE="$type_text" \
   CALM_SELFTEST_ACTIONS="$actions" \
+  CALM_SELFTEST_AFTER="$after" \
   CALM_SELFTEST_KEYS="$(printf '%b' "$keys")" \
   CALM_SELFTEST_DRAG="$drag" \
   CALM_SELFTEST_RESIZE="$resize" \

@@ -209,6 +209,22 @@ final class SessionManager {
         scheduleSave()
     }
 
+    /// A program in the session signalled something (DESIGNS.md → Attention → fallback signals).
+    /// Reports go in with source `terminal`, so an agent's hooks still outrank them.
+    func terminalSignal(_ id: Session.ID, _ signal: TerminalSignal) {
+        guard let session = workspace.session(id) else { return }
+        switch signal.outcome(currentState: session.state, hasAgent: session.agent != nil) {
+        case let .report(state, message):
+            report(id, StatusReport(state: state, message: message, source: .terminal))
+        case let .notify(message):
+            if id != lookingAtSessionID {
+                AttentionCenter.shared.notify(message, for: id)
+            }
+        case .ignore:
+            break
+        }
+    }
+
     /// The session's foreground job changed; an agent may have started or exited.
     func foregroundChanged(_ id: Session.ID, to process: ProcessSnapshot?) {
         guard let session = workspace.session(id) else { return }

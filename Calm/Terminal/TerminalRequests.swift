@@ -77,3 +77,43 @@ extension SplitTree<UUID>.Direction {
         }
     }
 }
+
+extension TerminalSignal.Progress {
+    init?(_ state: ghostty_action_progress_report_state_e) {
+        switch state {
+        case GHOSTTY_PROGRESS_STATE_SET, GHOSTTY_PROGRESS_STATE_INDETERMINATE: self = .active
+        case GHOSTTY_PROGRESS_STATE_PAUSE: self = .paused
+        case GHOSTTY_PROGRESS_STATE_ERROR: self = .error
+        case GHOSTTY_PROGRESS_STATE_REMOVE: self = .cleared
+        default: return nil
+        }
+    }
+}
+
+extension TerminalSignal {
+    /// The attention-relevant libghostty actions (bell, desktop notification, progress,
+    /// command finished), or nil for any other action.
+    init?(_ action: ghostty_action_s) {
+        switch action.tag {
+        case GHOSTTY_ACTION_RING_BELL:
+            self = .bell
+        case GHOSTTY_ACTION_DESKTOP_NOTIFICATION:
+            let notification = action.action.desktop_notification
+            self = .notification(
+                title: notification.title.map { String(cString: $0) } ?? "",
+                body: notification.body.map { String(cString: $0) } ?? "",
+            )
+        case GHOSTTY_ACTION_PROGRESS_REPORT:
+            guard let progress = Progress(action.action.progress_report.state) else { return nil }
+            self = .progress(progress)
+        case GHOSTTY_ACTION_COMMAND_FINISHED:
+            let finished = action.action.command_finished
+            self = .commandFinished(
+                exitCode: finished.exit_code < 0 ? nil : Int(finished.exit_code),
+                duration: TimeInterval(finished.duration) / 1_000_000_000,
+            )
+        default:
+            return nil
+        }
+    }
+}

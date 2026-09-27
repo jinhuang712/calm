@@ -175,7 +175,10 @@ final class TerminalEngine {
         case GHOSTTY_ACTION_CONFIG_CHANGE:
             configDidChange(action.action.config_change.config, target: target, view: view)
         case GHOSTTY_ACTION_DESKTOP_NOTIFICATION, GHOSTTY_ACTION_PROGRESS_REPORT, GHOSTTY_ACTION_COMMAND_FINISHED:
-            // Handled by the attention system in Milestone 3.
+            // Calm shows these through the attention system instead of its own banners.
+            if let view, let signal = TerminalSignal(action) {
+                view.host?.surface(view, didSignal: signal)
+            }
             return true
         default:
             return false
@@ -250,7 +253,11 @@ final class TerminalEngine {
             let size = action.action.cell_size
             view?.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))
         case GHOSTTY_ACTION_RING_BELL:
-            view?.ringBell()
+            // No system beep (Ghostty's default is silent too): a bell is a quiet signal to the
+            // attention system.
+            if let view {
+                view.host?.surface(view, didSignal: .bell)
+            }
         case GHOSTTY_ACTION_SHOW_CHILD_EXITED:
             // The shell ended. Close the pane after this callback returns (never free a
             // surface from inside libghostty), instead of "Press any key to close".

@@ -4,6 +4,7 @@
     /// Debug-only hooks for automated self-testing without Screen Recording permission.
     ///
     /// - `CALM_SELFTEST_TYPE="echo hi"` types this into the focused terminal, then Return.
+    /// - `CALM_SELFTEST_AFTER="calm.new_session"` runs actions after the typing, the same way.
     /// - `CALM_SELFTEST_ACTIONS="new_split:right,new_tab"` runs binding actions first, in order;
     ///   `calm.<name>` runs one of Calm's own (see `MainWindowController.performForTesting`).
     /// - `CALM_SNAPSHOT=/path/shot.png` saves the key window to a PNG once the UI settles.
@@ -26,14 +27,7 @@
 
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.8))
-                for action in (env["CALM_SELFTEST_ACTIONS"] ?? "").split(separator: ",") {
-                    let controller = TerminalWindowManager.shared.focusedController
-                    let ok = action.hasPrefix("calm.")
-                        ? controller?.performForTesting(String(action.dropFirst(5))) ?? false
-                        : controller?.focusedPane?.perform(String(action)) ?? false
-                    log("action \(action) → \(ok)")
-                    try? await Task.sleep(for: .seconds(0.4))
-                }
+                await runActions(env["CALM_SELFTEST_ACTIONS"])
                 let pane = TerminalWindowManager.shared.focusedController?.focusedPane
                 if let text = env["CALM_SELFTEST_TYPE"], !text.isEmpty, let pane {
                     pane.typeForTesting(text)
@@ -51,6 +45,10 @@
                         try? await Task.sleep(for: .seconds(0.4))
                         log("resize \(size): grid \(before) → \(pane.gridSizeForTesting)")
                     }
+                }
+                if let after = env["CALM_SELFTEST_AFTER"], !after.isEmpty {
+                    try? await Task.sleep(for: .seconds(0.6))
+                    await runActions(after)
                 }
                 if env["CALM_SELFTEST_DRAG"] == "1", let pane {
                     try? await Task.sleep(for: .seconds(0.6))
@@ -93,6 +91,18 @@
                 log("pane layer \(layer?.frame ?? .zero) presentation \(layer?.presentation()?.frame ?? .zero) contents \(surface)")
             }
             log("layout: \(controller.layoutForTesting)")
+        }
+
+        /// Runs comma-separated binding actions, or Calm's own as `calm.<name>`.
+        private static func runActions(_ list: String?) async {
+            for action in (list ?? "").split(separator: ",") {
+                let controller = TerminalWindowManager.shared.focusedController
+                let ok = action.hasPrefix("calm.")
+                    ? controller?.performForTesting(String(action.dropFirst(5))) ?? false
+                    : controller?.focusedPane?.perform(String(action)) ?? false
+                log("action \(action) → \(ok)")
+                try? await Task.sleep(for: .seconds(0.4))
+            }
         }
 
         /// Renders the whole window frame (title bar included) through AppKit's cache.

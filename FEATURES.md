@@ -49,10 +49,11 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none.
 
-## F5 — Agent status and attention 📝
+## F5 — Agent status and attention 🚧
 
 - Each agent session has a state: **working**, **needs you**, **done**, **failed**, or **idle**.
-- State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback.
+- State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback. The fallback alone already works for Claude Code, Codex and omp, with no setup.
+- Plain shells get a quiet mark too: a command that ran for 10 seconds or more shows **done** or **failed** until the session is visited.
 - State appears in the sidebar as a quiet indicator. Only **needs you** escalates:
   1. The session's row gets a soft highlight.
   2. If the user is not looking at that session, a macOS notification is delivered **at the next natural pause** (not while the user is typing in another pane).

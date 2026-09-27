@@ -22,6 +22,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceRequestsCommandPalette(_ view: TerminalSurfaceView)
     func surfaceChildExited(_ view: TerminalSurfaceView)
     func surfaceWorkingDirectoryDidChange(_ view: TerminalSurfaceView)
+    /// Bell, desktop notification, progress or command finished (DESIGNS.md → Attention).
+    func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal)
 }
 
 /// How a new surface should start.
@@ -237,10 +239,6 @@ final class TerminalSurfaceView: NSView {
 
     var effectiveBackgroundColor: NSColor? {
         backgroundColorOverride ?? config?.backgroundColor
-    }
-
-    func ringBell() {
-        NSSound.beep()
     }
 
     func setMouseShape(_ shape: ghostty_action_mouse_shape_e) {

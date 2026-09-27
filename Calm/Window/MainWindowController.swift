@@ -409,6 +409,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         manager.workingDirectoryChanged(view.id, directory)
     }
 
+    func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal) {
+        manager.terminalSignal(view.id, signal)
+    }
+
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView) {
         manager.setFocused(view.id)
         applyAppearance()

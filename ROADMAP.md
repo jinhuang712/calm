@@ -103,7 +103,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
 - [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
 - [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo.
-- [ ] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles.
+- [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
 - [ ] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first).
 - [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact.

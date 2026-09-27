@@ -1,11 +1,14 @@
 import AppKit
 import CalmModel
 import GhosttyKit
+import SwiftUI
 
 /// One window (or native tab) holding a workspace of split panes.
 @MainActor
 final class TerminalWindowController: NSWindowController, NSWindowDelegate, TerminalSurfaceHost {
     let workspace = TerminalWorkspaceView()
+    private let container = NSView()
+    private var paletteHost: NSView?
     private(set) weak var focusedPane: TerminalSurfaceView?
     var onClose: ((TerminalWindowController) -> Void)?
 
@@ -24,7 +27,15 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate, Term
         window.minSize = NSSize(width: 360, height: 220)
         super.init(window: window)
         window.delegate = self
-        window.contentView = workspace
+        container.addSubview(workspace)
+        workspace.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            workspace.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            workspace.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            workspace.topAnchor.constraint(equalTo: container.topAnchor),
+            workspace.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        window.contentView = container
 
         let pane = makePane(options)
         workspace.setRoot(pane)
@@ -64,7 +75,57 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate, Term
 
     // MARK: Command palette
 
-    func toggleCommandPalette() {}
+    var isShowingCommandPalette: Bool {
+        paletteHost != nil
+    }
+
+    func toggleCommandPalette() {
+        if isShowingCommandPalette {
+            hideCommandPalette()
+        } else {
+            showCommandPalette()
+        }
+    }
+
+    private func showCommandPalette() {
+        guard paletteHost == nil else { return }
+        let commands = (focusedPane?.config ?? TerminalEngine.shared.config)?.commands ?? []
+        let isDark = window?.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let view = CommandPaletteView(
+            commands: commands,
+            isDark: isDark,
+            onRun: { [weak self] command in
+                self?.hideCommandPalette()
+                self?.focusedPane?.perform(command.action)
+            },
+            onDismiss: { [weak self] in self?.hideCommandPalette() },
+        )
+        let host = NSHostingView(rootView: view)
+        host.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(host)
+        NSLayoutConstraint.activate([
+            host.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            host.topAnchor.constraint(equalTo: container.topAnchor),
+            host.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        paletteHost = host
+        host.alphaValue = 0
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            host.animator().alphaValue = 1
+        }
+        window?.makeFirstResponder(host)
+    }
+
+    private func hideCommandPalette() {
+        guard let host = paletteHost else { return }
+        paletteHost = nil
+        host.removeFromSuperview()
+        if let focusedPane {
+            window?.makeFirstResponder(focusedPane)
+        }
+    }
 
     // MARK: Appearance
 
@@ -194,6 +255,10 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate, Term
         focusedPane = view
         updateTitle()
         applyAppearance()
+    }
+
+    func surfaceRequestsCommandPalette(_: TerminalSurfaceView) {
+        toggleCommandPalette()
     }
 
     func surfaceAppearanceDidChange(_ view: TerminalSurfaceView) {

@@ -17,6 +17,7 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceTitleDidChange(_ view: TerminalSurfaceView)
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView)
     func surfaceAppearanceDidChange(_ view: TerminalSurfaceView)
+    func surfaceRequestsCommandPalette(_ view: TerminalSurfaceView)
 }
 
 /// How a new surface should start.

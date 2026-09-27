@@ -157,6 +157,8 @@ final class TerminalEngine {
             delegate?.engineRequestsQuit()
         case GHOSTTY_ACTION_NEW_WINDOW:
             delegate?.engineRequestsNewWindow(inheriting: view)
+        case GHOSTTY_ACTION_CLOSE_ALL_WINDOWS:
+            NSApp.windows.filter(\.isVisible).forEach { $0.performClose(nil) }
         case GHOSTTY_ACTION_MOUSE_VISIBILITY:
             NSCursor.setHiddenUntilMouseMoves(action.action.mouse_visibility == GHOSTTY_MOUSE_HIDDEN)
         case GHOSTTY_ACTION_OPEN_URL:
@@ -215,6 +217,10 @@ final class TerminalEngine {
         case GHOSTTY_ACTION_TOGGLE_FULLSCREEN:
             guard let view else { return false }
             view.window?.toggleFullScreen(nil)
+            return true
+        case GHOSTTY_ACTION_TOGGLE_COMMAND_PALETTE:
+            guard let view else { return false }
+            host?.surfaceRequestsCommandPalette(view)
             return true
         default:
             return nil

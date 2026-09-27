@@ -128,8 +128,13 @@ final class TerminalSurfaceView: NSView {
         config.context = options.context
 
         var env = options.environment
+        // The status contract (DESIGNS.md → Attention): hooks run `$CALM_CLI status …`, which
+        // reports for `$CALM_SESSION_ID` over `$CALM_SOCKET`.
         env["CALM_SESSION_ID"] = id.uuidString
         env["CALM_SOCKET"] = ControlProtocol.defaultSocketPath
+        if let cli = Bundle.main.resourceURL?.appending(path: "bin/calm").path {
+            env["CALM_CLI"] = cli
+        }
         let keys = env.keys.sorted().map { strdup($0) }
         let values = env.keys.sorted().map { strdup(env[$0] ?? "") }
         defer {

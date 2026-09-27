@@ -184,6 +184,25 @@ final class SessionManager {
         scheduleSave()
     }
 
+    // MARK: Attention
+
+    /// The session the user is looking at: the focused one, while Calm is the active app.
+    var lookingAtSessionID: Session.ID? {
+        guard NSApp.isActive, NSApp.keyWindow === TerminalWindowManager.shared.mainController?.window else { return nil }
+        return workspace.selectedLayout?.focusedSessionID
+    }
+
+    /// Applies a status report (from a hook or a terminal signal) and passes on what it means
+    /// for notifications.
+    func report(_ id: Session.ID, _ report: StatusReport) {
+        var effect = AttentionEffect.none
+        Motion.animate(.easeInOut(duration: 0.25)) {
+            effect = workspace.report(id, report, focusedSessionID: lookingAtSessionID)
+        }
+        AttentionCenter.shared.apply(effect, for: id)
+        scheduleSave()
+    }
+
     func togglePinned(_ id: Session.ID) {
         guard let session = workspace.session(id) else { return }
         workspace.setPinned(id, !session.isPinned)

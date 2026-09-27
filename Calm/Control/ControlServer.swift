@@ -111,16 +111,30 @@ final class ControlServer {
                     title: session.displayTitle,
                     project: manager.workspace.project(session.projectID)?.name ?? "",
                     directory: session.workingDirectory,
-                    state: session.state.rawValue,
+                    state: session.state.reportName,
                 )
             }
             return .success(sessions: sessions)
         case .open:
             return open(request.path)
-        case .status, .notify:
-            // Arrives with the attention system in Milestone 3.
-            return .failure("Not available yet.")
+        case .status:
+            guard let id = session(request.session) else { return .failure("No such session.") }
+            guard let state = request.state.flatMap(SessionState.init(reportName:)) else {
+                return .failure("Unknown state '\(request.state ?? "")'; use working, needs-you, done, failed or idle.")
+            }
+            manager.report(id, StatusReport(state: state, message: request.message, source: .hook))
+            return .success()
+        case .notify:
+            guard let id = session(request.session) else { return .failure("No such session.") }
+            guard let message = request.message, !message.isEmpty else { return .failure("Give a message.") }
+            AttentionCenter.shared.notify(message, for: id)
+            return .success()
         }
+    }
+
+    private func session(_ value: String?) -> Session.ID? {
+        guard let id = value.flatMap(UUID.init(uuidString:)), SessionManager.shared.workspace.session(id) != nil else { return nil }
+        return id
     }
 
     private func open(_ path: String?) -> ControlResponse {

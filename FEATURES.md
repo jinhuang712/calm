@@ -140,7 +140,7 @@ A quick, read-only look at the repository without leaving Calm.
 - `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer. Starts Calm if it isn't running.
 - `calm list` — list sessions: project, title, state and folder.
 - `calm search <text>` — search sessions from any shell.
-- `calm status <state> [message]` — report agent state; this is the contract agents' hooks call.
+- `calm status <state> [message]` — report agent state; this is the contract agents' hooks call. Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm notify <message>` — show a notification for the current session.
 - Talks to the running app over a local socket.
 

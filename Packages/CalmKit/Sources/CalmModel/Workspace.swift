@@ -34,6 +34,8 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// Pinned sessions stay in their project when their folder changes.
     public var isPinned: Bool
     public var state: SessionState
+    /// The latest report behind `state` (optional so older state files still load).
+    public var lastReport: StatusReport?
     public var createdAt: Date
 
     public init(

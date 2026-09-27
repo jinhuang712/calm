@@ -20,7 +20,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
 | **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | 🟨 |
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
-| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ⬜ |
+| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
 | **M4** Recall | search across every agent's history | F7 | M2 | ⬜ |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ⬜ |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | ⬜ |
@@ -95,16 +95,16 @@ The core model arrives: sessions grouped under projects, restored after quitting
 
 ---
 
-## M3 — Attention (F4, F5, F6, F13) ⬜
+## M3 — Attention (F4, F5, F6, F13) 🟨
 
 Calm knows what every agent is doing and interrupts only when one needs you.
 
 - [ ] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
 - [ ] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
-- [ ] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
+- [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
 - [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo.
 - [ ] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles.
-- [ ] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
+- [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
 - [ ] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first).
 - [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact.
 - [ ] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.

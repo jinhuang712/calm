@@ -90,10 +90,19 @@ public enum ControlClient {
         }
     }
 
-    public static func send(_ request: ControlRequest, socketPath: String = ControlProtocol.defaultSocketPath) throws -> ControlResponse {
+    /// Hooks call this on every agent turn, so a Calm that is busy or stuck must not hold
+    /// the agent up: reads and writes give up after `timeout` seconds.
+    public static func send(
+        _ request: ControlRequest,
+        socketPath: String = ControlProtocol.defaultSocketPath,
+        timeout: TimeInterval = 2,
+    ) throws -> ControlResponse {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { throw ClientError.io("socket() failed") }
         defer { close(fd) }
+        var limit = timeval(tv_sec: Int(timeout), tv_usec: Int32((timeout - timeout.rounded(.down)) * 1_000_000))
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
 
         var address = sockaddr_un()
         address.sun_family = sa_family_t(AF_UNIX)

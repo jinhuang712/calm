@@ -128,4 +128,15 @@ enum GitRoot {
         lock.unlock()
         return result
     }
+
+    /// The worktree's name when the folder is inside a linked git worktree (its `.git` is a
+    /// file pointing at the main repository), for session cards.
+    static func worktreeName(_ directory: String) -> String? {
+        guard let root = find(directory) else { return nil }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: (root as NSString).appendingPathComponent(".git"), isDirectory: &isDirectory),
+              !isDirectory.boolValue
+        else { return nil }
+        return (root as NSString).lastPathComponent
+    }
 }

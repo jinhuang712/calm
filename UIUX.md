@@ -45,8 +45,10 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | 4 | recap: the latest agent message, two lines at most | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
 
-- Plain shells are a single compact line: name and folder.
-- Only *needs you* tints a card. The selected card gets a slightly lighter surface.
+- Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
+- Only *needs you* tints a card (a soft, low-saturation amber). The selected card gets a slightly lighter surface.
+- The agent mark is a letter (C, X, O, π, ω), never the agent's logo.
+- Collapsed projects summarize what needs a look: "3 sessions · 1 needs you".
 - Secondary text stays muted; only the name is in the primary text color.
 - Projects collapse to one line with a summary.
 

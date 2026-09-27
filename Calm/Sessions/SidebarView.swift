@@ -9,6 +9,10 @@ struct SidebarStyle: Equatable {
     var primary: Color
     var secondary: Color
     var tertiary: Color
+    /// *Needs you*: a soft, low-saturation amber, the only tint a card gets (UIUX.md → Color).
+    var attention: Color
+    /// *Failed*: a muted red, used for nothing else.
+    var failure: Color
     var isDark: Bool
 
     static func derived(from terminalBackground: NSColor) -> SidebarStyle {
@@ -23,6 +27,8 @@ struct SidebarStyle: Equatable {
             primary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.86 : 0.85)),
             secondary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.55 : 0.55)),
             tertiary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.38 : 0.4)),
+            attention: Color(hue: 0.11, saturation: isDark ? 0.42 : 0.55, brightness: isDark ? 0.86 : 0.62),
+            failure: Color(hue: 0.0, saturation: isDark ? 0.38 : 0.5, brightness: isDark ? 0.82 : 0.6),
             isDark: isDark,
         )
     }
@@ -107,28 +113,42 @@ struct SidebarView: View {
 
             if !project.isCollapsed {
                 ForEach(sessions) { session in
-                    SessionRow(
-                        session: session,
-                        isSelected: session.id == selectedSessionID,
-                        style: style,
-                    )
-                    .onTapGesture { onSelect(session.id) }
-                    .contextMenu {
-                        Button(session.isPinned ? "Unpin from Project" : "Pin to Project") {
-                            manager.togglePinned(session.id)
+                    sessionView(session)
+                        .onTapGesture { onSelect(session.id) }
+                        .contextMenu {
+                            Button(session.isPinned ? "Unpin from Project" : "Pin to Project") {
+                                manager.togglePinned(session.id)
+                            }
+                            Divider()
+                            Button("Close Session") { onClose(session.id) }
                         }
-                        Divider()
-                        Button("Close Session") { onClose(session.id) }
-                    }
-                    .matchedGeometryEffect(id: session.id, in: rows)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                        .matchedGeometryEffect(id: session.id, in: rows)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
     }
 
+    /// Agent sessions get a card; plain shells stay one compact line (UIUX.md → Session cards).
+    @ViewBuilder
+    private func sessionView(_ session: Session) -> some View {
+        if let agent = session.agent?.kind {
+            SessionCard(session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style)
+        } else {
+            SessionRow(session: session, isSelected: session.id == selectedSessionID, style: style)
+        }
+    }
+
+    /// "2 sessions · 1 needs you": the collapsed project's one line.
     private func summary(_ sessions: [Session]) -> String {
-        sessions.count == 1 ? "1 session" : "\(sessions.count) sessions"
+        var parts = [sessions.count == 1 ? "1 session" : "\(sessions.count) sessions"]
+        for state in [SessionState.needsYou, .failed, .done] {
+            let count = sessions.count { $0.state == state }
+            if count > 0 {
+                parts.append("\(count) \(state.label.lowercased())")
+            }
+        }
+        return parts.joined(separator: " · ")
     }
 
     private var footer: some View {
@@ -172,6 +192,9 @@ struct SessionRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 4)
+            if session.state != .idle {
+                StateMark(state: session.state, style: style)
+            }
             if session.isPinned {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 9))
@@ -182,11 +205,15 @@ struct SessionRow: View {
         .frame(height: 30)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? style.selection : .clear),
+                .fill(session.state == .needsYou ? style.attention.opacity(0.19) : isSelected ? style.selection : .clear),
         )
         .contentShape(Rectangle())
+        .help(session.lastReport?.message ?? session.workingDirectory)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(session.displayTitle)\(session.isPinned ? ", pinned" : "")")
+        .accessibilityLabel(
+            [session.displayTitle, session.state == .idle ? nil : session.state.label, session.isPinned ? "pinned" : nil]
+                .compactMap(\.self).joined(separator: ", "),
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

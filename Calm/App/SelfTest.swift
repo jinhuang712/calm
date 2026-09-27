@@ -85,7 +85,8 @@
                     chain.append("\(type(of: current))(alpha \(current.alphaValue), hidden \(current.isHidden))")
                     view = current.superview
                 }
-                log("focused pane \(pane.frame.size) grid \(pane.gridSizeForTesting) in window \(pane.window != nil): " + chain.joined(separator: " < "))
+                log("focused pane \(pane.frame.size) grid \(pane.gridSizeForTesting) in window \(pane.window != nil): " + chain
+                    .joined(separator: " < "))
                 let layer = pane.layer
                 let surface = (layer?.contents as? IOSurface).map { "IOSurface \($0.width)x\($0.height)px" } ?? "none"
                 log("pane layer \(layer?.frame ?? .zero) presentation \(layer?.presentation()?.frame ?? .zero) contents \(surface)")

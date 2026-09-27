@@ -274,6 +274,20 @@ final class SessionManager {
         scheduleSave()
     }
 
+    /// Names a session (FEATURES.md → F12); an empty name gives it back its own title.
+    func rename(_ id: Session.ID, to name: String?) {
+        workspace.rename(id, to: name)
+        scheduleSave()
+    }
+
+    #if DEBUG
+        /// Self-tests: a conversation that ended in `id`, without starting an agent.
+        func setLastConversationForTesting(_ id: Session.ID, _ conversation: AgentConversation) {
+            guard let index = workspace.sessions.firstIndex(where: { $0.id == id }) else { return }
+            workspace.sessions[index].lastConversation = conversation
+        }
+    #endif
+
     func togglePinned(_ id: Session.ID) {
         guard let session = workspace.session(id) else { return }
         workspace.setPinned(id, !session.isPinned)

@@ -77,6 +77,31 @@ public struct AgentRun: Codable, Hashable, Sendable {
     }
 }
 
+/// A past or running agent conversation, enough to resume or fork it with the agent's own
+/// command (FEATURES.md → F12).
+public struct AgentConversation: Codable, Hashable, Sendable {
+    public var kind: AgentKind
+    public var agentSessionID: String?
+    public var transcriptPath: String?
+    /// The agent's title for it, for menus.
+    public var title: String?
+
+    public init(kind: AgentKind, agentSessionID: String?, transcriptPath: String?, title: String? = nil) {
+        self.kind = kind
+        self.agentSessionID = agentSessionID
+        self.transcriptPath = transcriptPath
+        self.title = title
+    }
+}
+
+public extension AgentRun {
+    /// This run's conversation, once its id or transcript is known.
+    var conversation: AgentConversation? {
+        guard agentSessionID != nil || transcriptPath != nil else { return nil }
+        return AgentConversation(kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath, title: tail?.title)
+    }
+}
+
 public extension Workspace {
     /// An agent took over the session's foreground (or a different one replaced it).
     mutating func startAgentRun(_ id: Session.ID, _ run: AgentRun) {
@@ -117,5 +142,14 @@ public extension Workspace {
         if let transcriptPath {
             sessions[index].agent?.transcriptPath = transcriptPath
         }
+    }
+}
+
+public extension Workspace {
+    /// Names a session (FEATURES.md → F12); an empty name gives it back its own title.
+    mutating func rename(_ id: Session.ID, to name: String?) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        sessions[index].customName = trimmed.isEmpty ? nil : trimmed
     }
 }

@@ -80,7 +80,7 @@ struct ArrivalCardView: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
                 StateMark(state: session.state, style: style)
-                Text(agent.tail?.title ?? session.displayTitle)
+                Text(session.title(agentTitle: agent.tail?.title))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(style.primary)
                     .lineLimit(1)

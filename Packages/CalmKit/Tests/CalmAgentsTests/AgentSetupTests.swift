@@ -63,4 +63,14 @@ struct AgentSetupTests {
         #expect(PiAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/it's/s.jsonl") == #"pi --session '/it'\''s/s.jsonl'"#)
         #expect(OpenCodeAdapter().resumeCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
     }
+
+    @Test func `fork commands per agent, quoted for the shell`() {
+        #expect(ClaudeCodeAdapter()
+            .forkCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc' --fork-session")
+        #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex fork '019a'")
+        #expect(CodexAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
+        #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a b.jsonl") == "pi --fork '/s/a b.jsonl'")
+        #expect(OmpAdapter().forkCommand(agentSessionID: "s1", transcriptPath: "/x") == "omp --fork 's1'")
+        #expect(OpenCodeAdapter().forkCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
+    }
 }

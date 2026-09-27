@@ -39,6 +39,10 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// The agent in the foreground, if one is running.
     public var agent: AgentRun?
     public var createdAt: Date
+    /// A name the user gave the session (FEATURES.md → F12); wins over every other title.
+    public var customName: String?
+    /// The agent conversation that last ran here, kept after the agent exits so it can be resumed.
+    public var lastConversation: AgentConversation?
 
     public init(
         id: UUID = UUID(),
@@ -64,9 +68,24 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         "calm-" + id.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(12)
     }
 
-    /// A readable label when the shell hasn't set a title yet.
+    /// The user's name for the session, else the shell's title, else the folder.
     public var displayTitle: String {
-        title.isEmpty ? WorkspacePath.displayName(for: workingDirectory) : title
+        customName ?? (title.isEmpty ? WorkspacePath.displayName(for: workingDirectory) : title)
+    }
+
+    /// The title a card shows: the user's name, else the agent's own title for its conversation.
+    public func title(agentTitle: String?) -> String {
+        customName ?? agentTitle.flatMap { $0.isEmpty ? nil : $0 } ?? displayTitle
+    }
+
+    /// The conversation that can be forked: the running agent's, else the last one.
+    public var conversation: AgentConversation? {
+        agent?.conversation ?? lastConversation
+    }
+
+    /// An agent conversation that ended here and can be resumed in place.
+    public var resumableConversation: AgentConversation? {
+        agent == nil ? lastConversation : nil
     }
 }
 

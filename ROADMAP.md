@@ -24,7 +24,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
-| **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ⬜ |
+| **M7** Session actions | rename, resume, fork | F12 | M3, M4 | 🟨 |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
 
@@ -176,17 +176,19 @@ Calm looks right out of the box, and making it yours takes a minute.
 
 ---
 
-## M7 — Session actions (F12) ⬜
+## M7 — Session actions (F12) 🟨
 
 Conversations can be renamed, resumed and forked.
 
-- [ ] **M7.1 Rename:** rename any session.
-- [ ] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command.
-- [ ] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it.
-- [ ] **M7.4 Menus:** right-click actions on session cards.
+- [x] **M7.1 Rename:** rename any session. *Inline, from the card's menu; saved with the workspace.*
+- [x] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command. *In place after the agent exits (the session remembers its conversation); closed sessions from ⌘K.*
+- [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi, omp.*
+- [x] **M7.4 Menus:** right-click actions on session cards.
 
 **Exit criteria**
 - Resuming or forking a conversation is one right-click.
+
+*Status: built and self-tested headless with stand-in conversations; the commands are logged, not run, so no real agent was started. Left: running a resume and a fork with each real agent (it uses your accounts), and OpenCode's resume and fork.*
 
 ---
 

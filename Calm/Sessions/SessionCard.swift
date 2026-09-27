@@ -69,7 +69,7 @@ struct SessionCard: View {
 
     /// The agent's own title (from its transcript) is steadier than the terminal title.
     private var title: String {
-        session.agent?.tail?.title ?? session.displayTitle
+        session.title(agentTitle: session.agent?.tail?.title)
     }
 
     /// "Working · Fixing the token mock".

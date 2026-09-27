@@ -81,6 +81,10 @@ struct SidebarView: View {
     let onClose: (Session.ID) -> Void
     let onNewSession: () -> Void
     let onNewProject: () -> Void
+    let editing: SidebarEditing
+    let actions: SidebarActions
+    @State private var draftName = ""
+    @FocusState private var nameFieldFocused: Bool
 
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
@@ -160,13 +164,7 @@ struct SidebarView: View {
                 ForEach(sessions) { session in
                     sessionView(session)
                         .onTapGesture { onSelect(session.id) }
-                        .contextMenu {
-                            Button(session.isPinned ? "Unpin from Project" : "Pin to Project") {
-                                manager.togglePinned(session.id)
-                            }
-                            Divider()
-                            Button("Close Session") { onClose(session.id) }
-                        }
+                        .contextMenu { sessionMenu(session) }
                         .matchedGeometryEffect(id: session.id, in: rows)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -174,10 +172,60 @@ struct SidebarView: View {
         }
     }
 
+    /// A session's right-click actions (FEATURES.md → F12): the agent-backed ones appear only
+    /// where its agent has the command.
+    @ViewBuilder
+    private func sessionMenu(_ session: Session) -> some View {
+        Button("Rename…") { beginRename(session) }
+        if MainWindowController.resumeCommand(for: session) != nil, let kind = session.resumableConversation?.kind {
+            Button("Resume \(kind.displayName) Conversation") { actions.resume(session.id) }
+        }
+        if MainWindowController.forkCommand(for: session) != nil {
+            Button("Fork into New Split") { actions.fork(session.id, .split) }
+            Button("Fork into New Tab") { actions.fork(session.id, .tab) }
+        }
+        Divider()
+        Button(session.isPinned ? "Unpin from Project" : "Pin to Project") {
+            manager.togglePinned(session.id)
+        }
+        Divider()
+        Button("Close Session") { onClose(session.id) }
+    }
+
+    private func beginRename(_ session: Session) {
+        draftName = session.customName ?? session.title(agentTitle: session.agent?.tail?.title)
+        editing.renamingSessionID = session.id
+        nameFieldFocused = true
+    }
+
+    /// The inline name field that stands in for a session's card while it's renamed: return keeps
+    /// the name, esc keeps the old one, and an empty name gives the session back its own title.
+    private func nameField(_ session: Session) -> some View {
+        TextField("Name", text: $draftName, prompt: Text(session.title(agentTitle: session.agent?.tail?.title)))
+            .textFieldStyle(.plain)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(style.primary)
+            .focused($nameFieldFocused)
+            .onSubmit { actions.rename(session.id, draftName) }
+            .onExitCommand { editing.renamingSessionID = nil }
+            .onChange(of: nameFieldFocused) { _, focused in
+                if !focused, editing.renamingSessionID == session.id {
+                    actions.rename(session.id, draftName)
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.selection))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+            .onAppear { nameFieldFocused = true }
+    }
+
     /// Agent sessions get a card; plain shells stay one compact line (UIUX.md → Session cards).
     @ViewBuilder
     private func sessionView(_ session: Session) -> some View {
-        if let agent = session.agent?.kind {
+        if editing.renamingSessionID == session.id {
+            nameField(session)
+        } else if let agent = session.agent?.kind {
             SessionCard(session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style)
         } else {
             SessionRow(session: session, isSelected: session.id == selectedSessionID, style: style)
@@ -216,6 +264,13 @@ struct SidebarView: View {
         .padding(.horizontal, 16)
         .frame(height: 40)
     }
+}
+
+/// The sidebar's session actions, handled by the window controller.
+struct SidebarActions {
+    let rename: (Session.ID, String?) -> Void
+    let resume: (Session.ID) -> Void
+    let fork: (Session.ID, MainWindowController.ForkDestination) -> Void
 }
 
 /// A compact session row. Rich cards (state, progress, recap, worktree) arrive in Milestone 3.

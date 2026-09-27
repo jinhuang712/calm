@@ -22,6 +22,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var fileViewer = FileViewer(container: container)
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
     let windowStyle = WindowStyle()
+    let sidebarEditing = SidebarEditing()
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth = SidebarView.width
@@ -107,6 +108,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             onClose: { [weak self] id in self?.requestCloseSession(id) },
             onNewSession: { [weak self] in self?.newSession() },
             onNewProject: { [weak self] in self?.chooseNewProject() },
+            editing: sidebarEditing,
+            actions: SidebarActions(
+                rename: { [weak self] id, name in self?.rename(id, to: name) },
+                resume: { [weak self] id in self?.resumeConversation(in: id) },
+                fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
+            ),
         )
     }
 
@@ -386,7 +393,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         let session = manager.newSession(in: directory)
         showSelectedLayout(animated: true)
-        manager.panes[session.id]?.run(command)
+        runAgentCommand(command, in: manager.panes[session.id])
     }
 
     // MARK: Agents panel
@@ -429,14 +436,21 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func surface(_ view: TerminalSurfaceView, requestsSplit splitDirection: SplitTree<UUID>.Direction) {
-        guard let layout = manager.workspace.layout(containing: view.id), let workspace = workspaces[layout.id] else { return }
+        split(view, direction: splitDirection)
+    }
+
+    /// A new session split off `view`'s, in its folder; returns its pane.
+    @discardableResult
+    func split(_ view: TerminalSurfaceView, direction splitDirection: SplitTree<UUID>.Direction) -> TerminalSurfaceView? {
+        guard let layout = manager.workspace.layout(containing: view.id), let workspace = workspaces[layout.id] else { return nil }
         let directory = view.workingDirectory ?? manager.workspace.session(view.id)?.workingDirectory
             ?? FileManager.default.homeDirectoryForCurrentUser.path
         guard let session = manager.splitSession(view.id, direction: splitDirection, in: directory),
               let pane = manager.pane(for: session.id, host: self)
-        else { return }
+        else { return nil }
         workspace.split(view, direction: splitDirection, with: pane)
         window?.makeFirstResponder(pane)
+        return pane
     }
 
     func surface(_ view: TerminalSurfaceView, requestsFocus focusTarget: PaneFocusTarget) -> Bool {

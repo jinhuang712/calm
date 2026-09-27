@@ -81,6 +81,34 @@
             case "ctrl_release":
                 postKey(.flagsChanged, keyCode: 59, characters: "", flags: [])
             default:
+                return performSessionActionForTesting(action)
+            }
+            return true
+        }
+
+        /// Session actions (F12) for self-tests.
+        private func performSessionActionForTesting(_ action: String) -> Bool {
+            switch action {
+            case let conversation where conversation.hasPrefix("conversation:"):
+                // conversation:<agent>:<id>: a stand-in for an agent conversation that ended in
+                // the focused session (no agent is started)
+                let parts = conversation.split(separator: ":").map(String.init)
+                if parts.count == 3, let kind = AgentKind(rawValue: parts[1]), let id = focusedPane?.id {
+                    manager.setLastConversationForTesting(id, AgentConversation(
+                        kind: kind, agentSessionID: parts[2], transcriptPath: "/tmp/\(parts[2]).jsonl", title: "A past conversation",
+                    ))
+                }
+            case let name where name.hasPrefix("rename:"):
+                focusedPane.map { rename($0.id, to: String(name.dropFirst(7))) }
+            case "rename_begin":
+                sidebarEditing.renamingSessionID = focusedPane?.id
+            case "resume":
+                focusedPane.map { resumeConversation(in: $0.id) }
+            case "fork_split":
+                focusedPane.map { forkConversation(of: $0.id, into: .split) }
+            case "fork_tab":
+                focusedPane.map { forkConversation(of: $0.id, into: .tab) }
+            default:
                 return false
             }
             return true

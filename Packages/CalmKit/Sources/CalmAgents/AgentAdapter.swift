@@ -63,6 +63,8 @@ public protocol AgentAdapter: Sendable {
     var setup: AgentSetup { get }
     /// The shell command that resumes one of the agent's past sessions, if it can.
     func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
+    /// The shell command that starts a new conversation from a copy of one, if the agent can.
+    func forkCommand(agentSessionID: String?, transcriptPath: String) -> String?
 }
 
 public extension AgentAdapter {
@@ -75,6 +77,10 @@ public extension AgentAdapter {
     }
 
     func resumeCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
+        nil
+    }
+
+    func forkCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
         nil
     }
 

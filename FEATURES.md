@@ -146,12 +146,22 @@ A quick, read-only look at the repository without leaving Calm.
 
 **Settings:** the picker itself.
 
-## F12 — Session actions 📝
+## F12 — Session actions ✅
 
-- **Rename** a session.
-- **Resume** a closed agent session in its project folder.
-- **Fork** an agent conversation into a new split or tab, where the agent supports it.
-- Uses each agent's own commands (for example Claude Code's resume and fork options).
+- **Rename** a session: right-click → Rename… edits the name in place (return keeps it, esc cancels, an empty name gives the session back its own title). The name wins over the shell's and the agent's titles, in the sidebar, switcher, arrival card and notifications, and survives relaunch.
+- **Resume** an agent conversation: when the agent exits, the session remembers its conversation, and right-click → Resume <agent> Conversation continues it in the same shell. A conversation whose session was closed is resumed from ⌘K search (F7), in its project folder.
+- **Fork** an agent conversation into a new split beside it or a new tab, in the same folder, while it runs or after it ended. The fork is a new conversation; the original stays as it was.
+- Uses each agent's own commands:
+
+  | Agent | Resume | Fork |
+  |---|---|---|
+  | Claude Code | `claude --resume <id>` | `claude --resume <id> --fork-session` |
+  | Codex | `codex resume <id>` | `codex fork <id>` |
+  | pi | `pi --session <file>` | `pi --fork <file>` |
+  | omp | `omp --resume <id>` | `omp --fork <id>` |
+  | OpenCode | not yet | not yet |
+
+  An action shows only where the agent has the command.
 
 **Settings:** none. The right-click menu offers the destination.
 

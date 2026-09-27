@@ -1,7 +1,8 @@
 import AppKit
+import CalmAgents
 import CalmModel
-import GhosttyKit
 import Observation
+import OSLog
 import SwiftUI
 
 /// Owns the workspace (projects, sessions, layouts), keeps it saved, and creates the
@@ -16,6 +17,8 @@ final class SessionManager {
         }
         return SessionManager()
     }()
+
+    private static let log = Logger(subsystem: "com.jinhuang.calm", category: "sessions")
 
     private(set) var workspace: Workspace
     @ObservationIgnored private let store: WorkspaceStore
@@ -46,6 +49,10 @@ final class SessionManager {
     /// Prepares the saved workspace at launch; starts one session in the home folder if there is none.
     func restore() {
         removeOrphanedShells()
+        for session in workspace.sessions where session.agent != nil {
+            // Saved by an earlier launch; the probe finds agents that are still running.
+            workspace.endAgentRun(session.id)
+        }
         if workspace.sessions.isEmpty {
             newSession(in: FileManager.default.homeDirectoryForCurrentUser.path)
         }
@@ -94,9 +101,8 @@ final class SessionManager {
             return existing
         }
         guard let session = workspace.session(sessionID) else { return nil }
-        var options = TerminalSurfaceOptions()
+        var options = TerminalSurfaceOptions.session
         options.workingDirectory = session.workingDirectory
-        options.context = GHOSTTY_SURFACE_CONTEXT_SPLIT
         if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
             options.command = command
             let process = ProcessInfo.processInfo.environment
@@ -200,6 +206,25 @@ final class SessionManager {
             effect = workspace.report(id, report, focusedSessionID: lookingAtSessionID)
         }
         AttentionCenter.shared.apply(effect, for: id)
+        scheduleSave()
+    }
+
+    /// The session's foreground job changed; an agent may have started or exited.
+    func foregroundChanged(_ id: Session.ID, to process: ProcessSnapshot?) {
+        guard let session = workspace.session(id) else { return }
+        if let process, let kind = Agents.detect(process) {
+            Self.log.info("agent \(kind.rawValue, privacy: .public) started in \(id, privacy: .public) (pid \(process.processID))")
+            Motion.animate(.easeInOut(duration: 0.25)) {
+                workspace.startAgentRun(id, AgentRun(kind: kind, processID: process.processID))
+            }
+        } else if let agent = session.agent {
+            Self.log.info("agent \(agent.kind.rawValue, privacy: .public) ended in \(id, privacy: .public)")
+            Motion.animate(.easeInOut(duration: 0.25)) {
+                workspace.endAgentRun(id)
+            }
+        } else {
+            return
+        }
         scheduleSave()
     }
 

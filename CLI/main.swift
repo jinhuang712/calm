@@ -83,7 +83,7 @@ case "list", "ls":
     let response = send(ControlRequest(cmd: .list))
     guard response.ok else { fail(response.error ?? "failed") }
     for session in response.sessions ?? [] {
-        print("\(session.project)\t\(session.title)\t\(session.state)\t\(session.directory)")
+        print("\(session.project)\t\(session.title)\t\(session.state)\t\(session.agent ?? "-")\t\(session.directory)")
     }
 case "open":
     let target = arguments.count > 1 ? arguments[1] : FileManager.default.currentDirectoryPath

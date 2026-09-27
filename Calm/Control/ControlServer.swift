@@ -112,6 +112,7 @@ final class ControlServer {
                     project: manager.workspace.project(session.projectID)?.name ?? "",
                     directory: session.workingDirectory,
                     state: session.state.reportName,
+                    agent: session.agent?.kind.displayName,
                 )
             }
             return .success(sessions: sessions)

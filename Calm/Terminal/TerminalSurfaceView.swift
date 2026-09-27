@@ -25,6 +25,12 @@ protocol TerminalSurfaceHost: AnyObject {
 
 /// How a new surface should start.
 struct TerminalSurfaceOptions {
+    /// A Calm session's pane. Every session lives in the one main window, so libghostty
+    /// treats it like a split (for inherited settings).
+    static var session: TerminalSurfaceOptions {
+        TerminalSurfaceOptions(context: GHOSTTY_SURFACE_CONTEXT_SPLIT)
+    }
+
     var workingDirectory: String?
     var command: String?
     var fontSize: Float = 0
@@ -60,6 +66,14 @@ final class TerminalSurfaceView: NSView {
     private(set) var title = ""
     /// Whether the shell reports its folder itself (OSC 7); if not, Calm looks it up.
     var reportsWorkingDirectory = false
+
+    /// The process group in the terminal's foreground (the shell, or the job it started).
+    var foregroundProcessID: Int32? {
+        guard let surface else { return nil }
+        let pid = ghostty_surface_foreground_pid(surface)
+        return pid > 0 ? Int32(truncatingIfNeeded: pid) : nil
+    }
+
     var workingDirectory: String? {
         didSet {
             if workingDirectory != oldValue {

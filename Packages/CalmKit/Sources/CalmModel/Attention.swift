@@ -94,6 +94,7 @@ public extension Workspace {
     /// signals count again; a run that ends mid-work leaves nothing to wait for.
     mutating func endAgentRun(_ id: Session.ID) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].agent = nil
         sessions[index].lastReport?.source = .terminal
         if sessions[index].state == .working {
             sessions[index].state = .idle

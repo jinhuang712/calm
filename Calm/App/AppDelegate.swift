@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !isTesting {
             SessionManager.shared.restore()
             ControlServer.shared.start()
-            WorkingDirectoryProbe.shared.start()
+            SessionProbe.shared.start()
             TerminalWindowManager.shared.openMainWindow()
         }
         NSApp.activate()

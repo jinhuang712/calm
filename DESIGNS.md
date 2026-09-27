@@ -31,7 +31,7 @@ Calm/                    app target (AppKit + SwiftUI)
   Terminal/              the only code that imports GhosttyKit
 CalmTests/               app-hosted tests (engine smoke tests)
 CLI/                     the `calm` command-line tool
-Packages/CalmKit/        UI-free Swift package: CalmModel, later Agents, Attention, Search
+Packages/CalmKit/        UI-free Swift package: CalmModel, CalmControl, CalmAgents; later Search
 scripts/                 GhosttyKit build, xcodebuild wrapper
 Frameworks/              built GhosttyKit + Ghostty resources (not tracked)
 ```
@@ -118,6 +118,8 @@ protocol AgentAdapter {
     func forkCommand(for id: String) -> [String]?
 }
 ```
+
+**Detection (as built, M3.1).** `SessionProbe` looks at every session every 2 seconds. A persistent session's shell pid comes from `zmx list`; `proc_pidinfo(PROC_PIDTBSDINFO)` gives the terminal's foreground process group (`e_tpgid`), and when it differs from the shell's own group a job is running. Only when that job changes does Calm read its path and arguments (`sysctl KERN_PROCARGS2`) and ask the adapters. Without zmx, the pane's foreground process (`ghostty_surface_foreground_pid`) is used. Adapters in `CalmAgents` match on executable or script names, per-platform binary prefixes, and package paths for scripts run by node or bun. Agent runs saved by an earlier launch are cleared at launch and re-detected.
 
 | Agent | Detection | Transcripts | Status source |
 |---|---|---|---|

@@ -37,6 +37,8 @@ targets:
         product: CalmModel
       - package: CalmKit
         product: CalmControl
+      - package: CalmKit
+        product: CalmAgents
       - target: calm-cli
         embed: false
         link: false

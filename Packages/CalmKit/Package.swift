@@ -10,11 +10,14 @@ let package = Package(
     products: [
         .library(name: "CalmModel", targets: ["CalmModel"]),
         .library(name: "CalmControl", targets: ["CalmControl"]),
+        .library(name: "CalmAgents", targets: ["CalmAgents"]),
     ],
     targets: [
         .target(name: "CalmModel"),
         .target(name: "CalmControl"),
+        .target(name: "CalmAgents", dependencies: ["CalmModel"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
+        .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"]),
     ],
 )

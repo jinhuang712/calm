@@ -99,7 +99,7 @@ The core model arrives: sessions grouped under projects, restored after quitting
 
 Calm knows what every agent is doing and interrupts only when one needs you.
 
-- [ ] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
+- [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
 - [ ] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
 - [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
 - [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo.

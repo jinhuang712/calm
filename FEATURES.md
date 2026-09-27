@@ -41,9 +41,9 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none.
 
-## F4 — Agent detection 📝
+## F4 — Agent detection 🚧
 
-- Detects when a session is running **Claude Code, Codex, OpenCode, pi or omp** in the foreground.
+- Detects when a session is running **Claude Code, Codex, OpenCode, pi or omp** in the foreground, within a couple of seconds of it starting or exiting, including sessions that aren't on screen.
 - Shows the agent's icon on the session and uses the agent's own session title when it sets one.
 - Links the session to the agent's transcript on disk when possible (used by F6, F7 and F12).
 

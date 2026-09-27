@@ -36,6 +36,8 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     public var state: SessionState
     /// The latest report behind `state` (optional so older state files still load).
     public var lastReport: StatusReport?
+    /// The agent in the foreground, if one is running.
+    public var agent: AgentRun?
     public var createdAt: Date
 
     public init(

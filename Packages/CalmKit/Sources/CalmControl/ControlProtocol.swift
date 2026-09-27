@@ -53,13 +53,16 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         public var project: String
         public var directory: String
         public var state: String
+        /// The agent in the foreground, if any (added after v1 shipped; optional for older apps).
+        public var agent: String?
 
-        public init(id: String, title: String, project: String, directory: String, state: String) {
+        public init(id: String, title: String, project: String, directory: String, state: String, agent: String? = nil) {
             self.id = id
             self.title = title
             self.project = project
             self.directory = directory
             self.state = state
+            self.agent = agent
         }
     }
 

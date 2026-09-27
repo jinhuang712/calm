@@ -291,10 +291,10 @@ final class TerminalSurfaceView: NSView {
             CATransaction.commit()
         }
         guard let surface else { return }
-        let backing = convertToBacking(frame)
-        let scaleX = frame.width > 0 ? backing.width / frame.width : 1
-        let scaleY = frame.height > 0 ? backing.height / frame.height : 1
-        ghostty_surface_set_content_scale(surface, scaleX, scaleY)
+        // From the window, not from convertToBacking(frame): a pane created before layout has a
+        // zero frame, and a fallback scale of 1 stuck, rendering text at half size on Retina.
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        ghostty_surface_set_content_scale(surface, scale, scale)
         sizeDidChange(contentSize == .zero ? frame.size : contentSize)
     }
 

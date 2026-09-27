@@ -67,7 +67,7 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
 
 /// How sessions are arranged on screen: one split tree per "stack". The main area shows
 /// one layout at a time; picking a session in the sidebar shows the layout it lives in.
-public struct Layout: Identifiable, Codable, Hashable, Sendable {
+public struct PaneLayout: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public var tree: SplitTree<Session.ID>
     public var focusedSessionID: Session.ID
@@ -83,8 +83,8 @@ public struct Layout: Identifiable, Codable, Hashable, Sendable {
 public struct Workspace: Codable, Hashable, Sendable {
     public var projects: [Project] = []
     public var sessions: [Session] = []
-    public var layouts: [Layout] = []
-    public var selectedLayoutID: Layout.ID?
+    public var layouts: [PaneLayout] = []
+    public var selectedLayoutID: PaneLayout.ID?
 
     public init() {}
 
@@ -110,11 +110,11 @@ public struct Workspace: Codable, Hashable, Sendable {
         sessions.filter { $0.projectID == projectID }.sorted { $0.createdAt < $1.createdAt }
     }
 
-    public func layout(containing sessionID: Session.ID) -> Layout? {
+    public func layout(containing sessionID: Session.ID) -> PaneLayout? {
         layouts.first { $0.tree.contains(sessionID) }
     }
 
-    public var selectedLayout: Layout? {
+    public var selectedLayout: PaneLayout? {
         layouts.first { $0.id == selectedLayoutID } ?? layouts.first
     }
 
@@ -161,7 +161,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         let project = projectForFiling(directory, gitRoot: gitRoot)
         let session = Session(projectID: project.id, workingDirectory: directory)
         sessions.append(session)
-        let layout = Layout(tree: .leaf(session.id), focusedSessionID: session.id)
+        let layout = PaneLayout(tree: .leaf(session.id), focusedSessionID: session.id)
         layouts.append(layout)
         selectedLayoutID = layout.id
         return session
@@ -244,7 +244,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         }
     }
 
-    public mutating func updateTree(_ layoutID: Layout.ID, _ tree: SplitTree<Session.ID>) {
+    public mutating func updateTree(_ layoutID: PaneLayout.ID, _ tree: SplitTree<Session.ID>) {
         guard let index = layouts.firstIndex(where: { $0.id == layoutID }) else { return }
         layouts[index].tree = tree
     }
@@ -266,10 +266,22 @@ public struct Workspace: Codable, Hashable, Sendable {
     /// The project a session in `directory` belongs to, creating an automatic one if needed:
     /// the git repository root when there is one, otherwise the folder itself.
     mutating func projectForFiling(_ directory: String, gitRoot: (String) -> String?) -> Project {
-        if let existing = project(containing: directory) {
-            return existing
+        let folder = WorkspacePath.standardize(directory)
+        let repository = gitRoot(folder).map(WorkspacePath.standardize)
+        if let existing = project(containing: folder) {
+            // A repository inside an *automatic* project (like the home folder) gets its own
+            // project; projects the user added keep everything inside them.
+            guard existing.isAutomatic, let repository, repository != existing.path,
+                  WorkspacePath.isInside(repository, folder: existing.path)
+            else { return existing }
+            if let repoProject = projects.first(where: { $0.path == repository }) {
+                return repoProject
+            }
+            let project = Project(path: repository, isAutomatic: true)
+            projects.append(project)
+            return project
         }
-        let root = gitRoot(WorkspacePath.standardize(directory)).map(WorkspacePath.standardize) ?? WorkspacePath.standardize(directory)
+        let root = repository ?? folder
         let project = Project(path: root, isAutomatic: true)
         projects.append(project)
         return project

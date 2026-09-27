@@ -18,6 +18,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView)
     func surfaceAppearanceDidChange(_ view: TerminalSurfaceView)
     func surfaceRequestsCommandPalette(_ view: TerminalSurfaceView)
+    func surfaceChildExited(_ view: TerminalSurfaceView)
+    func surfaceWorkingDirectoryDidChange(_ view: TerminalSurfaceView)
 }
 
 /// How a new surface should start.
@@ -49,12 +51,19 @@ struct TerminalSurfaceOptions {
 /// thread; don't touch `wantsLayer`/`layer` and don't add subviews (put overlays in siblings).
 @MainActor
 final class TerminalSurfaceView: NSView {
-    let id = UUID()
+    let id: UUID
     private(set) var surface: ghostty_surface_t?
     weak var host: TerminalSurfaceHost?
 
     private(set) var title = ""
-    var workingDirectory: String?
+    var workingDirectory: String? {
+        didSet {
+            if workingDirectory != oldValue {
+                host?.surfaceWorkingDirectoryDidChange(self)
+            }
+        }
+    }
+
     var backgroundColorOverride: NSColor? {
         didSet { host?.surfaceAppearanceDidChange(self) }
     }
@@ -77,7 +86,8 @@ final class TerminalSurfaceView: NSView {
     var lastPerformKeyEventTimestamp: TimeInterval?
     var pendingLeadSurrogate: UInt16?
 
-    init(options: TerminalSurfaceOptions) {
+    init(id: UUID = UUID(), options: TerminalSurfaceOptions) {
+        self.id = id
         // A non-zero frame so the renderer's layer starts with real bounds.
         super.init(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
         installEventMonitor()
@@ -297,6 +307,13 @@ final class TerminalSurfaceView: NSView {
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated { self?.viewDidChangeBackingProperties() }
         }
+    }
+
+    /// Hidden panes (in layouts not on screen) stop rendering until shown again.
+    func setVisible(_ visible: Bool) {
+        guard let surface, visible != isWindowVisible else { return }
+        isWindowVisible = visible
+        ghostty_surface_set_occlusion(surface, visible)
     }
 
     private func occlusionDidChange() {

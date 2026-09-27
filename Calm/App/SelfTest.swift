@@ -66,9 +66,7 @@
                 }
                 if quit {
                     // Skip the "processes still running" prompt: this is an automated run.
-                    for controller in TerminalWindowManager.shared.controllers {
-                        controller.workspace.orderedPanes.forEach { $0.teardown() }
-                    }
+                    SessionManager.shared.prepareForQuit()
                     exit(0)
                 }
             }

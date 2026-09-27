@@ -42,14 +42,12 @@ enum MainMenu {
 
     private static func fileMenu() -> NSMenu {
         let menu = NSMenu(title: "Shell")
-        menu.addItem(actionItem("New Window", #selector(TerminalMenuTarget.newWindow(_:)), key: "n"))
-        menu.addItem(terminalItem("New Tab", "new_tab", key: "t"))
+        menu.addItem(actionItem("New Session", #selector(TerminalMenuTarget.newSession(_:)), key: "t"))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Split Right", "new_split:right", key: "d"))
         menu.addItem(terminalItem("Split Down", "new_split:down", key: "d", mods: [.command, .shift]))
         menu.addItem(.separator())
-        menu.addItem(terminalItem("Close", "close_surface", key: "w"))
-        menu.addItem(actionItem("Close Window", #selector(NSWindow.performClose(_:)), key: "w", mods: [.command, .shift]))
+        menu.addItem(terminalItem("Close Session", "close_surface", key: "w"))
         return menu
     }
 
@@ -66,6 +64,7 @@ enum MainMenu {
     private static func viewMenu() -> NSMenu {
         let menu = NSMenu(title: "View")
         menu.addItem(actionItem("Command Palette", #selector(TerminalMenuTarget.toggleCommandPalette(_:)), key: "p"))
+        menu.addItem(actionItem("Toggle Sidebar", #selector(TerminalMenuTarget.toggleSidebar(_:)), key: "s", mods: [.command, .control]))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Bigger", "increase_font_size:1", key: "+"))
         menu.addItem(terminalItem("Smaller", "decrease_font_size:1", key: "-"))
@@ -90,8 +89,8 @@ enum MainMenu {
         menu.addItem(terminalItem("Previous Split", "goto_split:previous", key: "["))
         menu.addItem(terminalItem("Next Split", "goto_split:next", key: "]"))
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Show Previous Tab", action: #selector(NSWindow.selectPreviousTab(_:)), keyEquivalent: "{")
-        menu.addItem(withTitle: "Show Next Tab", action: #selector(NSWindow.selectNextTab(_:)), keyEquivalent: "}")
+        menu.addItem(terminalItem("Previous Session", "previous_tab", key: "[", mods: [.command, .shift]))
+        menu.addItem(terminalItem("Next Session", "next_tab", key: "]", mods: [.command, .shift]))
         return menu
     }
 
@@ -112,7 +111,7 @@ enum MainMenu {
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
-        if selector.description.hasPrefix("newWindow") || selector.description.hasPrefix("toggleCommandPalette") {
+        if ["newSession", "toggleCommandPalette", "toggleSidebar"].contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
         }
         return item
@@ -124,8 +123,12 @@ enum MainMenu {
 final class TerminalMenuTarget: NSObject {
     static let shared = TerminalMenuTarget()
 
-    @objc func newWindow(_: Any?) {
-        TerminalWindowManager.shared.openWindow(inheriting: TerminalWindowManager.shared.focusedController?.focusedPane)
+    @objc func newSession(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().newSession()
+    }
+
+    @objc func toggleSidebar(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.toggleSidebar()
     }
 
     @objc func performTerminalAction(_ sender: NSMenuItem) {

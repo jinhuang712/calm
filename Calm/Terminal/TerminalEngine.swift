@@ -105,8 +105,8 @@ final class TerminalEngine {
         guard let app else { return }
         let scheme = colorScheme
         ghostty_app_set_color_scheme(app, scheme)
-        for controller in TerminalWindowManager.shared.controllers {
-            controller.workspace.orderedPanes.forEach { $0.setColorScheme(scheme) }
+        for pane in SessionManager.shared.panes.values {
+            pane.setColorScheme(scheme)
         }
     }
 
@@ -243,6 +243,13 @@ final class TerminalEngine {
             view?.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))
         case GHOSTTY_ACTION_RING_BELL:
             view?.ringBell()
+        case GHOSTTY_ACTION_SHOW_CHILD_EXITED:
+            // The shell ended. Close the pane after this callback returns (never free a
+            // surface from inside libghostty), instead of "Press any key to close".
+            guard let view else { return false }
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { view.host?.surfaceChildExited(view) }
+            }
         case GHOSTTY_ACTION_COLOR_CHANGE:
             let change = action.action.color_change
             guard change.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND else { return true }

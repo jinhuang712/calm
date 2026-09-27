@@ -43,6 +43,25 @@ struct WorkspaceTests {
         #expect(!workspace.projects.contains { $0.name == "pinax" })
     }
 
+    @Test func `a repository inside an automatic project gets its own project`() throws {
+        var workspace = Workspace()
+        let session = workspace.newSession(in: "/home/me", gitRoot: gitRoot)
+        _ = workspace.newSession(in: "/home/me", gitRoot: gitRoot) // keeps the home project alive
+        let moved = workspace.updateWorkingDirectory(session.id, to: "/home/me/dev/apps/pinax/src", gitRoot: { dir in
+            dir.hasPrefix("/home/me/dev/apps/pinax") ? "/home/me/dev/apps/pinax" : nil
+        })
+        #expect(moved)
+        #expect(try workspace.project(#require(workspace.session(session.id)?.projectID))?.name == "pinax")
+        #expect(workspace.projects.map(\.name).sorted() == ["me", "pinax"])
+    }
+
+    @Test func `a user project keeps repositories inside it`() {
+        var workspace = Workspace()
+        let dev = workspace.addProject(path: "/dev")
+        let session = workspace.newSession(in: "/dev/apps/pinax/src", gitRoot: gitRoot)
+        #expect(session.projectID == dev.id)
+    }
+
     @Test func `staying inside the project doesn't move the session`() {
         var workspace = Workspace()
         let session = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
@@ -79,7 +98,8 @@ struct WorkspaceTests {
     @Test func `splitting adds a session to the same layout and focuses it`() throws {
         var workspace = Workspace()
         let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
-        let second = try #require(workspace.splitSession(first.id, direction: .right, in: "/dev/apps/calm", gitRoot: gitRoot))
+        let split = workspace.splitSession(first.id, direction: .right, in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = try #require(split)
         #expect(workspace.layouts.count == 1)
         #expect(workspace.layouts[0].tree.leaves == [first.id, second.id])
         #expect(workspace.layouts[0].focusedSessionID == second.id)

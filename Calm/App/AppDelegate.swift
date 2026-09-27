@@ -18,7 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Unit tests host the app; they don't need a live shell.
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         if !isTesting {
-            TerminalWindowManager.shared.openWindow()
+            SessionManager.shared.restore()
+            TerminalWindowManager.shared.openMainWindow()
         }
         NSApp.activate()
 
@@ -28,7 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
-        guard TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
+        // With persistent shells, quitting only detaches: nothing is lost, so don't ask.
+        guard !PersistentShell.isAvailable, TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "Quit Calm?"
         alert.informativeText = "Processes are still running in some terminals."
@@ -37,13 +39,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
     }
 
+    func applicationWillTerminate(_: Notification) {
+        SessionManager.shared.prepareForQuit()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         true
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows {
-            TerminalWindowManager.shared.openWindow()
+            TerminalWindowManager.shared.openMainWindow()
         }
         return true
     }

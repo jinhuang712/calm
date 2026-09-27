@@ -23,6 +23,34 @@ final class TerminalWorkspaceView: NSView {
 
     // MARK: Structure
 
+    /// Rebuilds the view from a saved layout.
+    func restore(tree: SplitTree<UUID>, panes: [UUID: TerminalSurfaceView]) {
+        let present = panes.filter { tree.contains($0.key) }
+        guard !present.isEmpty else { return }
+        var pruned: SplitTree<UUID>? = tree
+        for id in tree.leaves where present[id] == nil {
+            pruned = pruned?.removing(id)
+        }
+        self.tree = pruned
+        self.panes = present
+        present.values.forEach { addSubview($0) }
+        layoutPanes(animated: false)
+    }
+
+    /// Takes a pane out of the layout without ending its surface (the session manager does that).
+    func detach(_ pane: TerminalSurfaceView) {
+        guard let tree else { return }
+        if zoomedPane == pane.id {
+            zoomedPane = nil
+        }
+        panes[pane.id] = nil
+        pane.removeFromSuperview()
+        self.tree = tree.removing(pane.id)
+        if self.tree != nil {
+            layoutPanes(animated: true)
+        }
+    }
+
     func setRoot(_ pane: TerminalSurfaceView) {
         panes = [pane.id: pane]
         tree = .leaf(pane.id)

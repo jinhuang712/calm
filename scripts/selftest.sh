@@ -20,6 +20,8 @@ delay="1.5"
 keys=""
 drag=""
 resize=""
+persist=""
+state=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --type) type_text="$2"; shift 2 ;;
@@ -28,6 +30,8 @@ while [[ $# -gt 0 ]]; do
     --keys) keys="$2"; shift 2 ;;   # typed through real key events; "\r" in the text means Return
     --drag) drag=1; shift ;;         # drag-select the first rows, copy, and log the clipboard
     --resize) resize="$2"; shift 2 ;; # e.g. 700x420: resize the window and log the grid size
+    --persist) persist=1; shift ;;   # keep zmx persistence on (default: off, so runs leave nothing behind)
+    --state) state="$2"; shift 2 ;;  # use this state file (default: a fresh one per run)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -35,7 +39,14 @@ done
 app="$root/build/DerivedData/Build/Products/Debug/Calm.app/Contents/MacOS/Calm"
 pkill -x Calm 2>/dev/null || true
 
+if [[ -z "$state" ]]; then
+  state="$out/$name.state.json"
+  rm -f "$state"
+fi
+
 env \
+  CALM_STATE_FILE="$state" \
+  CALM_NO_PERSISTENCE="$([[ -n "$persist" ]] && echo 0 || echo 1)" \
   CALM_SNAPSHOT="$out/$name.png" \
   CALM_SELFTEST_TEXT="$out/$name.txt" \
   CALM_SELFTEST_TYPE="$type_text" \

@@ -1,6 +1,7 @@
 import CalmModel
 
-/// pi (pi-coding-agent): usually node running the package's `pi` script.
+/// pi (`@earendil-works/pi-coding-agent`): node running the package's CLI, which renames
+/// itself `pi` (`process.title`), or a Bun-compiled `pi`.
 public struct PiAdapter: AgentAdapter {
     public let kind = AgentKind.pi
     public let commandNames: Set<String> = ["pi"]

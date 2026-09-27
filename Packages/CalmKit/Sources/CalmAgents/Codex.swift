@@ -7,6 +7,8 @@ public struct CodexAdapter: AgentAdapter {
     public let commandNames: Set<String> = ["codex"]
     public let commandPrefixes = ["codex-"]
     public let packagePaths = ["/@openai/codex/"]
+    /// Background servers (used by the desktop apps), not sessions.
+    public let helperSubcommands: Set<String> = ["app-server", "mcp-server"]
 
     public init() {}
 }

@@ -55,6 +55,8 @@ public protocol AgentAdapter: Sendable {
     var commandPrefixes: [String] { get }
     /// Path fragments of the agent's package, when a script runtime (node, bun) runs it.
     var packagePaths: [String] { get }
+    /// Subcommands that start one of the agent's background helpers rather than a session.
+    var helperSubcommands: Set<String> { get }
 }
 
 public extension AgentAdapter {
@@ -62,7 +64,14 @@ public extension AgentAdapter {
         []
     }
 
+    var helperSubcommands: Set<String> {
+        []
+    }
+
     func matches(_ process: ProcessSnapshot) -> Bool {
+        if process.arguments.count > 1, helperSubcommands.contains(process.arguments[1]) {
+            return false
+        }
         let names = process.names
         if !names.isDisjoint(with: commandNames) {
             return true

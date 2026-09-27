@@ -15,6 +15,25 @@ struct AgentDetectionTests {
         #expect(Agents.detect(process("/Users/me/.bun/bin/omp", ["omp"])) == .omp)
     }
 
+    @Test func `claude code's versioned binary and its helpers`() {
+        let binary = "/Users/me/.local/share/claude/versions/2.1.283"
+        #expect(Agents.detect(process(binary, ["claude"])) == .claudeCode)
+        #expect(Agents.detect(process(binary, ["claude", "--resume"])) == .claudeCode)
+        #expect(Agents.detect(process(binary, ["claude", "daemon", "run"])) == nil)
+        #expect(Agents.detect(process(binary, ["claude", "bg-pty-host"])) == nil)
+        let npm = "/usr/local/lib/node_modules/@anthropic-ai/claude-code-darwin-arm64/bin/claude"
+        #expect(Agents.detect(process(npm, [npm])) == .claudeCode)
+    }
+
+    @Test func `background services are not sessions`() {
+        // Seen on a real machine (2026-09-27).
+        #expect(Agents
+            .detect(process("/Users/me/.opencode/bin/opencode", ["/Users/me/.opencode/bin/opencode", "serve", "--service"])) == nil)
+        let codex = "/Users/me/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/bin/codex"
+        #expect(Agents.detect(process(codex, [codex, "app-server", "--listen"])) == nil)
+        #expect(Agents.detect(process(codex, [codex, "resume", "--last"])) == .codex)
+    }
+
     @Test func `per-platform builds and launchers`() {
         let codexBinary = "/usr/local/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex/codex-aarch64-apple-darwin"
         #expect(Agents.detect(process(codexBinary, [codexBinary])) == .codex)
@@ -25,8 +44,10 @@ struct AgentDetectionTests {
         let claudeScript = "/usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js"
         #expect(Agents.detect(process("/opt/homebrew/bin/node", ["node", "--no-warnings", claudeScript])) == .claudeCode)
         #expect(Agents.detect(process("/opt/homebrew/bin/node", ["node", "/opt/homebrew/bin/pi"])) == .pi)
-        let piScript = "/Users/me/.npm-global/lib/node_modules/@mariozechner/pi-coding-agent/dist/cli.js"
+        let piScript = "/Users/me/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js"
         #expect(Agents.detect(process("/opt/homebrew/bin/node", ["node", piScript])) == .pi)
+        // pi renames itself through process.title, which rewrites argv[0].
+        #expect(Agents.detect(process("/opt/homebrew/bin/node", ["pi"])) == .pi)
         #expect(Agents.detect(process("/Users/me/.bun/bin/bun", ["bun", "/Users/me/src/oh-my-pi/packages/cli/src/index.ts"])) == .omp)
     }
 

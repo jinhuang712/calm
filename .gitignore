@@ -17,3 +17,6 @@ Frameworks/GhosttyKit.xcframework/
 # Local tools
 .serena/
 .claude/settings.local.json
+
+# Worktrees
+.claude/worktrees/

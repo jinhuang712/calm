@@ -1,75 +1,198 @@
 # Roadmap
 
-Phases are ordered so that Calm is usable early and every phase adds to a working app. Feature IDs refer to [FEATURES.md](FEATURES.md).
+Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
+
+**Current milestone:** M0 — Foundations
+
+## How to read this
+
+- A **milestone** is a usable state of the app, with exit criteria that decide when it is done.
+- A **task** is one reviewable piece of work, usually one branch and one pull request. Task IDs (`M2.4`) are used in branch names and commit messages.
+- **Decision** tasks settle an open question in [DESIGNS.md](DESIGNS.md) and record the outcome there.
+- Check a task off when it is merged. Update the milestone status and "Current milestone" when the exit criteria are met.
 
 Status: ⬜ not started · 🟨 in progress · ✅ done
 
-## Phase 0 — Foundations ⬜
+## Overview
 
-- Repository, build setup (XcodeGen + mise), formatting, linting, tests, CI.
-- GhosttyKit built from upstream Ghostty at a pinned commit, integrated and linking.
-- Settle the minimum macOS version ([DESIGNS.md](DESIGNS.md)).
+| Milestone | Delivers | Features | Depends on | Status |
+|---|---|---|---|---|
+| **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ⬜ |
+| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ⬜ |
+| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ⬜ |
+| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ⬜ |
+| **M4** Recall | search across every agent's history | F7 | M2 | ⬜ |
+| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ⬜ |
+| **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | ⬜ |
+| **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ⬜ |
 
-**Done when:** an empty app builds, launches and passes CI.
+M4 and M5 can run in parallel with M3 once M2 is done.
 
-## Phase 1 — A plain terminal (F1) ⬜
+---
 
-- One window, tabs and splits running real shells through libghostty.
-- Ghostty config, keyboard input, IME (Chinese input), clipboard, selection, links to URLs, resize, scrollback.
-- Command palette.
+## M0 — Foundations ⬜
 
-**Done when:** the author can use Calm as a plain terminal for a full day without hitting a blocker.
+An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty.
 
-## Phase 2 — Sessions and projects (F2, F3) ⬜
+- [ ] **M0.1 Decision:** minimum macOS version (proposed: macOS 26).
+- [ ] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
+- [ ] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit and fetch it into `vendor/ghostty` (git-ignored).
+- [ ] **M0.4 GhosttyKit build:** `scripts/build-ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit, cached by commit hash so rebuilds are skipped.
+- [ ] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package for the UI-free modules (starting with `Model`), each with a test target.
+- [ ] **M0.6 App skeleton:** an empty window that launches; bundle ID `com.jinhuang.calm`; placeholder icon.
+- [ ] **M0.7 Engine smoke test:** the app initializes libghostty at launch, and a test proves GhosttyKit links.
+- [ ] **M0.8 Quality tools:** swiftformat and swiftlint configs; `mise run build`, `test`, `lint` and `format`.
+- [ ] **M0.9 CI:** a GitHub Actions workflow on a macOS runner (setup, cached GhosttyKit build, build, test, lint). Needs the GitHub repository.
+- [ ] **M0.10 Docs:** AGENTS.md commands confirmed; DESIGNS.md updated with the final project layout.
 
-- The Project → Session → Pane model.
-- Sidebar with projects and sessions; auto-grouping by folder with animated moves.
-- Sessions survive quitting; layouts restored.
+**Exit criteria**
+- `mise run setup && mise run build` on a clean clone produces an app that launches.
+- CI passes on `main`.
 
-**Done when:** quitting and relaunching restores everything, and sessions file themselves under the right project.
+---
 
-## Phase 3 — Attention (F4, F5, F6, F13 status) ⬜
+## M1 — A plain terminal (F1) ⬜
 
-- Agent detection for Claude Code, Codex, OpenCode, pi and omp.
-- `calm status` over the control socket; hook setup for each agent.
-- Session states in the sidebar; *needs you* notifications at natural pauses.
-- Arrival card.
+Calm works as a normal terminal: no sessions or agents yet, just a fast, correct terminal.
 
-**Done when:** the author no longer clicks through tabs to find which agent is waiting.
+- [ ] **M1.1 Engine wrapper:** the `Terminal` module owns libghostty's app object, loads the user's Ghostty config, and drives its event loop.
+- [ ] **M1.2 Terminal view:** a view that renders one surface running the user's shell.
+- [ ] **M1.3 Keyboard:** all keys and modifiers, IME (Chinese input included), Option-as-Alt from the Ghostty config.
+- [ ] **M1.4 Mouse:** selection, ⌥-drag rectangle selection, scrolling, mouse reporting to TUIs.
+- [ ] **M1.5 Clipboard:** copy, paste, OSC 52.
+- [ ] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
+- [ ] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
+- [ ] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers.
+- [ ] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
+- [ ] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
+- [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Optional for this milestone; may move later.*
+- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found.
 
-## Phase 4 — Recall (F7) ⬜
+**Exit criteria**
+- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker.
 
-- Transcript indexer (command-line first: `calm search`), then ⌘K in the app.
-- Tokenizer benchmark on real transcripts, Chinese included.
+---
 
-**Done when:** "which session talked about X?" is answered with one search.
+## M2 — Sessions and projects (F2, F3) ⬜
 
-## Phase 5 — Reading (F8, F9, F10) ⬜
+The core model arrives: sessions grouped under projects, restored after quitting.
 
-- Smart links with relative paths and line numbers.
-- Copy Cell.
-- Files column and full-area read-only viewer (esc returns to the session).
+- [ ] **M2.1 Model:** `Project`, `Session`, `Pane` and layout tree in the `Model` module, fully unit-tested.
+- [ ] **M2.2 State store:** save and restore projects, sessions, layouts and windows in `state.sqlite`.
+- [ ] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
+- [ ] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
+- [ ] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
+- [ ] **M2.6 Motion:** animated moves between projects; respects Reduce Motion.
+- [ ] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first).
+- [ ] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.
+- [ ] **M2.9 Control socket and CLI:** the `calm` CLI with `open` and `list` over the local socket.
+- [ ] **M2.10 Config:** `~/.config/calm/config.toml` with the auto-grouping setting.
 
-**Done when:** copying a cell, opening a path at a line and previewing a file each take one action.
+**Exit criteria**
+- Quit and relaunch restores every project, session and layout, with shells still running.
+- A shell that `cd`s into another project moves there on its own.
 
-## Phase 6 — Look and feel (F11, F14) ⬜
+---
 
-- Whole-window themes with a curated soft set and the picker.
-- The five-section settings screen.
+## M3 — Attention (F4, F5, F6, F13) ⬜
 
-**Done when:** a new user can make Calm look right in under a minute without editing files.
+Calm knows what every agent is doing and interrupts only when one needs you.
 
-## Phase 7 — Session actions (F12) ⬜
+- [ ] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
+- [ ] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
+- [ ] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
+- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo.
+- [ ] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles.
+- [ ] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
+- [ ] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first).
+- [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact.
+- [ ] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧J to jump to the next waiting session, never dropped.
+- [ ] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
+- [ ] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
+- [ ] **M3.12 Agents settings:** which states notify, sound on or off.
 
-- Rename, resume and fork for agents that support them.
+**Exit criteria**
+- For a week of normal work, the author never clicks through tabs to find which agent is waiting.
+- No *needs you* is missed.
 
-**Done when:** resuming or forking a conversation is one right-click.
+---
+
+## M4 — Recall (F7) ⬜
+
+Any past conversation, across every agent, is one search away.
+
+- [ ] **M4.1 Transcript parsers:** one per agent, tested against fixture files from real sessions; failures degrade quietly.
+- [ ] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
+- [ ] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing with file watching and stored offsets; user and agent messages only.
+- [ ] **M4.4 Ranking:** BM25 plus boosts for title matches, recency and the current project; unit-tested.
+- [ ] **M4.5 CLI:** `calm search <text>`.
+- [ ] **M4.6 Search panel:** ⌘K, live results, jump to an open session or resume a closed one.
+- [ ] **M4.7 Performance:** measure query time and index size on the author's full history, and set targets from the results.
+
+**Exit criteria**
+- "Which session talked about X?" is answered with one search, most of the time.
+
+---
+
+## M5 — Reading (F8, F9, F10) ⬜
+
+Agent output is easy to act on.
+
+- [ ] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
+- [ ] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
+- [ ] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session.
+- [ ] **M5.4 Decision:** viewer rendering — native or a web view.
+- [ ] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
+- [ ] **M5.6 CLI:** `calm open <file>`.
+
+**Exit criteria**
+- Copying a table cell, opening a path at a line and viewing a file each take one action.
+
+---
+
+## M6 — Look and feel (F11, F14) ⬜
+
+Calm looks right out of the box, and making it yours takes a minute.
+
+- [ ] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs.
+- [ ] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme.
+- [ ] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance.
+- [ ] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout.
+- [ ] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys.
+- [ ] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast.
+
+**Exit criteria**
+- A new user can make Calm look right in under a minute without editing files.
+- The settings screen fits the budget in PHILOSOPHY.md.
+
+---
+
+## M7 — Session actions (F12) ⬜
+
+Conversations can be renamed, resumed and forked.
+
+- [ ] **M7.1 Rename:** rename any session.
+- [ ] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command.
+- [ ] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it.
+- [ ] **M7.4 Menus:** right-click actions on session cards.
+
+**Exit criteria**
+- Resuming or forking a conversation is one right-click.
+
+---
+
+## In every milestone
+
+- Keep FEATURES.md, DESIGNS.md and UIUX.md true in the same change as the code.
+- Update the design canvas before a milestone with new screens (M2, M3, M5, M6).
+- New logic comes with tests; the app is dogfooded daily from M1 on.
 
 ## Later
 
+- Release: Developer ID signing, notarization, Sparkle updates, a Homebrew cask, public launch.
+- Changed-file diffs in the viewer.
 - Spotlight integration (semantic index on macOS 27+).
-- Scrollback search across open sessions, paste history.
-- Signing, notarization, Sparkle updates, Homebrew cask, public release.
+- Scrollback search across open sessions; paste history.
 
 ## Not planned
 

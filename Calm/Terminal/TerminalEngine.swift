@@ -196,18 +196,23 @@ final class TerminalEngine {
             return true
         case GHOSTTY_ACTION_NEW_SPLIT:
             guard let view else { return false }
-            host?.surface(view, requestsSplit: action.action.new_split)
+            host?.surface(view, requestsSplit: SplitTree<UUID>.Direction(action.action.new_split))
             return true
         case GHOSTTY_ACTION_GOTO_SPLIT:
-            return view.flatMap { host?.surface($0, requestsFocus: action.action.goto_split) } ?? false
+            guard let view, let target = PaneFocusTarget(action.action.goto_split) else { return false }
+            return host?.surface(view, requestsFocus: target) ?? false
         case GHOSTTY_ACTION_RESIZE_SPLIT:
-            return view.flatMap { host?.surface($0, requestsResize: action.action.resize_split) } ?? false
+            let resize = action.action.resize_split
+            return view.flatMap {
+                host?.surface($0, requestsResize: SplitTree<UUID>.Direction(resize.direction), byPoints: CGFloat(resize.amount))
+            } ?? false
         case GHOSTTY_ACTION_EQUALIZE_SPLITS:
             return view.flatMap { host?.surfaceRequestsEqualize($0) } ?? false
         case GHOSTTY_ACTION_TOGGLE_SPLIT_ZOOM:
             return view.flatMap { host?.surfaceRequestsZoomToggle($0) } ?? false
         case GHOSTTY_ACTION_GOTO_TAB:
-            return view.flatMap { host?.surface($0, requestsTab: action.action.goto_tab) } ?? false
+            guard let view, let target = SessionTarget(action.action.goto_tab) else { return false }
+            return host?.surface(view, requestsSession: target) ?? false
         case GHOSTTY_ACTION_CLOSE_TAB:
             guard let view else { return false }
             host?.surfaceRequestsCloseTab(view)

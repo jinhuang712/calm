@@ -1,6 +1,5 @@
 import AppKit
 import CalmModel
-import GhosttyKit
 import SwiftUI
 
 /// The main window: the session sidebar beside the terminal area. The terminal area keeps
@@ -311,14 +310,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         newSession(inheriting: view)
     }
 
-    func surface(_ view: TerminalSurfaceView, requestsSplit direction: ghostty_action_split_direction_e) {
+    func surface(_ view: TerminalSurfaceView, requestsSplit splitDirection: SplitTree<UUID>.Direction) {
         guard let layout = manager.workspace.layout(containing: view.id), let workspace = workspaces[layout.id] else { return }
-        let splitDirection: SplitTree<UUID>.Direction = switch direction {
-        case GHOSTTY_SPLIT_DIRECTION_LEFT: .left
-        case GHOSTTY_SPLIT_DIRECTION_UP: .up
-        case GHOSTTY_SPLIT_DIRECTION_DOWN: .down
-        default: .right
-        }
         let directory = view.workingDirectory ?? manager.workspace.session(view.id)?.workingDirectory
             ?? FileManager.default.homeDirectoryForCurrentUser.path
         guard let session = manager.splitSession(view.id, direction: splitDirection, in: directory),
@@ -328,31 +321,21 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window?.makeFirstResponder(pane)
     }
 
-    func surface(_ view: TerminalSurfaceView, requestsFocus direction: ghostty_action_goto_split_e) -> Bool {
+    func surface(_ view: TerminalSurfaceView, requestsFocus focusTarget: PaneFocusTarget) -> Bool {
         guard let workspace = selectedWorkspace else { return false }
-        let target: TerminalSurfaceView? = switch direction {
-        case GHOSTTY_GOTO_SPLIT_PREVIOUS: workspace.cycle(from: view, forward: false)
-        case GHOSTTY_GOTO_SPLIT_NEXT: workspace.cycle(from: view, forward: true)
-        case GHOSTTY_GOTO_SPLIT_LEFT: workspace.neighbor(of: view, toward: .left)
-        case GHOSTTY_GOTO_SPLIT_RIGHT: workspace.neighbor(of: view, toward: .right)
-        case GHOSTTY_GOTO_SPLIT_UP: workspace.neighbor(of: view, toward: .up)
-        case GHOSTTY_GOTO_SPLIT_DOWN: workspace.neighbor(of: view, toward: .down)
-        default: nil
+        let target: TerminalSurfaceView? = switch focusTarget {
+        case .previous: workspace.cycle(from: view, forward: false)
+        case .next: workspace.cycle(from: view, forward: true)
+        case let .toward(direction): workspace.neighbor(of: view, toward: direction)
         }
         guard let target else { return false }
         window?.makeFirstResponder(target)
         return true
     }
 
-    func surface(_ view: TerminalSurfaceView, requestsResize resize: ghostty_action_resize_split_s) -> Bool {
+    func surface(_ view: TerminalSurfaceView, requestsResize direction: SplitTree<UUID>.Direction, byPoints amount: CGFloat) -> Bool {
         guard let layout = manager.workspace.layout(containing: view.id), let workspace = workspaces[layout.id] else { return false }
-        let direction: SplitTree<UUID>.Direction = switch resize.direction {
-        case GHOSTTY_RESIZE_SPLIT_LEFT: .left
-        case GHOSTTY_RESIZE_SPLIT_UP: .up
-        case GHOSTTY_RESIZE_SPLIT_DOWN: .down
-        default: .right
-        }
-        let resized = workspace.resize(view, direction: direction, byPoints: CGFloat(resize.amount))
+        let resized = workspace.resize(view, direction: direction, byPoints: amount)
         if resized, let tree = workspace.tree {
             manager.updateTree(layout.id, tree)
         }
@@ -374,17 +357,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         selectedWorkspace?.toggleZoom(view) ?? false
     }
 
-    func surface(_: TerminalSurfaceView, requestsTab tab: ghostty_action_goto_tab_e) -> Bool {
+    func surface(_: TerminalSurfaceView, requestsSession target: SessionTarget) -> Bool {
         let sessions = manager.orderedSessions
-        guard sessions.count > 1, let current = focusedPane.flatMap({ pane in sessions.firstIndex { $0.id == pane.id } }) else {
-            return false
-        }
-        let index: Int = switch tab {
-        case GHOSTTY_GOTO_TAB_PREVIOUS: (current - 1 + sessions.count) % sessions.count
-        case GHOSTTY_GOTO_TAB_NEXT: (current + 1) % sessions.count
-        case GHOSTTY_GOTO_TAB_LAST: sessions.count - 1
-        default: Int(tab.rawValue)
-        }
+        guard sessions.count > 1, let current = focusedPane.flatMap({ pane in sessions.firstIndex { $0.id == pane.id } }),
+              let index = target.index(from: current, count: sessions.count)
+        else { return false }
         return selectSession(atPosition: index)
     }
 

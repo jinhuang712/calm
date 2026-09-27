@@ -1,17 +1,18 @@
 import AppKit
 import CalmControl
+import CalmModel
 import GhosttyKit
 
 /// Whoever lays out terminal panes (a window's split container) and reacts to their requests.
 @MainActor
 protocol TerminalSurfaceHost: AnyObject {
     func surfaceRequestsNewTab(_ view: TerminalSurfaceView)
-    func surface(_ view: TerminalSurfaceView, requestsSplit direction: ghostty_action_split_direction_e)
-    func surface(_ view: TerminalSurfaceView, requestsFocus direction: ghostty_action_goto_split_e) -> Bool
-    func surface(_ view: TerminalSurfaceView, requestsResize resize: ghostty_action_resize_split_s) -> Bool
+    func surface(_ view: TerminalSurfaceView, requestsSplit direction: SplitTree<UUID>.Direction)
+    func surface(_ view: TerminalSurfaceView, requestsFocus target: PaneFocusTarget) -> Bool
+    func surface(_ view: TerminalSurfaceView, requestsResize direction: SplitTree<UUID>.Direction, byPoints amount: CGFloat) -> Bool
     func surfaceRequestsEqualize(_ view: TerminalSurfaceView) -> Bool
     func surfaceRequestsZoomToggle(_ view: TerminalSurfaceView) -> Bool
-    func surface(_ view: TerminalSurfaceView, requestsTab tab: ghostty_action_goto_tab_e) -> Bool
+    func surface(_ view: TerminalSurfaceView, requestsSession target: SessionTarget) -> Bool
     func surfaceRequestsCloseTab(_ view: TerminalSurfaceView)
     func surfaceRequestsCloseWindow(_ view: TerminalSurfaceView)
     func surfaceRequestsClose(_ view: TerminalSurfaceView, needsConfirm: Bool)

@@ -87,4 +87,25 @@
             return copied
         }
     }
+
+    extension TerminalSurfaceView {
+        /// Types text as if from the keyboard, then presses Return.
+        func typeForTesting(_ text: String) {
+            guard let surface else { return }
+            text.withCString { ghostty_surface_text(surface, $0, UInt(text.utf8.count)) }
+            var key = ghostty_input_key_s()
+            key.action = GHOSTTY_ACTION_PRESS
+            key.keycode = 36 // Return
+            key.mods = GHOSTTY_MODS_NONE
+            key.consumed_mods = GHOSTTY_MODS_NONE
+            key.unshifted_codepoint = 13
+            "\r".withCString { pointer in
+                key.text = pointer
+                _ = ghostty_surface_key(surface, key)
+            }
+            key.action = GHOSTTY_ACTION_RELEASE
+            key.text = nil
+            _ = ghostty_surface_key(surface, key)
+        }
+    }
 #endif

@@ -230,6 +230,20 @@ final class SessionManager {
         }
     }
 
+    /// A new reading of an agent's transcript. An interruption counts only if the transcript was
+    /// written after the latest report (a new prompt's hook can arrive before its transcript line).
+    func transcriptChanged(_ id: Session.ID, _ tail: TranscriptTail, modified: Date) {
+        guard let session = workspace.session(id), session.agent?.tail != tail else { return }
+        var tail = tail
+        if tail.interrupted, let reported = session.lastReport?.date, reported >= modified {
+            tail.interrupted = false
+        }
+        Motion.animate(.easeInOut(duration: 0.25)) {
+            workspace.updateTranscriptTail(id, tail)
+        }
+        scheduleSave()
+    }
+
     func noteAgentSession(_ id: Session.ID, kind: AgentKind, agentSessionID: String?, transcriptPath: String?) {
         workspace.noteAgentSession(id, kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath)
         scheduleSave()

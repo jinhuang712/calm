@@ -20,15 +20,55 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
     }
 }
 
+/// "3 of 5 todos".
+public struct TodoProgress: Codable, Hashable, Sendable {
+    public var done: Int
+    public var total: Int
+
+    public init(done: Int, total: Int) {
+        self.done = done
+        self.total = total
+    }
+}
+
+/// What the agent's transcript says right now (FEATURES.md → F2 session cards).
+public struct TranscriptTail: Codable, Hashable, Sendable {
+    /// The agent's own session title (e.g. set by `/rename`, or generated).
+    public var title: String?
+    /// The latest thing the agent said, cut for a recap.
+    public var lastMessage: String?
+    /// What it's doing now: the task in progress.
+    public var step: String?
+    public var progress: TodoProgress?
+    /// The user interrupted the turn (no hook reports that).
+    public var interrupted: Bool
+
+    public init(
+        title: String? = nil,
+        lastMessage: String? = nil,
+        step: String? = nil,
+        progress: TodoProgress? = nil,
+        interrupted: Bool = false,
+    ) {
+        self.title = title
+        self.lastMessage = lastMessage
+        self.step = step
+        self.progress = progress
+        self.interrupted = interrupted
+    }
+}
+
 /// An agent running in the foreground of a session.
 public struct AgentRun: Codable, Hashable, Sendable {
     public var kind: AgentKind
     /// The agent's process, while Calm is watching it; 0 when only its hooks have spoken so far.
     public var processID: Int32
     public var startedAt: Date
-    /// The agent's own session id and transcript file, from its hooks.
+    /// The agent's own session id and transcript file, from its hooks or found from its process.
     public var agentSessionID: String?
     public var transcriptPath: String?
+    /// The latest reading of its transcript.
+    public var tail: TranscriptTail?
 
     public init(kind: AgentKind, processID: Int32, startedAt: Date = Date()) {
         self.kind = kind
@@ -51,6 +91,17 @@ public extension Workspace {
                 endAgentRun(id)
             }
             sessions[index].agent = run
+        }
+    }
+
+    /// A new reading of the agent's transcript. An interruption ends a *working* turn: agents'
+    /// hooks don't report it.
+    mutating func updateTranscriptTail(_ id: Session.ID, _ tail: TranscriptTail, readAt date: Date = Date()) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), sessions[index].agent != nil else { return }
+        sessions[index].agent?.tail = tail
+        if tail.interrupted, sessions[index].state == .working {
+            sessions[index].state = .idle
+            sessions[index].lastReport = StatusReport(state: .idle, message: "Interrupted", source: .hook, date: date)
         }
     }
 

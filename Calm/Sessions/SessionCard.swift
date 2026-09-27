@@ -13,7 +13,7 @@ struct SessionCard: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 AgentMark(agent: agent, isWorking: session.state == .working, style: style)
-                Text(session.displayTitle)
+                Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(style.primary)
                     .lineLimit(1)
@@ -27,12 +27,17 @@ struct SessionCard: View {
             }
             HStack(spacing: 6) {
                 StateMark(state: session.state, style: style)
-                Text(session.state.label)
+                Text(stateLine)
                     .font(.system(size: 12))
                     .foregroundStyle(session.state == .needsYou ? style.primary : style.secondary)
+                    .lineLimit(1)
             }
             .padding(.leading, 26)
-            if let message = session.lastReport?.message {
+            if let progress = session.agent?.tail?.progress, progress.total > 0 {
+                TodoProgressLine(progress: progress, style: style)
+                    .padding(.leading, 26)
+            }
+            if let message = recap {
                 Text(message)
                     .font(.system(size: 12))
                     .foregroundStyle(style.secondary)
@@ -62,6 +67,25 @@ struct SessionCard: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
+    /// The agent's own title (from its transcript) is steadier than the terminal title.
+    private var title: String {
+        session.agent?.tail?.title ?? session.displayTitle
+    }
+
+    /// "Working · Fixing the token mock".
+    private var stateLine: String {
+        guard session.state == .working, let step = session.agent?.tail?.step else { return session.state.label }
+        return "\(session.state.label) · \(step)"
+    }
+
+    /// While the agent waits for you, what it asked; otherwise the latest thing it said.
+    private var recap: String? {
+        if session.state == .needsYou {
+            return session.lastReport?.message ?? session.agent?.tail?.lastMessage
+        }
+        return session.agent?.tail?.lastMessage ?? session.lastReport?.message
+    }
+
     private var background: Color {
         if session.state == .needsYou {
             return style.attention.opacity(isSelected ? 0.26 : 0.19)
@@ -70,9 +94,35 @@ struct SessionCard: View {
     }
 
     private var accessibilityText: String {
-        [agent.displayName, session.displayTitle, session.state.label, session.lastReport?.message]
+        [agent.displayName, title, stateLine, recap]
             .compactMap(\.self)
             .joined(separator: ", ")
+    }
+}
+
+/// A thin bar and "3 of 5": the agent's todo list.
+struct TodoProgressLine: View {
+    let progress: TodoProgress
+    let style: SidebarStyle
+
+    var body: some View {
+        HStack(spacing: 8) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(style.selection)
+                    Capsule()
+                        .fill(style.secondary)
+                        .frame(width: geometry.size.width * CGFloat(progress.done) / CGFloat(max(progress.total, 1)))
+                }
+            }
+            .frame(height: 3)
+            Text("\(progress.done) of \(progress.total)")
+                .font(.system(size: 11))
+                .monospacedDigit()
+                .foregroundStyle(style.tertiary)
+                .fixedSize()
+        }
+        .animation(.easeInOut(duration: 0.3), value: progress)
     }
 }
 

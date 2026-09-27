@@ -23,7 +23,7 @@ A fast, correct terminal on libghostty.
 ## F2 — Projects and auto-grouping 🚧
 
 - A **project** is a folder. The sidebar lists projects, each with its sessions underneath.
-- Each agent session is a **session card** showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message, and the worktree name with its diff size when the session runs in a git worktree. Plain shells are one compact line.
+- Each agent session is a **session card** (Claude Code today; other agents' transcripts follow) showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message, and the worktree name with its diff size when the session runs in a git worktree. Plain shells are one compact line.
 - Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
 - A session files itself under the project whose folder contains its current working directory, choosing the most specific match. When the shell `cd`s into another project, the session moves there. The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
 - If no project contains the folder, the session goes under an automatic project for its git repository root, or its folder if there is no repository.

@@ -1,0 +1,5 @@
+{"type":"user","sessionId":"4f6b2c1e-0000-4000-8000-000000000002","message":{"role":"user","content":[{"type":"text","text":"refactor the parser"}]},"uuid":"u1","parentUuid":null}
+{"type":"ai-title","aiTitle":"Refactor the parser","sessionId":"4f6b2c1e-0000-4000-8000-000000000002"}
+{"type":"assistant","sessionId":"4f6b2c1e-0000-4000-8000-000000000002","message":{"role":"assistant","stop_reason":"tool_use","content":[{"type":"text","text":"Starting with the tokenizer."},{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/Users/me/src/app/parser.swift"}}]},"uuid":"a1","parentUuid":"u1"}
+{"type":"user","sessionId":"4f6b2c1e-0000-4000-8000-000000000002","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]},"uuid":"u2","parentUuid":"a1"}
+{"type":"system","subtype":"local_command","sessionId":"4f6b2c1e-0000-4000-8000-000000000002","uuid":"s1"}

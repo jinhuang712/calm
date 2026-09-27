@@ -22,6 +22,14 @@ final class SessionProbe {
     private var lastListing = Date.distantPast
     /// The foreground job last seen per session (0: the shell itself).
     private var foregroundJobs: [Session.ID: Int32] = [:]
+    /// Size and modification time of each agent transcript when last read.
+    private var transcriptStamps: [Session.ID: TranscriptStamp] = [:]
+
+    private struct TranscriptStamp: Equatable {
+        var path: String
+        var size: Int
+        var modified: Date
+    }
 
     func start() {
         guard timer == nil else { return }
@@ -54,8 +62,44 @@ final class SessionProbe {
                 noteForegroundJob(foreground, of: session.id)
             }
         }
+        for session in manager.workspace.sessions {
+            if let agent = session.agent {
+                readTranscriptIfChanged(session.id, agent)
+            }
+        }
         let live = Set(manager.workspace.sessions.map(\.id))
         foregroundJobs = foregroundJobs.filter { live.contains($0.key) }
+        transcriptStamps = transcriptStamps.filter { live.contains($0.key) }
+    }
+
+    /// Re-reads an agent's transcript when it changed (found from its process if no hook said
+    /// where it is).
+    private func readTranscriptIfChanged(_ id: Session.ID, _ agent: AgentRun) {
+        guard let reader = Agents.transcriptReader(for: agent.kind) else { return }
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        var path = agent.transcriptPath
+        var agentSessionID = agent.agentSessionID
+        if path == nil, agent.processID > 0, let found = reader.transcript(forProcess: agent.processID, home: home) {
+            path = found.url.path
+            agentSessionID = found.agentSessionID
+            SessionManager.shared.noteAgentSession(
+                id,
+                kind: agent.kind,
+                agentSessionID: found.agentSessionID,
+                transcriptPath: found.url.path,
+            )
+        }
+        guard let path, let attributes = try? FileManager.default.attributesOfItem(atPath: path) else { return }
+        let stamp = TranscriptStamp(
+            path: path,
+            size: (attributes[.size] as? NSNumber)?.intValue ?? 0,
+            modified: attributes[.modificationDate] as? Date ?? .distantPast,
+        )
+        guard transcriptStamps[id] != stamp else { return }
+        transcriptStamps[id] = stamp
+        if let tail = reader.readTail(of: URL(filePath: path), agentSessionID: agentSessionID, home: home) {
+            SessionManager.shared.transcriptChanged(id, tail, modified: stamp.modified)
+        }
     }
 
     private func noteForegroundJob(_ job: Int32, of id: Session.ID) {

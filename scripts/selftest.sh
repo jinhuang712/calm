@@ -86,12 +86,19 @@ env \
   "$app" > "$out/$name.log" 2>&1 &
 pid=$!
 
-# A watchdog for a run that hangs: it stops this instance only, never another Calm.
+# A watchdog for a run that hangs: it stops this instance only, never another Calm, and
+# leaves by itself within a second of the app quitting.
 limit=$(( ${delay%.*} + 60 ))
-( sleep "$limit"; kill "$pid" 2>/dev/null && echo "calm-selftest: stopped after ${limit}s" >> "$out/$name.log" ) &
+(
+  for ((second = 0; second < limit; second++)); do
+    kill -0 "$pid" 2>/dev/null || exit 0
+    sleep 1
+  done
+  kill "$pid" 2>/dev/null && echo "calm-selftest: stopped after ${limit}s" >> "$out/$name.log"
+) &
 watchdog=$!
 wait "$pid" || true
-kill "$watchdog" 2>/dev/null || true
+wait "$watchdog" 2>/dev/null || true
 
 grep -E '^calm-selftest:|^calm:' "$out/$name.log" || true
 grep -i -E 'shader|error' "$out/$name.log" | grep -v -E 'linkd|synchronousRemoteObjectProxy|Process Instance Registry|intents framework|CVDisplayLink|display link' | head -20 || true

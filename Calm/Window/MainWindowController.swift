@@ -384,6 +384,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func surfaceChildExited(_ view: TerminalSurfaceView) {
+        // A shell that dies right after starting means persistence is broken (not a user
+        // exit): stop using it rather than opening shell after failing shell.
+        if Date().timeIntervalSince(view.createdAt) < 2, manager.persistenceEnabled {
+            manager.persistenceEnabled = false
+            FileHandle.standardError.write(Data("calm: persistent shell exited at once; using plain shells\n".utf8))
+        }
         // The shell (or the zmx session holding it) ended: the session is over.
         closeSession(view.id)
     }

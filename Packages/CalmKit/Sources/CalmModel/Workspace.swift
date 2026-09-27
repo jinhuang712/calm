@@ -55,8 +55,9 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     }
 
     /// Name of the persistent (zmx) session that keeps this shell alive across quits.
+    /// Short on purpose: zmx creates a Unix socket named after it, and socket paths are length-limited.
     public var persistentName: String {
-        "calm-" + id.uuidString.lowercased()
+        "calm-" + id.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(12)
     }
 
     /// A readable label when the shell hasn't set a title yet.

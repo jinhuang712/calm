@@ -52,6 +52,7 @@ struct TerminalSurfaceOptions {
 @MainActor
 final class TerminalSurfaceView: NSView {
     let id: UUID
+    let createdAt = Date()
     private(set) var surface: ghostty_surface_t?
     weak var host: TerminalSurfaceHost?
 

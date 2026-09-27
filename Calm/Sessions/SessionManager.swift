@@ -22,6 +22,9 @@ final class SessionManager {
     @ObservationIgnored private(set) var panes: [Session.ID: TerminalSurfaceView] = [:]
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
+    /// Turned off for the rest of the run if persistent shells fail to start.
+    @ObservationIgnored var persistenceEnabled = true
+
     /// Whether sessions move between projects when their folder changes (config: `auto-grouping`).
     @ObservationIgnored var autoGrouping = true
 
@@ -34,6 +37,7 @@ final class SessionManager {
 
     /// Prepares the saved workspace at launch; starts one session in the home folder if there is none.
     func restore() {
+        removeOrphanedShells()
         if workspace.sessions.isEmpty {
             newSession(in: FileManager.default.homeDirectoryForCurrentUser.path)
         }
@@ -51,6 +55,16 @@ final class SessionManager {
             }
         }
         scheduleSave()
+    }
+
+    /// Ends Calm's own persistent shells that no saved session refers to (e.g. after a crash).
+    /// Only Calm's zmx directory is touched, never other apps' sessions.
+    private func removeOrphanedShells() {
+        guard PersistentShell.isAvailable else { return }
+        let known = Set(workspace.sessions.map(\.persistentName))
+        for name in PersistentShell.liveSessions() where name.hasPrefix("calm-") && !known.contains(name) {
+            PersistentShell.kill(name: name)
+        }
     }
 
     /// Detaches every pane (zmx keeps the shells) and writes the final state.
@@ -74,7 +88,7 @@ final class SessionManager {
         var options = TerminalSurfaceOptions()
         options.workingDirectory = session.workingDirectory
         options.context = GHOSTTY_SURFACE_CONTEXT_SPLIT
-        if let command = PersistentShell.attachCommand(name: session.persistentName) {
+        if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
             options.command = command
             options.environment = PersistentShell.environment
         }

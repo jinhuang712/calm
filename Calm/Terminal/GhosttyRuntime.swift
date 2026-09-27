@@ -29,7 +29,7 @@ enum GhosttyRuntime {
     static let inheritedVariablesToDrop = [
         "GHOSTTY_RESOURCES_DIR", "GHOSTTY_BIN_DIR", "GHOSTTY_SHELL_FEATURES", "GHOSTTY_SHELL_INTEGRATION_NO_SUDO",
         "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "TERM_SESSION_ID", "ITERM_SESSION_ID",
-        "WARP_IS_LOCAL_SHELL_SESSION", "CMUX_SESSION_ID", "TMUX", "TMUX_PANE", "ZELLIJ", "STY",
+        "WARP_IS_LOCAL_SHELL_SESSION", "CMUX_SESSION_ID", "TMUX", "TMUX_PANE", "ZELLIJ", "STY", "ZMX_SESSION", "ZMX_DIR",
     ]
 
     private static func cleanInheritedEnvironment() {

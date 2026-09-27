@@ -17,14 +17,29 @@ enum PersistentShell {
         executable != nil && ProcessInfo.processInfo.environment["CALM_NO_PERSISTENCE"] != "1"
     }
 
-    /// The terminal command for a session (run through `/bin/sh -c` by libghostty).
-    static func attachCommand(name: String) -> String? {
-        guard isAvailable, let executable else { return nil }
-        return "\(shellQuoted(executable.path)) attach \(shellQuoted(name))"
+    /// Calm's own zmx directory, so Calm's sessions never mix with other apps' zmx sessions.
+    /// Kept short: zmx puts a Unix socket per session here, and socket paths are length-limited.
+    static var directory: String {
+        (NSTemporaryDirectory() as NSString).appendingPathComponent("calm-zmx")
     }
 
-    /// Environment for the zmx client: no detach key, so Ctrl-\ stays with the program.
-    static let environment = ["ZMX_NO_DETACH_KEY": "1"]
+    /// The terminal command for a session (run through `/bin/sh -c` by libghostty).
+    ///
+    /// `env -u ZMX_SESSION`: inside a zmx session that variable makes `attach` switch the
+    /// *calling* terminal instead of starting a client, so it must never be inherited.
+    static func attachCommand(name: String) -> String? {
+        guard isAvailable, let executable else { return nil }
+        try? FileManager.default.createDirectory(
+            atPath: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700],
+        )
+        return "/usr/bin/env -u ZMX_SESSION \(shellQuoted(executable.path)) attach \(shellQuoted(name))"
+    }
+
+    /// Environment for the zmx client: Calm's own session directory, and no detach key
+    /// (Ctrl-\ stays with the program).
+    static var environment: [String: String] {
+        ["ZMX_DIR": directory, "ZMX_NO_DETACH_KEY": "1"]
+    }
 
     /// Names of the zmx sessions that are alive right now.
     static func liveSessions() -> Set<String> {
@@ -43,6 +58,10 @@ enum PersistentShell {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
+        var env = ProcessInfo.processInfo.environment
+        env["ZMX_SESSION"] = nil
+        env["ZMX_DIR"] = directory
+        process.environment = env
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice

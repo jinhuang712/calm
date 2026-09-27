@@ -202,3 +202,8 @@ public indirect enum SplitTree<Leaf: Hashable & Sendable>: Hashable, Sendable {
         return along + across * 2
     }
 }
+
+/// Layouts are saved with the rest of the workspace.
+extension SplitTree: Codable where Leaf: Codable {}
+
+extension SplitTree.Direction: Codable {}

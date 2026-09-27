@@ -136,6 +136,15 @@ final class TerminalSurfaceView: NSView {
             config.env_var_count = buffer.count
             return ghostty_surface_new(app, &config)
         }
+        setColorScheme(TerminalEngine.shared.colorScheme)
+    }
+
+    private var colorScheme: ghostty_color_scheme_e?
+
+    func setColorScheme(_ scheme: ghostty_color_scheme_e) {
+        guard let surface, scheme != colorScheme else { return }
+        colorScheme = scheme
+        ghostty_surface_set_color_scheme(surface, scheme)
     }
 
     /// Frees the libghostty surface. Must run on main, before the view goes away.

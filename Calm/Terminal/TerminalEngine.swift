@@ -94,10 +94,20 @@ final class TerminalEngine {
         ghostty_app_set_focus(app, focused)
     }
 
+    /// The color scheme matching the app's current appearance.
+    var colorScheme: ghostty_color_scheme_e {
+        let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return dark ? GHOSTTY_COLOR_SCHEME_DARK : GHOSTTY_COLOR_SCHEME_LIGHT
+    }
+
+    /// libghostty resolves `theme = light:X,dark:Y` per surface, so every pane is told too.
     private func syncColorScheme() {
         guard let app else { return }
-        let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ghostty_app_set_color_scheme(app, dark ? GHOSTTY_COLOR_SCHEME_DARK : GHOSTTY_COLOR_SCHEME_LIGHT)
+        let scheme = colorScheme
+        ghostty_app_set_color_scheme(app, scheme)
+        for controller in TerminalWindowManager.shared.controllers {
+            controller.workspace.orderedPanes.forEach { $0.setColorScheme(scheme) }
+        }
     }
 
     // MARK: Config reload

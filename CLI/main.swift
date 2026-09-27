@@ -12,6 +12,7 @@ calm \(version) — a minimal macOS terminal that keeps you calm and focused
 
 Usage:
   calm open <folder>                Add the folder as a project and open a session in it
+  calm open <file>[:line]           View the file in Calm (or open it in your editor)
   calm list                         List sessions
   calm search <text>                Search every agent's past sessions
   calm status <state> [message]     Report this session's state (for agents' hooks):

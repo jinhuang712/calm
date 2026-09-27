@@ -19,6 +19,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var peek: SidebarPeek?
     private lazy var switcher = SessionSwitcher(controller: self)
     private lazy var arrivalCard = ArrivalCard(container: container)
+    private lazy var fileViewer = FileViewer(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth: CGFloat = 280
@@ -523,8 +524,27 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let session = manager.workspace.session(view.id)
         let directory = view.workingDirectory ?? session?.workingDirectory
         let project = session.flatMap { manager.workspace.project($0.projectID)?.path }
-        if !LinkOpener.open(text, directory: directory, projectDirectory: project) {
+        guard let link = LinkOpener.resolve(text, directory: directory, projectDirectory: project) else {
             CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+            return
+        }
+        if case let .file(path, line, _) = link, LinkOpener.prefersViewer, showFile(path, line: line) {
+            return
+        }
+        LinkOpener.openOutside(link)
+    }
+
+    // MARK: Viewer
+
+    /// Shows a file over the terminal area (FEATURES.md → F10); esc returns to the session.
+    /// Returns false for files Calm can't show.
+    @discardableResult
+    func showFile(_ path: String, line: Int? = nil) -> Bool {
+        let title = manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID)?.displayTitle } ?? "session"
+        let frame = NSRect(x: mainArea.frame.minX, y: 0, width: mainArea.frame.width, height: container.bounds.height)
+        return fileViewer.show(path, line: line, over: frame, sessionTitle: title, style: sidebarStyle) { [weak self] in
+            guard let self, let pane = focusedPane else { return }
+            window?.makeFirstResponder(pane)
         }
     }
 

@@ -149,13 +149,32 @@ final class ControlServer {
     }
 
     private func open(_ path: String?) -> ControlResponse {
-        guard let path, !path.isEmpty else { return .failure("Give a folder to open.") }
-        let standardized = WorkspacePath.standardize(path)
+        guard let path, !path.isEmpty else { return .failure("Give a folder or file to open.") }
+        // `file:line` opens the file at that line.
+        var target = path
+        var line: Int?
+        if case let .file(file, fileLine, _) = Link.parse(
+            path,
+            relativeTo: nil,
+            home: FileManager.default.homeDirectoryForCurrentUser.path,
+        ),
+            !FileManager.default.fileExists(atPath: path) {
+            target = file
+            line = fileLine
+        }
+        let standardized = WorkspacePath.standardize(target)
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: standardized, isDirectory: &isDirectory) else {
             return .failure("No such file or folder: \(standardized)")
         }
-        guard isDirectory.boolValue else { return .failure("Viewing files arrives in a later version; give a folder.") }
+        guard isDirectory.boolValue else {
+            // A file: Calm's viewer if it can show it, else the user's editor or default app.
+            let controller = TerminalWindowManager.shared.openMainWindow()
+            if !controller.showFile(standardized, line: line) {
+                LinkOpener.openInEditor(standardized, line: line, column: nil)
+            }
+            return .success()
+        }
         SessionManager.shared.addProject(path: standardized)
         let controller = TerminalWindowManager.shared.openMainWindow()
         let session = SessionManager.shared.newSession(in: standardized)

@@ -32,6 +32,21 @@ targets:
     platform: macOS
     sources:
       - path: Calm
+        excludes:
+          - Resources/Viewer
+          - Resources/Licenses
+      # The viewer page loads its scripts by relative path, so it's copied as a folder.
+      - path: Calm/Resources/Viewer
+        type: folder
+        buildPhase: resources
+      # Full license texts of bundled components, with Calm's own (NOTICE lists them).
+      - path: Calm/Resources/Licenses
+        type: folder
+        buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
+      - path: NOTICE
+        buildPhase: resources
     dependencies:
       - package: CalmKit
         product: CalmModel

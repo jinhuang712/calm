@@ -100,7 +100,7 @@ A fast, correct terminal on libghostty.
 
 - A path that isn't there relative to the session's folder is tried against its project's folder (agents often print repository-relative paths); if it's nowhere, a small note says so.
 
-**Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; overridable with `editor = "…"` in config.toml); where paths open (Calm's viewer or editor, default viewer — arrives with the viewer).
+**Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; overridable with `editor = "…"` in config.toml); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
 
 ## F9 — Copy Cell ✅
 
@@ -112,13 +112,13 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none.
 
-## F10 — Files and viewer 📝
+## F10 — Files and viewer 🚧
 
 A quick, read-only look at the repository without leaving Calm.
 
 - **File tree:** a column on the left, right of the session sidebar, showing the focused session's project. Hides files ignored by git and marks changed files. Toggled with one shortcut (⌘⇧E).
 - **Viewer:** opening a viewable file (Markdown, HTML, PDF, images; code with syntax highlighting) **covers the main area** where the session was. **Esc** returns to the session exactly as it was; the session keeps running underneath.
-- Files open from the tree, from ⌘-click (F8), or from `calm open <file>`.
+- Files open from the tree, from ⌘-click (F8), or from `calm open <file>` (also `file:line`, which highlights that line).
 - One action opens the file in the editor at the current line.
 - No editing, creating, renaming or diffing.
 
@@ -145,7 +145,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 ## F13 — `calm` command-line tool 🚧
 
-- `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer. Starts Calm if it isn't running.
+- `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line). Starts Calm if it isn't running.
 - `calm list` — list sessions: project, title, state and folder.
 - `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.
 - `calm status <state> [message]` — report agent state; this is the contract agents' hooks call. Safe in any terminal: outside Calm, or with Calm not running, it does nothing.

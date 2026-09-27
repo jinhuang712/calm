@@ -146,9 +146,9 @@ Agent output is easy to act on.
 - [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
 - [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
 - [ ] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session.
-- [ ] **M5.4 Decision:** viewer rendering — native or a web view.
-- [ ] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
-- [ ] **M5.6 CLI:** `calm open <file>`.
+- [x] **M5.4 Decision:** viewer rendering — native or a web view.
+- [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
+- [x] **M5.6 CLI:** `calm open <file>`.
 
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.

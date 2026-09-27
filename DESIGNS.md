@@ -213,7 +213,8 @@ CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER)
 ## Files and viewer
 
 - File tree from the project folder, filtered by `git check-ignore`, changed files from `git status --porcelain`.
-- **Decision — viewer rendering:** native (Apple's swift-markdown to AttributedString, a syntax highlighter for code) or a single WKWebView with a bundled renderer. Native feels better; a web view is faster to build and handles Markdown edge cases.
+- **Decided (M5.4): a web view for Markdown, HTML, code and text; PDFKit for PDFs; an image view for images.** Agents write GitHub-flavored Markdown (tables, fenced code), which a native path would need a hand-written block renderer for (`AttributedString(markdown:)` doesn't render tables), plus a separate highlighter; HTML needs a web view anyway. The page (`Calm/Resources/Viewer/viewer.html`) uses markdown-it 15.0.2 (MIT) and highlight.js 11.12.0 (BSD-3-Clause), pinned with checksums in `scripts/viewer-assets.sh` and committed so builds stay offline. Raw HTML in Markdown is off. Colors come from Calm's palette (`SidebarStyle.viewerColors`), with low-saturation code tones.
+- **As built (M5.5–M5.6):** `ViewableKind` picks the kind by extension (a small UTF-8 file without a known one shows as text; over 5 MB opens outside Calm). The viewer covers the terminal area, not the sidebar; its header has the file name and path, Open in Editor, and "esc · Back to <session>". Code gets line numbers and, for `path:line`, the line highlighted and centered. Links in a viewed file open in the browser or, for local files, through the same link opener. ⌘-clicked files open in the viewer when it can show them (`open-paths = "editor"` in config.toml prefers the editor); `calm open <file>[:line]` too.
 
 ## Themes
 

@@ -2,44 +2,68 @@ import AppKit
 import CalmModel
 import OSLog
 
-/// Opens ⌘-clicked links (FEATURES.md → F8): URLs in the browser, files in the user's editor at
-/// the line (or their default app when no editor is found). Relative paths resolve against the
-/// session's folder, then its project's (agents often print repository-relative paths).
+/// Opens ⌘-clicked links (FEATURES.md → F8): URLs in the browser, files in Calm's viewer (the
+/// default for viewable files) or the user's editor at the line. Relative paths resolve against
+/// the session's folder, then its project's (agents often print repository-relative paths).
 @MainActor
 enum LinkOpener {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "links")
 
-    /// Returns false when a file link names nothing on disk.
-    @discardableResult
-    static func open(_ text: String, directory: String?, projectDirectory: String?) -> Bool {
+    /// Whether viewable files open in Calm's viewer (`open-paths = "viewer"`, the default) or the editor.
+    static var prefersViewer: Bool {
+        SessionManager.shared.settings.string("open-paths")?.lowercased() != "editor"
+    }
+
+    /// What a link points at, trying the project's folder for a relative path that isn't in the
+    /// session's. Files that don't exist resolve to nil.
+    static func resolve(_ text: String, directory: String?, projectDirectory: String?) -> Link? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         var link = Link.parse(text, relativeTo: directory, home: home)
-        if case let .file(path, _, _) = link, !FileManager.default.fileExists(atPath: path), let projectDirectory,
-           let fromProject = Link.parse(text, relativeTo: projectDirectory, home: home),
-           case let .file(projectPath, _, _) = fromProject, FileManager.default.fileExists(atPath: projectPath) {
-            link = fromProject
+        if case let .file(path, _, _) = link, !FileManager.default.fileExists(atPath: path) {
+            link = nil
+            if let projectDirectory, let fromProject = Link.parse(text, relativeTo: projectDirectory, home: home),
+               case let .file(projectPath, _, _) = fromProject, FileManager.default.fileExists(atPath: projectPath) {
+                link = fromProject
+            }
         }
+        return link
+    }
+
+    /// Opens a link outside Calm. Returns false when it names nothing.
+    @discardableResult
+    static func open(_ text: String, directory: String?, projectDirectory: String?) -> Bool {
+        guard let link = resolve(text, directory: directory, projectDirectory: projectDirectory) else { return false }
+        openOutside(link)
+        return true
+    }
+
+    static func openOutside(_ link: Link) {
         switch link {
         case let .url(url):
             perform("open \(url.absoluteString)") { NSWorkspace.shared.open(url) }
-            return true
         case let .file(path, line, column):
             var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else { return false }
-            if !isDirectory.boolValue, let (editor, executable) = EditorLocator.find() {
-                let arguments = editor.arguments(file: path, line: line, column: column)
-                perform("\(editor.rawValue) \(arguments.joined(separator: " "))") {
-                    let process = Process()
-                    process.executableURL = executable
-                    process.arguments = arguments
-                    try? process.run()
-                }
-            } else {
+            FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
+            if isDirectory.boolValue {
                 perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+            } else {
+                openInEditor(path, line: line, column: column)
             }
-            return true
-        case nil:
-            return false
+        }
+    }
+
+    /// The user's editor at the position, or the file's default app when no editor is found.
+    static func openInEditor(_ path: String, line: Int?, column: Int?) {
+        guard let (editor, executable) = EditorLocator.find() else {
+            perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+            return
+        }
+        let arguments = editor.arguments(file: path, line: line, column: column)
+        perform("\(editor.rawValue) \(arguments.joined(separator: " "))") {
+            let process = Process()
+            process.executableURL = executable
+            process.arguments = arguments
+            try? process.run()
         }
     }
 

@@ -1,5 +1,6 @@
 #if DEBUG
     import AppKit
+    import CalmModel
 
     extension MainWindowController {
         /// Calm's own actions for self-tests. Keys go through the app's event queue, so the
@@ -14,6 +15,13 @@
                 peekForTesting()
             case "agents":
                 showAgentsPanel()
+            case let file where file.hasPrefix("view:"):
+                // view:<path>[:line]
+                if case let .file(path, line, _) = Link.parse(String(file.dropFirst(5)), relativeTo: nil, home: NSHomeDirectory()) {
+                    showFile(path, line: line)
+                }
+            case "escape":
+                postKey(.keyDown, keyCode: 53, characters: "\u{1b}", flags: [])
             case let link where link.hasPrefix("open_link:"):
                 if let pane = focusedPane {
                     surface(pane, requestsOpenLink: String(link.dropFirst(10)))

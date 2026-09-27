@@ -1,0 +1,108 @@
+name: Calm
+options:
+  bundleIdPrefix: com.jinhuang
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  defaultConfig: Debug
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    DEAD_CODE_STRIPPING: YES
+    ARCHS: arm64
+    ONLY_ACTIVE_ARCH: YES
+    CLANG_CXX_LANGUAGE_STANDARD: c++17
+    CLANG_CXX_LIBRARY: libc++
+
+packages:
+  CalmKit:
+    path: Packages/CalmKit
+
+targets:
+  Calm:
+    type: application
+    platform: macOS
+    sources:
+      - path: Calm
+    dependencies:
+      - package: CalmKit
+        product: CalmModel
+      - framework: Frameworks/GhosttyKit.xcframework
+        embed: false
+      - sdk: Carbon.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: CoreText.framework
+      - sdk: IOKit.framework
+      - sdk: libc++.tbd
+    info:
+      path: Calm/Info.plist
+      properties:
+        CFBundleName: Calm
+        CFBundleDisplayName: Calm
+        CFBundleShortVersionString: "0.0.1"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "26.0"
+        LSApplicationCategoryType: public.app-category.developer-tools
+        NSHighResolutionCapable: true
+        NSPrincipalClass: NSApplication
+        NSHumanReadableCopyright: "Copyright © 2026 Jin Huang. Apache-2.0."
+    entitlements:
+      path: Calm/Calm.entitlements
+      properties:
+        com.apple.security.cs.disable-library-validation: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jinhuang.calm
+        PRODUCT_NAME: Calm
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    postBuildScripts:
+      - name: Copy Ghostty resources
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          share="${PROJECT_DIR}/Frameworks/ghostty-share"
+          dest="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          if [[ -d "$share/ghostty" ]]; then
+            rsync -a --delete "$share/ghostty/" "$dest/ghostty/"
+          fi
+          if [[ -d "$share/terminfo" ]]; then
+            rsync -a --delete "$share/terminfo/" "$dest/terminfo/"
+          fi
+    scheme:
+      testTargets:
+        - CalmTests
+      gatherCoverageData: false
+
+  CalmTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: CalmTests
+    dependencies:
+      - target: Calm
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Calm.app/Contents/MacOS/Calm"
+        PRODUCT_BUNDLE_IDENTIFIER: com.jinhuang.calm.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+  calm-cli:
+    type: tool
+    platform: macOS
+    sources:
+      - path: CLI
+    settings:
+      base:
+        PRODUCT_NAME: calm
+        PRODUCT_BUNDLE_IDENTIFIER: com.jinhuang.calm.cli

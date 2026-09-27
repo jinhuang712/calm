@@ -1,0 +1,4 @@
+| Agent  | Hooks | Transcript         |
+|--------|-------|--------------------|
+| Claude | yes   | ~/.claude/projects |
+| Codex  | no    | ~/.codex/sessions  |

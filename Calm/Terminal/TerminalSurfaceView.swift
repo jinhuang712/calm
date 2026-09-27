@@ -24,6 +24,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceWorkingDirectoryDidChange(_ view: TerminalSurfaceView)
     /// Bell, desktop notification, progress or command finished (DESIGNS.md → Attention).
     func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal)
+    /// A table cell was copied (Copy Cell); `point` is in the view's coordinates.
+    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint)
 }
 
 /// How a new surface should start.
@@ -466,6 +468,12 @@ final class TerminalSurfaceView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // ⌥-double-click copies a table cell; outside a table it falls through as usual.
+        if event.clickCount == 2, event.modifierFlags.contains(.option),
+           copyTableCell(at: convert(event.locationInWindow, from: nil)) {
+            suppressNextLeftMouseUp = true
+            return
+        }
         sendMousePosition(event)
         _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, event)
     }

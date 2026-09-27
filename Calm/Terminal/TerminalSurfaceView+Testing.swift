@@ -1,5 +1,6 @@
 #if DEBUG
     import AppKit
+    import CalmModel
     import GhosttyKit
 
     extension TerminalSurfaceView {
@@ -92,6 +93,61 @@
         /// Types text as if from the keyboard, then presses Return.
         func typeForTesting(_ text: String) {
             run(text)
+        }
+    }
+
+    extension TerminalSurfaceView {
+        /// ⌥-double-clicks the first cell showing `text`, through the real mouse path, and returns
+        /// what was copied. The user's clipboard is put back afterwards.
+        func copyCellForTesting(_ text: String) -> String? {
+            guard let window, let surface else { return nil }
+            let grid = TextGrid(lines: viewportRows())
+            var target: (row: Int, column: Int)?
+            for (row, cells) in grid.cells.enumerated() {
+                let line = cells.compactMap(\.self).map(String.init).joined()
+                if let range = line.range(of: text) {
+                    target = (row, line[..<range.lowerBound].reduce(0) { $0 + CellWidth.of($1) } + 1)
+                    break
+                }
+            }
+            guard let target else { return nil }
+            var origin = ghostty_text_s()
+            let corner = ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT, x: 0, y: 0)
+            guard ghostty_surface_read_text(
+                surface,
+                ghostty_selection_s(top_left: corner, bottom_right: corner, rectangle: false),
+                &origin,
+            ) else {
+                return nil
+            }
+            let point = NSPoint(
+                x: origin.tl_px_x + (Double(target.column) + 0.5) * cellSize.width,
+                y: bounds.height - origin.tl_px_y - (Double(target.row) + 0.5) * cellSize.height,
+            )
+            ghostty_surface_free_text(surface, &origin)
+
+            let saved = NSPasteboard.general.string(forType: .string)
+            NSPasteboard.general.clearContents()
+            for clicks in [1, 2] {
+                for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                    guard let event = NSEvent.mouseEvent(
+                        with: type, location: convert(point, to: nil), modifierFlags: .option,
+                        timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                        context: nil, eventNumber: 0, clickCount: clicks, pressure: 1,
+                    ) else { continue }
+                    if type == .leftMouseDown {
+                        mouseDown(with: event)
+                    } else {
+                        mouseUp(with: event)
+                    }
+                }
+            }
+            let copied = NSPasteboard.general.string(forType: .string)
+            NSPasteboard.general.clearContents()
+            if let saved {
+                NSPasteboard.general.setString(saved, forType: .string)
+            }
+            return copied
         }
     }
 #endif

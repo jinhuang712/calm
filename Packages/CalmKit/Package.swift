@@ -19,7 +19,7 @@ let package = Package(
         .target(name: "CalmAgents", dependencies: ["CalmModel"]),
         // Uses the system SQLite (FTS5 with the trigram tokenizer): no dependency to add.
         .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel"]),
-        .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"]),
+        .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
         .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmSearchTests", dependencies: ["CalmSearch"]),

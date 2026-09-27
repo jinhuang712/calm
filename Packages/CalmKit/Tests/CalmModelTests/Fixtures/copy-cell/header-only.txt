@@ -1,0 +1,9 @@
+╭──────────┬──────────────────────────╮
+│ Setting  │ Value                    │
+├──────────┼──────────────────────────┤
+│ theme    │ Teerb                    │
+│ font     │ JetBrains Mono           │
+│ hint     │ Soft palettes only, low  │
+│          │ contrast and saturation  │
+│ motion   │ full                     │
+╰──────────┴──────────────────────────╯

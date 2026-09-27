@@ -519,6 +519,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         manager.terminalSignal(view.id, signal)
     }
 
+    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint) {
+        CopyToast.show("Cell copied", at: view.convert(point, to: container), in: container)
+    }
+
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView) {
         manager.setFocused(view.id)
         applyAppearance()

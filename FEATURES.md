@@ -100,12 +100,13 @@ A fast, correct terminal on libghostty.
 
 **Settings:** 2 — editor (auto-detected, overridable); where paths open (Calm's viewer or editor, default viewer).
 
-## F9 — Copy Cell 📝
+## F9 — Copy Cell ✅
 
 - Copies the text of one cell of a table drawn with box characters (`│ ─ ┼` and similar), instead of whole rows.
 - Triggered by **⌥-double-click** or right-click → **Copy Cell**.
 - Wrapped lines inside the cell are joined, and padding is trimmed, giving one clean string.
 - Falls back to normal word selection when the click is not inside a drawn table.
+- Works with box-drawn tables (with or without rules between rows), markdown pipe tables, and Chinese text.
 
 **Settings:** none.
 

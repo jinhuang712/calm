@@ -14,6 +14,10 @@
                 peekForTesting()
             case "agents":
                 showAgentsPanel()
+            case let copy where copy.hasPrefix("copy_cell:"):
+                let text = String(copy.dropFirst(10))
+                let copied = focusedPane?.copyCellForTesting(text)
+                FileHandle.standardError.write(Data("calm-selftest: copy cell at \(text) → \(copied.debugDescription)\n".utf8))
             case let search where search.hasPrefix("search:"):
                 toggleSearch(query: String(search.dropFirst(7)))
             case let search where search.hasPrefix("search_open:"):

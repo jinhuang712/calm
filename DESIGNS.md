@@ -206,6 +206,8 @@ CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER)
 
 - **Links:** libghostty detects URLs and paths. Calm resolves relative paths against the session's working directory, parses `:line[:column]`, and routes to the viewer or the editor (`code -g`, `cursor -g`, `zed`, `xed -l` and so on).
 - **Copy Cell:** read the grid text around the click with libghostty's text API, scan left and right for the nearest vertical border characters and up and down for horizontal border rows, then join the cell's lines and trim padding. Pure function over a text grid, so it is unit-tested with fixtures of real agent tables.
+  - As built (M5.2): `CopyCell` and `TextGrid` in CalmModel. The grid is built with display widths (`CellWidth`: CJK, fullwidth and emoji take two cells), so columns match the terminal's. Borders include box-drawing lines and junctions, `|` and `+`; a rule is a row of rule characters with at least one dash. Tables with a rule after every row are delimited by the rules; tables with only a header rule treat each line as a row, except that a line whose first column is empty continues the row above. Wrapped lines join with a space, or without one between two wide characters.
+  - The view reads the grid one row at a time (a whole-viewport read joins soft-wrapped lines and shifts the rows) and maps the click to a cell from cell (0,0)'s origin (`ghostty_text_s.tl_px_x/y`, in points from the top, as Ghostty's own app reads it) and the cell size. ⌥-double-click copies; the right-click menu (when the program isn't capturing the mouse) offers Copy Cell, Copy and Paste; a small "Cell copied" note fades by the pointer.
 
 ## Files and viewer
 

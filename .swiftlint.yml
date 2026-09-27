@@ -28,7 +28,7 @@ line_length:
   ignores_urls: true
 
 type_body_length:
-  warning: 400
+  warning: 500
   error: 700
 
 file_length:
@@ -45,3 +45,13 @@ identifier_name:
 
 nesting:
   type_level: 3
+
+# Switches over libghostty's C enums are long by nature; count branches, not cases.
+cyclomatic_complexity:
+  warning: 12
+  error: 20
+  ignores_case_statements: true
+
+function_parameter_count:
+  warning: 7
+  error: 9

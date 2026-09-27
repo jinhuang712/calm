@@ -135,69 +135,22 @@ final class TerminalEngine {
         let view: TerminalSurfaceView? = target.tag == GHOSTTY_TARGET_SURFACE
             ? TerminalSurfaceView.from(ghostty_surface_userdata(target.target.surface))
             : nil
+        if let handled = handleLayout(action, view: view) {
+            return handled
+        }
+        if let handled = handleSurface(action, view: view) {
+            return handled
+        }
 
         switch action.tag {
         case GHOSTTY_ACTION_QUIT:
             delegate?.engineRequestsQuit()
         case GHOSTTY_ACTION_NEW_WINDOW:
             delegate?.engineRequestsNewWindow(inheriting: view)
-        case GHOSTTY_ACTION_NEW_TAB:
-            guard let view else {
-                delegate?.engineRequestsNewWindow(inheriting: nil)
-                return true
-            }
-            view.host?.surfaceRequestsNewTab(view)
-        case GHOSTTY_ACTION_NEW_SPLIT:
-            guard let view else { return false }
-            view.host?.surface(view, requestsSplit: action.action.new_split)
-        case GHOSTTY_ACTION_GOTO_SPLIT:
-            guard let view else { return false }
-            return view.host?.surface(view, requestsFocus: action.action.goto_split) ?? false
-        case GHOSTTY_ACTION_RESIZE_SPLIT:
-            guard let view else { return false }
-            return view.host?.surface(view, requestsResize: action.action.resize_split) ?? false
-        case GHOSTTY_ACTION_EQUALIZE_SPLITS:
-            guard let view else { return false }
-            return view.host?.surfaceRequestsEqualize(view) ?? false
-        case GHOSTTY_ACTION_TOGGLE_SPLIT_ZOOM:
-            guard let view else { return false }
-            return view.host?.surfaceRequestsZoomToggle(view) ?? false
-        case GHOSTTY_ACTION_GOTO_TAB:
-            guard let view else { return false }
-            return view.host?.surface(view, requestsTab: action.action.goto_tab) ?? false
-        case GHOSTTY_ACTION_CLOSE_TAB:
-            guard let view else { return false }
-            view.host?.surfaceRequestsCloseTab(view)
-        case GHOSTTY_ACTION_CLOSE_WINDOW:
-            guard let view else { return false }
-            view.host?.surfaceRequestsCloseWindow(view)
-        case GHOSTTY_ACTION_TOGGLE_FULLSCREEN:
-            guard let view else { return false }
-            view.window?.toggleFullScreen(nil)
-        case GHOSTTY_ACTION_SET_TITLE:
-            guard let view, let title = action.action.set_title.title else { return false }
-            view.setTitle(String(cString: title))
-        case GHOSTTY_ACTION_PWD:
-            guard let view, let pwd = action.action.pwd.pwd else { return false }
-            view.workingDirectory = String(cString: pwd)
-        case GHOSTTY_ACTION_MOUSE_SHAPE:
-            view?.setMouseShape(action.action.mouse_shape)
         case GHOSTTY_ACTION_MOUSE_VISIBILITY:
             NSCursor.setHiddenUntilMouseMoves(action.action.mouse_visibility == GHOSTTY_MOUSE_HIDDEN)
         case GHOSTTY_ACTION_OPEN_URL:
             return openURL(action.action.open_url)
-        case GHOSTTY_ACTION_CELL_SIZE:
-            guard let view else { return false }
-            let size = action.action.cell_size
-            view.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))
-        case GHOSTTY_ACTION_RING_BELL:
-            view?.ringBell()
-        case GHOSTTY_ACTION_COLOR_CHANGE:
-            let change = action.action.color_change
-            guard let view, change.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND else { return true }
-            view.backgroundColorOverride = NSColor(
-                srgbRed: CGFloat(change.r) / 255, green: CGFloat(change.g) / 255, blue: CGFloat(change.b) / 255, alpha: 1,
-            )
         case GHOSTTY_ACTION_RELOAD_CONFIG:
             let soft = action.action.reload_config.soft
             if target.tag == GHOSTTY_TARGET_SURFACE, let surface = target.target.surface {
@@ -212,6 +165,76 @@ final class TerminalEngine {
             return true
         default:
             return false
+        }
+        return true
+    }
+
+    /// Tabs, splits and windows. Returns nil for actions that aren't about layout.
+    private func handleLayout(_ action: ghostty_action_s, view: TerminalSurfaceView?) -> Bool? {
+        let host = view?.host
+        switch action.tag {
+        case GHOSTTY_ACTION_NEW_TAB:
+            guard let view else {
+                delegate?.engineRequestsNewWindow(inheriting: nil)
+                return true
+            }
+            host?.surfaceRequestsNewTab(view)
+            return true
+        case GHOSTTY_ACTION_NEW_SPLIT:
+            guard let view else { return false }
+            host?.surface(view, requestsSplit: action.action.new_split)
+            return true
+        case GHOSTTY_ACTION_GOTO_SPLIT:
+            return view.flatMap { host?.surface($0, requestsFocus: action.action.goto_split) } ?? false
+        case GHOSTTY_ACTION_RESIZE_SPLIT:
+            return view.flatMap { host?.surface($0, requestsResize: action.action.resize_split) } ?? false
+        case GHOSTTY_ACTION_EQUALIZE_SPLITS:
+            return view.flatMap { host?.surfaceRequestsEqualize($0) } ?? false
+        case GHOSTTY_ACTION_TOGGLE_SPLIT_ZOOM:
+            return view.flatMap { host?.surfaceRequestsZoomToggle($0) } ?? false
+        case GHOSTTY_ACTION_GOTO_TAB:
+            return view.flatMap { host?.surface($0, requestsTab: action.action.goto_tab) } ?? false
+        case GHOSTTY_ACTION_CLOSE_TAB:
+            guard let view else { return false }
+            host?.surfaceRequestsCloseTab(view)
+            return true
+        case GHOSTTY_ACTION_CLOSE_WINDOW:
+            guard let view else { return false }
+            host?.surfaceRequestsCloseWindow(view)
+            return true
+        case GHOSTTY_ACTION_TOGGLE_FULLSCREEN:
+            guard let view else { return false }
+            view.window?.toggleFullScreen(nil)
+            return true
+        default:
+            return nil
+        }
+    }
+
+    /// State reported by one surface. Returns nil for other actions.
+    private func handleSurface(_ action: ghostty_action_s, view: TerminalSurfaceView?) -> Bool? {
+        switch action.tag {
+        case GHOSTTY_ACTION_SET_TITLE:
+            guard let view, let title = action.action.set_title.title else { return false }
+            view.setTitle(String(cString: title))
+        case GHOSTTY_ACTION_PWD:
+            guard let view, let pwd = action.action.pwd.pwd else { return false }
+            view.workingDirectory = String(cString: pwd)
+        case GHOSTTY_ACTION_MOUSE_SHAPE:
+            view?.setMouseShape(action.action.mouse_shape)
+        case GHOSTTY_ACTION_CELL_SIZE:
+            let size = action.action.cell_size
+            view?.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))
+        case GHOSTTY_ACTION_RING_BELL:
+            view?.ringBell()
+        case GHOSTTY_ACTION_COLOR_CHANGE:
+            let change = action.action.color_change
+            guard change.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND else { return true }
+            view?.backgroundColorOverride = NSColor(
+                srgbRed: CGFloat(change.r) / 255, green: CGFloat(change.g) / 255, blue: CGFloat(change.b) / 255, alpha: 1,
+            )
+        default:
+            return nil
         }
         return true
     }

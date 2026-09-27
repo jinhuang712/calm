@@ -48,10 +48,18 @@ struct SplitTreeTests {
     }
 
     @Test func `equalize resets every ratio`() {
-        let tree = Tree.split(.horizontal, ratio: 0.8, first: .leaf("a"),
-                              second: .split(.vertical, ratio: 0.2, first: .leaf("b"), second: .leaf("c")))
-        #expect(tree.equalized() == .split(.horizontal, ratio: 0.5, first: .leaf("a"),
-                                           second: .split(.vertical, ratio: 0.5, first: .leaf("b"), second: .leaf("c"))))
+        let tree = Tree.split(
+            .horizontal,
+            ratio: 0.8,
+            first: .leaf("a"),
+            second: .split(.vertical, ratio: 0.2, first: .leaf("b"), second: .leaf("c")),
+        )
+        #expect(tree.equalized() == .split(
+            .horizontal,
+            ratio: 0.5,
+            first: .leaf("a"),
+            second: .split(.vertical, ratio: 0.5, first: .leaf("b"), second: .leaf("c")),
+        ))
     }
 
     /// Layout used below:

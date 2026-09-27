@@ -12,6 +12,8 @@
                 toggleSidebar()
             case "peek":
                 peekForTesting()
+            case "jump_waiting":
+                TerminalMenuTarget.shared.jumpToWaitingSession(nil)
             case "ctrl_tab":
                 postKey(.keyDown, keyCode: 48, characters: "\t", flags: .control)
             case "ctrl_escape":

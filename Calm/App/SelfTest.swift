@@ -94,9 +94,13 @@
             log("layout: \(controller.layoutForTesting)")
         }
 
-        /// Runs comma-separated binding actions, or Calm's own as `calm.<name>`.
+        /// Runs comma-separated binding actions, Calm's own as `calm.<name>`, or `wait` (one second).
         private static func runActions(_ list: String?) async {
             for action in (list ?? "").split(separator: ",") {
+                if action == "wait" {
+                    try? await Task.sleep(for: .seconds(1))
+                    continue
+                }
                 let controller = TerminalWindowManager.shared.focusedController
                 let ok = action.hasPrefix("calm.")
                     ? controller?.performForTesting(String(action.dropFirst(5))) ?? false

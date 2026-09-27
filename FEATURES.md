@@ -57,7 +57,7 @@ A fast, correct terminal on libghostty.
 - State appears in the sidebar as a quiet indicator. Only **needs you** escalates:
   1. The session's row gets a soft highlight.
   2. If the user is not looking at that session, a macOS notification is delivered **at the next natural pause** (not while the user is typing in another pane).
-- Clicking the notification jumps to the session.
+- Clicking the notification jumps to the session. **⌘⇧A** jumps to the session that has waited longest.
 - **done** and **failed** never interrupt; they show in the sidebar until the session is visited.
 - A **needs you** is never dropped: if delivery is deferred, it waits, and it stays visible in the sidebar until handled.
 

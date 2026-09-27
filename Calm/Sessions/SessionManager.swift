@@ -152,6 +152,7 @@ final class SessionManager {
     func select(_ id: Session.ID) {
         workspace.select(id)
         rememberFocus()
+        AttentionCenter.shared.sessionVisited(id)
         scheduleSave()
     }
 
@@ -164,6 +165,7 @@ final class SessionManager {
         guard let layout = workspace.layout(containing: sessionID), layout.focusedSessionID != sessionID else { return }
         workspace.select(sessionID)
         rememberFocus()
+        AttentionCenter.shared.sessionVisited(sessionID)
         scheduleSave()
     }
 

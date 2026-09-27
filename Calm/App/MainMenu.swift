@@ -91,6 +91,12 @@ enum MainMenu {
         menu.addItem(.separator())
         menu.addItem(terminalItem("Previous Session", "previous_tab", key: "[", mods: [.command, .shift]))
         menu.addItem(terminalItem("Next Session", "next_tab", key: "]", mods: [.command, .shift]))
+        menu.addItem(actionItem(
+            "Jump to Waiting Session",
+            #selector(TerminalMenuTarget.jumpToWaitingSession(_:)),
+            key: "a",
+            mods: [.command, .shift],
+        ))
         return menu
     }
 
@@ -111,7 +117,8 @@ enum MainMenu {
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
-        if ["newSession", "toggleCommandPalette", "toggleSidebar"].contains(where: { selector.description.hasPrefix($0) }) {
+        if ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession"]
+            .contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
         }
         return item
@@ -138,6 +145,14 @@ final class TerminalMenuTarget: NSObject {
             return
         }
         TerminalWindowManager.shared.focusedController?.focusedPane?.perform(action)
+    }
+
+    /// ⌘⇧A: the session that has waited longest for you (UIUX.md → Keyboard).
+    @objc func jumpToWaitingSession(_: Any?) {
+        let manager = SessionManager.shared
+        let current = manager.workspace.selectedLayout?.focusedSessionID
+        guard let waiting = manager.workspace.sessionsNeedingYou.first(where: { $0.id != current }) else { return }
+        TerminalWindowManager.shared.openMainWindow().select(waiting.id)
     }
 
     @objc func toggleCommandPalette(_: Any?) {

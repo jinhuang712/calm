@@ -56,6 +56,7 @@ printf '%b' "$config" > "$config_file"
 env \
   CALM_STATE_FILE="$state" \
   CALM_CONFIG_FILE="$config_file" \
+  CALM_NO_NOTIFICATIONS=1 \
   SHELL="$shell" \
   CALM_SOCKET="/tmp/calm-selftest-$name.sock" \
   CALM_NO_PERSISTENCE="$([[ -n "$persist" ]] && echo 0 || echo 1)" \

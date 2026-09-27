@@ -161,6 +161,7 @@ Window titles aren't used: agents' title formats vary and change. Calm never pla
 - Only `needsYou` in an unfocused session produces a notification (configurable).
 - A **breakpoint detector** watches keystrokes and focus changes. A notification is delivered when the user has not typed for a short interval, switches focus, or after a maximum wait. It is never dropped.
 - Delivered notifications are removed when the session is visited.
+- As built (M3.9): `AttentionQueue` (CalmModel, unit-tested) holds one notification per session; a pause is 3 s without typing (a local key monitor, so only typing in Calm counts), any focus change (session or app), or 60 s at most. `AttentionCenter` delivers through `UNUserNotificationCenter` with no sound, one identifier per session (a newer message replaces the older; visiting removes it), and skips a notification if the user is looking at the session by then. macOS asks for permission the first time one is delivered. Clicking focuses the session. Self-tests set `CALM_NO_NOTIFICATIONS=1` and only log.
 
 ## Search
 

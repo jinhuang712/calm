@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SessionManager.shared.restore()
             ControlServer.shared.start()
             SessionProbe.shared.start()
+            AttentionCenter.shared.start()
             TerminalWindowManager.shared.openMainWindow()
         }
         NSApp.activate()

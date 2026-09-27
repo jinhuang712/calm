@@ -126,4 +126,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: calm
+        # The module would default to `calm`, and `calm.swiftmodule` is the same folder as the
+        # app's `Calm.swiftmodule` on a case-insensitive disk: whichever built last broke
+        # `@testable import Calm` in the tests.
+        PRODUCT_MODULE_NAME: CalmCLI
         PRODUCT_BUNDLE_IDENTIFIER: com.jinhuang.calm.cli

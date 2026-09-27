@@ -41,9 +41,9 @@ final class TerminalConfig: @unchecked Sendable {
         if readsUserConfig {
             ghostty_config_load_default_files(raw)
         }
-        // A theme picked in Calm comes after the user's config, so its colors win.
-        if let theme = TerminalTheme.pickedFile(settings: CalmSettings.load(), directory: CalmDefaults.directory) {
-            theme.path.withCString { ghostty_config_load_file(raw, $0) }
+        // Choices made in Calm's settings (a picked theme, glass) come after the user's config, so they win.
+        if let choices = TerminalTheme.choicesFile(settings: CalmSettings.load(), directory: CalmDefaults.directory) {
+            choices.path.withCString { ghostty_config_load_file(raw, $0) }
         }
         if readsUserConfig, FileManager.default.fileExists(atPath: overridesURL.path) {
             overridesURL.path.withCString { ghostty_config_load_file(raw, $0) }

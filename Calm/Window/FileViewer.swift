@@ -60,6 +60,8 @@ final class FileViewer: NSObject {
     private var pendingRender: String?
     private weak var webView: WKWebView?
     private(set) var file: String?
+    /// Matches the terminal area's corners (a card window rounds them).
+    var cornerRadius: CGFloat = 0
 
     init(container: NSView) {
         self.container = container
@@ -89,6 +91,9 @@ final class FileViewer: NSObject {
         root.autoresizingMask = [.width, .height]
         root.wantsLayer = true
         root.layer?.backgroundColor = NSColor(style.background).cgColor
+        root.layer?.cornerRadius = cornerRadius
+        root.layer?.cornerCurve = .continuous
+        root.layer?.masksToBounds = cornerRadius > 0
 
         let headerHeight: CGFloat = 46
         let header = NSHostingView(rootView: ViewerHeader(

@@ -210,7 +210,7 @@ struct FilesColumnView: View {
         .frame(width: FilesColumn.width)
         .frame(maxHeight: .infinity, alignment: .top)
         // Under the title bar too, like the sidebar.
-        .background(style.background.opacity(0.94).ignoresSafeArea())
+        .background(style.background.opacity(0.94 * style.surfaceOpacity).ignoresSafeArea())
         .overlay(alignment: .leading) { Rectangle().fill(style.tertiary.opacity(0.18)).frame(width: 1).ignoresSafeArea() }
         // Laid out at full width and clipped while the column slides, never squeezed.
         .frame(maxWidth: .infinity, alignment: .leading)

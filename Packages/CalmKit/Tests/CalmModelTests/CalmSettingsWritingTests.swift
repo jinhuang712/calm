@@ -60,6 +60,15 @@ struct CalmSettingsWritingTests {
         #expect(CalmSettings.load(from: url).notificationSound)
     }
 
+    @Test func `window options: solid and edge to edge unless set`() {
+        #expect(CalmSettings(text: "").windowBackground == .solid)
+        #expect(CalmSettings(text: "").windowLayout == .edge)
+        let set = CalmSettings(text: "[window]\nbackground = \"Glass\"\nlayout = \"card\"\n")
+        #expect(set.windowBackground == .glass)
+        #expect(set.windowLayout == .card)
+        #expect(CalmSettings(text: "[window]\nlayout = \"floating\"\n").windowLayout == .edge)
+    }
+
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {
         let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
         #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")

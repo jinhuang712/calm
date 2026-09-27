@@ -7,6 +7,7 @@ import SwiftUI
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     static let shared = SettingsWindowController()
     let themes = ThemePickerModel()
+    let windowOptions = WindowOptionsModel()
 
     private init() {
         let window = NSWindow(
@@ -19,7 +20,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
-        let host = NSHostingView(rootView: SettingsView(themes: themes))
+        let host = NSHostingView(rootView: SettingsView(themes: themes, windowOptions: windowOptions))
         // The window takes the content's height, which grows with the number of themes.
         host.sizingOptions = [.minSize, .maxSize]
         window.contentView = host
@@ -32,6 +33,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     func show() {
         themes.refresh()
+        windowOptions.refresh()
         guard let window else { return }
         if !window.isVisible {
             window.center()
@@ -47,6 +49,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
 struct SettingsView: View {
     let themes: ThemePickerModel
+    let windowOptions: WindowOptionsModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,6 +61,12 @@ struct SettingsView: View {
                 .padding(.top, 2)
                 .padding(.bottom, 16)
             ThemePickerView(model: themes)
+            Divider()
+                .padding(.vertical, 20)
+            Text("Window")
+                .font(.system(size: 13, weight: .medium))
+                .padding(.bottom, 12)
+            WindowOptionsView(model: windowOptions)
         }
         .padding(24)
         .frame(width: 560, alignment: .topLeading)

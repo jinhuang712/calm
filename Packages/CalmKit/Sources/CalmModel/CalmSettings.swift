@@ -67,7 +67,7 @@ public struct CalmSettings: Equatable, Sendable {
         bool("auto-grouping", default: true)
     }
 
-    public enum MotionLevel: String, Sendable {
+    public enum MotionLevel: String, Sendable, CaseIterable {
         case full, reduced, off
     }
 

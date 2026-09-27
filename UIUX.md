@@ -143,7 +143,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |
 
-**Settings:** Settings → Appearance holds one motion control (full, reduced or off); until the settings screen lands it is `motion = full | reduced | off` in `config.toml`. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
+**Settings:** Settings → Appearance → Window holds one motion control (full, reduced or off), saved as `motion` in `config.toml`. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
 
 ## Themes
 
@@ -156,7 +156,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 | Section | Contents |
 |---|---|
-| **Appearance** | theme picker, font and size, glass or solid, motion (full, reduced, off) |
+| **Appearance** | theme picker, font and size, glass or solid, edge to edge or card, motion (full, reduced, off) |
 | **General** | editor, where paths open, auto-grouping |
 | **Agents** | how each installed agent connects (Connect/Disconnect where Calm must add a file), which states notify, sound. Available now as Calm → Agents… |
 | **Keys** | shortcuts |

@@ -8,7 +8,8 @@ import CalmModel
 /// - the **default** theme goes in Calm's defaults as `theme = light:…,dark:…`: a theme or colors
 ///   in the user's Ghostty config still win, and Ghostty switches light and dark itself;
 /// - a theme **picked** in Calm is written as plain colors for the current appearance to a file
-///   loaded after the user's config, so it wins; Calm rewrites it when the appearance changes.
+///   loaded after the user's config (`choicesFile`), so it wins; Calm rewrites it when the
+///   appearance changes.
 @MainActor
 enum TerminalTheme {
     /// Read on each config load (`refreshLibrary`), so a new or edited theme file counts after
@@ -44,7 +45,7 @@ enum TerminalTheme {
     }
 
     /// The line for Calm's defaults: the default theme as a light/dark pair of Ghostty theme files.
-    /// Nothing when a theme was picked (it's loaded later, from `pickedFile`).
+    /// Nothing when a theme was picked (it's loaded later, from `choicesFile`).
     static func defaultLines(settings: CalmSettings, directory: URL, library: ThemeLibrary = library) -> [String] {
         guard let (theme, picked) = active(settings: settings, in: library), !picked else { return [] }
         let folder = directory.appending(path: "themes", directoryHint: .isDirectory)
@@ -60,14 +61,26 @@ enum TerminalTheme {
         return ["theme = light:\(light),dark:\(dark)"]
     }
 
-    /// The picked theme's colors for the current appearance, as a file to load after the user's
-    /// Ghostty config; `nil` when no theme was picked.
-    static func pickedFile(settings: CalmSettings, directory: URL, library: ThemeLibrary = library, dark: Bool = isDark) -> URL? {
-        guard let (theme, picked) = active(settings: settings, in: library), picked,
-              let colors = theme.colors(for: dark ? .dark : .light) else { return nil }
-        let file = directory.appending(path: "theme.ghostty")
-        let header = "# Written by Calm: the theme picked in Calm (\(theme.name)), for the current appearance."
-        return write([header] + CalmTheme.ghosttyLines(colors), to: file) ? file : nil
+    /// How opaque the terminal is on a glass window: enough to read comfortably, with the blur
+    /// showing through.
+    static let glassOpacity = 0.84
+
+    /// The terminal side of choices made in Calm's settings, as a file to load after the user's
+    /// Ghostty config so they win: a picked theme's colors for the current appearance, and the
+    /// terminal's opacity on a glass window. `nil` when there's nothing to override.
+    static func choicesFile(settings: CalmSettings, directory: URL, library: ThemeLibrary = library, dark: Bool = isDark) -> URL? {
+        var lines: [String] = []
+        if let (theme, picked) = active(settings: settings, in: library), picked, let colors = theme.colors(for: dark ? .dark : .light) {
+            lines.append("# The theme picked in Calm (\(theme.name)), for the current appearance.")
+            lines += CalmTheme.ghosttyLines(colors)
+        }
+        if settings.windowBackground == .glass {
+            lines.append("# A glass window: the terminal lets the blur behind it show through.")
+            lines.append("background-opacity = \(glassOpacity)")
+        }
+        guard !lines.isEmpty else { return nil }
+        let file = directory.appending(path: "choices.ghostty")
+        return write(["# Written by Calm from its settings; loaded after your Ghostty config."] + lines, to: file) ? file : nil
     }
 
     /// The theme's variant whose background the terminal actually shows, for the chrome's tints.

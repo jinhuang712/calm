@@ -138,6 +138,11 @@ A quick, read-only look at the repository without leaving Calm.
 - Themes follow the system light/dark appearance.
 - The default gives way to a theme or colors in the user's Ghostty config, so any Ghostty theme can still be used; the chrome then derives its colors from it. A theme picked in Calm wins over the Ghostty config.
 - Your own themes go in `~/.config/calm/themes/` as small TOML files (DESIGNS.md → Themes).
+- **Window options**, under the picker in Settings → Appearance:
+  - **Background:** solid, or glass (the system's blur behind a translucent terminal and sidebar; panels and the viewer stay solid).
+  - **Layout:** edge to edge, or card (the terminal floats as a rounded card on the sidebar's color).
+  - **Motion:** full, reduced or off; the system's Reduce Motion always wins.
+  - In config.toml: `[window] background = "glass"`, `layout = "card"`, and `motion`. Choosing a default removes the key.
 
 **Settings:** the picker itself.
 
@@ -165,7 +170,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 - Five sections: **Appearance, General, Agents, Keys, Advanced** (collapsed).
 - Everything else lives in the config file, reachable through Advanced → Open Config File.
-- A native window opened with ⌘,. Built so far: Appearance's theme picker.
+- A native window opened with ⌘,. Built so far: Appearance (theme picker and window options).
 
 ---
 

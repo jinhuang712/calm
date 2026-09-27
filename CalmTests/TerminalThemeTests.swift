@@ -29,7 +29,7 @@ struct TerminalThemeTests {
         let light = directory.appending(path: "themes/calm-light")
         #expect(lines == ["theme = light:\(light.path),dark:\(dark.path)"])
         #expect(try String(contentsOf: dark, encoding: .utf8) == "background = #211d1a\nforeground = #c2bdb7\n")
-        #expect(TerminalTheme.pickedFile(settings: settings, directory: directory, library: library) == nil)
+        #expect(TerminalTheme.choicesFile(settings: settings, directory: directory, library: library) == nil)
     }
 
     @Test func `a picked theme: plain colors for the current appearance, loaded last`() throws {
@@ -39,10 +39,19 @@ struct TerminalThemeTests {
         #expect(TerminalTheme.active(settings: settings, in: library)?.theme.name == "Sage")
         #expect(TerminalTheme.defaultLines(settings: settings, directory: directory, library: library).isEmpty)
         // Sage has only a dark variant, which then serves light too.
-        let file = try #require(TerminalTheme.pickedFile(settings: settings, directory: directory, library: library, dark: false))
+        let file = try #require(TerminalTheme.choicesFile(settings: settings, directory: directory, library: library, dark: false))
         let lines = try String(contentsOf: file, encoding: .utf8).split(separator: "\n").map(String.init)
         #expect(lines.first?.hasPrefix("# Written by Calm") == true)
-        #expect(Array(lines.dropFirst()) == ["background = #19201a", "foreground = #b5c1b7"])
+        #expect(lines.filter { !$0.hasPrefix("#") } == ["background = #19201a", "foreground = #b5c1b7"])
+    }
+
+    @Test func `a glass window: the terminal's opacity joins Calm's choices`() throws {
+        let directory = folder()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let settings = CalmSettings(text: "[window]\nbackground = \"glass\"\n")
+        let file = try #require(TerminalTheme.choicesFile(settings: settings, directory: directory, library: library))
+        let lines = try String(contentsOf: file, encoding: .utf8).split(separator: "\n").filter { !$0.hasPrefix("#") }
+        #expect(lines == ["background-opacity = \(TerminalTheme.glassOpacity)"])
     }
 
     @Test func `an unknown theme falls back to the default`() {

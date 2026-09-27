@@ -14,6 +14,8 @@ struct SidebarStyle: Equatable {
     /// *Failed*: a muted red, used for nothing else.
     var failure: Color
     var isDark: Bool
+    /// How opaque the sidebar and files column are: less on a glass window (WindowStyle).
+    var surfaceOpacity = 1.0
 
     /// With `theme` (the Calm theme whose background the terminal shows), the chrome takes the
     /// theme's own sidebar, text, accent and red instead of derived ones (UIUX.md → Color).
@@ -94,7 +96,10 @@ struct SidebarView: View {
         }
         .frame(width: Self.width)
         .frame(maxHeight: .infinity)
-        .background(style.background)
+        .background(style.background.opacity(style.surfaceOpacity))
+        // The adaptive background (UIUX.md → Motion): when an app repaints the terminal's
+        // background, the sidebar eases into the new colors instead of snapping.
+        .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.35), value: style)
         // Laid out at full width and clipped while the sidebar slides, never squeezed.
         .frame(maxWidth: .infinity, alignment: .leading)
         .dropDestination(for: URL.self) { urls, _ in

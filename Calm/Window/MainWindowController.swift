@@ -21,6 +21,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private lazy var arrivalCard = ArrivalCard(container: container)
     lazy var fileViewer = FileViewer(container: container)
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
+    let windowStyle = WindowStyle()
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth = SidebarView.width
@@ -90,12 +91,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             sidebar.topAnchor.constraint(equalTo: container.topAnchor),
             sidebar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             width,
-            mainArea.leadingAnchor.constraint(equalTo: files.trailingAnchor),
-            mainArea.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            mainArea.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            // Leave the title bar strip above the terminal.
-            mainArea.topAnchor.constraint(equalTo: container.topAnchor, constant: 30),
         ])
+        windowStyle.install(mainArea: mainArea, after: files, in: container)
         container.layoutSubtreeIfNeeded()
         peek = SidebarPeek(container: container, width: Self.sidebarWidth) { [unowned self] in
             NSHostingView(rootView: makeSidebar(style: sidebarStyle))
@@ -150,7 +147,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         /// Frames of the window's parts, for self-test logs.
         var layoutForTesting: String {
             let overlays = container.subviews.filter { $0 !== sidebarHost && $0 !== mainArea }.map { "\(type(of: $0)) \($0.frame)" }
-            let background = window?.backgroundColor ?? .clear
+            let background = focusedPane?.effectiveBackgroundColor ?? window?.backgroundColor ?? .clear
             let themed = TerminalTheme.chromeColors(matching: background) != nil
             let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
                 + "accent \(NSColor(sidebarStyle.attention).hexString), theme chrome \(themed)"
@@ -282,8 +279,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let background = focusedPane?.effectiveBackgroundColor
             ?? TerminalEngine.shared.config?.backgroundColor
             ?? NSColor(white: 0.15, alpha: 1)
-        window.backgroundColor = background
-        let style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background))
+        var style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background))
+        window.backgroundColor = windowStyle.apply(
+            manager.settings, style: &style, terminalBackground: background, mainArea: mainArea, container: container,
+        )
+        fileViewer.cornerRadius = windowStyle.cornerRadius
         sidebarStyle = style
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)

@@ -16,6 +16,25 @@ public extension CalmSettings {
         bool("agents.sound", default: false)
     }
 
+    /// The window's background (UIUX.md → Themes): solid, or the system's glass behind a
+    /// translucent terminal and sidebar.
+    enum WindowBackground: String, Sendable, CaseIterable {
+        case solid, glass
+    }
+
+    var windowBackground: WindowBackground {
+        values["window.background"].flatMap { WindowBackground(rawValue: $0.lowercased()) } ?? .solid
+    }
+
+    /// The terminal area runs edge to edge, or floats as a rounded card.
+    enum WindowLayout: String, Sendable, CaseIterable {
+        case edge, card
+    }
+
+    var windowLayout: WindowLayout {
+        values["window.layout"].flatMap { WindowLayout(rawValue: $0.lowercased()) } ?? .edge
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {

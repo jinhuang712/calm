@@ -143,7 +143,7 @@ Any past conversation, across every agent, is one search away.
 
 Agent output is easy to act on.
 
-- [ ] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
+- [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
 - [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
 - [ ] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session.
 - [ ] **M5.4 Decision:** viewer rendering — native or a web view.

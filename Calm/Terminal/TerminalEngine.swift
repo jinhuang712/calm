@@ -164,6 +164,11 @@ final class TerminalEngine {
         case GHOSTTY_ACTION_MOUSE_VISIBILITY:
             NSCursor.setHiddenUntilMouseMoves(action.action.mouse_visibility == GHOSTTY_MOUSE_HIDDEN)
         case GHOSTTY_ACTION_OPEN_URL:
+            // A pane's link goes to its host, which knows the session's folder (smart links).
+            if let view, let host = view.host, let text = Self.string(action.action.open_url) {
+                host.surface(view, requestsOpenLink: text)
+                return true
+            }
             return openURL(action.action.open_url)
         case GHOSTTY_ACTION_RELOAD_CONFIG:
             let soft = action.action.reload_config.soft
@@ -288,10 +293,13 @@ final class TerminalEngine {
         }
     }
 
+    private static func string(_ payload: ghostty_action_open_url_s) -> String? {
+        guard let pointer = payload.url, payload.len > 0 else { return nil }
+        return String(bytes: UnsafeRawBufferPointer(start: pointer, count: Int(payload.len)), encoding: .utf8)
+    }
+
     private func openURL(_ payload: ghostty_action_open_url_s) -> Bool {
-        guard let pointer = payload.url, payload.len > 0 else { return false }
-        let bytes = UnsafeRawBufferPointer(start: pointer, count: Int(payload.len))
-        guard let string = String(bytes: bytes, encoding: .utf8) else { return false }
+        guard let string = Self.string(payload) else { return false }
 
         let url: URL = if let parsed = URL(string: string), parsed.scheme != nil {
             parsed

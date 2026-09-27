@@ -519,6 +519,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         manager.terminalSignal(view.id, signal)
     }
 
+    func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String) {
+        let session = manager.workspace.session(view.id)
+        let directory = view.workingDirectory ?? session?.workingDirectory
+        let project = session.flatMap { manager.workspace.project($0.projectID)?.path }
+        if !LinkOpener.open(text, directory: directory, projectDirectory: project) {
+            CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+        }
+    }
+
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint) {
         CopyToast.show("Cell copied", at: view.convert(point, to: container), in: container)
     }

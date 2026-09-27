@@ -91,14 +91,16 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none. Agents are detected automatically.
 
-## F8 — Smart links 📝
+## F8 — Smart links 🚧
 
 - **⌘-click** a URL to open it in the default browser.
 - **⌘-click** a file path, including relative paths, resolved against the session's current folder.
 - `path:line` and `path:line:column` open at that position.
 - File paths open in Calm's viewer (F10) or in the user's editor at the line.
 
-**Settings:** 2 — editor (auto-detected, overridable); where paths open (Calm's viewer or editor, default viewer).
+- A path that isn't there relative to the session's folder is tried against its project's folder (agents often print repository-relative paths); if it's nowhere, a small note says so.
+
+**Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; overridable with `editor = "…"` in config.toml); where paths open (Calm's viewer or editor, default viewer — arrives with the viewer).
 
 ## F9 — Copy Cell ✅
 

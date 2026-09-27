@@ -14,6 +14,10 @@
                 peekForTesting()
             case "agents":
                 showAgentsPanel()
+            case let link where link.hasPrefix("open_link:"):
+                if let pane = focusedPane {
+                    surface(pane, requestsOpenLink: String(link.dropFirst(10)))
+                }
             case let copy where copy.hasPrefix("copy_cell:"):
                 let text = String(copy.dropFirst(10))
                 let copied = focusedPane?.copyCellForTesting(text)

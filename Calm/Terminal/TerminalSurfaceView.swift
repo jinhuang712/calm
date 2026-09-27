@@ -24,6 +24,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceWorkingDirectoryDidChange(_ view: TerminalSurfaceView)
     /// Bell, desktop notification, progress or command finished (DESIGNS.md → Attention).
     func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal)
+    /// A link was ⌘-clicked (a URL, or a path as the terminal matched it, maybe with `:line`).
+    func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String)
     /// A table cell was copied (Copy Cell); `point` is in the view's coordinates.
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint)
 }

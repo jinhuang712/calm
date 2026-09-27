@@ -31,9 +31,28 @@
                     log("action \(action) → \(ok)")
                     try? await Task.sleep(for: .seconds(0.4))
                 }
-                if let text = env["CALM_SELFTEST_TYPE"], let pane = TerminalWindowManager.shared.focusedController?.focusedPane {
+                let pane = TerminalWindowManager.shared.focusedController?.focusedPane
+                if let text = env["CALM_SELFTEST_TYPE"], !text.isEmpty, let pane {
                     pane.typeForTesting(text)
                     log("typed \(text.count) characters")
+                }
+                if let keys = env["CALM_SELFTEST_KEYS"], !keys.isEmpty, let pane {
+                    let sent = pane.pressKeysForTesting(keys)
+                    log("pressed \(sent) keys through keyDown")
+                }
+                if let size = env["CALM_SELFTEST_RESIZE"], let pane, let window = pane.window {
+                    let parts = size.split(separator: "x").compactMap { Double($0) }
+                    if parts.count == 2 {
+                        let before = pane.gridSizeForTesting
+                        window.setContentSize(NSSize(width: parts[0], height: parts[1]))
+                        try? await Task.sleep(for: .seconds(0.4))
+                        log("resize \(size): grid \(before) → \(pane.gridSizeForTesting)")
+                    }
+                }
+                if env["CALM_SELFTEST_DRAG"] == "1", let pane {
+                    try? await Task.sleep(for: .seconds(0.6))
+                    let copied = pane.dragAndCopyFirstRowForTesting()
+                    log("drag-copied: \(copied.debugDescription)")
                 }
                 try? await Task.sleep(for: .seconds(delay))
                 if let snapshot {

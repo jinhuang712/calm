@@ -55,19 +55,19 @@ An empty Calm app, built from a clean clone with one command, with GhosttyKit bu
 
 Calm works as a normal terminal: no sessions or agents yet, just a fast, correct terminal.
 
-- [ ] **M1.1 Engine wrapper:** the `Terminal` module owns libghostty's app object, loads the user's Ghostty config, and drives its event loop.
-- [ ] **M1.2 Terminal view:** a view that renders one surface running the user's shell.
-- [ ] **M1.3 Keyboard:** all keys and modifiers, IME (Chinese input included), Option-as-Alt from the Ghostty config.
-- [ ] **M1.4 Mouse:** selection, ⌥-drag rectangle selection, scrolling, mouse reporting to TUIs.
-- [ ] **M1.5 Clipboard:** copy, paste, OSC 52.
-- [ ] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
-- [ ] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
-- [ ] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
-- [ ] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
+- [x] **M1.1 Engine wrapper:** the `Terminal` module owns libghostty's app object, loads the user's Ghostty config, and drives its event loop.
+- [x] **M1.2 Terminal view:** a view that renders one surface running the user's shell.
+- [x] **M1.3 Keyboard:** all keys and modifiers, IME (Chinese input included), Option-as-Alt from the Ghostty config.
+- [x] **M1.4 Mouse:** selection, ⌥-drag rectangle selection, scrolling, mouse reporting to TUIs.
+- [x] **M1.5 Clipboard:** copy, paste, OSC 52.
+- [x] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
+- [x] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
+- [x] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
+- [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
 - [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling is blocked on an engine change; see DESIGNS.md → Motion in the terminal.
-- [ ] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
-- [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Optional for this milestone; may move later.*
-- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found.
+- [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
+- [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Moved to Later: not needed for daily agent work.*
+- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Needs the author; automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
 
 **Exit criteria**
 - A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker.
@@ -190,6 +190,7 @@ Conversations can be renamed, resumed and forked.
 
 ## Later
 
+- Quick terminal (drop-down on a global hotkey), moved from M1.11.
 - Release: Developer ID signing, notarization, Sparkle updates, a Homebrew cask, public launch.
 - Changed-file diffs in the viewer.
 - Spotlight integration (semantic index on macOS 27+).

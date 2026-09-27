@@ -1,7 +1,21 @@
 Calm Terminal
 Copyright 2026 Jin Huang
 
-This product includes software developed as part of Ghostty
-(https://github.com/ghostty-org/ghostty), licensed under the MIT License.
+This product includes software from the following projects. Their full license texts are in
+Calm.app/Contents/Resources/Licenses (and Calm/Resources/Licenses in the source).
+
+Ghostty (https://github.com/ghostty-org/ghostty), MIT License.
 Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors.
-The full Ghostty license text is distributed with the application.
+Calm's terminal engine is built from Ghostty's source.
+
+zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
+Copyright (c) 2025 Eric Bower.
+Bundled to keep shells running while Calm is closed.
+
+markdown-it (https://github.com/markdown-it/markdown-it), MIT License.
+Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
+Used by the file viewer to render Markdown.
+
+highlight.js (https://highlightjs.org), BSD 3-Clause License.
+Copyright (c) 2006, Ivan Sagalaev.
+Used by the file viewer to highlight code.

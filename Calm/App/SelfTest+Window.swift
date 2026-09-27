@@ -93,9 +93,23 @@
             return true
         }
 
-        /// Session actions (F12) for self-tests.
+        /// Session actions (F12) and grouping (F2) for self-tests.
         private func performSessionActionForTesting(_ action: String) -> Bool {
             switch action {
+            case "scratch":
+                newScratchSession()
+            case "close":
+                focusedPane.map { requestCloseSession($0.id) }
+            case let add where add.hasPrefix("add_project:"):
+                // add_project:<path>: what + New Project does once a folder is picked
+                addProjects([URL(filePath: String(add.dropFirst(12)), directoryHint: .isDirectory)])
+            case "make_project":
+                focusedPane.flatMap { manager.workspace.session($0.id) }.map { manager.makeProject($0.projectID) }
+            case let keep where keep.hasPrefix("keep_scratch:"):
+                // keep_scratch:<path>: what "Keep as Project…" does once a folder is picked
+                if let session = focusedPane.flatMap({ manager.workspace.session($0.id) }), let folder = session.scratchFolder {
+                    moveScratchFolder(of: session.id, from: folder, to: URL(filePath: String(keep.dropFirst(13))))
+                }
             case let conversation where conversation.hasPrefix("conversation:"):
                 // conversation:<agent>:<id>: a stand-in for an agent conversation that ended in
                 // the focused session (no agent is started)

@@ -182,7 +182,9 @@ struct FilesColumnView: View {
         let style = model.style
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.root.map { WorkspacePath.displayName(for: $0) } ?? "No project")
+                // A scratch session's folder name is Calm's business.
+                Text(model.root
+                    .map { $0.hasPrefix(ScratchFolders.root.path) ? "Scratch" : WorkspacePath.displayName(for: $0) } ?? "No project")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(style.primary)
                     .lineLimit(1)

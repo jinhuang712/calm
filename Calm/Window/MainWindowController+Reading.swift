@@ -19,9 +19,8 @@ extension MainWindowController {
     #endif
 
     var focusedProjectPath: String? {
-        manager.workspace.selectedLayout
-            .flatMap { manager.workspace.session($0.focusedSessionID) }
-            .flatMap { manager.workspace.project($0.projectID)?.path }
+        guard let session = manager.workspace.selectedLayout.flatMap({ manager.workspace.session($0.focusedSessionID) }) else { return nil }
+        return session.scratchFolder ?? manager.workspace.project(session.projectID)?.path
     }
 
     // MARK: Links

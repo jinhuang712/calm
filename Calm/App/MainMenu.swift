@@ -50,6 +50,12 @@ enum MainMenu {
     private static func fileMenu() -> NSMenu {
         let menu = NSMenu(title: "Shell")
         menu.addItem(actionItem("New Session", #selector(TerminalMenuTarget.newSession(_:)), key: "t"))
+        menu.addItem(actionItem(
+            "New Scratch Session",
+            #selector(TerminalMenuTarget.newScratchSession(_:)),
+            key: "n",
+            mods: [.command, .shift],
+        ))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Split Right", "new_split:right", key: "d"))
         menu.addItem(terminalItem("Split Down", "new_split:down", key: "d", mods: [.command, .shift]))
@@ -129,7 +135,8 @@ enum MainMenu {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
         let targeted = [
-            "newSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession", "showArrivalCard",
+            "newSession", "newScratchSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession",
+            "showArrivalCard",
             "searchSessions",
         ]
         if targeted.contains(where: { selector.description.hasPrefix($0) }) {
@@ -146,6 +153,10 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func newSession(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().newSession()
+    }
+
+    @objc func newScratchSession(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().newScratchSession()
     }
 
     @objc func toggleFiles(_: Any?) {

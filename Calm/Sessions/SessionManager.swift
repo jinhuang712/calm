@@ -39,23 +39,35 @@ final class SessionManager {
         settings.autoGrouping
     }
 
+    /// No workspace was ever saved: Calm's very first launch (the welcome page shows).
+    @ObservationIgnored let isFirstUse: Bool
+
     init(store: WorkspaceStore = .standard) {
         self.store = store
+        isFirstUse = !FileManager.default.fileExists(atPath: store.fileURL.path)
         workspace = store.load()
     }
 
     // MARK: Lifecycle
 
-    /// Prepares the saved workspace at launch; starts one session in the home folder if there is none.
+    /// Prepares the saved workspace at launch, so Calm starts where the user left off.
     func restore() {
         removeOrphanedShells()
         for session in workspace.sessions where session.agent != nil {
             // Saved by an earlier launch; the probe finds agents that are still running.
             workspace.endAgentRun(session.id)
         }
-        if workspace.sessions.isEmpty {
-            newSession(in: FileManager.default.homeDirectoryForCurrentUser.path)
+        // Sessions filed under older rules find their groups (FEATURES.md → F2).
+        if autoGrouping {
+            workspace.refileAll(gitRoot: GitRoot.find)
         }
+        // With nothing saved, the welcome page shows instead of a session nobody asked for.
+        // Self-tests start with a session unless they test the welcome page.
+        #if DEBUG
+            if workspace.sessions.isEmpty, ProcessInfo.processInfo.environment["CALM_START_WITH_SESSION"] == "1" {
+                newSession(in: FileManager.default.homeDirectoryForCurrentUser.path)
+            }
+        #endif
         // Layouts may reference sessions whose data went missing; drop those leaves.
         for layout in workspace.layouts {
             let valid = layout.tree.leaves.filter { workspace.session($0) != nil }
@@ -123,25 +135,44 @@ final class SessionManager {
     // MARK: Sessions
 
     @discardableResult
-    func newSession(in directory: String) -> Session {
-        let session = workspace.newSession(in: directory, gitRoot: GitRoot.find)
+    func newSession(in directory: String, placement: Workspace.Placement = .directory) -> Session {
+        let session = workspace.newSession(in: directory, placement: placement, gitRoot: GitRoot.find)
         rememberFocus()
         scheduleSave()
         return session
     }
 
     @discardableResult
-    func splitSession(_ existing: Session.ID, direction: SplitTree<Session.ID>.Direction, in directory: String) -> Session? {
-        let session = workspace.splitSession(existing, direction: direction, in: directory, gitRoot: GitRoot.find)
+    func splitSession(
+        _ existing: Session.ID, direction: SplitTree<Session.ID>.Direction, in directory: String,
+        placement: Workspace.Placement = .directory,
+    ) -> Session? {
+        let session = workspace.splitSession(existing, direction: direction, in: directory, placement: placement, gitRoot: GitRoot.find)
         rememberFocus()
         scheduleSave()
         return session
     }
 
-    /// Ends a session: its pane, its persistent shell, and its place in the workspace.
+    /// A scratch session (⌘⇧N) in a new hidden folder of its own, on top of the sidebar.
+    func newScratchSession() -> Session? {
+        do {
+            let folder = try ScratchFolders.make()
+            return newSession(in: folder.path, placement: .scratch)
+        } catch {
+            Self.log.error("could not make a scratch folder: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Ends a session: its pane, its persistent shell, and its place in the workspace. A scratch
+    /// session's folder goes too, once no other session is in it (the window asks first when it
+    /// has files).
     func closeSession(_ id: Session.ID) {
         if let session = workspace.session(id) {
             PersistentShell.kill(name: session.persistentName)
+            if let folder = session.scratchFolder, !workspace.sessions.contains(where: { $0.id != id && $0.scratchFolder == folder }) {
+                ScratchFolders.discard(folder)
+            }
         }
         panes[id]?.teardown()
         panes[id] = nil
@@ -288,18 +319,38 @@ final class SessionManager {
         }
     #endif
 
-    func togglePinned(_ id: Session.ID) {
-        guard let session = workspace.session(id) else { return }
-        workspace.setPinned(id, !session.isPinned)
+    // MARK: Projects
+
+    @discardableResult
+    func addProject(path: String) -> Project {
+        var project: Project?
+        Motion.animate {
+            project = workspace.addProject(path: path, gitRoot: GitRoot.find)
+        }
+        scheduleSave()
+        // Motion.animate runs its body at once, animated or not; the fallback only satisfies the type.
+        return project ?? workspace.addProject(path: path, gitRoot: GitRoot.find)
+    }
+
+    /// A directory group becomes a project (FEATURES.md → F2).
+    func makeProject(_ projectID: Project.ID) {
+        Motion.animate { workspace.makeProject(projectID) }
         scheduleSave()
     }
 
-    // MARK: Projects
+    func move(_ id: Session.ID, to projectID: Project.ID) {
+        Motion.animate { workspace.move(id, to: projectID) }
+        scheduleSave()
+    }
 
-    func addProject(path: String) {
-        Motion.animate {
-            _ = workspace.addProject(path: path, gitRoot: GitRoot.find)
-        }
+    func followFolder(_ id: Session.ID) {
+        Motion.animate { workspace.followFolder(id, gitRoot: GitRoot.find) }
+        scheduleSave()
+    }
+
+    /// A scratch session's folder, moved to `path` already, becomes a project there.
+    func keepScratchAsProject(_ id: Session.ID, at path: String) {
+        Motion.animate { workspace.keepScratchAsProject(id, at: path, gitRoot: GitRoot.find) }
         scheduleSave()
     }
 
@@ -326,7 +377,7 @@ final class SessionManager {
 
     /// Sessions in sidebar order, for ⌘1…9.
     var orderedSessions: [Session] {
-        workspace.projects.flatMap { workspace.sessions(in: $0.id) }
+        workspace.orderedProjects.flatMap { workspace.sessions(in: $0.id) }
     }
 
     // MARK: Saving

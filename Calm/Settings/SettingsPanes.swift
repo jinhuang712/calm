@@ -122,7 +122,7 @@ struct GeneralSettingsView: View {
             Divider().padding(.vertical, 20)
             SettingsHeading(title: "Projects")
             Toggle(
-                "Move a session to another project when its folder changes",
+                "Group sessions by their folder, and move them when it changes",
                 isOn: Binding(get: { model.autoGrouping }, set: { model.setAutoGrouping($0) }),
             )
             .font(.system(size: 12))

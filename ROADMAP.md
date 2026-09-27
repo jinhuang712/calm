@@ -19,7 +19,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 |---|---|---|---|---|
 | **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
 | **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | 🟨 |
-| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
+| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ (grouping revised after real use: projects, folders, scratch) |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
 | **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |

@@ -23,6 +23,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
+    lazy var welcomePage = WelcomePage(mainArea: mainArea)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth = SidebarView.width
@@ -113,6 +114,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
                 rename: { [weak self] id, name in self?.rename(id, to: name) },
                 resume: { [weak self] id in self?.resumeConversation(in: id) },
                 fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
+                newScratchSession: { [weak self] in self?.newScratchSession() },
+                newSessionIn: { [weak self] project in self?.newSession(in: project) },
+                addProjects: { [weak self] urls in self?.addProjects(urls) },
+                makeProject: { [weak self] id in self?.manager.makeProject(id) },
+                move: { [weak self] id, project in self?.manager.move(id, to: project) },
+                followFolder: { [weak self] id in self?.manager.followFolder(id) },
+                keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
             ),
         )
     }
@@ -128,6 +136,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
+        updateWelcomePage()
         guard let layout = manager.workspace.selectedLayout else { return }
         let workspace = workspaces[layout.id] ?? makeWorkspace(for: layout)
         for (id, view) in workspaces {
@@ -158,7 +167,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             let themed = TerminalTheme.chromeColors(matching: background) != nil
             let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
                 + "accent \(NSColor(sidebarStyle.attention).hexString), theme chrome \(themed)"
-            return "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays); \(chrome)"
+            let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays)"
+            return "\(frames); \(chrome); welcome \(welcomePage.isShowing)"
         }
     #endif
 
@@ -229,10 +239,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func newSession(inheriting pane: TerminalSurfaceView? = nil) {
-        let directory = (pane ?? focusedPane)?.workingDirectory
-            ?? manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID)?.workingDirectory }
-            ?? FileManager.default.homeDirectoryForCurrentUser.path
-        manager.newSession(in: directory)
+        let source = pane ?? focusedPane
+        let (placement, directory) = placementAndFolder(
+            from: source?.id ?? manager.workspace.selectedLayout?.focusedSessionID,
+            pane: source,
+        )
+        manager.newSession(in: directory, placement: placement)
         showSelectedLayout(animated: true)
     }
 
@@ -243,11 +255,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         return true
     }
 
-    private func requestCloseSession(_ id: Session.ID) {
-        if let pane = manager.panes[id] {
-            surfaceRequestsClose(pane, needsConfirm: pane.needsConfirmQuit)
+    func requestCloseSession(_ id: Session.ID) {
+        let close = { [weak self] in
+            guard let self else { return }
+            if let pane = manager.panes[id] {
+                surfaceRequestsClose(pane, needsConfirm: pane.needsConfirmQuit)
+            } else {
+                closeSession(id)
+            }
+        }
+        if let session = manager.workspace.session(id), session.isScratch {
+            requestCloseScratch(session, then: close)
         } else {
-            closeSession(id)
+            close()
         }
     }
 
@@ -262,25 +282,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             workspace?.removeFromSuperview()
             workspaces[layout.id] = nil
         }
-        if manager.workspace.sessions.isEmpty {
-            manager.newSession(in: FileManager.default.homeDirectoryForCurrentUser.path)
-        }
         showSelectedLayout(animated: true)
-    }
-
-    private func chooseNewProject() {
-        guard let window else { return }
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = true
-        panel.prompt = "Add Project"
-        panel.beginSheetModal(for: window) { [weak self] response in
-            guard response == .OK else { return }
-            MainActor.assumeIsolated {
-                panel.urls.forEach { self?.manager.addProject(path: $0.path) }
-            }
-        }
     }
 
     // MARK: Appearance
@@ -302,6 +304,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }
+        // The welcome page takes the chrome's colors too (they settle after it first shows).
+        updateWelcomePage()
     }
 
     // MARK: Command palette
@@ -447,9 +451,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     @discardableResult
     func split(_ view: TerminalSurfaceView, direction splitDirection: SplitTree<UUID>.Direction) -> TerminalSurfaceView? {
         guard let layout = manager.workspace.layout(containing: view.id), let workspace = workspaces[layout.id] else { return nil }
-        let directory = view.workingDirectory ?? manager.workspace.session(view.id)?.workingDirectory
-            ?? FileManager.default.homeDirectoryForCurrentUser.path
-        guard let session = manager.splitSession(view.id, direction: splitDirection, in: directory),
+        let (placement, directory) = placementAndFolder(from: view.id, pane: view)
+        guard let session = manager.splitSession(view.id, direction: splitDirection, in: directory, placement: placement),
               let pane = manager.pane(for: session.id, host: self)
         else { return nil }
         workspace.split(view, direction: splitDirection, with: pane)
@@ -608,12 +611,6 @@ final class TerminalWindowManager: TerminalEngineDelegate {
             controller.window?.center()
         }
         controller.showAndFocus()
-        // First launch: say how each agent connects, once (M3.11).
-        let shownKey = "CalmAgentsPanelShown"
-        if !Headless.isOn, !UserDefaults.standard.bool(forKey: shownKey) {
-            UserDefaults.standard.set(true, forKey: shownKey)
-            controller.showAgentsPanel()
-        }
         return controller
     }
 

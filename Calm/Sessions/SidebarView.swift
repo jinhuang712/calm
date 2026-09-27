@@ -85,6 +85,7 @@ struct SidebarView: View {
     let actions: SidebarActions
     @State private var draftName = ""
     @FocusState private var nameFieldFocused: Bool
+    @State private var hoveredSessionID: Session.ID?
 
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
@@ -101,7 +102,8 @@ struct SidebarView: View {
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
                 VStack(alignment: .leading, spacing: 14) {
-                    ForEach(manager.workspace.projects) { project in
+                    // Scratch sessions on top, then projects the user made, then directory groups.
+                    ForEach(manager.workspace.orderedProjects) { project in
                         projectSection(project)
                     }
                 }
@@ -122,7 +124,7 @@ struct SidebarView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .dropDestination(for: URL.self) { urls, _ in
             let folders = urls.filter(\.hasDirectoryPath)
-            folders.forEach { manager.addProject(path: $0.path) }
+            actions.addProjects(folders)
             return !folders.isEmpty
         }
         .environment(\.colorScheme, style.isDark ? .dark : .light)
@@ -141,15 +143,20 @@ struct SidebarView: View {
                         .font(.system(size: 8, weight: .semibold))
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
                         .frame(width: 10)
-                    Text(project.name.uppercased())
-                        .font(.system(size: 11, weight: .medium))
-                        .tracking(0.6)
-                        .lineLimit(1)
+                    GroupMark(kind: project.kind, style: style)
+                    groupName(project)
                     Spacer(minLength: 4)
                     if project.isCollapsed {
                         Text(summary(sessions))
                             .font(.system(size: 11))
                             .foregroundStyle(style.tertiary)
+                    } else if project.kind == .directory, project.path != WorkspacePath.standardize(NSHomeDirectory()) {
+                        // Where the folder is, so two groups with the same name can be told apart.
+                        Text(WorkspacePath.displayName(for: (project.path as NSString).deletingLastPathComponent))
+                            .font(.system(size: 11))
+                            .foregroundStyle(style.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
                     }
                 }
                 .foregroundStyle(style.secondary)
@@ -158,11 +165,15 @@ struct SidebarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(project.path)
+            // A scratch group's folder is Calm's business; the others show theirs.
+            .help(project.kind == .scratch ? "" : project.path)
+            .contextMenu { groupMenu(project) }
 
             if !project.isCollapsed {
                 ForEach(sessions) { session in
                     sessionView(session)
+                        .overlay(alignment: .topTrailing) { closeButton(session) }
+                        .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
                         .onTapGesture { onSelect(session.id) }
                         .contextMenu { sessionMenu(session) }
                         .matchedGeometryEffect(id: session.id, in: rows)
@@ -185,11 +196,73 @@ struct SidebarView: View {
             Button("Fork into New Tab") { actions.fork(session.id, .tab) }
         }
         Divider()
-        Button(session.isPinned ? "Unpin from Project" : "Pin to Project") {
-            manager.togglePinned(session.id)
+        if session.isScratch {
+            Button("Keep as Project…") { actions.keepScratch(session.id) }
+        } else {
+            let projects = manager.workspace.orderedProjects.filter { $0.kind == .project && $0.id != session.projectID }
+            if !projects.isEmpty {
+                Menu("Move to Project") {
+                    ForEach(projects) { project in
+                        Button(project.name) { actions.move(session.id, project.id) }
+                    }
+                }
+            }
+            if session.isPinned, manager.workspace.project(session.projectID)?.kind == .project {
+                Button("Let It Follow Its Folder") { actions.followFolder(session.id) }
+            }
         }
         Divider()
         Button("Close Session") { onClose(session.id) }
+    }
+
+    @ViewBuilder
+    private func groupMenu(_ project: Project) -> some View {
+        switch project.kind {
+        case .scratch:
+            Button("New Scratch Session") { actions.newScratchSession() }
+        case .project:
+            Button("New Session Here") { actions.newSessionIn(project) }
+        case .directory:
+            Button("Make Project") { actions.makeProject(project.id) }
+            Button("New Session Here") { actions.newSessionIn(project) }
+        }
+        Button(project.isCollapsed ? "Expand" : "Collapse") { manager.toggleCollapsed(project.id) }
+    }
+
+    @ViewBuilder
+    private func groupName(_ project: Project) -> some View {
+        if project.kind == .directory {
+            // A folder's own name, as it is on disk.
+            Text(project.name)
+                .font(.system(size: 12))
+                .lineLimit(1)
+        } else {
+            Text(project.name.uppercased())
+                .font(.system(size: 11, weight: .medium))
+                .tracking(0.6)
+                .lineLimit(1)
+        }
+    }
+
+    /// A scratch session is closed when it's done: its row offers that, quietly, on hover or
+    /// while selected.
+    @ViewBuilder
+    private func closeButton(_ session: Session) -> some View {
+        if session.isScratch, editing.renamingSessionID != session.id,
+           hoveredSessionID == session.id || selectedSessionID == session.id {
+            Button { onClose(session.id) } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(style.secondary)
+                    .frame(width: 18, height: 18)
+                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style.selection))
+            }
+            .buttonStyle(.plain)
+            .help("Close Scratch Session")
+            .accessibilityLabel("Close scratch session")
+            .padding(.top, 6)
+            .padding(.trailing, 6)
+        }
     }
 
     private func beginRename(_ session: Session) {
@@ -253,6 +326,14 @@ struct SidebarView: View {
             .buttonStyle(.plain)
             .foregroundStyle(style.secondary)
             Spacer()
+            Button(action: actions.newScratchSession) {
+                Image(systemName: "square.dashed")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(style.secondary)
+            .help("New Scratch Session (⌘⇧N)")
+            .accessibilityLabel("New scratch session")
             Button(action: onNewSession) {
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: 12))
@@ -260,6 +341,7 @@ struct SidebarView: View {
             .buttonStyle(.plain)
             .foregroundStyle(style.secondary)
             .help("New Session (⌘T)")
+            .padding(.leading, 8)
         }
         .padding(.horizontal, 16)
         .frame(height: 40)
@@ -271,6 +353,37 @@ struct SidebarActions {
     let rename: (Session.ID, String?) -> Void
     let resume: (Session.ID) -> Void
     let fork: (Session.ID, MainWindowController.ForkDestination) -> Void
+    let newScratchSession: () -> Void
+    let newSessionIn: (Project) -> Void
+    let addProjects: ([URL]) -> Void
+    let makeProject: (Project.ID) -> Void
+    let move: (Session.ID, Project.ID) -> Void
+    let followFolder: (Session.ID) -> Void
+    let keepScratch: (Session.ID) -> Void
+}
+
+/// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.
+struct GroupMark: View {
+    let kind: Project.Kind
+    let style: SidebarStyle
+
+    var body: some View {
+        switch kind {
+        case .project:
+            Image(systemName: "square.stack")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(style.attention)
+                .accessibilityLabel("Project")
+        case .directory:
+            Image(systemName: "folder")
+                .font(.system(size: 9))
+                .accessibilityLabel("Folder")
+        case .scratch:
+            Image(systemName: "square.dashed")
+                .font(.system(size: 9))
+                .accessibilityLabel("Scratch")
+        }
+    }
 }
 
 /// A compact session row. Rich cards (state, progress, recap, worktree) arrive in Milestone 3.
@@ -295,11 +408,6 @@ struct SessionRow: View {
             if session.state != .idle {
                 StateMark(state: session.state, style: style)
             }
-            if session.isPinned {
-                Image(systemName: "pin.fill")
-                    .font(.system(size: 9))
-                    .foregroundStyle(style.tertiary)
-            }
         }
         .padding(.horizontal, 8)
         .frame(height: 30)
@@ -308,10 +416,11 @@ struct SessionRow: View {
                 .fill(session.state == .needsYou ? style.attention.opacity(0.19) : isSelected ? style.selection : .clear),
         )
         .contentShape(Rectangle())
-        .help(session.lastReport?.message ?? session.workingDirectory)
+        // A scratch session's folder stays hidden.
+        .help(session.lastReport?.message ?? (session.isScratch ? "" : session.workingDirectory))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            [session.displayTitle, session.state == .idle ? nil : session.state.label, session.isPinned ? "pinned" : nil]
+            [session.displayTitle, session.state == .idle ? nil : session.state.label]
                 .compactMap(\.self).joined(separator: ", "),
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])

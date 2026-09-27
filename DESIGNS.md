@@ -68,9 +68,9 @@ Rules:
 ```swift
 struct Project: Identifiable {
     let id: UUID
-    var path: URL             // the folder that defines the project
+    var path: URL             // the folder that defines the group
     var name: String
-    var isAutomatic: Bool     // created by auto-grouping, not by the user
+    var kind: Kind            // .project (made by the user), .directory, .scratch
 }
 
 struct Session: Identifiable {
@@ -78,7 +78,8 @@ struct Session: Identifiable {
     var projectID: Project.ID
     var title: String
     var workingDirectory: URL
-    var isPinned: Bool        // pinned sessions don't move between projects
+    var isPinned: Bool        // stays in its group (project sessions, scratch sessions)
+    var scratchFolder: URL?   // a scratch session's own hidden folder
     var agent: AgentRun?      // present while an agent runs in the foreground
     var state: SessionState
 }
@@ -101,10 +102,13 @@ As built (M2): `Workspace` holds `projects`, `sessions` and `layouts`. A `PaneLa
 ## Auto-grouping
 
 1. The shell reports its working directory (OSC 7 through libghostty's pwd action). For panes that never send OSC 7, `WorkingDirectoryProbe` reads the shell's folder with `proc_pidinfo(PROC_PIDVNODEPATHINFO)` every 2 seconds: the shell's pid comes from `zmx list` for persistent sessions (looked up only when unknown) and from `ghostty_surface_foreground_pid` otherwise.
-2. On change, find the project whose `path` is the longest prefix of the directory.
-3. If none, find the git repository root and create an automatic project for it, or use the folder itself.
-4. Move the session unless it is pinned. Moves are animated in the sidebar (`matchedGeometryEffect`, so a row glides from one project to the other).
+2. On change, a session that isn't pinned is refiled: the most specific project the user made that contains the folder, else the directory group keyed by the git repository's root, or by the folder itself outside a repository (made if needed). A directory group matches its key exactly; it never contains other folders, which is what let an automatic home-folder project swallow every session under `~` before (found in real use).
+3. Pinned sessions stay: those started in a project (`Placement.project`, and ⌘T or splits inheriting it) and scratch sessions (`Placement.scratch`, only from ⌘⇧N). ⌘T or a split from a scratch session opens a directory session at home, so a scratch folder is never shared by accident.
+4. Moves are animated in the sidebar (`matchedGeometryEffect`, so a row glides from one group to the other). Empty directory groups and an empty scratch group are removed.
 5. With `auto-grouping = false`, the folder is still recorded but the session stays where it is.
+6. At launch, `refileAll` files every unpinned session again, so a workspace saved under older rules finds its groups. State files before kinds (`isAutomatic`) load as `.directory`/`.project`; both keys are written, for older builds.
+7. Scratch folders live under `~/Library/Application Support/Calm/Scratch/` (not a temporary directory, which macOS clears), named by time and never shown. Closing the last session in one removes it when empty, or moves it to the Trash after asking. Keep as Project… moves the folder where the user picks; the shell stays inside it (only its path string is stale until it `cd`s).
+8. No session is opened at launch: the first launch (no state file yet) shows the welcome page, and a later launch restores what was open, the welcome page if nothing was. Self-tests start with a home session unless `--welcome`.
 
 ## Agents
 

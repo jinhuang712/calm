@@ -22,15 +22,16 @@ A fast, correct terminal on libghostty.
 
 ## F2 — Projects and auto-grouping 🚧
 
-- A **project** is a folder. The sidebar lists projects, each with its sessions underneath.
+- The sidebar groups sessions three ways, in this order:
+  - **Scratch**, on top: sessions started with **⌘⇧N** (or the dashed button at the bottom of the sidebar), each in a new empty folder of its own that Calm keeps out of sight. They're short-lived: a row's **×** closes one when you're done. Closing one whose folder is empty removes the folder; one that made files asks: **Move to Trash**, **Keep as Project…** (the folder moves where you pick and becomes a project), or Cancel. Only ⌘⇧N makes scratch sessions: ⌘T or a split from one opens a normal session in your home folder.
+  - **Projects** you made (+ New Project, dropping a folder on the sidebar, or `calm open <folder>`): each opens with a session in it. A session started in a project stays in it, even when its shell `cd`s elsewhere; ⌘T and splits from it stay there too. Right-click: **Move to Project** (any session), **Let It Follow Its Folder** (a project session goes back to grouping by folder).
+  - **Folders**, for every other session: grouped by the git repository's root, or by the folder outside a repository, and moving when the shell `cd`s. A folder group holds only its own repository or folder, so one for your home folder doesn't swallow everything under it; groups appear and disappear on their own. A session whose folder is inside a project you made joins that project while it's there. Right-click a group: **Make Project** keeps it and its sessions.
+- **At launch**, Calm starts where you left off. The very first launch shows a welcome page (New Session ⌘T, New Scratch Session ⌘⇧N, New Project…, and a way to set up agents); with nothing open later, the same quiet page says so. Calm never opens a session nobody asked for.
 - Each agent session is a **session card** (Claude Code today; other agents' transcripts follow) showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message, and the worktree name with its diff size when the session runs in a git worktree. Plain shells are one compact line.
 - Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
-- A session files itself under the project whose folder contains its current working directory, choosing the most specific match. When the shell `cd`s into another project, the session moves there. The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
-- If no project contains the folder, the session goes under an automatic project for its git repository root, or its folder if there is no repository.
-- Users can pin a session to a project so it stops moving.
-- Adding a project: **+ New Project**, dropping a folder on the sidebar, or `calm open <folder>`.
+- The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
 
-**Settings:** 1 — auto-grouping on/off (default on): `auto-grouping = false` in `~/.config/calm/config.toml`, re-read by Reload Configuration (⌘⇧,).
+**Settings:** 1 — auto-grouping on/off (default on): `auto-grouping = false` in `~/.config/calm/config.toml` (Settings → General), re-read by Reload Configuration (⌘⇧,). Off, sessions stay in the group they started in.
 
 ## F3 — Persistent sessions 🚧
 

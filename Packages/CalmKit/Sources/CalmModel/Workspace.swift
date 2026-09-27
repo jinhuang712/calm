@@ -1,22 +1,63 @@
 import Foundation
 
-/// A folder the user works in. Sessions file themselves under the project that contains
-/// their working directory (see FEATURES.md → F2).
+/// A group of sessions in the sidebar (FEATURES.md → F2): a project the user made, a folder
+/// sessions happen to be in, or the scratch sessions.
 public struct Project: Identifiable, Codable, Hashable, Sendable {
+    public enum Kind: String, Codable, Sendable {
+        /// Made by the user; sessions started in it stay in it.
+        case project
+        /// Where sessions are: a git repository's root, else a folder. Removed when empty.
+        case directory
+        /// The scratch sessions (⌘⇧N), each in a hidden folder of its own. Removed when empty.
+        case scratch
+    }
+
     public let id: UUID
     /// Absolute, standardized path without a trailing slash.
     public var path: String
     public var name: String
-    /// Created by auto-grouping rather than by the user; removed again when empty.
-    public var isAutomatic: Bool
+    public var kind: Kind
     public var isCollapsed: Bool
 
-    public init(id: UUID = UUID(), path: String, name: String? = nil, isAutomatic: Bool = false, isCollapsed: Bool = false) {
+    /// Made by grouping rather than by the user, so removed again when empty.
+    public var isAutomatic: Bool {
+        kind != .project
+    }
+
+    public init(id: UUID = UUID(), path: String, name: String? = nil, kind: Kind = .project, isCollapsed: Bool = false) {
         self.id = id
         self.path = WorkspacePath.standardize(path)
-        self.name = name ?? WorkspacePath.displayName(for: self.path)
-        self.isAutomatic = isAutomatic
+        self.name = name ?? (kind == .scratch ? "Scratch" : WorkspacePath.displayName(for: self.path))
+        self.kind = kind
         self.isCollapsed = isCollapsed
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, path, name, kind, isAutomatic, isCollapsed
+    }
+
+    /// State files before kinds had `isAutomatic`: automatic projects were directory groups.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        path = try container.decode(String.self, forKey: .path)
+        name = try container.decode(String.self, forKey: .name)
+        isCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isCollapsed) ?? false
+        if let kind = try container.decodeIfPresent(Kind.self, forKey: .kind) {
+            self.kind = kind
+        } else {
+            kind = try container.decodeIfPresent(Bool.self, forKey: .isAutomatic) == true ? .directory : .project
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(path, forKey: .path)
+        try container.encode(name, forKey: .name)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(isAutomatic, forKey: .isAutomatic) // still read by older builds
+        try container.encode(isCollapsed, forKey: .isCollapsed)
     }
 
     /// Whether `directory` is this project's folder or inside it.
@@ -43,6 +84,12 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     public var customName: String?
     /// The agent conversation that last ran here, kept after the agent exits so it can be resumed.
     public var lastConversation: AgentConversation?
+    /// A scratch session's own folder (⌘⇧N). Calm never shows it.
+    public var scratchFolder: String?
+
+    public var isScratch: Bool {
+        scratchFolder != nil
+    }
 
     public init(
         id: UUID = UUID(),
@@ -68,9 +115,24 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         "calm-" + id.uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(12)
     }
 
-    /// The user's name for the session, else the shell's title, else the folder.
+    /// The user's name for the session, else the shell's title, else the folder. A scratch
+    /// session is "Scratch · 14:32" instead: its folder (and a shell title naming it) stays hidden.
     public var displayTitle: String {
-        customName ?? (title.isEmpty ? WorkspacePath.displayName(for: workingDirectory) : title)
+        if let customName {
+            return customName
+        }
+        if isScratch {
+            return scratchLabel
+        }
+        return title.isEmpty ? WorkspacePath.displayName(for: workingDirectory) : title
+    }
+
+    /// "Scratch · 14:32", or with the day for an older one.
+    public var scratchLabel: String {
+        let format: Date.FormatStyle = Calendar.current.isDateInToday(createdAt)
+            ? .dateTime.hour().minute()
+            : .dateTime.month(.abbreviated).day()
+        return "Scratch · " + createdAt.formatted(format)
     }
 
     /// The title a card shows: the user's name, else the agent's own title for its conversation.
@@ -142,23 +204,38 @@ public struct Workspace: Codable, Hashable, Sendable {
         layouts.first { $0.id == selectedLayoutID } ?? layouts.first
     }
 
+    /// The sidebar's order (UIUX.md → Layout): scratch sessions on top, then the projects the user
+    /// made, then the directory groups, each in the order they appeared.
+    public var orderedProjects: [Project] {
+        let rank: (Project.Kind) -> Int = { kind in
+            switch kind {
+            case .scratch: 0
+            case .project: 1
+            case .directory: 2
+            }
+        }
+        return projects.enumerated()
+            .sorted { (rank($0.element.kind), $0.offset) < (rank($1.element.kind), $1.offset) }
+            .map(\.element)
+    }
+
     // MARK: Projects
 
-    /// Adds a project for `path`, or returns the existing one. A user-added project stops
-    /// being automatic. Sessions inside it are refiled.
+    /// Adds a project for `path`, or returns the existing one; a directory group there becomes
+    /// the project. Sessions inside it are refiled.
     @discardableResult
     public mutating func addProject(path: String, name: String? = nil, gitRoot: (String) -> String? = { _ in nil }) -> Project {
         let standardized = WorkspacePath.standardize(path)
-        if let index = projects.firstIndex(where: { $0.path == standardized }) {
-            projects[index].isAutomatic = false
+        if let index = projects.firstIndex(where: { $0.path == standardized && $0.kind != .scratch }) {
+            projects[index].kind = .project
             if let name {
                 projects[index].name = name
             }
             return projects[index]
         }
         let project = Project(path: standardized, name: name)
-        // Automatic projects never sit inside one the user added: absorb them.
-        let absorbed = Set(projects.filter { $0.isAutomatic && project.contains($0.path) }.map(\.id))
+        // Directory groups never sit inside a project the user made: absorb them.
+        let absorbed = Set(projects.filter { $0.kind == .directory && project.contains($0.path) }.map(\.id))
         projects.removeAll { absorbed.contains($0.id) }
         projects.append(project)
         for session in sessions {
@@ -172,6 +249,16 @@ public struct Workspace: Codable, Hashable, Sendable {
         return project
     }
 
+    /// A directory group becomes a project (the group's "Make Project"): it stays when empty, and
+    /// its sessions stay in it.
+    public mutating func makeProject(_ projectID: Project.ID) {
+        guard let index = projects.firstIndex(where: { $0.id == projectID }), projects[index].kind == .directory else { return }
+        projects[index].kind = .project
+        for session in sessions where session.projectID == projectID {
+            setPinned(session.id, true)
+        }
+    }
+
     public mutating func setCollapsed(_ projectID: Project.ID, _ collapsed: Bool) {
         guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
         projects[index].isCollapsed = collapsed
@@ -179,11 +266,24 @@ public struct Workspace: Codable, Hashable, Sendable {
 
     // MARK: Sessions
 
-    /// Creates a session in `directory`, filed under the right project, in a new layout of its own.
+    /// Where a new session goes (FEATURES.md → F2).
+    public enum Placement: Hashable, Sendable {
+        /// Grouped by its folder, moving when the folder changes.
+        case directory
+        /// In a project the user made, staying there.
+        case project(Project.ID)
+        /// A scratch session in its own folder (`directory`), on top of the sidebar.
+        case scratch
+    }
+
+    /// Creates a session in `directory`, placed as asked, in a new layout of its own.
     @discardableResult
-    public mutating func newSession(in directory: String, gitRoot: (String) -> String? = { _ in nil }) -> Session {
-        let project = projectForFiling(directory, gitRoot: gitRoot)
-        let session = Session(projectID: project.id, workingDirectory: directory)
+    public mutating func newSession(
+        in directory: String,
+        placement: Placement = .directory,
+        gitRoot: (String) -> String? = { _ in nil },
+    ) -> Session {
+        let session = makeSession(in: directory, placement: placement, gitRoot: gitRoot)
         sessions.append(session)
         let layout = PaneLayout(tree: .leaf(session.id), focusedSessionID: session.id)
         layouts.append(layout)
@@ -197,19 +297,89 @@ public struct Workspace: Codable, Hashable, Sendable {
         _ existing: Session.ID,
         direction: SplitTree<Session.ID>.Direction,
         in directory: String,
+        placement: Placement = .directory,
         gitRoot: (String) -> String? = { _ in nil },
     ) -> Session? {
         guard let layoutIndex = layouts.firstIndex(where: { $0.tree.contains(existing) }) else { return nil }
-        let project = projectForFiling(directory, gitRoot: gitRoot)
-        let session = Session(projectID: project.id, workingDirectory: directory)
+        let session = makeSession(in: directory, placement: placement, gitRoot: gitRoot)
         sessions.append(session)
         layouts[layoutIndex].tree = layouts[layoutIndex].tree.splitting(existing, direction: direction, with: session.id)
         layouts[layoutIndex].focusedSessionID = session.id
         return session
     }
 
+    private mutating func makeSession(in directory: String, placement: Placement, gitRoot: (String) -> String?) -> Session {
+        switch placement {
+        case .directory:
+            return Session(projectID: projectForFiling(directory, gitRoot: gitRoot).id, workingDirectory: directory)
+        case let .project(projectID):
+            guard project(projectID) != nil else { return makeSession(in: directory, placement: .directory, gitRoot: gitRoot) }
+            return Session(projectID: projectID, workingDirectory: directory, isPinned: true)
+        case .scratch:
+            var session = Session(projectID: scratchGroup(inside: directory).id, workingDirectory: directory, isPinned: true)
+            session.scratchFolder = WorkspacePath.standardize(directory)
+            return session
+        }
+    }
+
+    /// The one scratch group, made when the first scratch session appears.
+    private mutating func scratchGroup(inside folder: String) -> Project {
+        if let group = projects.first(where: { $0.kind == .scratch }) {
+            return group
+        }
+        let group = Project(path: (WorkspacePath.standardize(folder) as NSString).deletingLastPathComponent, kind: .scratch)
+        projects.append(group)
+        return group
+    }
+
+    /// The placement a session opened from `id` (⌘T, a split) inherits: a project session's
+    /// project; everything else by folder (scratch sessions come only from ⌘⇧N).
+    public func inheritedPlacement(from id: Session.ID?) -> Placement {
+        guard let session = id.flatMap(session), let project = project(session.projectID),
+              project.kind == .project, session.isPinned else { return .directory }
+        return .project(project.id)
+    }
+
+    /// Moves a session into a project the user made, where it stays.
+    public mutating func move(_ id: Session.ID, to projectID: Project.ID) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), project(projectID)?.kind == .project else { return }
+        let previous = sessions[index].projectID
+        sessions[index].projectID = projectID
+        sessions[index].isPinned = true
+        pruneAutomaticProject(previous)
+    }
+
+    /// A project session starts following its folder, like any other (its "Let It Follow Its Folder").
+    public mutating func followFolder(_ id: Session.ID, gitRoot: (String) -> String? = { _ in nil }) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), !sessions[index].isScratch else { return }
+        sessions[index].isPinned = false
+        refile(id, gitRoot: gitRoot)
+    }
+
+    /// A scratch session whose folder moved to `path` becomes a project there (its "Keep as Project…").
+    public mutating func keepScratchAsProject(_ id: Session.ID, at path: String, gitRoot: (String) -> String? = { _ in nil }) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), sessions[index].isScratch else { return }
+        let previous = sessions[index].projectID
+        sessions[index].scratchFolder = nil
+        sessions[index].workingDirectory = WorkspacePath.standardize(path)
+        let project = addProject(path: path, gitRoot: gitRoot)
+        sessions[index].projectID = project.id
+        sessions[index].isPinned = true
+        pruneAutomaticProject(previous)
+    }
+
+    /// Files every session that follows its folder again, under today's rules (at launch).
+    public mutating func refileAll(gitRoot: (String) -> String? = { _ in nil }) {
+        for session in sessions {
+            refile(session.id, gitRoot: gitRoot)
+        }
+        for project in projects where project.isAutomatic {
+            pruneAutomaticProject(project.id)
+        }
+    }
+
     /// Removes a session everywhere: from its layout (the sibling takes the space), and its
-    /// project if that was automatic and is now empty.
+    /// group if that was automatic and is now empty.
     public mutating func removeSession(_ id: Session.ID) {
         guard let session = session(id) else { return }
         sessions.removeAll { $0.id == id }
@@ -287,28 +457,22 @@ public struct Workspace: Codable, Hashable, Sendable {
         return true
     }
 
-    /// The project a session in `directory` belongs to, creating an automatic one if needed:
-    /// the git repository root when there is one, otherwise the folder itself.
+    /// The group a session in `directory` belongs to: the most specific project the user made
+    /// that contains it, else the directory group of its git repository's root, or of the folder
+    /// itself outside a repository (made if needed). A directory group holds only its own
+    /// repository or folder, so one made for the home folder doesn't swallow everything under it.
     mutating func projectForFiling(_ directory: String, gitRoot: (String) -> String?) -> Project {
         let folder = WorkspacePath.standardize(directory)
-        let repository = gitRoot(folder).map(WorkspacePath.standardize)
-        if let existing = project(containing: folder) {
-            // A repository inside an *automatic* project (like the home folder) gets its own
-            // project; projects the user added keep everything inside them.
-            guard existing.isAutomatic, let repository, repository != existing.path,
-                  WorkspacePath.isInside(repository, folder: existing.path)
-            else { return existing }
-            if let repoProject = projects.first(where: { $0.path == repository }) {
-                return repoProject
-            }
-            let project = Project(path: repository, isAutomatic: true)
-            projects.append(project)
+        if let project = projects.filter({ $0.kind == .project && $0.contains(folder) }).max(by: { $0.path.count < $1.path.count }) {
             return project
         }
-        let root = repository ?? folder
-        let project = Project(path: root, isAutomatic: true)
-        projects.append(project)
-        return project
+        let key = gitRoot(folder).map(WorkspacePath.standardize) ?? folder
+        if let group = projects.first(where: { $0.kind == .directory && $0.path == key }) {
+            return group
+        }
+        let group = Project(path: key, kind: .directory)
+        projects.append(group)
+        return group
     }
 
     private mutating func pruneAutomaticProject(_ projectID: Project.ID) {

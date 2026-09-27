@@ -31,7 +31,8 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
                                 optional)       or a viewed file (esc returns)
 ```
 
-- **Sidebar:** projects and session cards. The periphery, where status lives.
+- **Sidebar:** session groups and session cards. The periphery, where status lives. Scratch sessions sit on top, then projects you made (uppercase, with a project mark), then folder groups (the folder's own name, its parent folder on the right). Scratch rows show a quiet × on hover or while selected; a scratch session's folder never shows anywhere.
+- **Welcome page:** with no session open, the main area shows a short page: a title, New Session (⌘T), New Scratch Session (⌘⇧N), New Project…, and on the very first launch a line to set up agents. It replaces the first-launch Agents panel.
 - **Files:** an optional column right of the sidebar, showing the focused session's project.
 - **Main area:** the session's terminal. Calm never draws over it, except the arrival card, which fades. A viewed file temporarily takes its place.
 
@@ -175,6 +176,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘K | Search sessions |
 | ⌘P | Command palette |
 | ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
+| ⌘⇧N | New scratch session |
 | ⌘1…9 | Jump to session by position |
 | ⌃Tab / ⌃⇧Tab | Cycle sessions, most recent first (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
@@ -189,7 +191,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 - **⌘⇧J** is Ghostty's *write screen to file*, so "jump to the next session that needs you" uses **⌘⇧A** (A for attention).
 - **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - **⌘,** is Ghostty's *open config*, which Calm doesn't support; Calm's defaults unbind it so it opens Settings, the Mac convention.
-- ⌘P, ⌘⇧E, ⌘⇧I are free in Ghostty's defaults. ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
+- ⌘P, ⌘⇧E, ⌘⇧I, ⌘⇧N are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
 
 ## Accessibility
 

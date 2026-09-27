@@ -175,9 +175,9 @@ final class ControlServer {
             }
             return .success()
         }
-        SessionManager.shared.addProject(path: standardized)
+        let project = SessionManager.shared.addProject(path: standardized)
         let controller = TerminalWindowManager.shared.openMainWindow()
-        let session = SessionManager.shared.newSession(in: standardized)
+        let session = SessionManager.shared.newSession(in: standardized, placement: .project(project.id))
         controller.select(session.id)
         return .success()
     }

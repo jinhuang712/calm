@@ -36,6 +36,7 @@ ghostty_config=none
 appearance=""
 snapshot_window=""
 contrast=""
+start_session=1
 shell="${SHELL:-/bin/zsh}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -56,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --appearance) appearance="$2"; shift 2 ;; # light or dark instead of the system's
     --window) snapshot_window="$2"; shift 2 ;; # snapshot the window with this title (e.g. Settings)
     --increase-contrast) contrast=1; shift ;; # as if Increase Contrast were on in System Settings
+    --welcome) start_session=0; shift ;;  # start with no session, as a first launch does (the welcome page)
     *) echo "unknown option $1" >&2; exit 64 ;;
   esac
 done
@@ -95,6 +97,7 @@ env \
   CALM_APPEARANCE="$appearance" \
   CALM_SNAPSHOT_WINDOW="$snapshot_window" \
   CALM_INCREASE_CONTRAST="$contrast" \
+  CALM_START_WITH_SESSION="$start_session" \
   CALM_CONFIG_FILE="$config_file" \
   CALM_ZMX_DIR="$zmx_dir" \
   CALM_INDEX_FILE="$index_file" \

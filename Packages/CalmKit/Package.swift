@@ -11,13 +11,17 @@ let package = Package(
         .library(name: "CalmModel", targets: ["CalmModel"]),
         .library(name: "CalmControl", targets: ["CalmControl"]),
         .library(name: "CalmAgents", targets: ["CalmAgents"]),
+        .library(name: "CalmSearch", targets: ["CalmSearch"]),
     ],
     targets: [
         .target(name: "CalmModel"),
         .target(name: "CalmControl"),
         .target(name: "CalmAgents", dependencies: ["CalmModel"]),
+        // Uses the system SQLite (FTS5 with the trigram tokenizer): no dependency to add.
+        .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
         .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"], resources: [.copy("Fixtures")]),
+        .testTarget(name: "CalmSearchTests", dependencies: ["CalmSearch"]),
     ],
 )

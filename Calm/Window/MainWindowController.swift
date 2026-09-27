@@ -279,7 +279,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let background = focusedPane?.effectiveBackgroundColor
             ?? TerminalEngine.shared.config?.backgroundColor
             ?? NSColor(white: 0.15, alpha: 1)
-        var style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background))
+        var style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background)).contrasted()
         window.backgroundColor = windowStyle.apply(
             manager.settings, style: &style, terminalBackground: background, mainArea: mainArea, container: container,
         )
@@ -288,7 +288,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)
-        let divider = style.isDark ? NSColor(white: 1, alpha: 0.08) : NSColor(white: 0, alpha: 0.1)
+        let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
+        let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }
     }
 

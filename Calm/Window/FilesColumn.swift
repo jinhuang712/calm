@@ -86,23 +86,31 @@ enum FilesListing {
     }
 
     /// Outside a repository: files under the folder, skipping hidden and build folders, bounded.
-    /// Relative paths come from the enumerator itself: cutting a prefix off full paths breaks when
-    /// the folder is reached through a symlink (`/tmp` is reported as `/private/tmp`).
+    /// Breadth first, so a big first folder can't use up the limit before its siblings are seen
+    /// (a home folder's `go` or `Library`). Paths are built relative to `root` as the walk goes
+    /// down, which also survives symlinked folders (`/tmp` is `/private/tmp`).
     static func walk(_ root: String, limit: Int = 5000) -> Result {
         var result = Result()
         let skipped: Set = ["node_modules", "build", "DerivedData", "Pods", "target", "dist"]
-        guard let enumerator = FileManager.default.enumerator(atPath: root) else { return result }
-        while let path = enumerator.nextObject() as? String, result.paths.count < limit {
-            let name = (path as NSString).lastPathComponent
-            let isDirectory = enumerator.fileAttributes?[.type] as? FileAttributeType == .typeDirectory
-            if name.hasPrefix(".") || isDirectory && (skipped.contains(name) || name.hasSuffix(".app")) {
-                if isDirectory {
-                    enumerator.skipDescendants()
+        let base = URL(filePath: root, directoryHint: .isDirectory)
+        var folders = [""]
+        while !folders.isEmpty, result.paths.count < limit {
+            let folder = folders.removeFirst()
+            let url = folder.isEmpty ? base : base.appending(path: folder, directoryHint: .isDirectory)
+            let entries = (try? FileManager.default.contentsOfDirectory(
+                at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles],
+            )) ?? []
+            let sorted = entries.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            for entry in sorted {
+                let name = entry.lastPathComponent
+                let path = folder.isEmpty ? name : "\(folder)/\(name)"
+                if (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
+                    if !skipped.contains(name), !name.hasSuffix(".app") {
+                        folders.append(path)
+                    }
+                } else if result.paths.count < limit {
+                    result.paths.append(path)
                 }
-                continue
-            }
-            if !isDirectory {
-                result.paths.append(path)
             }
         }
         return result
@@ -189,19 +197,24 @@ struct FilesColumnView: View {
             .padding(.top, 40)
             .padding(.bottom, 8)
 
-            // Rows are tapped rather than selected: the list's own selection is the system accent,
-            // louder than the sidebar's quiet highlight.
+            // Files are buttons rather than selected rows: the list's own selection is the system
+            // accent, louder than the sidebar's quiet highlight. Buttons also reach the keyboard
+            // (Full Keyboard Access) and VoiceOver.
             List(model.nodes, children: \.children) { node in
-                row(node, style: style)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if !node.isFolder {
-                            model.open(node.path)
+                Group {
+                    if node.isFolder {
+                        row(node, style: style)
+                    } else {
+                        Button { model.open(node.path) } label: {
+                            row(node, style: style).contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
-                    .listRowBackground(
-                        isViewed(node) ? RoundedRectangle(cornerRadius: 5).fill(style.selection).padding(.horizontal, 8) : nil,
-                    )
+                }
+                .accessibilityLabel(accessibilityLabel(node))
+                .listRowBackground(
+                    isViewed(node) ? RoundedRectangle(cornerRadius: 5).fill(style.selection).padding(.horizontal, 8) : nil,
+                )
             }
             .listStyle(.sidebar)
             .environment(\.sidebarRowSize, .small)
@@ -215,6 +228,18 @@ struct FilesColumnView: View {
         // Laid out at full width and clipped while the column slides, never squeezed.
         .frame(maxWidth: .infinity, alignment: .leading)
         .environment(\.colorScheme, style.isDark ? .dark : .light)
+    }
+
+    private func accessibilityLabel(_ node: FileNode) -> String {
+        let change: String? = switch node.change {
+        case .modified: node.isFolder ? "has changes" : "modified"
+        case .added: "added"
+        case .deleted: "deleted"
+        case .renamed: "renamed"
+        case .untracked: "untracked"
+        case nil: nil
+        }
+        return ([node.name, node.isFolder ? "folder" : nil, change].compactMap(\.self)).joined(separator: ", ")
     }
 
     private func isViewed(_ node: FileNode) -> Bool {

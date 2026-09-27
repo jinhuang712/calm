@@ -22,6 +22,7 @@ enum CalmDefaults {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
+
         // ⌘K searches sessions in Calm (UIUX.md → Keyboard); clear screen moves to ⌘⇧K.
         lines.append("keybind = super+k=unbind")
         lines.append("keybind = super+shift+k=clear_screen")
@@ -41,7 +42,7 @@ enum CalmDefaults {
         let shader = Bundle.main.url(forResource: "cursor_glide", withExtension: "glsl")
         // Same rule as `Motion.isReduced`, read directly: this runs while the engine starts.
         let settings = CalmSettings.load()
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || settings.motion != .full
+        let reduceMotion = AccessibilitySettings.reduceMotion || settings.motion != .full
         let theme = TerminalTheme.defaultLines(settings: settings, directory: directory)
         let text = contents(reduceMotion: reduceMotion, cursorShader: shader, theme: theme)
         do {

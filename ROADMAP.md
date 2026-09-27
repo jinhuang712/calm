@@ -166,11 +166,13 @@ Calm looks right out of the box, and making it yours takes a minute.
 - [x] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance. *Built: Settings (⌘,) → Theme, a grid of previews in the current appearance, plus a Ghostty choice when the user's Ghostty config has its own colors.*
 - [x] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background. *Built: Settings → Appearance → Window, applied live; the adaptive background (an app's OSC 11) now eases the sidebar into its colors. Glass is self-tested for layering only: the window server's blur doesn't show in headless snapshots.*
 - [x] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys. *Built as a native toolbar-tab window. Not in yet: a font and size control (the terminal font comes from the Ghostty config), updates and SSH options (neither feature exists yet). New top-level keys no longer land after a blank line.*
-- [ ] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast.
+- [x] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast. *Built: Increase Contrast for the chrome and Calm's themes (text to 4.5:1, hierarchy kept), live updates when either setting changes, files column reachable by keyboard and VoiceOver. States already had shapes; cards, rows and the theme picker have labels. Not verified with VoiceOver itself: SwiftUI builds its accessibility tree only when an assistive app connects, which headless runs can't do.*
 
 **Exit criteria**
 - A new user can make Calm look right in under a minute without editing files.
 - The settings screen fits the budget in PHILOSOPHY.md.
+
+*Status: every task is built and self-tested headless. Left: a real look at glass and the settings toolbar on screen (headless snapshots can't show the window server's blur or the selected tab's vibrancy), a VoiceOver pass, and the exit criteria with a new user.*
 
 ---
 

@@ -38,6 +38,20 @@ struct FilesListingTests {
         #expect(listing.branch == nil)
     }
 
+    @Test func `a plain folder is walked breadth first, so a big first folder doesn't hide the rest`() throws {
+        let folder = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: folder) }
+        for index in 0 ..< 20 {
+            try touch("aaa/deep/file\(index).txt", in: folder)
+        }
+        try touch("zzz/last.txt", in: folder)
+        try touch("top.txt", in: folder)
+        let paths = FilesListing.walk(folder, limit: 5).paths
+        #expect(paths.count == 5)
+        #expect(paths.contains("top.txt"))
+        #expect(paths.contains("zzz/last.txt"))
+    }
+
     @Test func `a repository subfolder: ignored files hidden, changes relative to the folder`() throws {
         let repo = try scratch()
         defer { try? FileManager.default.removeItem(atPath: repo) }

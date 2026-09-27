@@ -127,6 +127,22 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
         return pair
     }
 
+    /// The WCAG contrast ratio of two `#rrggbb` colors.
+    public static func contrast(_ first: String, _ second: String) -> Double {
+        let (a, b) = (luminance(first), luminance(second))
+        return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+    }
+
+    static func channels(_ hex: String) -> [Double] {
+        let value = Int(hex.dropFirst(), radix: 16) ?? 0
+        return [(value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF].map { Double($0) / 255 }
+    }
+
+    static func luminance(_ hex: String) -> Double {
+        let linear = channels(hex).map { $0 <= 0.04045 ? $0 / 12.92 : pow(($0 + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
+
     /// `#rrggbb` (lowercased), from `#rrggbb` or `rrggbb`.
     static func hex(_ text: String) -> String? {
         var value = text.trimmingCharacters(in: .whitespaces).lowercased()
@@ -151,6 +167,34 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
             lines.append("palette = \(index)=\(color)")
         }
         return lines
+    }
+}
+
+public extension CalmTheme.Colors {
+    /// For Increase Contrast (UIUX.md → Accessibility): every text color reaches `minimum`
+    /// against the background by moving toward white (a dark theme) or black (a light one), so
+    /// hues and the soft hierarchy stay (dim stays dimmer than text). Ghostty's own
+    /// `minimum-contrast` swaps short colors to white or black instead, flattening that hierarchy.
+    func contrasted(minimum: Double = 4.5) -> CalmTheme.Colors {
+        let isDark = CalmTheme.luminance(background) < 0.2
+        func lift(_ hex: String) -> String {
+            let start = CalmTheme.channels(hex)
+            var color = hex
+            var amount = 0.0
+            while CalmTheme.contrast(color, background) < minimum, amount < 1 {
+                amount = min(1, amount + 0.02)
+                let mixed = start.map { isDark ? $0 + (1 - $0) * amount : $0 * (1 - amount) }
+                color = "#" + mixed.map { String(format: "%02x", Int(($0 * 255).rounded())) }.joined()
+            }
+            return color
+        }
+        var colors = self
+        colors.foreground = lift(foreground)
+        colors.cursor = cursor.map(lift)
+        // Black (0) is a background color in dark themes, and the whites (7, 15) in light ones.
+        let backgrounds: Set<Int> = isDark ? [0] : [0, 7, 15]
+        colors.palette = palette.enumerated().map { backgrounds.contains($0) ? $1 : lift($1) }
+        return colors
     }
 }
 

@@ -39,6 +39,20 @@ struct SidebarStyle: Equatable {
         return style
     }
 
+    /// Increase Contrast (UIUX.md → Accessibility): secondary text, hints and the selection get
+    /// stronger; the layout and colors stay the same.
+    @MainActor
+    func contrasted(_ on: Bool = AccessibilitySettings.increaseContrast) -> SidebarStyle {
+        guard on else { return self }
+        var style = self
+        let ink = NSColor(primary).withAlphaComponent(1)
+        style.primary = Color(nsColor: ink)
+        style.secondary = Color(nsColor: ink.withAlphaComponent(0.82))
+        style.tertiary = Color(nsColor: ink.withAlphaComponent(0.66))
+        style.selection = Color(nsColor: ink.withAlphaComponent(isDark ? 0.16 : 0.14))
+        return style
+    }
+
     private static func derived(from terminalBackground: NSColor) -> SidebarStyle {
         let base = terminalBackground.usingColorSpace(.sRGB) ?? terminalBackground
         let isDark = base.brightnessComponent < 0.5

@@ -51,7 +51,7 @@ enum TerminalTheme {
         let folder = directory.appending(path: "themes", directoryHint: .isDirectory)
         var paths: [CalmTheme.Mode: String] = [:]
         for mode in CalmTheme.Mode.allCases {
-            guard let colors = theme.colors(for: mode) else { continue }
+            guard let colors = theme.colors(for: mode).map(forDisplay) else { continue }
             let file = folder.appending(path: "\(theme.id)-\(mode.rawValue)")
             if write(CalmTheme.ghosttyLines(colors), to: file) {
                 paths[mode] = file.path
@@ -70,7 +70,8 @@ enum TerminalTheme {
     /// terminal's opacity on a glass window. `nil` when there's nothing to override.
     static func choicesFile(settings: CalmSettings, directory: URL, library: ThemeLibrary = library, dark: Bool = isDark) -> URL? {
         var lines: [String] = []
-        if let (theme, picked) = active(settings: settings, in: library), picked, let colors = theme.colors(for: dark ? .dark : .light) {
+        if let (theme, picked) = active(settings: settings, in: library), picked,
+           let colors = theme.colors(for: dark ? .dark : .light).map(forDisplay) {
             lines.append("# The theme picked in Calm (\(theme.name)), for the current appearance.")
             lines += CalmTheme.ghosttyLines(colors)
         }
@@ -81,6 +82,12 @@ enum TerminalTheme {
         guard !lines.isEmpty else { return nil }
         let file = directory.appending(path: "choices.ghostty")
         return write(["# Written by Calm from its settings; loaded after your Ghostty config."] + lines, to: file) ? file : nil
+    }
+
+    /// A theme's colors as the terminal gets them: with Increase Contrast, every text color
+    /// reaches 4.5:1 (`CalmTheme.Colors.contrasted`).
+    private static func forDisplay(_ colors: CalmTheme.Colors) -> CalmTheme.Colors {
+        AccessibilitySettings.increaseContrast ? colors.contrasted() : colors
     }
 
     /// The theme's variant whose background the terminal actually shows, for the chrome's tints.

@@ -193,3 +193,6 @@ Audited against Ghostty's macOS defaults (M1.10):
 - VoiceOver labels for every sidebar row and state.
 - State is never shown by color alone: each state also has a shape.
 - Respects Reduce Motion, Increase Contrast and system text size for chrome.
+- **Increase Contrast:** the chrome's secondary text, hints, selection and dividers get stronger. A Calm theme's text colors each reach 4.5:1 by moving toward white (dark) or black (light), so dim text stays dimmer than normal text. A theme from the user's Ghostty config is left as it is (Ghostty's `minimum-contrast` is theirs to set).
+- A change to Reduce Motion or Increase Contrast in System Settings applies at once, without a relaunch.
+- The files column's files are buttons, so Full Keyboard Access and VoiceOver reach them; each reads its name and change ("README.md, modified").

@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 enum Motion {
     static var isReduced: Bool {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || SessionManager.shared.settings.motion != .full
+        AccessibilitySettings.reduceMotion || SessionManager.shared.settings.motion != .full
     }
 
     /// A duration, or zero when motion is reduced.

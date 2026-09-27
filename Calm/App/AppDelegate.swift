@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = MainMenu.make()
         TerminalEngine.shared.delegate = TerminalWindowManager.shared
         TerminalEngine.shared.start()
+        AccessibilitySettings.startObserving()
         // Unit tests host the app; they don't need a live shell.
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         if !isTesting {

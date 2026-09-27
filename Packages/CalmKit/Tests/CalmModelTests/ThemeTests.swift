@@ -142,6 +142,27 @@ struct ThemeTests {
         }
     }
 
+    @Test func `with Increase Contrast every text color reaches 4.5:1, and dim stays dimmer than text`() throws {
+        let library = ThemeLibrary(folders: [Self.builtInFolder])
+        for theme in library.themes {
+            for mode in CalmTheme.Mode.allCases {
+                let colors = try #require(theme.colors(for: mode)).contrasted()
+                let text = Self.contrast(colors.foreground, colors.background)
+                #expect(text >= 4.5, "\(theme.name) \(mode): text \(text)")
+                let textIndices = mode == .dark ? Array(1 ... 15) : [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14]
+                for index in textIndices {
+                    let ratio = Self.contrast(colors.palette[index], colors.background)
+                    #expect(ratio >= 4.5, "\(theme.name) \(mode): color \(index) \(ratio)")
+                }
+                #expect(Self.contrast(colors.palette[8], colors.background) <= text, "\(theme.name) \(mode): dim above text")
+                #expect(colors.background == theme.colors(for: mode)?.background)
+            }
+        }
+        // A color already past the minimum is left alone.
+        let calm = try #require(library.theme(named: "Calm")?.dark)
+        #expect(calm.contrasted().palette[1] == calm.palette[1])
+    }
+
     /// WCAG contrast ratio of two `#rrggbb` colors.
     static func contrast(_ first: String, _ second: String) -> Double {
         func luminance(_ hex: String) -> Double {

@@ -167,13 +167,17 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘P | Command palette |
 | ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
 | ⌘1…9 | Jump to session by position |
-| ⌘⇧J | Jump to the next session that needs you |
+| ⌘⇧A | Jump to the next session that needs you |
 | ⌘⇧E | Toggle the files column |
 | esc | Close a viewed file and return to the session |
 | ⌘⇧I | Show the arrival card again |
 | ⌘, | Settings |
 
-Shortcuts are provisional; they must not clash with common Ghostty defaults or agents' own keys.
+Audited against Ghostty's macOS defaults (M1.10):
+
+- **⌘K** is Ghostty's *clear screen*. Calm takes it for search when search lands (M4); Calm's built-in defaults then move clear screen to ⌘⇧K. Calm's defaults load before the user's Ghostty config, so the user's own keybindings still win.
+- **⌘⇧J** is Ghostty's *write screen to file*, so "jump to the next session that needs you" uses **⌘⇧A** (A for attention).
+- ⌘P, ⌘⇧E, ⌘⇧I are free in Ghostty's defaults. ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
 
 ## Accessibility
 

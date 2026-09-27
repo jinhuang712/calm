@@ -86,7 +86,7 @@ Rules:
 ## Arrival card
 
 - Appears at the top of the pane when switching into an agent session.
-- Content: title · state · time since last activity, and one or two lines of the last agent message.
+- Content: state mark, title · state · time since last activity, and one or two lines: what the agent asked while it needs you, otherwise the last thing it said.
 - Fades out on the first keystroke or after a few seconds. A shortcut shows it again.
 - Never covers the agent's input line.
 

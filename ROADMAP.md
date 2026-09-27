@@ -108,7 +108,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code done, including the agent's own title and Esc interruptions; Codex, OpenCode, pi and omp readers follow the same `TranscriptReading` protocol.*
 - [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
-- [ ] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
+- [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
 - [ ] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
 - [ ] **M3.12 Agents settings:** which states notify, sound on or off.
 

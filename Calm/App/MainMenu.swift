@@ -97,6 +97,7 @@ enum MainMenu {
             key: "a",
             mods: [.command, .shift],
         ))
+        menu.addItem(actionItem("Show Arrival Card", #selector(TerminalMenuTarget.showArrivalCard(_:)), key: "i", mods: [.command, .shift]))
         return menu
     }
 
@@ -117,8 +118,8 @@ enum MainMenu {
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
-        if ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession"]
-            .contains(where: { selector.description.hasPrefix($0) }) {
+        let targeted = ["newSession", "toggleCommandPalette", "toggleSidebar", "jumpToWaitingSession", "showArrivalCard"]
+        if targeted.contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
         }
         return item
@@ -153,6 +154,11 @@ final class TerminalMenuTarget: NSObject {
         let current = manager.workspace.selectedLayout?.focusedSessionID
         guard let waiting = manager.workspace.sessionsNeedingYou.first(where: { $0.id != current }) else { return }
         TerminalWindowManager.shared.openMainWindow().select(waiting.id)
+    }
+
+    /// ⌘⇧I: what the focused agent session is and last said.
+    @objc func showArrivalCard(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.showArrivalCard()
     }
 
     @objc func toggleCommandPalette(_: Any?) {

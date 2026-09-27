@@ -65,7 +65,7 @@ A fast, correct terminal on libghostty.
 
 **Settings:** 2 — which states notify (default: only *needs you*); notification sound on/off (default off). In the config file only: `claude-code-hooks = false` under `[agents]`.
 
-## F6 — Arrival card 📝
+## F6 — Arrival card ✅
 
 - When the user switches into an agent session, a small strip at the top of the pane shows:
   - the session title;
@@ -73,7 +73,7 @@ A fast, correct terminal on libghostty.
   - the last thing the agent said or asked, in one or two lines;
   - how long ago that was.
 - It uses titles and messages the agent already wrote. Nothing is generated.
-- It fades as soon as the user types or after a few seconds, and can be recalled with a shortcut.
+- It fades as soon as the user types or after a few seconds (five), and can be recalled with **⌘⇧I**. Clicking it dismisses it.
 
 **Settings:** none.
 

@@ -12,6 +12,8 @@
                 toggleSidebar()
             case "peek":
                 peekForTesting()
+            case "arrival":
+                showArrivalCard()
             case "jump_waiting":
                 TerminalMenuTarget.shared.jumpToWaitingSession(nil)
             case "ctrl_tab":

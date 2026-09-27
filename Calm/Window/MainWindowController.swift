@@ -15,6 +15,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var sidebarWidth: NSLayoutConstraint?
     private var peek: SidebarPeek?
     private lazy var switcher = SessionSwitcher(controller: self)
+    private lazy var arrivalCard = ArrivalCard(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth: CGFloat = 280
@@ -184,8 +185,26 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     func select(_ id: Session.ID) {
         let previous = manager.workspace.selectedLayoutID
+        let previousSession = manager.workspace.selectedLayout?.focusedSessionID
         manager.select(id)
         showSelectedLayout(animated: previous != manager.workspace.selectedLayoutID)
+        if previousSession != id {
+            showArrivalCard()
+        }
+    }
+
+    /// The arrival card for the focused session, if an agent runs there (⌘⇧I recalls it).
+    func showArrivalCard() {
+        guard let layout = manager.workspace.selectedLayout, let session = manager.workspace.session(layout.focusedSessionID),
+              let pane = manager.panes[session.id]
+        else { return }
+        // Let the layout settle first so the card lands on the pane's final frame.
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.arrivalCard.show(for: session, over: pane, style: self.sidebarStyle)
+            }
+        }
     }
 
     func newSession(inheriting pane: TerminalSurfaceView? = nil) {

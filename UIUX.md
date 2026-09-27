@@ -158,9 +158,9 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 |---|---|
 | **Appearance** | theme picker, font and size, glass or solid, edge to edge or card, motion (full, reduced, off) |
 | **General** | editor, where paths open, auto-grouping |
-| **Agents** | how each installed agent connects (Connect/Disconnect where Calm must add a file), which states notify, sound. Available now as Calm → Agents… |
-| **Keys** | shortcuts |
-| **Advanced** (collapsed) | open config file, updates, SSH options |
+| **Agents** | how each installed agent connects (Connect/Disconnect where Calm must add a file), which states notify, sound. Calm → Agents… opens this section |
+| **Keys** | Calm's shortcuts, read-only; keys are changed in the Ghostty config |
+| **Advanced** (last) | open config file, open themes folder, reload; later: updates, SSH options |
 
 Rules: one line of help text per setting at most; no setting that only shows or hides a button.
 

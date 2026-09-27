@@ -60,6 +60,16 @@ struct CalmSettingsWritingTests {
         #expect(CalmSettings.load(from: url).notificationSound)
     }
 
+    @Test func `new top-level keys sit together, before a section`() {
+        var text = "# mine\nunknown-key = 7\n"
+        for (key, value) in [("editor", "zed"), ("open-paths", "editor"), ("auto-grouping", "false")] {
+            text = CalmSettings.setting(key, to: value, in: text)
+        }
+        #expect(text == "# mine\nunknown-key = 7\neditor = \"zed\"\nopen-paths = \"editor\"\nauto-grouping = false\n")
+        let sectioned = CalmSettings.setting("motion", to: "off", in: "theme = \"Sage\"\n\n[agents]\nsound = true\n")
+        #expect(sectioned == "theme = \"Sage\"\nmotion = \"off\"\n\n[agents]\nsound = true\n")
+    }
+
     @Test func `window options: solid and edge to edge unless set`() {
         #expect(CalmSettings(text: "").windowBackground == .solid)
         #expect(CalmSettings(text: "").windowLayout == .edge)

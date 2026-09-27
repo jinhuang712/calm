@@ -165,7 +165,7 @@ Calm looks right out of the box, and making it yours takes a minute.
 - [x] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme. *Built: the theme's sidebar, text, accent and red when its background is on screen; derived from the terminal otherwise.*
 - [x] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance. *Built: Settings (⌘,) → Theme, a grid of previews in the current appearance, plus a Ghostty choice when the user's Ghostty config has its own colors.*
 - [x] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background. *Built: Settings → Appearance → Window, applied live; the adaptive background (an app's OSC 11) now eases the sidebar into its colors. Glass is self-tested for layering only: the window server's blur doesn't show in headless snapshots.*
-- [ ] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys.
+- [x] **M6.5 Settings screen:** Appearance, General, Agents, Keys and Advanced; writes `config.toml` and keeps unknown keys. *Built as a native toolbar-tab window. Not in yet: a font and size control (the terminal font comes from the Ghostty config), updates and SSH options (neither feature exists yet). New top-level keys no longer land after a blank line.*
 - [ ] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast.
 
 **Exit criteria**

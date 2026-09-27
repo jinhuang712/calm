@@ -102,6 +102,11 @@ enum EditorLocator {
         return nil
     }
 
+    /// The editors installed on this Mac, in detection order (Settings → General).
+    static var installed: [Editor] {
+        Editor.allCases.filter { locations(for: $0).contains(where: isExecutable) }
+    }
+
     static func locations(for editor: Editor) -> [URL] {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let bins = ["/opt/homebrew/bin", "/usr/local/bin", "\(home)/.local/bin", "\(home)/bin"].map { "\($0)/\(editor.rawValue)" }

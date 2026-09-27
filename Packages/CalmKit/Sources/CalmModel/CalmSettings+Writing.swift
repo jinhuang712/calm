@@ -61,9 +61,13 @@ public extension CalmSettings {
             return lines.joined(separator: "\n")
         }
         if section.isEmpty {
-            // Top-level keys go before the first section.
-            let firstSection = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[") } ?? lines.count
-            lines.insert(entry, at: firstSection)
+            // Top-level keys go before the first section, after the last top-level line (not after
+            // the blank lines that end the file or lead into the section).
+            var index = lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("[") } ?? lines.count
+            while index > 0, lines[index - 1].trimmingCharacters(in: .whitespaces).isEmpty {
+                index -= 1
+            }
+            lines.insert(entry, at: index)
         } else if current == section || sectionEnd != nil {
             var index = sectionEnd ?? lines.count
             while index > 0, lines[index - 1].trimmingCharacters(in: .whitespaces).isEmpty {

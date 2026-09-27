@@ -170,7 +170,13 @@ A quick, read-only look at the repository without leaving Calm.
 
 - Five sections: **Appearance, General, Agents, Keys, Advanced** (collapsed).
 - Everything else lives in the config file, reachable through Advanced → Open Config File.
-- A native window opened with ⌘,. Built so far: Appearance (theme picker and window options).
+- A native window opened with ⌘,, one toolbar tab per section; each section sizes the window to its content.
+  - **Appearance:** the theme picker and the window options (F11).
+  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, and auto-grouping.
+  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, which states notify, and sound. Calm → Agents… opens it; the first-launch panel shows the same.
+  - **Keys:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
+  - **Advanced:** Open Config File, Open Themes Folder, Reload.
+- Every change is saved to `config.toml` at once, keeping comments and unknown keys; choosing a default removes the key.
 
 ---
 

@@ -99,43 +99,10 @@ struct AgentsPanelView: View {
                 .ignoresSafeArea()
                 .onTapGesture(perform: onDone)
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Agents")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(style.primary)
-                    Text("Calm shows what each agent is doing, and tells you at the next pause when one needs you.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(style.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if model.rows.isEmpty {
-                    Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp when they run.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(style.secondary)
-                } else {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(model.rows) { row in
-                            agentRow(row)
-                        }
-                    }
-                }
-                Divider().opacity(0.5)
-                VStack(alignment: .leading, spacing: 10) {
-                    // Closures, not method references: passing `model.setSound` crashed the Swift 6.3.3
-                    // compiler (IRGen, isolated reabstraction thunk).
-                    Picker("Notify me when", selection: Binding(get: { model.notifyStates }, set: { model.setNotifyStates($0) })) {
-                        Text("An agent needs me").tag(CalmSettings.NotifyStates.needsYou)
-                        Text("It needs me, finishes or fails").tag(CalmSettings.NotifyStates.all)
-                    }
-                    .pickerStyle(.radioGroup)
-                    Toggle("Play a sound", isOn: Binding(get: { model.sound }, set: { model.setSound($0) }))
-                }
-                .font(.system(size: 12))
-                if let error = model.error {
-                    Text(error)
-                        .font(.system(size: 11))
-                        .foregroundStyle(style.failure)
-                }
+                Text("Agents")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(style.primary)
+                AgentsContent(model: model, style: style)
                 HStack {
                     Spacer()
                     Button("Done", action: onDone)
@@ -151,21 +118,73 @@ struct AgentsPanelView: View {
         .onExitCommand(perform: onDone) // esc
         .environment(\.colorScheme, style.isDark ? .dark : .light)
     }
+}
+
+/// How each installed agent connects, and the notification settings: in the first-launch panel
+/// (in the theme's colors) and in Settings → Agents (`style` nil: the system's colors).
+struct AgentsContent: View {
+    @Bindable var model: AgentsPanelModel
+    var style: SidebarStyle?
+
+    private var primary: Color {
+        style?.primary ?? .primary
+    }
+
+    private var secondary: Color {
+        style?.secondary ?? .secondary
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Calm shows what each agent is doing, and tells you at the next pause when one needs you.")
+                .font(.system(size: 12))
+                .foregroundStyle(secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if model.rows.isEmpty {
+                Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp when they run.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(model.rows) { row in
+                        agentRow(row)
+                    }
+                }
+            }
+            Divider().opacity(0.5)
+            VStack(alignment: .leading, spacing: 10) {
+                // Closures, not method references: passing `model.setSound` crashed the Swift 6.3.3
+                // compiler (IRGen, isolated reabstraction thunk).
+                Picker("Notify me when", selection: Binding(get: { model.notifyStates }, set: { model.setNotifyStates($0) })) {
+                    Text("An agent needs me").tag(CalmSettings.NotifyStates.needsYou)
+                    Text("It needs me, finishes or fails").tag(CalmSettings.NotifyStates.all)
+                }
+                .pickerStyle(.radioGroup)
+                Toggle("Play a sound", isOn: Binding(get: { model.sound }, set: { model.setSound($0) }))
+            }
+            .font(.system(size: 12))
+            if let error = model.error {
+                Text(error)
+                    .font(.system(size: 11))
+                    .foregroundStyle(style?.failure ?? .red)
+            }
+        }
+    }
 
     private func agentRow(_ row: AgentsPanelModel.Row) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(row.adapter.kind.monogram)
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(style.secondary)
+                .foregroundStyle(secondary)
                 .frame(width: 20, height: 20)
-                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style.selection))
+                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style?.selection ?? Color.primary.opacity(0.07)))
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.adapter.kind.displayName)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(style.primary)
+                    .foregroundStyle(primary)
                 Text(description(row))
                     .font(.system(size: 12))
-                    .foregroundStyle(style.secondary)
+                    .foregroundStyle(secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
@@ -202,7 +221,7 @@ struct AgentsPanelView: View {
             if case .automatic = row.adapter.setup {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(style.tertiary)
+                    .foregroundStyle(style?.tertiary ?? Color.secondary)
             }
         }
     }

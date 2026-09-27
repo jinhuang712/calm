@@ -183,7 +183,7 @@ final class TerminalMenuTarget: NSObject {
     }
 
     @objc func showAgentsPanel(_: Any?) {
-        TerminalWindowManager.shared.openMainWindow().showAgentsPanel()
+        SettingsWindowController.shared.show(.agents)
     }
 
     /// ⌘⇧I: what the focused agent session is and last said.

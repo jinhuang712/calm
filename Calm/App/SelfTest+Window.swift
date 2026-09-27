@@ -15,11 +15,15 @@
                 toggleFiles()
             case "settings":
                 TerminalMenuTarget.shared.showSettings(nil)
+            case let section where section.hasPrefix("settings:"):
+                SettingsWindowController.shared.show(SettingsWindowController.Section(rawValue: String(section.dropFirst(9))))
             case let option where option.hasPrefix("set:"):
-                // set:<background|layout|motion>=<value>, as a click in Settings → Window
+                // set:<key>=<value>, as a click in Settings (Window: background, layout, motion;
+                // General: editor, open-paths, auto-grouping)
                 let parts = option.dropFirst(4).split(separator: "=").map(String.init)
                 if parts.count == 2 {
                     SettingsWindowController.shared.windowOptions.set(parts[0], parts[1])
+                    SettingsWindowController.shared.general.set(parts[0], parts[1])
                 }
             case let theme where theme.hasPrefix("pick_theme:"):
                 // What a click on a theme in Settings does

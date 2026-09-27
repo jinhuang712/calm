@@ -103,6 +103,11 @@ final class TerminalConfig: @unchecked Sendable {
         var palette: [NSColor]
     }
 
+    /// The Ghostty config file to open for editing: the first that exists, else the usual one.
+    static var userConfigFile: URL {
+        userConfigFiles.first { FileManager.default.fileExists(atPath: $0.path) } ?? userConfigFiles[0]
+    }
+
     /// The files `ghostty_config_load_default_files` reads on macOS, in its order.
     private static var userConfigFiles: [URL] {
         let home = FileManager.default.homeDirectoryForCurrentUser

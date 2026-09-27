@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M1 — A plain terminal
+**Current milestone:** M3 — Attention (M1 waits only on the author's dogfooding day, M1.12)
 
 ## How to read this
 
@@ -18,8 +18,8 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | Milestone | Delivers | Features | Depends on | Status |
 |---|---|---|---|---|
 | **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
-| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ⬜ |
-| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ⬜ |
+| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | 🟨 |
+| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ⬜ |
 | **M4** Recall | search across every agent's history | F7 | M2 | ⬜ |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ⬜ |
@@ -51,7 +51,7 @@ An empty Calm app, built from a clean clone with one command, with GhosttyKit bu
 
 ---
 
-## M1 — A plain terminal (F1) ⬜
+## M1 — A plain terminal (F1) 🟨
 
 Calm works as a normal terminal: no sessions or agents yet, just a fast, correct terminal.
 
@@ -74,20 +74,20 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 
 ---
 
-## M2 — Sessions and projects (F2, F3) ⬜
+## M2 — Sessions and projects (F2, F3) ✅
 
 The core model arrives: sessions grouped under projects, restored after quitting.
 
-- [ ] **M2.1 Model:** `Project`, `Session`, `Pane` and layout tree in the `Model` module, fully unit-tested.
-- [ ] **M2.2 State store:** save and restore projects, sessions, layouts and windows in `state.sqlite`.
-- [ ] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
-- [ ] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
-- [ ] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
-- [ ] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
-- [ ] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first).
-- [ ] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.
-- [ ] **M2.9 Control socket and CLI:** the `calm` CLI with `open` and `list` over the local socket.
-- [ ] **M2.10 Config:** `~/.config/calm/config.toml` with the auto-grouping setting.
+- [x] **M2.1 Model:** `Project`, `Session`, `Pane` and layout tree in the `Model` module, fully unit-tested.
+- [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The window frame uses AppKit's autosave.
+- [x] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
+- [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
+- [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
+- [x] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
+- [x] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first). **Decided: zmx 0.8.1** (MIT), bundled; see DESIGNS.md → Persistence.
+- [x] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.
+- [x] **M2.9 Control socket and CLI:** the `calm` CLI with `open` and `list` over the local socket.
+- [x] **M2.10 Config:** `~/.config/calm/config.toml` with the auto-grouping setting.
 
 **Exit criteria**
 - Quit and relaunch restores every project, session and layout, with shells still running.

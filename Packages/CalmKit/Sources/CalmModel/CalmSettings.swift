@@ -67,6 +67,15 @@ public struct CalmSettings: Equatable, Sendable {
         bool("auto-grouping", default: true)
     }
 
+    public enum MotionLevel: String, Sendable {
+        case full, reduced, off
+    }
+
+    /// How much Calm animates (UIUX.md → Motion). The system's Reduce Motion always wins.
+    public var motion: MotionLevel {
+        values["motion"].flatMap { MotionLevel(rawValue: $0.lowercased()) } ?? .full
+    }
+
     private static func stripComment(_ line: String) -> String {
         var inQuotes = false
         for (index, character) in line.enumerated() {

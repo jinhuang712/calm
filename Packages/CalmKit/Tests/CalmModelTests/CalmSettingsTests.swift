@@ -34,4 +34,11 @@ struct CalmSettingsTests {
     @Test func `unknown values fall back to the default`() {
         #expect(CalmSettings(text: "auto-grouping = maybe").autoGrouping == true)
     }
+
+    @Test func `motion level reads full, reduced or off`() {
+        #expect(CalmSettings(text: "").motion == .full)
+        #expect(CalmSettings(text: "motion = Reduced").motion == .reduced)
+        #expect(CalmSettings(text: "motion = off").motion == .off)
+        #expect(CalmSettings(text: "motion = wild").motion == .full)
+    }
 }

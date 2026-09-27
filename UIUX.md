@@ -132,14 +132,14 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Motion | Behavior |
 |---|---|
 | Splits | new panes grow into place and closed panes fold away |
-| Sidebar | when hidden, it peeks in as the pointer nears the edge and slides away again |
-| Session switching | cycling sessions shows small live previews, then settles on the chosen one |
+| Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
+| Session switching | hold ⌃ and press Tab to cycle sessions, most recent first, over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight back to the previous session without showing anything |
 | Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping |
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |
 
-**Settings:** Settings → Appearance holds one motion control (full, reduced or off). Individual effects stay adjustable in the config file.
+**Settings:** Settings → Appearance holds one motion control (full, reduced or off); until the settings screen lands it is `motion = full | reduced | off` in `config.toml`. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
 
 ## Themes
 
@@ -167,6 +167,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘P | Command palette |
 | ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
 | ⌘1…9 | Jump to session by position |
+| ⌃Tab / ⌃⇧Tab | Cycle sessions, most recent first (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
 | ⌘⇧E | Toggle the files column |
 | esc | Close a viewed file and return to the session |
@@ -177,6 +178,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 
 - **⌘K** is Ghostty's *clear screen*. Calm takes it for search when search lands (M4); Calm's built-in defaults then move clear screen to ⌘⇧K. Calm's defaults load before the user's Ghostty config, so the user's own keybindings still win.
 - **⌘⇧J** is Ghostty's *write screen to file*, so "jump to the next session that needs you" uses **⌘⇧A** (A for attention).
+- **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - ⌘P, ⌘⇧E, ⌘⇧I are free in Ghostty's defaults. ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
 
 ## Accessibility

@@ -37,6 +37,9 @@ struct SidebarView: View {
     let onNewSession: () -> Void
     let onNewProject: () -> Void
 
+    /// Ties a session's row across projects, so a row that changes project glides there.
+    @Namespace private var rows
+
     private var selectedSessionID: Session.ID? {
         manager.workspace.selectedLayout?.focusedSessionID
     }
@@ -47,7 +50,8 @@ struct SidebarView: View {
             Color.clear.frame(height: 38)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
+                // Not lazy: a row moving between projects needs both ends laid out to glide.
+                VStack(alignment: .leading, spacing: 14) {
                     ForEach(manager.workspace.projects) { project in
                         projectSection(project)
                     }
@@ -116,6 +120,7 @@ struct SidebarView: View {
                         Divider()
                         Button("Close Session") { onClose(session.id) }
                     }
+                    .matchedGeometryEffect(id: session.id, in: rows)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }

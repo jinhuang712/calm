@@ -165,7 +165,7 @@ final class TerminalWorkspaceView: NSView {
                 }
             }
         }
-        if animated, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+        if animated, !Motion.isReduced {
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = Self.animationDuration
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)

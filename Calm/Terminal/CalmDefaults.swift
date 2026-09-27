@@ -1,4 +1,5 @@
 import AppKit
+import CalmModel
 
 /// Calm's own Ghostty settings, written to Application Support on each launch and loaded
 /// before the user's config, so the user's keys always win.
@@ -26,7 +27,8 @@ enum CalmDefaults {
     @discardableResult
     static func write() -> URL? {
         let shader = Bundle.main.url(forResource: "cursor_glide", withExtension: "glsl")
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        // Same rule as `Motion.isReduced`, read directly: this runs while the engine starts.
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || CalmSettings.load().motion != .full
         let text = contents(reduceMotion: reduceMotion, cursorShader: shader)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -8,7 +8,7 @@ Status: 📝 planned · 🚧 in progress · ✅ shipped
 
 ---
 
-## F1 — Terminal core 📝
+## F1 — Terminal core 🚧
 
 A fast, correct terminal on libghostty.
 
@@ -20,22 +20,23 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none beyond the Ghostty config.
 
-## F2 — Projects and auto-grouping 📝
+## F2 — Projects and auto-grouping 🚧
 
 - A **project** is a folder. The sidebar lists projects, each with its sessions underneath.
 - Each agent session is a **session card** showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message, and the worktree name with its diff size when the session runs in a git worktree. Plain shells are one compact line.
 - Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
-- A session files itself under the project whose folder contains its current working directory, choosing the most specific match. When the shell `cd`s into another project, the session moves there.
+- A session files itself under the project whose folder contains its current working directory, choosing the most specific match. When the shell `cd`s into another project, the session moves there. The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
 - If no project contains the folder, the session goes under an automatic project for its git repository root, or its folder if there is no repository.
 - Users can pin a session to a project so it stops moving.
 - Adding a project: **+ New Project**, dropping a folder on the sidebar, or `calm open <folder>`.
 
-**Settings:** 1 — auto-grouping on/off (default on).
+**Settings:** 1 — auto-grouping on/off (default on): `auto-grouping = false` in `~/.config/calm/config.toml`, re-read by Reload Configuration (⌘⇧,).
 
-## F3 — Persistent sessions 📝
+## F3 — Persistent sessions 🚧
 
 - Quitting Calm detaches shells instead of killing them. Relaunching reattaches, with scrollback and running processes intact.
 - Projects, sessions and split layouts are restored.
+- Closing a session ends its shell. Shells Calm no longer knows about (for example after a crash) are ended at the next launch; other apps' sessions are never touched.
 - Each session can show a one-line attach command so it can be reached from another device over SSH.
 
 **Settings:** none.
@@ -134,9 +135,10 @@ A quick, read-only look at the repository without leaving Calm.
 
 **Settings:** none. The right-click menu offers the destination.
 
-## F13 — `calm` command-line tool 📝
+## F13 — `calm` command-line tool 🚧
 
-- `calm open <folder|file>` — open a project, or a file in the viewer.
+- `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer. Starts Calm if it isn't running.
+- `calm list` — list sessions: project, title, state and folder.
 - `calm search <text>` — search sessions from any shell.
 - `calm status <state> [message]` — report agent state; this is the contract agents' hooks call.
 - `calm notify <message>` — show a notification for the current session.

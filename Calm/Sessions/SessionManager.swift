@@ -25,6 +25,9 @@ final class SessionManager {
     /// Turned off for the rest of the run if persistent shells fail to start.
     @ObservationIgnored var persistenceEnabled = true
 
+    /// Sessions from most to least recently focused, for the session switcher. Not saved.
+    @ObservationIgnored private var recentSessionIDs: [Session.ID] = []
+
     /// Calm's own settings (`~/.config/calm/config.toml`); re-read with Reload Configuration.
     @ObservationIgnored var settings = CalmSettings.load()
 
@@ -59,6 +62,7 @@ final class SessionManager {
                 }
             }
         }
+        rememberFocus()
         scheduleSave()
     }
 
@@ -114,6 +118,7 @@ final class SessionManager {
     @discardableResult
     func newSession(in directory: String) -> Session {
         let session = workspace.newSession(in: directory, gitRoot: GitRoot.find)
+        rememberFocus()
         scheduleSave()
         return session
     }
@@ -121,6 +126,7 @@ final class SessionManager {
     @discardableResult
     func splitSession(_ existing: Session.ID, direction: SplitTree<Session.ID>.Direction, in directory: String) -> Session? {
         let session = workspace.splitSession(existing, direction: direction, in: directory, gitRoot: GitRoot.find)
+        rememberFocus()
         scheduleSave()
         return session
     }
@@ -133,11 +139,13 @@ final class SessionManager {
         panes[id]?.teardown()
         panes[id] = nil
         workspace.removeSession(id)
+        recentSessionIDs.removeAll { $0 == id }
         scheduleSave()
     }
 
     func select(_ id: Session.ID) {
         workspace.select(id)
+        rememberFocus()
         scheduleSave()
     }
 
@@ -149,6 +157,7 @@ final class SessionManager {
     func setFocused(_ sessionID: Session.ID) {
         guard let layout = workspace.layout(containing: sessionID), layout.focusedSessionID != sessionID else { return }
         workspace.select(sessionID)
+        rememberFocus()
         scheduleSave()
     }
 
@@ -162,7 +171,7 @@ final class SessionManager {
     func workingDirectoryChanged(_ id: Session.ID, _ directory: String) {
         guard let session = workspace.session(id), session.workingDirectory != WorkspacePath.standardize(directory) else { return }
         if autoGrouping {
-            withAnimation {
+            Motion.animate {
                 workspace.updateWorkingDirectory(id, to: directory, gitRoot: GitRoot.find)
             }
         } else {
@@ -184,7 +193,7 @@ final class SessionManager {
     // MARK: Projects
 
     func addProject(path: String) {
-        withAnimation {
+        Motion.animate {
             _ = workspace.addProject(path: path, gitRoot: GitRoot.find)
         }
         scheduleSave()
@@ -192,10 +201,23 @@ final class SessionManager {
 
     func toggleCollapsed(_ projectID: Project.ID) {
         guard let project = workspace.project(projectID) else { return }
-        withAnimation(.easeInOut(duration: 0.18)) {
+        Motion.animate(.easeInOut(duration: 0.18)) {
             workspace.setCollapsed(projectID, !project.isCollapsed)
         }
         scheduleSave()
+    }
+
+    /// Sessions from most to least recently focused; ones not visited this run follow in sidebar order.
+    var recentSessions: [Session] {
+        let visited = recentSessionIDs.compactMap { workspace.session($0) }
+        let seen = Set(visited.map(\.id))
+        return visited + orderedSessions.filter { !seen.contains($0.id) }
+    }
+
+    private func rememberFocus() {
+        guard let id = workspace.selectedLayout?.focusedSessionID else { return }
+        recentSessionIDs.removeAll { $0 == id }
+        recentSessionIDs.insert(id, at: 0)
     }
 
     /// Sessions in sidebar order, for ⌘1…9.

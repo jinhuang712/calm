@@ -7,13 +7,16 @@ import SwiftUI
 /// one workspace view per layout and shows the selected one.
 @MainActor
 final class MainWindowController: NSWindowController, NSWindowDelegate, TerminalSurfaceHost {
-    private let manager: SessionManager
+    let manager: SessionManager
     private let container = NSView()
     private let mainArea = NSView()
     private var sidebarHost: NSHostingView<SidebarView>?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
     private var sidebarWidth: NSLayoutConstraint?
+    private var peek: SidebarPeek?
+    private lazy var switcher = SessionSwitcher(controller: self)
+    private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth: CGFloat = 280
 
@@ -45,6 +48,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         buildLayout()
         showSelectedLayout(animated: false)
         applyAppearance()
+        switcher.install()
         NotificationCenter.default.addObserver(forName: .calmTerminalConfigDidChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applyAppearance() }
         }
@@ -59,8 +63,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     private func buildLayout() {
         guard let window else { return }
+        // Layer-backed, so fades and slides run on Core Animation. Without layers AppKit falls
+        // back to timer-driven animation, which never ran when started outside event handling
+        // (e.g. `calm open`), leaving a new session's workspace at alpha 0.
+        container.wantsLayer = true
         window.contentView = container
-        let sidebar = NSHostingView(rootView: makeSidebar(style: SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))))
+        let sidebar = NSHostingView(rootView: makeSidebar(style: sidebarStyle))
         sidebarHost = sidebar
         for view in [sidebar, mainArea] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -79,6 +87,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             // Leave the title bar strip above the terminal.
             mainArea.topAnchor.constraint(equalTo: container.topAnchor, constant: 30),
         ])
+        container.layoutSubtreeIfNeeded()
+        peek = SidebarPeek(container: container, width: Self.sidebarWidth) { [unowned self] in
+            NSHostingView(rootView: makeSidebar(style: sidebarStyle))
+        }
     }
 
     private func makeSidebar(style: SidebarStyle) -> SidebarView {
@@ -95,8 +107,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     func toggleSidebar() {
         guard let sidebarWidth else { return }
         let hidden = sidebarWidth.constant == 0
+        peek?.isEnabled = !hidden
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.2
+            context.duration = Motion.duration(0.2)
             context.allowsImplicitAnimation = true
             sidebarWidth.animator().constant = hidden ? Self.sidebarWidth : 0
             container.layoutSubtreeIfNeeded()
@@ -108,16 +121,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         guard let layout = manager.workspace.selectedLayout else { return }
         let workspace = workspaces[layout.id] ?? makeWorkspace(for: layout)
         for (id, view) in workspaces {
-            let visible = id == layout.id
-            view.isHidden = !visible
-            view.orderedPanes.forEach { $0.setVisible(visible) }
+            view.isHidden = id != layout.id
         }
-        if animated, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            workspace.alphaValue = 0
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.14
-                workspace.animator().alphaValue = 1
-            }
+        restorePaneVisibility()
+        if animated {
+            Motion.fadeIn(workspace, duration: 0.14)
         }
         if let pane = manager.panes[layout.focusedSessionID] {
             window?.makeFirstResponder(pane)
@@ -125,8 +133,28 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         applyAppearance()
     }
 
+    #if DEBUG
+        func peekForTesting() {
+            peek?.showForTesting()
+        }
+
+        /// Frames of the window's parts, for self-test logs.
+        var layoutForTesting: String {
+            let overlays = container.subviews.filter { $0 !== sidebarHost && $0 !== mainArea }.map { "\(type(of: $0)) \($0.frame)" }
+            return "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays)"
+        }
+    #endif
+
+    /// Only the selected layout's panes render; the rest are occluded.
+    func restorePaneVisibility() {
+        for (id, view) in workspaces {
+            view.orderedPanes.forEach { $0.setVisible(id == manager.workspace.selectedLayoutID) }
+        }
+    }
+
     private func makeWorkspace(for layout: PaneLayout) -> TerminalWorkspaceView {
         let view = TerminalWorkspaceView()
+        view.wantsLayer = true
         view.translatesAutoresizingMaskIntoConstraints = false
         mainArea.addSubview(view)
         NSLayoutConstraint.activate([
@@ -221,6 +249,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             ?? NSColor(white: 0.15, alpha: 1)
         window.backgroundColor = background
         let style = SidebarStyle.derived(from: background)
+        sidebarStyle = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08) : NSColor(white: 0, alpha: 0.1)
@@ -426,7 +455,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
     }
 
+    func windowDidResignKey(_: Notification) {
+        switcher.cancel()
+    }
+
     func windowWillClose(_: Notification) {
+        switcher.uninstall()
         NSApp.terminate(nil)
     }
 }

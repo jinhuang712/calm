@@ -107,7 +107,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [ ] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
 - [ ] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first).
 - [ ] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact.
-- [ ] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧J to jump to the next waiting session, never dropped.
+- [ ] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [ ] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
 - [ ] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
 - [ ] **M3.12 Agents settings:** which states notify, sound on or off.

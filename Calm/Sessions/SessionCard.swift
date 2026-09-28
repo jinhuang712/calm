@@ -10,6 +10,8 @@ struct SessionCard: View {
     let agent: AgentKind
     let isSelected: Bool
     let style: SidebarStyle
+    /// The pointer rests on the card: a long title glides to its end.
+    var isHovered = false
     /// Set while a scratch card offers its ×; it takes the time's place.
     var onClose: (() -> Void)?
 
@@ -17,11 +19,9 @@ struct SessionCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 AgentLogo(agent: agent, state: session.state, style: style)
-                Text(title)
+                ScrollingTitle(text: title, isHovered: isHovered)
                     .font(.system(size: 14.5, weight: .medium))
                     .foregroundStyle(isAsleep ? style.secondary : style.primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
                 Spacer(minLength: 4)
                 if let onClose {
                     ScratchCloseButton(style: style, action: onClose)

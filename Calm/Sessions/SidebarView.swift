@@ -307,10 +307,13 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                onClose: closeAction(session),
+                isHovered: hoveredSessionID == session.id, onClose: closeAction(session),
             )
         } else {
-            SessionRow(session: session, isSelected: session.id == selectedSessionID, style: style, onClose: closeAction(session))
+            SessionRow(
+                session: session, isSelected: session.id == selectedSessionID, style: style,
+                isHovered: hoveredSessionID == session.id, onClose: closeAction(session),
+            )
         }
     }
 
@@ -487,6 +490,8 @@ struct SessionRow: View {
     let session: Session
     let isSelected: Bool
     let style: SidebarStyle
+    /// The pointer rests on the row: a long name glides to its end.
+    var isHovered = false
     /// Set while a scratch row offers its ×.
     var onClose: (() -> Void)?
 
@@ -497,11 +502,9 @@ struct SessionRow: View {
                 .foregroundStyle(style.tertiary)
                 .frame(width: 26, height: 26)
                 .background(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
-            Text(session.displayTitle)
+            ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
                 .font(.system(size: 14, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? style.primary : style.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
             Spacer(minLength: 4)
             if let onClose {
                 ScratchCloseButton(style: style, action: onClose)

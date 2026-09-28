@@ -270,7 +270,7 @@ struct SessionSwitcherView: View {
                     .foregroundStyle(style.tertiary)
             }
             .lineLimit(1)
-            .truncationMode(.middle)
+            .truncationMode(.tail)
             .frame(width: Self.previewSize.width, alignment: .leading)
         }
         .padding(4)

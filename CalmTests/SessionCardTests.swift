@@ -21,6 +21,12 @@ struct SessionCardTests {
         #expect(card.workingLine(at: start + 2 * 3600) == "Working · 2h")
     }
 
+    @Test func `a long title glides at reading pace, never in a jolt`() {
+        #expect(ScrollingTitle.scrollDuration(overflow: 4) == 0.6)
+        #expect(ScrollingTitle.scrollDuration(overflow: 80) == 2)
+        #expect(ScrollingTitle.scrollDuration(overflow: 200) == 5)
+    }
+
     @Test func `every state has a label and every agent a letter mark`() {
         #expect(SessionState.needsYou.label == "Needs you")
         for state in SessionState.allCases {

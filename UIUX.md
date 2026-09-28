@@ -48,6 +48,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | 4 | recap: the latest agent message, two lines at most (one when idle) | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
 
+- A name too long for its line keeps its start and ends in "…". Rest the pointer on the card or row for half a second and the name glides once to its end and holds; it slides back when the pointer leaves. With motion reduced it stays truncated.
 - Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
 - Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you look; an idle card recedes (its mark in gray, its name dimmer) and is shorter: no state line or progress bar, one line of recap, tighter padding. That includes done and failed cards once you've looked, since a visit settles them to idle. The selected card gets a slightly lighter surface.
 - The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π, ω) stands in if a mark can't be drawn.

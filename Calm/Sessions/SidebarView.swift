@@ -175,7 +175,6 @@ struct SidebarView: View {
             if !project.isCollapsed {
                 ForEach(sessions) { session in
                     sessionView(session)
-                        .overlay(alignment: .topTrailing) { closeButton(session) }
                         .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
                         .onTapGesture { onSelect(session.id) }
                         .contextMenu { sessionMenu(session) }
@@ -249,24 +248,10 @@ struct SidebarView: View {
     }
 
     /// A scratch session is closed when it's done: its row offers that, quietly, on hover or
-    /// while selected.
-    @ViewBuilder
-    private func closeButton(_ session: Session) -> some View {
-        if session.isScratch, editing.renamingSessionID != session.id,
-           hoveredSessionID == session.id || selectedSessionID == session.id {
-            Button { onClose(session.id) } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(style.secondary)
-                    .frame(width: 22, height: 22)
-                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.selection))
-            }
-            .buttonStyle(.plain)
-            .help("Close Scratch Session")
-            .accessibilityLabel("Close scratch session")
-            .padding(.top, 9)
-            .padding(.trailing, 9)
-        }
+    /// while selected, in the place of its time or state mark.
+    private func closeAction(_ session: Session) -> (() -> Void)? {
+        guard session.isScratch, hoveredSessionID == session.id || selectedSessionID == session.id else { return nil }
+        return { onClose(session.id) }
     }
 
     private func beginRename(_ session: Session) {
@@ -303,9 +288,12 @@ struct SidebarView: View {
         if editing.renamingSessionID == session.id {
             nameField(session)
         } else if let agent = session.agent?.kind {
-            SessionCard(session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style)
+            SessionCard(
+                session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
+                onClose: closeAction(session),
+            )
         } else {
-            SessionRow(session: session, isSelected: session.id == selectedSessionID, style: style)
+            SessionRow(session: session, isSelected: session.id == selectedSessionID, style: style, onClose: closeAction(session))
         }
     }
 
@@ -397,6 +385,25 @@ private struct FooterButton<Label: View>: View {
     }
 }
 
+/// A scratch session's quiet ×, where its row keeps its time or state mark.
+struct ScratchCloseButton: View {
+    let style: SidebarStyle
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(style.secondary)
+                .frame(width: 22, height: 22)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.selection))
+        }
+        .buttonStyle(.plain)
+        .help("Close Scratch Session")
+        .accessibilityLabel("Close scratch session")
+    }
+}
+
 /// A shortcut drawn as small key caps (⌘ T), the way the menu bar would print it but calmer.
 struct KeyCaps: View {
     let keys: [String]
@@ -463,6 +470,8 @@ struct SessionRow: View {
     let session: Session
     let isSelected: Bool
     let style: SidebarStyle
+    /// Set while a scratch row offers its ×.
+    var onClose: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -477,7 +486,9 @@ struct SessionRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 4)
-            if session.state != .idle {
+            if let onClose {
+                ScratchCloseButton(style: style, action: onClose)
+            } else if session.state != .idle {
                 StateMark(state: session.state, style: style)
             }
         }

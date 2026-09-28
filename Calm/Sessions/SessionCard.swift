@@ -8,6 +8,8 @@ struct SessionCard: View {
     let agent: AgentKind
     let isSelected: Bool
     let style: SidebarStyle
+    /// Set while a scratch card offers its ×; it takes the time's place.
+    var onClose: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -19,7 +21,9 @@ struct SessionCard: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 4)
-                if let date = session.lastReport?.date ?? session.agent?.startedAt {
+                if let onClose {
+                    ScratchCloseButton(style: style, action: onClose)
+                } else if let date = session.lastReport?.date ?? session.agent?.startedAt {
                     RelativeTimeText(date: date)
                         .font(.system(size: 12))
                         .foregroundStyle(style.tertiary)

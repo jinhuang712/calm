@@ -24,15 +24,15 @@ struct AppearanceSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsTitle(title: "Appearance", style: style)
-                .padding(.bottom, 20)
+                .padding(.bottom, 24)
             if let picked {
                 WindowPreview(
                     preview: picked, card: windowOptions.layout == .card, glass: windowOptions.background == .glass,
                     isDark: style.isDark,
                 )
-                .padding(.bottom, 26)
+                .padding(.bottom, 32)
             }
-            GroupHeading(title: "Theme", note: "Each follows the system's light and dark", style: style)
+            GroupHeading(title: "Theme", style: style)
             // The chips share the column's width, so the row ends where the rows below it do.
             HStack(alignment: .top, spacing: 12) {
                 ForEach(calmThemes) { choice in
@@ -41,23 +41,24 @@ struct AppearanceSection: View {
                 if let ghostty {
                     Rectangle()
                         .fill(style.hairline)
-                        .frame(width: 1, height: 54)
+                        .frame(width: 1, height: 62)
                     chip(ghostty, name: "Your Ghostty")
                         .help("The colors your Ghostty config sets, instead of a Calm theme")
                 }
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 32)
             SettingsGroup(style: style) {
                 // Closures, not method references: passing a model's method crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
-                SettingsRow(title: "Background", note: "Glass lets the desktop show through.", style: style) {
+                // No help lines: the preview above shows what each choice does.
+                SettingsRow(title: "Background", style: style) {
                     CalmSegmented(
                         title: "Background", options: [(.solid, "Solid"), (.glass, "Glass")],
                         selection: windowOptions.background, style: style,
                     ) { windowOptions.setBackground($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Layout", note: "Card floats the terminal on the sidebar's color.", style: style) {
+                SettingsRow(title: "Layout", style: style) {
                     CalmSegmented(
                         title: "Layout", options: [(.edge, "Edge to edge"), (.card, "Card")],
                         selection: windowOptions.layout, style: style,
@@ -67,23 +68,17 @@ struct AppearanceSection: View {
                 SettingsRow(title: "Motion", note: motionNote, style: style) {
                     CalmSegmented(
                         title: "Motion", options: [(.full, "Full"), (.reduced, "Reduced"), (.off, "Off")],
-                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 80,
+                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 88,
                         isDisabled: AccessibilitySettings.reduceMotion, style: style,
                     ) { windowOptions.setMotion($0) }
-                }
-                RowDivider(style: style)
-                SettingsRow(title: "Terminal font", note: "\(windowOptions.terminalFont), from your Ghostty config.", style: style) {
-                    Button("Open Ghostty Config") { SettingsActions.openGhosttyConfig() }
-                        .buttonStyle(SettingsButtonStyle(style: style))
                 }
             }
         }
     }
 
-    private var motionNote: String {
-        AccessibilitySettings.reduceMotion
-            ? "Reduce Motion is on in System Settings, so Calm keeps still."
-            : "Reduce Motion in System Settings always wins."
+    /// Only when the control can't do what it shows.
+    private var motionNote: String? {
+        AccessibilitySettings.reduceMotion ? "Reduce Motion is on in System Settings, so Calm keeps still." : nil
     }
 
     private func chip(_ choice: ThemePickerModel.Choice, name: String) -> some View {
@@ -100,7 +95,7 @@ struct AppearanceSection: View {
                             .padding(-4)
                     }
                 Text(name)
-                    .font(.system(size: 12, weight: selected ? .medium : .regular))
+                    .font(.system(size: SettingsMetrics.note, weight: selected ? .medium : .regular))
                     .foregroundStyle(selected ? style.primary : style.secondary)
                     .lineLimit(1)
                     .fixedSize()
@@ -131,7 +126,7 @@ private struct ThemeChipPreview: View {
             .background(preview.background)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(height: 62)
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(preview.foreground.opacity(0.14)))
     }

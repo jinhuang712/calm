@@ -5,6 +5,19 @@ import SwiftUI
 // here rather than taken from AppKit, whose segmented control and switch only know the
 // system's accent, which would clash with the theme's (UIUX.md → Color).
 
+/// The page's sizes, in one place: roomy enough to read at a glance in a large window, as the
+/// sidebar is (UIUX.md → Settings screen).
+enum SettingsMetrics {
+    static let title: CGFloat = 30
+    static let heading: CGFloat = 15
+    static let label: CGFloat = 15
+    static let note: CGFloat = 13
+    static let control: CGFloat = 14
+    static let controlHeight: CGFloat = 30
+    static let rowHeight: CGFloat = 60
+    static let rowInset: CGFloat = 18
+}
+
 /// A section's title, and the line under it when it has one.
 struct SettingsTitle: View {
     let title: String
@@ -14,13 +27,13 @@ struct SettingsTitle: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 26, weight: .medium))
-                .tracking(-0.2)
+                .font(.system(size: SettingsMetrics.title, weight: .medium))
+                .tracking(-0.3)
                 .foregroundStyle(style.primary)
                 .accessibilityAddTraits(.isHeader)
             if let note {
                 Text(note)
-                    .font(.system(size: 14))
+                    .font(.system(size: SettingsMetrics.label))
                     .foregroundStyle(style.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -38,18 +51,19 @@ struct GroupHeading: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(style.primary)
+                .font(.system(size: SettingsMetrics.heading, weight: .medium))
+                .foregroundStyle(style.secondary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
             if let note {
                 Text(note)
-                    .font(.system(size: 12))
+                    .font(.system(size: SettingsMetrics.note))
                     .foregroundStyle(style.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.bottom, 10)
+        .padding(.bottom, 12)
+        .padding(.leading, 2)
     }
 }
 
@@ -62,8 +76,8 @@ struct SettingsGroup<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(style.groupFill))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(style.hairline))
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(style.groupFill))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(style.hairline))
     }
 }
 
@@ -74,7 +88,7 @@ struct RowDivider: View {
         Rectangle()
             .fill(style.hairline)
             .frame(height: 1)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SettingsMetrics.rowInset)
     }
 }
 
@@ -87,13 +101,13 @@ struct SettingsRow<Control: View>: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 14))
+                    .font(.system(size: SettingsMetrics.label))
                     .foregroundStyle(style.primary)
                 if let note {
                     Text(note)
-                        .font(.system(size: 12))
+                        .font(.system(size: SettingsMetrics.note))
                         .foregroundStyle(style.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -101,9 +115,9 @@ struct SettingsRow<Control: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             control
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .frame(minHeight: 52)
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .padding(.vertical, 14)
+        .frame(minHeight: SettingsMetrics.rowHeight)
         .accessibilityElement(children: .contain)
     }
 }
@@ -114,7 +128,7 @@ struct CalmSegmented<Value: Hashable>: View {
     let title: String
     let options: [(value: Value, label: String)]
     let selection: Value
-    var segmentWidth: CGFloat = 104
+    var segmentWidth: CGFloat = 116
     var isDisabled = false
     let style: SidebarStyle
     let onSelect: (Value) -> Void
@@ -141,9 +155,9 @@ struct CalmSegmented<Value: Hashable>: View {
             onSelect(value)
         } label: {
             Text(label)
-                .font(.system(size: 13))
+                .font(.system(size: SettingsMetrics.control))
                 .foregroundStyle(chosen ? style.primary : style.secondary)
-                .frame(width: segmentWidth, height: 26)
+                .frame(width: segmentWidth, height: SettingsMetrics.controlHeight)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(chosen ? style.raisedFill : Color.clear)
@@ -167,7 +181,7 @@ struct CalmSwitchStyle: ToggleStyle {
         } label: {
             Capsule()
                 .fill(configuration.isOn ? style.accent : style.primary.opacity(style.isDark ? 0.2 : 0.16))
-                .frame(width: 34, height: 20)
+                .frame(width: 40, height: 24)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     Circle()
                         .fill(style.isDark ? Color(white: 0.93) : .white)
@@ -189,10 +203,10 @@ struct SettingsButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13))
+            .font(.system(size: SettingsMetrics.control))
             .foregroundStyle(style.primary)
-            .padding(.horizontal, 14)
-            .frame(height: 26)
+            .padding(.horizontal, 16)
+            .frame(height: SettingsMetrics.controlHeight)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(style.buttonFill.opacity(configuration.isPressed ? 0.7 : 1))
@@ -227,9 +241,9 @@ struct SettingsMenu<Value: Hashable>: View {
             HStack(spacing: 8) {
                 Text(current)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
             }
-            .font(.system(size: 13))
+            .font(.system(size: SettingsMetrics.control))
             .foregroundStyle(style.primary)
         }
         .menuStyle(.button)

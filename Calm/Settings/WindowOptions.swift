@@ -2,23 +2,20 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance (ROADMAP.md → M6.4): background, layout and motion, and the terminal
-/// font's name. A change is saved to config.toml (a default removes its key) and applied at once.
+/// Settings → Appearance (ROADMAP.md → M6.4): background, layout and motion. A change is saved
+/// to config.toml (a default removes its key) and applied at once.
 @MainActor
 @Observable
 final class WindowOptionsModel {
     private(set) var background = CalmSettings.WindowBackground.solid
     private(set) var layout = CalmSettings.WindowLayout.edge
     private(set) var motion = CalmSettings.MotionLevel.full
-    /// "JetBrains Mono · 13 pt": set in the Ghostty config, which is where it's changed.
-    private(set) var terminalFont = ""
 
     func refresh() {
         let settings = SessionManager.shared.settings
         background = settings.windowBackground
         layout = settings.windowLayout
         motion = settings.motion
-        terminalFont = TerminalConfig.fontDescription
     }
 
     func setBackground(_ value: CalmSettings.WindowBackground) {

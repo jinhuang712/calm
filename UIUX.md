@@ -179,7 +179,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 ## Settings screen
 
-⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer (14 pt rows of 40 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (720 pt at most, 14 pt labels, 52 pt rows), centered in its pane until it would stand more than 112 pt from the list, so a wide window keeps list and page together, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
+⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer (14 pt rows of 40 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (780 pt at most, 30 pt titles, 15 pt labels, 60 pt rows), centered in its pane until it would stand more than 112 pt from the list, so a wide window keeps list and page together, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
 
 ```
 ┌────────────────────┬──────────────────────────────────────────────┐
@@ -191,20 +191,21 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 │ ≡ General          │   │ Background            [Solid | Glass] │   │
 │ ⌨ Shortcuts        │   │ Layout         [Edge to edge | Card]  │   │
 │                    │   │ Motion        [Full | Reduced | Off]  │   │
-│ ┌ fix login test ┐ │   │ Terminal font   Open Ghostty Config   │   │
-│ └ Needs you ─────┘ │   └──────────────────────────────────────┘   │
+│                    │   └──────────────────────────────────────┘   │
+│                    │                                              │
 │ esc Back           │                                              │
 └────────────────────┴──────────────────────────────────────────────┘
 ```
 
 | Section | Contents |
 |---|---|
-| **Appearance** | a live miniature of the window, the themes, glass or solid, edge to edge or card, motion (full, reduced, off), and which font the terminal uses (it's set in the Ghostty config) |
-| **Agents** | each installed agent with its mark and where it stands (Connected, One step left, or Connect/Disconnect where Calm must add a file), the agents not installed, which states notify, sound. Calm → Agents… opens this section |
-| **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's, the themes folder) with Reload Files |
+| **Appearance** | a live miniature of the window, the themes, glass or solid, edge to edge or card, motion (full, reduced, off) |
+| **Agents** | each installed agent with its mark and where it stands (Connected, One step left, or Connect/Disconnect where Calm must add a file), which states notify, sound. Calm → Agents… opens this section |
+| **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's with the font it sets, the themes folder) |
 | **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
 
-- A session that needs you shows at the foot of the list, in its card's tint; one click goes to it. Going to any session (⌃Tab, ⌘1…9, search, a new session) leaves Settings.
+- Going to any session (⌃Tab, ⌘1…9, search, a notification, a new session) leaves Settings.
+- Quiet by default: no help line under a row unless the control can't do what it shows (Motion while the system's Reduce Motion is on), and a line under an agent only when it needs a step. A hand edit shows after Calm → Reload Configuration.
 - A section gets a small warning mark only when something in it is broken: Agents when macOS blocks Calm's notifications (with a button to System Settings), General when a line of config.toml can't be read (shown under the file).
 - Settings reopens on the section it was left on. A window too narrow for the list and the page shows the list as icons.
 

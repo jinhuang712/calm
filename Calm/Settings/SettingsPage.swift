@@ -3,9 +3,8 @@ import CalmModel
 import SwiftUI
 
 /// The settings page (FEATURES.md → F14, UIUX.md → Settings): ⌘, turns the whole window into
-/// Settings, as the welcome page fills it. A list of sections takes the sidebar's place, a
-/// session that needs you still shows at its foot, and esc (or ⌘, again) goes back to the session
-/// exactly as it was; it keeps running underneath. Everything is saved to config.toml at once.
+/// Settings, as the welcome page fills it. A list of sections takes the sidebar's place, and esc
+/// (or ⌘, again) goes back to the session exactly as it was; it keeps running underneath. Everything is saved to config.toml at once.
 @MainActor
 final class SettingsPage {
     enum Section: String, CaseIterable, Identifiable {
@@ -117,8 +116,6 @@ final class SettingsPage {
 struct SettingsView: View {
     struct Actions {
         let close: () -> Void
-        let goToSession: (Session.ID) -> Void
-        let reload: () -> Void
     }
 
     let page: SettingsPage
@@ -139,8 +136,7 @@ struct SettingsView: View {
                 // what it lists rather than a new panel.
                 SettingsList(
                     navigation: page.navigation, compact: compact, style: style,
-                    warnings: warnings, waiting: manager.workspace.sessionsNeedingYou.first,
-                    hasSessions: !manager.workspace.sessions.isEmpty, actions: actions,
+                    warnings: warnings, hasSessions: !manager.workspace.sessions.isEmpty, actions: actions,
                 )
                 .frame(width: compact ? 68 : SidebarView.width)
                 .background(style.background)
@@ -168,7 +164,7 @@ struct SettingsView: View {
         .environment(\.colorScheme, style.isDark ? .dark : .light)
     }
 
-    private static let columnWidth: CGFloat = 720
+    private static let columnWidth: CGFloat = 780
 
     /// The page stays near the list, so the two read as one screen: centered while the pane is
     /// modest, then held 112 pt from the list. On a wide window a centered column ended up an
@@ -194,19 +190,18 @@ struct SettingsView: View {
         switch page.navigation.section {
         case .appearance: AppearanceSection(themes: page.themes, windowOptions: page.windowOptions, style: style)
         case .agents: AgentsSection(model: page.agents, style: style)
-        case .general: GeneralSection(model: page.general, style: style, onReload: actions.reload)
+        case .general: GeneralSection(model: page.general, style: style)
         case .shortcuts: ShortcutsSection(style: style)
         }
     }
 }
 
-/// The sections, where the sidebar was; a session that needs you, and the way back, at its foot.
+/// The sections, where the sidebar was, and the way back at its foot.
 private struct SettingsList: View {
     @Bindable var navigation: SettingsPage.Navigation
     let compact: Bool
     let style: SidebarStyle
     let warnings: Set<SettingsPage.Section>
-    let waiting: Session?
     let hasSessions: Bool
     let actions: SettingsView.Actions
 
@@ -231,10 +226,6 @@ private struct SettingsList: View {
             .padding(.horizontal, 12)
             Spacer(minLength: 16)
             VStack(spacing: 2) {
-                if let waiting {
-                    waitingRow(waiting)
-                        .padding(.bottom, 4)
-                }
                 ListButton(style: style, help: compact ? "Back (esc)" : "", action: actions.close) {
                     HStack(spacing: 11) {
                         KeyCaps(keys: ["esc"], style: style)
@@ -285,42 +276,6 @@ private struct SettingsList: View {
         }
         .accessibilityLabel(section.title)
         .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-
-    /// A session that needs you, in its card's tint: one click goes to it (UIUX.md → Settings).
-    private func waitingRow(_ session: Session) -> some View {
-        Button {
-            actions.goToSession(session.id)
-        } label: {
-            HStack(spacing: 11) {
-                Circle()
-                    .fill(style.attention)
-                    .frame(width: 8, height: 8)
-                    .frame(width: 28)
-                if !compact {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(session.displayTitle)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(style.primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text(session.lastReport?.message ?? "Needs you")
-                            .font(.system(size: 12))
-                            .foregroundStyle(style.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.attention.opacity(0.14)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(compact ? "\(session.displayTitle) needs you" : "")
-        .accessibilityLabel("\(session.displayTitle) needs you")
     }
 }
 

@@ -19,8 +19,6 @@ final class AgentsSettingsModel {
     }
 
     var rows: [Row] = []
-    /// Agents Calm knows that aren't installed here.
-    var missing: [AgentKind] = []
     var notifyStates: CalmSettings.NotifyStates
     var sound: Bool
     /// macOS turned Calm's notifications off, so a *needs you* can't reach the user.
@@ -52,7 +50,6 @@ final class AgentsSettingsModel {
             }
             return Row(adapter: adapter, state: state)
         }
-        missing = AgentKind.allCases.filter { kind in !rows.contains { $0.id == kind } }
         refreshNotificationStatus()
     }
 
@@ -119,19 +116,15 @@ struct AgentsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsTitle(
-                title: "Agents",
-                note: "Calm shows what each agent is doing, and tells you at the next pause when one needs you.",
-                style: style,
-            )
-            .padding(.bottom, 22)
+            SettingsTitle(title: "Agents", style: style)
+                .padding(.bottom, 24)
             GroupHeading(title: "Installed", style: style)
             SettingsGroup(style: style) {
                 if model.rows.isEmpty {
                     Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp once they're installed.")
-                        .font(.system(size: 13))
+                        .font(.system(size: SettingsMetrics.note))
                         .foregroundStyle(style.secondary)
-                        .padding(16)
+                        .padding(SettingsMetrics.rowInset)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
@@ -140,20 +133,10 @@ struct AgentsSection: View {
                         }
                         agentRow(row)
                     }
-                    if !model.missing.isEmpty {
-                        RowDivider(style: style)
-                        Text(missingNote)
-                            .font(.system(size: 12))
-                            .foregroundStyle(style.tertiary)
-                            .padding(.leading, 60)
-                            .padding(.trailing, 16)
-                            .padding(.vertical, 11)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
                 }
             }
             GroupHeading(title: "Notifications", style: style)
-                .padding(.top, 24)
+                .padding(.top, 30)
             SettingsGroup(style: style) {
                 if model.notificationsBlocked {
                     blockedRow
@@ -175,79 +158,65 @@ struct AgentsSection: View {
                         .labelsHidden()
                 }
             }
-            Text("Calm waits for a pause in your typing, and never notifies about the session you're looking at.")
-                .font(.system(size: 12))
-                .foregroundStyle(style.secondary)
-                .padding(.top, 10)
-                .padding(.horizontal, 2)
             if let error = model.error {
                 Text(error)
-                    .font(.system(size: 11))
+                    .font(.system(size: SettingsMetrics.note))
                     .foregroundStyle(style.failure)
-                    .padding(.top, 10)
+                    .padding(.top, 12)
             }
         }
-    }
-
-    private var missingNote: String {
-        let names = model.missing.map(\.displayName).formatted(.list(type: .and))
-        return model.missing.count == 1
-            ? "\(names) isn't installed. Calm picks it up once it is."
-            : "\(names) aren't installed. Calm picks them up once they are."
     }
 
     private var blockedRow: some View {
-        HStack(spacing: 12) {
-            WarningMark(style: style, size: 15)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("macOS is blocking Calm's notifications")
-                    .font(.system(size: 14))
-                    .foregroundStyle(style.primary)
-                Text("Until they're allowed, Calm can't tell you when an agent needs you.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(style.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 14) {
+            WarningMark(style: style, size: 16)
+            Text("macOS is blocking Calm's notifications")
+                .font(.system(size: SettingsMetrics.label))
+                .foregroundStyle(style.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Button("Open System Settings") { SettingsActions.openNotificationSettings() }
                 .buttonStyle(SettingsButtonStyle(style: style))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 13)
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .frame(minHeight: SettingsMetrics.rowHeight)
     }
 
     private func agentRow(_ row: AgentsSettingsModel.Row) -> some View {
-        HStack(spacing: 12) {
-            AgentLogo(agent: row.adapter.kind, size: 32, style: style)
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 14) {
+            AgentLogo(agent: row.adapter.kind, size: 34, style: style)
+            VStack(alignment: .leading, spacing: 4) {
                 Text(row.adapter.kind.displayName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: SettingsMetrics.label, weight: .medium))
                     .foregroundStyle(style.primary)
-                Text(description(row))
-                    .font(.system(size: 12))
-                    .lineSpacing(1)
-                    .foregroundStyle(style.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let detail = detail(row) {
+                    Text(detail)
+                        .font(.system(size: SettingsMetrics.note))
+                        .lineSpacing(1)
+                        .foregroundStyle(style.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             trailing(row)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 13)
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .padding(.vertical, 12)
+        .frame(minHeight: SettingsMetrics.rowHeight)
         .accessibilityElement(children: .contain)
     }
 
-    private func description(_ row: AgentsSettingsModel.Row) -> String {
+    /// A line under the name only when there's something to do or know; a connected agent is
+    /// just its name and "Connected".
+    private func detail(_ row: AgentsSettingsModel.Row) -> String? {
         switch row.adapter.setup {
-        case .automatic:
-            return "Connected inside Calm. Nothing changes in its own settings."
-        case .notifications:
-            return "Works through the notifications it already sends."
+        case .automatic, .notifications:
+            return nil
         case let .hint(text):
             return text
         case let .files(files):
             let paths = files.keys.sorted().map { "~/\($0)" }.joined(separator: ", ")
             switch row.state {
-            case .connected: return "Connected through \(paths)."
+            case .connected: return nil
             case let .conflict(path): return "~/\(path) already exists and wasn't written by Calm, so Calm leaves it alone."
             default: return "Connect adds \(paths), so it can tell Calm when it's working, done or waiting."
             }
@@ -266,7 +235,7 @@ struct AgentsSection: View {
                 status("Connected", symbol: "checkmark")
                 Button("Disconnect") { model.disconnect(row) }
                     .buttonStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: SettingsMetrics.control))
                     .foregroundStyle(style.tertiary)
             }
         case (_, .conflict?):
@@ -285,7 +254,7 @@ struct AgentsSection: View {
             Image(systemName: symbol).font(.system(size: 10, weight: .semibold))
         }
         .labelStyle(.titleAndIcon)
-        .font(.system(size: 13))
+        .font(.system(size: SettingsMetrics.control))
         .foregroundStyle(style.secondary)
         .fixedSize()
     }

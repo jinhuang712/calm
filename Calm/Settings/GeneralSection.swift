@@ -3,7 +3,8 @@ import CalmModel
 import SwiftUI
 
 /// Settings → General (UIUX.md → Settings): the editor, where paths open, auto-grouping, and the
-/// config files behind every setting, with any line of config.toml Calm had to skip.
+/// config files behind every setting, with any line of config.toml Calm had to skip and the font
+/// the Ghostty config sets.
 @MainActor
 @Observable
 final class GeneralSettingsModel {
@@ -14,6 +15,8 @@ final class GeneralSettingsModel {
     private(set) var autoGrouping = true
     /// config.toml's lines Calm couldn't read ("line 12: expected key = value").
     private(set) var problems: [String] = []
+    /// "JetBrains Mono · 13 pt": set in the Ghostty config, which is where it's changed.
+    private(set) var terminalFont = ""
 
     func refresh() {
         let settings = SessionManager.shared.settings
@@ -22,6 +25,7 @@ final class GeneralSettingsModel {
         opensInViewer = LinkOpener.prefersViewer
         autoGrouping = settings.autoGrouping
         problems = settings.problems
+        terminalFont = TerminalConfig.fontDescription
     }
 
     func setEditor(_ value: Editor?) {
@@ -61,13 +65,12 @@ final class GeneralSettingsModel {
 struct GeneralSection: View {
     let model: GeneralSettingsModel
     let style: SidebarStyle
-    let onReload: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsTitle(title: "General", style: style)
-                .padding(.bottom, 22)
-            GroupHeading(title: "Opening files", note: "When you ⌘-click a path an agent printed", style: style)
+                .padding(.bottom, 24)
+            GroupHeading(title: "Opening files", style: style)
             SettingsGroup(style: style) {
                 SettingsRow(title: "Editor", style: style) {
                     SettingsMenu(
@@ -75,19 +78,17 @@ struct GeneralSection: View {
                     ) { model.setEditor($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Files Calm can show", note: "Markdown, HTML, PDFs, images and code. Esc goes back.", style: style) {
+                SettingsRow(title: "Markdown, images and code", style: style) {
                     SettingsMenu(
-                        title: "Files Calm can show", options: [(true, "Open in Calm"), (false, "Open in the editor")],
+                        title: "Markdown, images and code", options: [(true, "Open in Calm"), (false, "Open in the editor")],
                         selection: model.opensInViewer, style: style,
                     ) { model.setOpensInViewer($0) }
                 }
             }
             GroupHeading(title: "Sessions", style: style)
-                .padding(.top, 22)
+                .padding(.top, 30)
             SettingsGroup(style: style) {
-                SettingsRow(
-                    title: "Group sessions by folder", note: "A session moves to another group when its folder changes.", style: style,
-                ) {
+                SettingsRow(title: "Group sessions by folder", style: style) {
                     Toggle(
                         "Group sessions by folder",
                         isOn: Binding(get: { model.autoGrouping }, set: { model.setAutoGrouping($0) }),
@@ -96,32 +97,17 @@ struct GeneralSection: View {
                     .labelsHidden()
                 }
             }
-            GroupHeading(title: "Config files", note: "Every setting here is also a line in config.toml", style: style)
-                .padding(.top, 22)
+            GroupHeading(title: "Config files", style: style)
+                .padding(.top, 30)
             SettingsGroup(style: style) {
-                fileRow("Calm settings", path: CalmSettings.standardURL, problems: model.problems) { SettingsActions.openConfigFile() }
+                fileRow("Calm settings", problems: model.problems) { SettingsActions.openConfigFile() }
                 RowDivider(style: style)
-                SettingsRow(
-                    title: "Ghostty settings",
-                    note: "Font, keys and the rest of the terminal. They win over Calm's defaults.",
-                    style: style,
-                ) {
+                SettingsRow(title: "Ghostty settings", note: model.terminalFont, style: style) {
                     Button("Open") { SettingsActions.openGhosttyConfig() }
                         .buttonStyle(SettingsButtonStyle(style: style))
                 }
                 RowDivider(style: style)
-                fileRow("Your themes", path: ThemeLibrary.userFolder, problems: []) { SettingsActions.openThemesFolder() }
-                RowDivider(style: style)
-                HStack {
-                    Text("Edited a file by hand?")
-                        .font(.system(size: 12))
-                        .foregroundStyle(style.secondary)
-                    Spacer()
-                    Button("Reload Files", action: onReload)
-                        .buttonStyle(SettingsButtonStyle(style: style))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                fileRow("Your themes", problems: []) { SettingsActions.openThemesFolder() }
             }
         }
     }
@@ -131,25 +117,20 @@ struct GeneralSection: View {
         return [(value: nil, label: automatic)] + model.installed.map { (value: Optional($0), label: $0.displayName) }
     }
 
-    /// A file or folder with its path, and what Calm couldn't read in it.
-    private func fileRow(_ title: String, path: URL, problems: [String], open: @escaping () -> Void) -> some View {
+    /// A file or folder, and any line of it Calm couldn't read.
+    private func fileRow(_ title: String, problems: [String], open: @escaping () -> Void) -> some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 14))
+                    .font(.system(size: SettingsMetrics.label))
                     .foregroundStyle(style.primary)
-                Text((path.path as NSString).abbreviatingWithTildeInPath)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(style.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
                 ForEach(problems, id: \.self) { problem in
                     Label {
                         Text("\(problem.prefix(1).uppercased())\(problem.dropFirst()). Calm skipped it.")
                     } icon: {
-                        WarningMark(style: style, size: 12)
+                        WarningMark(style: style, size: SettingsMetrics.note)
                     }
-                    .font(.system(size: 12))
+                    .font(.system(size: SettingsMetrics.note))
                     .foregroundStyle(style.failure)
                 }
             }
@@ -157,9 +138,9 @@ struct GeneralSection: View {
             Button("Open", action: open)
                 .buttonStyle(SettingsButtonStyle(style: style))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .frame(minHeight: 52)
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .padding(.vertical, 14)
+        .frame(minHeight: SettingsMetrics.rowHeight)
     }
 }
 
@@ -212,12 +193,9 @@ struct ShortcutsSection: View {
                 Button("Open Ghostty Config") { SettingsActions.openGhosttyConfig() }
                     .buttonStyle(SettingsButtonStyle(style: style))
             }
-            Text("Calm's own keys. They come from your Ghostty config, where a keybinding of yours wins over Calm's.")
-                .font(.system(size: 14))
-                .foregroundStyle(style.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 6)
-                .padding(.bottom, 22)
+            // Keys are changed in the Ghostty config (the button above), where the user's own
+            // keybindings win over Calm's.
+            Color.clear.frame(height: 24)
             HStack(alignment: .top, spacing: 20) {
                 ForEach(Self.columns.indices, id: \.self) { column in
                     VStack(alignment: .leading, spacing: 18) {
@@ -228,13 +206,13 @@ struct ShortcutsSection: View {
                                     ForEach(group.rows, id: \.action) { row in
                                         HStack(spacing: 10) {
                                             Text(row.action)
-                                                .font(.system(size: 13))
+                                                .font(.system(size: SettingsMetrics.label))
                                                 .foregroundStyle(style.primary)
                                             Spacer(minLength: 8)
                                             KeyCaps(keys: row.keys, style: style)
                                         }
-                                        .padding(.horizontal, 14)
-                                        .frame(height: 36)
+                                        .padding(.horizontal, SettingsMetrics.rowInset)
+                                        .frame(height: 44)
                                         .accessibilityElement(children: .ignore)
                                         .accessibilityLabel("\(row.action), \(row.keys.joined())")
                                     }

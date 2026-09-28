@@ -193,11 +193,11 @@ A quick, read-only look at the repository without leaving Calm.
 ## F14 — Settings 🚧
 
 - ⌘, turns the whole window into Settings (UIUX.md → Settings screen); ⌘, again or esc goes back to the session exactly as it was. A list of sections stands where the sidebar was: **Appearance, Agents, General, Shortcuts**.
-  - **Appearance:** a live miniature of the window, the theme picker and the window options (F11), and the terminal font's name with a way to its setting (Open Ghostty Config).
-  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, the agents that aren't installed, which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
-  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config and the themes folder, each with Open, and Reload Files.
+  - **Appearance:** a live miniature of the window, the theme picker and the window options (F11).
+  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
+  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
   - **Shortcuts:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
-- A session that needs you shows at the foot of the list; one click goes to it, as going to any session leaves Settings.
+- Going to any session leaves Settings. After a hand edit, Calm → Reload Configuration updates the page.
 - Everything else lives in the config file, reachable through General → Calm settings → Open.
 - Every change is saved to `config.toml` at once, keeping comments and unknown keys; choosing a default removes the key.
 

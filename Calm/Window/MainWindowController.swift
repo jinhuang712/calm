@@ -61,7 +61,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         applyAppearance()
         switcher.install()
         NotificationCenter.default.addObserver(forName: .calmTerminalConfigDidChange, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.applyAppearance() }
+            MainActor.assumeIsolated {
+                // Settings shows what the reloaded files now say (Calm → Reload Configuration).
+                if self?.settingsPage.isShowing == true {
+                    self?.settingsPage.refresh()
+                }
+                self?.applyAppearance()
+            }
         }
     }
 
@@ -608,12 +614,6 @@ extension MainWindowController {
     var settingsActions: SettingsView.Actions {
         SettingsView.Actions(
             close: { [weak self] in self?.hideSettings() },
-            goToSession: { [weak self] id in self?.select(id) },
-            reload: { [weak self] in
-                TerminalEngine.shared.reloadConfig(soft: false)
-                self?.settingsPage.refresh()
-                self?.applyAppearance()
-            },
         )
     }
 }

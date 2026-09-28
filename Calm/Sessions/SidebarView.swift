@@ -401,16 +401,18 @@ private struct FooterButton<Label: View>: View {
 struct KeyCaps: View {
     let keys: [String]
     let style: SidebarStyle
+    /// The welcome page's bigger caps.
+    var large = false
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: large ? 4 : 3) {
             ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
                 Text(key)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: large ? 12 : 11.5))
                     .foregroundStyle(style.tertiary)
-                    .frame(minWidth: 20, minHeight: 20)
+                    .frame(minWidth: large ? 24 : 20, minHeight: large ? 24 : 20)
                     .padding(.horizontal, key.count > 1 ? 4 : 0)
-                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style.primary.opacity(0.06)))
+                    .background(RoundedRectangle(cornerRadius: large ? 6 : 5, style: .continuous).fill(style.primary.opacity(0.06)))
             }
         }
         .accessibilityHidden(true)

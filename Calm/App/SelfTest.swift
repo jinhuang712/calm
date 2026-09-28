@@ -37,13 +37,15 @@
                     let sent = pane.pressKeysForTesting(keys)
                     log("pressed \(sent) keys through keyDown")
                 }
-                if let size = env["CALM_SELFTEST_RESIZE"], let pane, let window = pane.window {
+                // With no pane (the welcome page), the window still resizes.
+                if let size = env["CALM_SELFTEST_RESIZE"],
+                   let window = pane?.window ?? TerminalWindowManager.shared.focusedController?.window {
                     let parts = size.split(separator: "x").compactMap { Double($0) }
                     if parts.count == 2 {
-                        let before = pane.gridSizeForTesting
+                        let before = pane.map { "\($0.gridSizeForTesting)" } ?? "none"
                         window.setContentSize(NSSize(width: parts[0], height: parts[1]))
                         try? await Task.sleep(for: .seconds(0.4))
-                        log("resize \(size): grid \(before) → \(pane.gridSizeForTesting)")
+                        log("resize \(size): grid \(before) → \(pane.map { "\($0.gridSizeForTesting)" } ?? "none")")
                     }
                 }
                 if let after = env["CALM_SELFTEST_AFTER"], !after.isEmpty {

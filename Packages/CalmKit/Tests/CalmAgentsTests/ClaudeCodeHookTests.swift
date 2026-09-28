@@ -36,6 +36,17 @@ struct ClaudeCodeHookTests {
         #expect(report.message == "Fixed the login test. The mock returned an expired token; it now uses a fresh one. All 42 tests pass.")
     }
 
+    @Test func `a stop that leaves background work running is still working`() throws {
+        let report = try #require(adapter.hookReport(from: fixture("Stop-background")))
+        #expect(report.state == .working)
+        #expect(report.message == "The install is running. I'll tell you when it's done.")
+    }
+
+    @Test func `a stop without the background list is done`() {
+        let payload = #"{"hook_event_name":"Stop","last_assistant_message":"Done."}"#
+        #expect(adapter.hookReport(from: Data(payload.utf8))?.state == .done)
+    }
+
     @Test func `stop failure is failed`() throws {
         let report = try #require(adapter.hookReport(from: fixture("StopFailure")))
         #expect(report.state == .failed)

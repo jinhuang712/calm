@@ -29,8 +29,8 @@ extension ClaudeCodeAdapter: HookReporting {
     ]
 
     /// Payload fields (stdin JSON): `hook_event_name`, `session_id`, `transcript_path`, and per
-    /// event `tool_name`/`tool_input`, `notification_type`/`message`, `last_assistant_message`,
-    /// `error`/`error_details`.
+    /// event `tool_name`/`tool_input`, `notification_type`/`message`, `last_assistant_message`
+    /// and `background_tasks`, `error`/`error_details`.
     private struct Payload: Decodable {
         var hookEventName: String?
         var sessionId: String?
@@ -40,6 +40,9 @@ extension ClaudeCodeAdapter: HookReporting {
         var notificationType: String?
         var message: String?
         var lastAssistantMessage: String?
+        /// Stop only: work still in flight (shells, subagents, monitors…) that wakes Claude
+        /// when it finishes. Missing on versions without it, which reads as none.
+        var backgroundTasks: [BackgroundTask]?
         var error: String?
         var errorDetails: String?
 
@@ -48,6 +51,9 @@ extension ClaudeCodeAdapter: HookReporting {
             var filePath: String?
             var description: String?
         }
+
+        /// Only its presence matters; `id`, `type`, `status`, `command`… are not read.
+        struct BackgroundTask: Decodable {}
     }
 
     public func hookReport(from payload: Data) -> HookReport? {
@@ -75,7 +81,10 @@ extension ClaudeCodeAdapter: HookReporting {
             guard ["permission_prompt", "elicitation_dialog"].contains(hook.notificationType ?? "") else { return nil }
             return report(.needsYou, hook.message)
         case "Stop":
-            return report(.done, hook.lastAssistantMessage)
+            // A turn that leaves background work running isn't over: Claude picks up again
+            // without you when it finishes, and its next Stop reports done.
+            let waiting = !(hook.backgroundTasks ?? []).isEmpty
+            return report(waiting ? .working : .done, hook.lastAssistantMessage)
         case "StopFailure":
             return report(.failed, hook.errorDetails ?? hook.error)
         default:

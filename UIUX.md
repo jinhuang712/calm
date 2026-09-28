@@ -179,7 +179,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 ## Settings screen
 
-⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer (14 pt rows of 40 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (720 pt at most, 14 pt labels, 52 pt rows), in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
+⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer (14 pt rows of 40 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (720 pt at most, 14 pt labels, 52 pt rows), centered in its pane until it would stand more than 112 pt from the list, so a wide window keeps list and page together, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
 
 ```
 ┌────────────────────┬──────────────────────────────────────────────┐

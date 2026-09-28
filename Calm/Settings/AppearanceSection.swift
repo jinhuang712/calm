@@ -32,8 +32,9 @@ struct AppearanceSection: View {
                 )
                 .padding(.bottom, 26)
             }
-            GroupHeading(title: "Theme", note: "Each has a light and a dark side and follows the system", style: style)
-            HStack(alignment: .top, spacing: 14) {
+            GroupHeading(title: "Theme", note: "Each follows the system's light and dark", style: style)
+            // The chips share the column's width, so the row ends where the rows below it do.
+            HStack(alignment: .top, spacing: 12) {
                 ForEach(calmThemes) { choice in
                     chip(choice, name: choice.name)
                 }
@@ -104,7 +105,7 @@ struct AppearanceSection: View {
                     .lineLimit(1)
                     .fixedSize()
             }
-            .frame(width: 84)
+            .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -129,7 +130,8 @@ private struct ThemeChipPreview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(preview.background)
         }
-        .frame(width: 84, height: 54)
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(preview.foreground.opacity(0.14)))
     }
@@ -160,7 +162,9 @@ struct WindowPreview: View {
             }
             .frame(width: width, height: height)
         }
-        .aspectRatio(600 / 236, contentMode: .fit)
+        // Short: a terminal is mostly empty below its prompt, and a taller miniature was a dark
+        // block that outweighed the choices under it.
+        .aspectRatio(720 / 210, contentMode: .fit)
         .animation(.easeInOut(duration: 0.25), value: card)
         .animation(.easeInOut(duration: 0.25), value: glass)
         .accessibilityHidden(true)

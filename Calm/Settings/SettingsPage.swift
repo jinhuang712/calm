@@ -149,11 +149,12 @@ struct SettingsView: View {
                     .frame(width: 1)
                 ScrollView {
                     content
-                        .frame(maxWidth: 720, alignment: .leading)
-                        .padding(.horizontal, 48)
+                        .frame(maxWidth: Self.columnWidth, alignment: .leading)
+                        .padding(.leading, leadingInset(pane: proxy.size.width - (compact ? 68 : SidebarView.width) - 1))
+                        .padding(.trailing, 48)
                         .padding(.top, 40)
                         .padding(.bottom, 48)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollIndicators(.never)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -165,6 +166,15 @@ struct SettingsView: View {
         .background(background)
         .ignoresSafeArea()
         .environment(\.colorScheme, style.isDark ? .dark : .light)
+    }
+
+    private static let columnWidth: CGFloat = 720
+
+    /// The page stays near the list, so the two read as one screen: centered while the pane is
+    /// modest, then held 112 pt from the list. On a wide window a centered column ended up an
+    /// island, far from the list it belongs to.
+    private func leadingInset(pane: CGFloat) -> CGFloat {
+        min(max((pane - Self.columnWidth) / 2, 48), 112)
     }
 
     /// Sections with something broken in them.

@@ -50,6 +50,22 @@
                 toggleSearch(query: String(search.dropFirst(7)))
             case let search where search.hasPrefix("search_open:"):
                 searchAndOpenForTesting(String(search.dropFirst(12)))
+            case let keys where keys.hasPrefix("keys:"):
+                // keys:<text>: type into whatever has focus (a text field, say), one key event per
+                // character; `--type` only reaches the terminal. Sent to the window directly,
+                // because a headless window is never key.
+                for character in keys.dropFirst(5) {
+                    let text = String(character)
+                    for type in [NSEvent.EventType.keyDown, .keyUp] {
+                        if let window, let event = NSEvent.keyEvent(
+                            with: type, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                            windowNumber: window.windowNumber, context: nil, characters: text,
+                            charactersIgnoringModifiers: text, isARepeat: false, keyCode: 0,
+                        ) {
+                            window.sendEvent(event)
+                        }
+                    }
+                }
             case "cmd_k":
                 pressKeyEquivalentForTesting(keyCode: 40, characters: "k")
             case let click where click.hasPrefix("double_click:"):

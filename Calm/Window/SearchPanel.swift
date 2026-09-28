@@ -104,9 +104,10 @@ struct SearchPanelView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 2) {
+                            // Rows keep the ForEach's identity (the transcript): an `.id(index)`
+                            // here made the lazy stack keep drawing the previous results' rows.
                             ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                                 row(item, selected: index == model.selection)
-                                    .id(index)
                                     .onTapGesture { onOpen(item) }
                             }
                         }
@@ -116,7 +117,7 @@ struct SearchPanelView: View {
                     .scrollIndicators(.never)
                     // Seven and a half rows: the half row says there's more below.
                     .frame(height: min(contentHeight, 6 + 7.5 * (Self.rowHeight + 2)))
-                    .onChange(of: model.selection) { proxy.scrollTo(model.selection, anchor: .center) }
+                    .onChange(of: model.selection) { proxy.scrollTo(model.selectedItem?.id, anchor: .center) }
                 }
 
                 if model.items.isEmpty {

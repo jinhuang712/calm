@@ -43,13 +43,13 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | Line | Content | Shown when |
 |---|---|---|
 | 1 | agent's mark · **session name** · time since last activity | always |
-| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m") | always |
-| 3 | thin progress bar · "3 of 5 todos" | the agent keeps a todo list |
-| 4 | recap: the latest agent message, two lines at most | always |
+| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m") | not idle |
+| 3 | thin progress bar · "3 of 5 todos" | not idle, and the agent keeps a todo list |
+| 4 | recap: the latest agent message, two lines at most (one when idle) | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
 
 - Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
-- Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you look; an idle card recedes (its mark in gray, its name dimmer). The selected card gets a slightly lighter surface.
+- Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you look; an idle card recedes (its mark in gray, its name dimmer) and is shorter: no state line or progress bar, one line of recap, tighter padding. That includes done and failed cards once you've looked, since a visit settles them to idle. The selected card gets a slightly lighter surface.
 - The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π, ω) stands in if a mark can't be drawn.
 - Collapsed projects summarize what needs a look: "3 sessions · 1 needs you".
 - Secondary text stays muted; only the name is in the primary text color.
@@ -68,7 +68,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 | State | Indicator | Loudness |
 |---|---|---|
-| idle | the agent's mark in gray at 45%, name and "Idle" dimmed | silent |
+| idle | a shorter card: the agent's mark in gray at 45%, name dimmed, one line of recap | silent |
 | working | soft blue card; the agent's mark moves in its own way; "Working · 4m" in blue, a soft light crossing it every 2.6 s | silent |
 | done | sage card with a filled check, until visited (then idle) | silent until visited |
 | failed | small mark in the theme's muted red | silent until visited |

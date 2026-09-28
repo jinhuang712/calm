@@ -151,6 +151,20 @@
                 if let state = SessionState(rawValue: String(state.dropFirst(7))), let id = focusedPane?.id {
                     manager.report(id, StatusReport(state: state, message: "Allow edit?", source: .hook))
                 }
+            case let state where state.hasPrefix("agent:"):
+                // agent:<state>: the focused session becomes a Claude Code card with a recap and a
+                // todo list, in that state, so cards can be snapshotted without running an agent.
+                if let state = SessionState(rawValue: String(state.dropFirst(6))), let id = focusedPane?.id {
+                    manager.noteAgentSession(id, kind: .claudeCode, agentSessionID: nil, transcriptPath: nil)
+                    let tail = TranscriptTail(
+                        lastMessage: "Moved the token refresh behind the retry loop and added a test for the expired case.",
+                        progress: TodoProgress(done: 2, total: 5),
+                    )
+                    manager.transcriptChanged(id, tail, modified: .now)
+                    if state != .idle {
+                        manager.report(id, StatusReport(state: state, message: nil, source: .hook))
+                    }
+                }
             default:
                 return false
             }

@@ -3,7 +3,8 @@ import SwiftUI
 
 /// An agent session in the sidebar (UIUX.md → Session cards): who, what state, what it last
 /// said, and where. Each state has its look: idle recedes, working is a soft blue with the
-/// agent's mark in motion, *needs you* is amber, done is sage until you look.
+/// agent's mark in motion, *needs you* is amber, done is sage until you look. An idle card
+/// (read, or never started) is also shorter, so the sessions that need a look stand out.
 struct SessionCard: View {
     let session: Session
     let agent: AgentKind
@@ -30,9 +31,11 @@ struct SessionCard: View {
                         .foregroundStyle(style.tertiary)
                 }
             }
-            stateLine
-                .padding(.leading, Self.indent)
-            if let progress = session.agent?.tail?.progress, progress.total > 0 {
+            if !isCompact {
+                stateLine
+                    .padding(.leading, Self.indent)
+            }
+            if !isCompact, let progress = session.agent?.tail?.progress, progress.total > 0 {
                 TodoProgressLine(progress: progress, style: style)
                     .padding(.leading, Self.indent)
             }
@@ -41,7 +44,7 @@ struct SessionCard: View {
                     .font(.system(size: 13))
                     .lineSpacing(1.5)
                     .foregroundStyle(style.secondary)
-                    .lineLimit(2)
+                    .lineLimit(isCompact ? 1 : 2)
                     .padding(.leading, Self.indent)
                     .transition(.opacity)
             }
@@ -53,7 +56,8 @@ struct SessionCard: View {
                     .padding(.leading, Self.indent)
             }
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, isCompact ? 8 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(background))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(border))
@@ -67,6 +71,12 @@ struct SessionCard: View {
     /// The agent's own title (from its transcript) is steadier than the terminal title.
     private var title: String {
         session.title(agentTitle: session.agent?.tail?.title)
+    }
+
+    /// Idle cards drop the state line and the progress bar and keep one line of recap. Selected
+    /// or not, so picking a card never makes the list jump.
+    private var isCompact: Bool {
+        session.state == .idle
     }
 
     /// Idle, and not the session you're in: the card recedes.

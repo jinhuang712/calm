@@ -22,6 +22,10 @@ enum CalmDefaults {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
+        // A full-screen app that paints its own background (OpenCode, Neovim) would otherwise sit
+        // in a frame of the theme's background: the padding takes the nearest cell's color instead.
+        // Ghostty keeps the theme color at a shell prompt, where extending looks worse.
+        lines.append("window-padding-color = extend")
 
         // ⌘K searches sessions in Calm (UIUX.md → Keyboard); clear screen moves to ⌘⇧K.
         lines.append("keybind = super+k=unbind")

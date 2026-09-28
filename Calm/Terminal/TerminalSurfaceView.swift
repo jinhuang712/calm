@@ -104,6 +104,8 @@ final class TerminalSurfaceView: NSView {
     private var suppressNextLeftMouseUp = false
     private var eventMonitor: Any?
     private var windowObservers: [NSObjectProtocol] = []
+    private var frameObservation: NSKeyValueObservation?
+    private var isEdgeSamplePending = false
 
     // Keyboard and IME state, used by the keyboard extension.
     var markedText = NSMutableAttributedString()
@@ -179,6 +181,42 @@ final class TerminalSurfaceView: NSView {
             return ghostty_surface_new(app, &config)
         }
         setColorScheme(TerminalEngine.shared.colorScheme)
+        observeFrames()
+    }
+
+    /// The color along the top edge of the last frame (SurfaceEdgeColor); the title strip takes it.
+    private(set) var topEdgeColor: NSColor? {
+        didSet {
+            if topEdgeColor != oldValue {
+                host?.surfaceAppearanceDidChange(self)
+            }
+        }
+    }
+
+    /// libghostty hands each finished frame to the layer as its `contents` (an IOSurface), usually
+    /// on main. Reading it back is cheap, but frames come at up to 120 Hz, so the edge is sampled
+    /// at most every 0.1 s, always after the latest frame.
+    private func observeFrames() {
+        frameObservation = layer?.observe(\.contents) { [weak self] _, _ in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.scheduleEdgeSample() }
+            }
+        }
+    }
+
+    private func scheduleEdgeSample() {
+        guard !isEdgeSamplePending else { return }
+        isEdgeSamplePending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            MainActor.assumeIsolated { self?.sampleEdge() }
+        }
+    }
+
+    private func sampleEdge() {
+        isEdgeSamplePending = false
+        // The CF type IOSurfaceRef is bridged to IOSurface in Swift.
+        guard let contents = layer?.contents, CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID() else { return }
+        topEdgeColor = SurfaceEdgeColor.top(of: unsafeBitCast(contents as AnyObject, to: IOSurface.self))
     }
 
     private var colorScheme: ghostty_color_scheme_e?
@@ -197,6 +235,8 @@ final class TerminalSurfaceView: NSView {
         eventMonitor = nil
         windowObservers.forEach { NotificationCenter.default.removeObserver($0) }
         windowObservers = []
+        frameObservation?.invalidate()
+        frameObservation = nil
         titleTimer?.invalidate()
         if let surface {
             self.surface = nil

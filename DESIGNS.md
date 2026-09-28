@@ -277,6 +277,7 @@ accent = "#…"           # optional: the needs-you highlight (else Calm's amber
 
 ## Motion in the terminal
 
+- **Padding and title strip:** Calm's defaults set `window-padding-color = extend`, so the padding takes the nearest cell's color. libghostty doesn't expose that color, so each pane watches its layer's `contents` (the IOSurface libghostty renders into), samples the middle of the top row at most every 0.1 s (`SurfaceEdgeColor`) in the frame's color space (Display P3), and the window paints the title strip with the focused pane's sample, edge to edge on a solid background. The sidebar still derives from the theme's background. Side-by-side splits share one strip, so it follows the focused pane.
 - **Cursor glide:** `Calm/Resources/Shaders/cursor_glide.glsl`, a Ghostty custom shader using the `iCurrentCursor`/`iPreviousCursor`/`iTimeCursorChange` uniforms. `CalmDefaults` writes `~/Library/Application Support/Calm/defaults.ghostty` on each launch with `custom-shader` and `custom-shader-animation = true`, and loads it **before** the user's Ghostty config, so the user's settings win. It is skipped when Reduce Motion is on. Cost: while a custom shader is active, the focused pane runs an animation loop (Ghostty's docs estimate under 10% CPU).
 - **Smooth scrolling:** not possible with upstream Ghostty today. The renderer only draws whole rows; sub-row offsets need an engine change. **Decision (later):** propose it upstream, or carry a small patch in `scripts/ghosttykit.sh`. Until then Calm scrolls like Ghostty.
 

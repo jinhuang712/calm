@@ -156,7 +156,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 - Themes come in light and dark pairs and follow the system appearance.
 - Calm's default theme gives way to a theme set in the user's Ghostty config; a theme picked in Calm wins.
 - Optional glass background uses the system's material; the terminal can float as a rounded card or run edge to edge.
-- The padding around the terminal takes the color of the cells next to it, so an app that paints its own background (OpenCode, Neovim) fills the pane instead of sitting in a frame of the theme's color. The user's Ghostty `window-padding-color` wins.
+- The padding around the terminal takes the color of the cells next to it, so an app that paints its own background (OpenCode, Neovim) fills the pane instead of sitting in a frame of the theme's color. The user's Ghostty `window-padding-color` wins. Edge to edge on a solid background, the title strip above the terminal takes the same color, so the two meet without a seam.
 
 ## Settings screen
 

@@ -294,8 +294,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             ?? TerminalEngine.shared.config?.backgroundColor
             ?? NSColor(white: 0.15, alpha: 1)
         var style = SidebarStyle.derived(from: background, theme: TerminalTheme.chromeColors(matching: background)).contrasted()
+        // The title strip takes the color the terminal drew along its top, so a full-screen app with
+        // its own background (OpenCode) meets it without a seam; the sidebar keeps the theme's.
         window.backgroundColor = windowStyle.apply(
-            manager.settings, style: &style, terminalBackground: background, mainArea: mainArea, container: container,
+            manager.settings, style: &style, terminalBackground: focusedPane?.topEdgeColor ?? background,
+            mainArea: mainArea, container: container,
         )
         fileViewer.cornerRadius = windowStyle.cornerRadius
         sidebarStyle = style

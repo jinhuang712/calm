@@ -253,7 +253,7 @@ private struct WelcomeCard: View {
     }
 }
 
-/// The agents Calm watches, each in its own soft tint, and the way to set them up.
+/// The agents Calm watches, each with its own mark, and the way to set them up.
 private struct WelcomeAgents: View {
     let style: SidebarStyle
     let action: () -> Void
@@ -266,13 +266,7 @@ private struct WelcomeAgents: View {
                     .foregroundStyle(style.tertiary)
                 ForEach(AgentKind.allCases, id: \.self) { agent in
                     HStack(spacing: 6) {
-                        let tint = agent.tint(dark: style.isDark)
-                        Text(agent.monogram)
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
-                            .foregroundStyle(tint)
-                            .frame(width: 20, height: 20)
-                            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(tint.opacity(0.16)))
-                            .accessibilityHidden(true)
+                        AgentLogo(agent: agent, size: 20, style: style)
                         Text(agent.displayName)
                             .foregroundStyle(style.secondary)
                     }

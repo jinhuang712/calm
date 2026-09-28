@@ -2,7 +2,8 @@ import CalmModel
 import SwiftUI
 
 /// An agent session in the sidebar (UIUX.md → Session cards): who, what state, what it last
-/// said, and where. Only *needs you* tints the card.
+/// said, and where. Each state has its look: idle recedes, working is a soft blue with the
+/// agent's mark in motion, *needs you* is amber, done is sage until you look.
 struct SessionCard: View {
     let session: Session
     let agent: AgentKind
@@ -14,10 +15,10 @@ struct SessionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                AgentMark(agent: agent, isWorking: session.state == .working, style: style)
+                AgentLogo(agent: agent, state: session.state, style: style)
                 Text(title)
                     .font(.system(size: 14.5, weight: .medium))
-                    .foregroundStyle(style.primary)
+                    .foregroundStyle(isAsleep ? style.secondary : style.primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 4)
@@ -29,14 +30,8 @@ struct SessionCard: View {
                         .foregroundStyle(style.tertiary)
                 }
             }
-            HStack(spacing: 7) {
-                StateMark(state: session.state, style: style)
-                Text(stateLine)
-                    .font(.system(size: 13))
-                    .foregroundStyle(session.state == .needsYou ? style.attention : style.secondary)
-                    .lineLimit(1)
-            }
-            .padding(.leading, Self.indent)
+            stateLine
+                .padding(.leading, Self.indent)
             if let progress = session.agent?.tail?.progress, progress.total > 0 {
                 TodoProgressLine(progress: progress, style: style)
                     .padding(.leading, Self.indent)
@@ -74,10 +69,58 @@ struct SessionCard: View {
         session.title(agentTitle: session.agent?.tail?.title)
     }
 
-    /// "Working · Fixing the token mock".
-    private var stateLine: String {
-        guard session.state == .working, let step = session.agent?.tail?.step else { return session.state.label }
-        return "\(session.state.label) · \(step)"
+    /// Idle, and not the session you're in: the card recedes.
+    private var isAsleep: Bool {
+        session.state == .idle && !isSelected
+    }
+
+    @ViewBuilder
+    private var stateLine: some View {
+        if session.state == .working {
+            // Twice a minute, for the time it's been at it.
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                ShimmerText(text: workingLine(at: context.date), color: style.working, highlight: style.workingHighlight)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+            }
+        } else {
+            HStack(spacing: 7) {
+                StateMark(state: session.state, style: style)
+                Text(session.state.label)
+                    .font(.system(size: 13, weight: session.state == .done ? .medium : .regular))
+                    .foregroundStyle(stateColor)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var stateColor: Color {
+        switch session.state {
+        case .needsYou: style.attention
+        case .done: style.done
+        case .idle: style.tertiary
+        case .working, .failed: style.secondary
+        }
+    }
+
+    /// "Working · Fixing the token mock", or "Working · 4m" when the agent names no step.
+    func workingLine(at now: Date) -> String {
+        if let step = session.agent?.tail?.step {
+            return "\(SessionState.working.label) · \(step)"
+        }
+        guard let since = session.stateSince, let elapsed = Self.elapsed(now.timeIntervalSince(since)) else {
+            return SessionState.working.label
+        }
+        return "\(SessionState.working.label) · \(elapsed)"
+    }
+
+    /// "4m", "2h"; nothing in the first minute.
+    static func elapsed(_ interval: TimeInterval) -> String? {
+        switch interval {
+        case ..<60: nil
+        case ..<3600: "\(Int(interval / 60))m"
+        default: "\(Int(interval / 3600))h"
+        }
     }
 
     /// While the agent waits for you, what it asked; otherwise the latest thing it said.
@@ -91,23 +134,37 @@ struct SessionCard: View {
     /// The detail lines start under the title, past the agent mark.
     static let indent: CGFloat = 36
 
-    private var background: Color {
-        if session.state == .needsYou {
-            return style.attention.opacity(isSelected ? 0.2 : 0.14)
+    /// The state's color and how strongly the card takes it.
+    private struct Tint {
+        let color: Color
+        let fill: Double
+        let selectedFill: Double
+        let edge: Double
+    }
+
+    private var tint: Tint? {
+        switch session.state {
+        case .needsYou: Tint(color: style.attention, fill: 0.14, selectedFill: 0.2, edge: 0.22)
+        case .working: Tint(color: style.working, fill: 0.1, selectedFill: 0.15, edge: 0.24)
+        case .done: Tint(color: style.done, fill: 0.1, selectedFill: 0.15, edge: 0.24)
+        case .idle, .failed: nil
         }
-        return isSelected ? style.selection : .clear
+    }
+
+    private var background: Color {
+        guard let tint else { return isSelected ? style.selection : .clear }
+        return tint.color.opacity(isSelected ? tint.selectedFill : tint.fill)
     }
 
     /// A hairline that gives a highlighted card its edge.
     private var border: Color {
-        if session.state == .needsYou {
-            return style.attention.opacity(0.22)
-        }
-        return isSelected ? style.primary.opacity(0.07) : .clear
+        guard let tint else { return isSelected ? style.primary.opacity(0.07) : .clear }
+        return tint.color.opacity(tint.edge)
     }
 
     private var accessibilityText: String {
-        [agent.displayName, title, stateLine, recap]
+        let state = session.state == .working ? workingLine(at: .now) : session.state.label
+        return [agent.displayName, title, state, recap]
             .compactMap(\.self)
             .joined(separator: ", ")
     }
@@ -139,37 +196,6 @@ struct TodoProgressLine: View {
     }
 }
 
-/// The agent's letter mark, in the agent's own soft tint. While the agent works it breathes slowly
-/// and faintly, never enough to pull the eye (and not at all with Reduce Motion).
-struct AgentMark: View {
-    let agent: AgentKind
-    let isWorking: Bool
-    let style: SidebarStyle
-    @State private var dimmed = false
-
-    var body: some View {
-        let tint = agent.tint(dark: style.isDark)
-        Text(agent.monogram)
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
-            .foregroundStyle(tint)
-            .frame(width: 26, height: 26)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint.opacity(0.16)))
-            .opacity(isWorking && dimmed ? 0.45 : 1)
-            .onAppear(perform: updatePulse)
-            .onChange(of: isWorking) { updatePulse() }
-    }
-
-    private func updatePulse() {
-        guard isWorking, !Motion.isReduced else {
-            withAnimation(.easeOut(duration: 0.3)) { dimmed = false }
-            return
-        }
-        withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-            dimmed = true
-        }
-    }
-}
-
 /// The state's shape: shape as well as color, so state never depends on color alone.
 struct StateMark: View {
     let state: SessionState
@@ -180,15 +206,21 @@ struct StateMark: View {
         case .needsYou:
             Circle().fill(style.attention).frame(width: 8, height: 8)
         case .done:
-            Image(systemName: "checkmark")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(style.tertiary)
+            // Filled, so done reads at a glance next to the other marks.
+            Circle()
+                .fill(style.done)
+                .frame(width: 14, height: 14)
+                .overlay(
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 7.5, weight: .heavy))
+                        .foregroundStyle(style.background),
+                )
         case .failed:
             Image(systemName: "xmark")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(style.failure)
         case .working:
-            Circle().stroke(style.secondary, lineWidth: 1.5).frame(width: 8, height: 8)
+            Circle().stroke(style.working, lineWidth: 1.5).frame(width: 8, height: 8)
         case .idle:
             Circle().fill(style.tertiary.opacity(0.6)).frame(width: 6, height: 6)
         }
@@ -229,20 +261,7 @@ extension SessionState {
 }
 
 extension AgentKind {
-    /// A soft color of its own for the agent's mark, so agents tell apart at a glance; low in
-    /// saturation, and the mark's letter keeps it from resting on color alone.
-    func tint(dark: Bool) -> Color {
-        let hue = switch self {
-        case .claudeCode: 0.07
-        case .codex: 0.6
-        case .openCode: 0.48
-        case .pi: 0.8
-        case .omp: 0.33
-        }
-        return Color(hue: hue, saturation: dark ? 0.32 : 0.45, brightness: dark ? 0.88 : 0.5)
-    }
-
-    /// A letter mark, not the agent's logo.
+    /// A letter for where a mark can't be drawn.
     var monogram: String {
         switch self {
         case .claudeCode: "C"

@@ -144,11 +144,7 @@ struct SearchPanelView: View {
     private func row(_ item: SearchPanelModel.Item, selected: Bool) -> some View {
         let result = item.result
         return HStack(alignment: .top, spacing: 10) {
-            Text(result.agent.monogram)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .frame(width: 20, height: 20)
-                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.08)))
+            AgentLogo(agent: result.agent, size: 20)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(result.title)

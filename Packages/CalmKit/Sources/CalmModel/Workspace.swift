@@ -75,6 +75,8 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// Pinned sessions stay in their project when their folder changes.
     public var isPinned: Bool
     public var state: SessionState
+    /// When a report last changed `state` ("Working · 4m"); nil in older state files.
+    public var stateSince: Date?
     /// The latest report behind `state` (optional so older state files still load).
     public var lastReport: StatusReport?
     /// The agent in the foreground, if one is running.

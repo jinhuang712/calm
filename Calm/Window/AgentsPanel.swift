@@ -173,11 +173,7 @@ struct AgentsContent: View {
 
     private func agentRow(_ row: AgentsPanelModel.Row) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Text(row.adapter.kind.monogram)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(secondary)
-                .frame(width: 20, height: 20)
-                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style?.selection ?? Color.primary.opacity(0.07)))
+            AgentLogo(agent: row.adapter.kind, size: 20, style: style)
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.adapter.kind.displayName)
                     .font(.system(size: 13, weight: .medium))

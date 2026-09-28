@@ -141,6 +141,8 @@ protocol AgentAdapter {
 
 **Agents panel (as built, M3.11–M3.12).** Each adapter declares its `configFolder` (presence means installed) and its `AgentSetup`: `automatic` (Claude Code), `notifications` (Codex, omp), `files` (pi: `~/.pi/agent/extensions/calm.ts`, API checked against pi 0.87.1's type declarations: `agent_start` → working, `agent_settled` → done/failed/idle by the outcome `agent_before_settle` saw, `ui_prompt_start`/`end` → needs you and back; reports are spawned detached because pi awaits handlers) or `hint` (OpenCode). Files Calm writes carry a marker line; Calm refuses to overwrite, and never removes, a file without it. Settings are written into config.toml by editing only the one line (`CalmSettings.setting`), keeping every other line and comment.
 
+**Agent marks (as built).** Each adapter carries its mark as data (`AgentMarkArt` in `<Agent>+Mark.swift`): SVG path data in a view box, fill colors for dark and light (or a gradient), a scale, and a motion kind (`bloom`, `turnAndRest`, `pulseGrid`, `build`, `gradientTurn`). The app draws any mark the same way: `SVGPath` reads the path data (moves, lines, curves, closes; anything else falls back to the agent's letter), `MarkMotion` poses a mark as a pure function of time (looping while working, once for finishing up), and `AgentLogo` renders it in a `TimelineView` capped at 30 frames a second that runs only while the mark moves. Idle marks are drawn in the grays of their own colors rather than through a grayscale filter. `Session.stateSince` records when a report changed the state, for "Working · 4m".
+
 **What this means for Calm.** Terminal signals alone already cover Claude Code, Codex and omp (M3.5), with no setup. Hooks add precision (immediate *needs you*, exact messages): Claude Code's plugin can be enabled inside Calm without writing anyone's config; Codex, OpenCode and pi need files in their config folders and the user's consent (and, for Codex, approval in `/hooks`).
 
 Open questions: whether `AskUserQuestion`/`ExitPlanMode` fire `PermissionRequest` in Claude Code's interactive mode; which hook, if any, follows a rejected permission; whether Codex's `notify` blocks; how OpenCode v2's TUI attaches to its shared service.
@@ -306,6 +308,7 @@ accent = "#…"           # optional: the needs-you highlight (else Calm's amber
 - Calm is licensed under **Apache-2.0** (`LICENSE`, `NOTICE`).
 - Ghostty (MIT) may be studied and small parts adapted, with attribution in the file header and in `NOTICE`. Ghostty's license notice ships with the app because Calm embeds libghostty.
 - Other projects are for ideas only; no code is copied from them.
+- Agent marks are the agents' own logos, shown only to identify which agent a session runs; their sources and owners are listed in `NOTICE`. The motions are Calm's own code, written after watching each agent's.
 
 ## Distribution
 

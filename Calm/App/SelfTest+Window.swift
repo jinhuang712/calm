@@ -9,6 +9,9 @@
             switch action {
             case "new_session":
                 newSession()
+            case let text where text.hasPrefix("type:"):
+                // type:<command>: run a command in the focused session, so one run can set up several
+                focusedPane?.typeForTesting(String(text.dropFirst(5)))
             case "toggle_sidebar":
                 toggleSidebar()
             case "toggle_files":

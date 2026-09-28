@@ -81,6 +81,9 @@ public extension Workspace {
            previous.lastReport?.source == report.source {
             return .none
         }
+        if previous.state != newState {
+            sessions[index].stateSince = report.date
+        }
         sessions[index].state = newState
         sessions[index].lastReport = report
 

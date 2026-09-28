@@ -42,15 +42,15 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 | Line | Content | Shown when |
 |---|---|---|
-| 1 | agent icon · **session name** · time since last activity | always |
-| 2 | state mark · state · current step (e.g. "Running reconciliation") | always |
+| 1 | agent's mark · **session name** · time since last activity | always |
+| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m") | always |
 | 3 | thin progress bar · "3 of 5 todos" | the agent keeps a todo list |
 | 4 | recap: the latest agent message, two lines at most | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
 
 - Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
-- Only *needs you* tints a card (a soft, low-saturation amber). The selected card gets a slightly lighter surface.
-- The agent mark is a letter (C, X, O, π, ω), never the agent's logo.
+- Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you look; an idle card recedes (its mark in gray, its name dimmer). The selected card gets a slightly lighter surface.
+- The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π, ω) stands in if a mark can't be drawn.
 - Collapsed projects summarize what needs a look: "3 sessions · 1 needs you".
 - Secondary text stays muted; only the name is in the primary text color.
 - Projects collapse to one line with a summary.
@@ -68,11 +68,27 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 | State | Indicator | Loudness |
 |---|---|---|
-| idle | nothing | silent |
-| working | a slow, subtle pulse on the agent icon | silent |
-| done | small check, muted | silent until visited |
+| idle | the agent's mark in gray at 45%, name and "Idle" dimmed | silent |
+| working | soft blue card; the agent's mark moves in its own way; "Working · 4m" in blue, a soft light crossing it every 2.6 s | silent |
+| done | sage card with a filled check, until visited (then idle) | silent until visited |
 | failed | small mark in the theme's muted red | silent until visited |
-| **needs you** | soft highlight on the row, plus a dot | the only state that may notify |
+| **needs you** | amber card, plus a dot | the only state that may notify |
+
+When the work ends, the mark settles once, in about a second, before it rests.
+
+## Agent marks
+
+Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened; they run at 30 frames a second, and not at all with Reduce Motion.
+
+| Agent | Mark | Working | Finishing up |
+|---|---|---|---|
+| Claude Code | the spark, in clay | turns, gathers into a dot and blooms back (2.4 s), after Claude's own thinking spark | one last bloom, then a full turn easing into place |
+| Codex | OpenAI's Blossom, one color | one eased turn, then a short rest (1.6 s + 0.6 s) | slows to a stop |
+| OpenCode | its block frame | twelve small squares breathing on their own rhythms, as OpenCode's app spinner does | the squares fade into the mark |
+| pi | the pixel π in coral, blue and gold | the pieces drop into place, hold and fall away (3.2 s), after pi.dev's logo | the last piece lands and the π brightens twice, softly |
+| omp | the block π in its pink-violet-cyan gradient | the gradient turns inside the π while a shine crosses it | the turn slows, one last shine |
+
+The marks belong to their owners (see NOTICE) and are shown only to say which agent a session runs.
 
 Rules:
 
@@ -107,6 +123,7 @@ Rules:
 
 - Soft palettes only in the default set: low contrast between text and background (roughly 6:1 to 11:1), low accent saturation, neutral backgrounds.
 - The accent color is used sparingly: the selected row and the *needs you* highlight.
+- Each state keeps one color: amber for *needs you*, a soft blue for *working*, sage for *done* (until you look), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
 - Red appears only for *failed* and real errors.
 - Chrome (sidebar, panels) takes its colors from the theme, never from a fixed system tint that clashes with the terminal.
 
@@ -124,7 +141,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 - Motion explains change: rows slide when sessions move between projects, panels ease in and out.
 - Durations are short and easing is gentle; nothing bounces or flashes.
-- The *working* pulse is slow and low-contrast so it never pulls the eye.
+- An agent's mark moves only while it works, in its own way, slowed and softened so it never pulls the eye; when the work ends it settles once and rests.
 - Everything respects **Reduce Motion**.
 - A panel that changes the terminal's size resizes it once; only the picture glides. Programs redraw on every resize, and a resize per frame would make an agent's screen flicker.
 
@@ -143,7 +160,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Splits | new panes grow into place and closed panes fold away |
 | Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
 | Session switching | hold ⌃ and press Tab to cycle sessions, most recent first, over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight back to the previous session without showing anything |
-| Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping |
+| Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping. The agent's mark moves while it works and settles once when the work ends (see Agent marks) |
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |

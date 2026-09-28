@@ -17,6 +17,21 @@ struct SidebarStyle: Equatable {
     /// How opaque the sidebar and files column are: less on a glass window (WindowStyle).
     var surfaceOpacity = 1.0
 
+    /// *Working*: a soft, cool blue, quieter than *needs you* (UIUX.md → Color).
+    var working: Color {
+        Color(hue: 0.59, saturation: isDark ? 0.31 : 0.45, brightness: isDark ? 0.85 : 0.58)
+    }
+
+    /// The light that crosses *Working*.
+    var workingHighlight: Color {
+        isDark ? .white.opacity(0.75) : Color(hue: 0.59, saturation: 0.8, brightness: 0.72)
+    }
+
+    /// *Done*, until the user looks: a soft sage.
+    var done: Color {
+        Color(hue: 0.3, saturation: isDark ? 0.23 : 0.42, brightness: isDark ? 0.75 : 0.5)
+    }
+
     /// With `theme` (the Calm theme whose background the terminal shows), the chrome takes the
     /// theme's own sidebar, text, accent and red instead of derived ones (UIUX.md → Color).
     static func derived(from terminalBackground: NSColor, theme: CalmTheme.Colors? = nil) -> SidebarStyle {

@@ -61,6 +61,8 @@ public protocol AgentAdapter: Sendable {
     var configFolder: String? { get }
     /// How the agent connects to Calm (the Agents panel).
     var setup: AgentSetup { get }
+    /// The agent's own mark and how it moves while the agent works (in `<Agent>+Mark.swift`).
+    var mark: AgentMarkArt { get }
     /// The shell command that resumes one of the agent's past sessions, if it can.
     func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
     /// The shell command that starts a new conversation from a copy of one, if the agent can.

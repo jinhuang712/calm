@@ -19,3 +19,16 @@ Used by the file viewer to render Markdown.
 highlight.js (https://highlightjs.org), BSD 3-Clause License.
 Copyright (c) 2006, Ivan Sagalaev.
 Used by the file viewer to highlight code.
+
+Agent marks
+The sidebar shows each coding agent's own mark, only to say which agent a session runs. Calm
+is not affiliated with or endorsed by these projects, and the marks remain their owners':
+- Claude and the Claude spark are trademarks of Anthropic, PBC. Path data from Simple Icons
+  (https://simpleicons.org), CC0-1.0.
+- OpenAI and the Blossom mark are trademarks of OpenAI. Path data from the Codex repository
+  (https://github.com/openai/codex, codex-rs/tui/src/empty_state_animation/paths.rs),
+  Apache-2.0.
+- The OpenCode mark is OpenCode's, from https://github.com/anomalyco/opencode
+  (packages/identity/mark.svg), MIT License, Copyright (c) 2025 opencode.
+- The pi mark is pi's, from https://pi.dev/logo-auto.svg.
+- The omp mark is omp's, from https://omp.sh/favicon.svg.

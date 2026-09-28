@@ -35,6 +35,22 @@ struct AttentionTests {
         #expect(workspace.report(other, hook(.needsYou, "Allow bash?"), focusedSessionID: watched) == .none)
     }
 
+    @Test func `a state keeps the time it began, however often it's reported`() {
+        let fixture = Fixture()
+        var workspace = fixture.workspace
+        let (watched, other) = (fixture.watched, fixture.other)
+        let start = Date(timeIntervalSince1970: 1000)
+        workspace.report(other, StatusReport(state: .working, source: .hook, date: start), focusedSessionID: watched)
+        workspace.report(
+            other,
+            StatusReport(state: .working, message: "Reading files", source: .hook, date: start + 60),
+            focusedSessionID: watched,
+        )
+        #expect(workspace.session(other)?.stateSince == start)
+        workspace.report(other, StatusReport(state: .done, source: .hook, date: start + 120), focusedSessionID: watched)
+        #expect(workspace.session(other)?.stateSince == start + 120)
+    }
+
     @Test func `needs you in the session you are looking at stays quiet`() {
         let fixture = Fixture()
         var workspace = fixture.workspace

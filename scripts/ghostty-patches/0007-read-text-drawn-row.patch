@@ -1,0 +1,25 @@
+Subject: read_text reports the row as drawn under smooth scrolling
+
+smooth-scroll draws the viewport shifted by a sub-row offset (a gesture's
+remainder, the leftover height). imePoint, clicks and selection use the rows
+as drawn, but read_text's tl_px_y still gave the row-aligned position, so an
+embedder couldn't tell where a row is on screen. Add the same shift.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005.
+
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -2099,6 +2099,12 @@
+
+             // Add padding
+             y += @floatFromInt(self.size.padding.top);
++
++            // Of the row as it is drawn: smooth scrolling draws the grid
++            // shifted by a sub-row offset, as imePoint already accounts for.
++            // Without it, an embedder placing things on the text (Calm's
++            // link marks, its cell hit-testing) lands a row off.
++            y += self.viewportPixelShift();
+
+             // Scale
+             y /= content_scale.y;

@@ -268,6 +268,7 @@
             case "link_marks":
                 let marks = focusedPane?.linkMarksForTesting ?? []
                 FileHandle.standardError.write(Data("calm-selftest: \(marks.count) link marks: \(marks.joined(separator: " | "))\n".utf8))
+                FileHandle.standardError.write(Data("calm-selftest: grid \(focusedPane?.gridGeometryForTesting ?? "none")\n".utf8))
             default:
                 return false
             }

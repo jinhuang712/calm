@@ -54,7 +54,9 @@ extension TerminalSurfaceView {
     /// libghostty reports a selection's left edge exactly, but for its height the text's baseline
     /// (padding + a cell − the font's baseline, which the API doesn't give). The IME point is the
     /// bottom of the cursor's cell (padding + whole cells), so the top padding is the one value
-    /// that is a whole number of cells from it and less than a cell above the baseline.
+    /// that is a whole number of cells from it and less than a cell above the baseline. Both
+    /// include smooth scrolling's pixel shift (the IME point by the fork's patch 0005, the
+    /// baseline by Calm's 0007), so this is where the rows are drawn.
     func gridOrigin() -> NSPoint? {
         guard let surface, cellSize.width > 0, cellSize.height > 0 else { return nil }
         var text = ghostty_text_s()

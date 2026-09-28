@@ -12,7 +12,7 @@ and LinkMatcherTests use some of its test cases.
 
 Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/ghostty), the
 Ghostty fork Macterm builds on, MIT License (Ghostty's, above). Applied unchanged to the engine;
-see scripts/ghostty-patches.
+see scripts/ghostty-patches. Patches from 0007 on are Calm's own changes to Ghostty's source.
 
 zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
 Copyright (c) 2025 Eric Bower.

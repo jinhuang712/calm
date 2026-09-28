@@ -31,7 +31,7 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 
 - Calm is Apache-2.0.
 - Ghostty (MIT) may be studied and small parts adapted, with attribution in the file header and in `NOTICE`.
-- Other projects are for ideas only. Never copy their code. One exception, decided 2026-09-29: the engine patches in `scripts/ghostty-patches`, taken unchanged from `thdxg/ghostty` (MIT) and credited in `NOTICE`. Refresh them from the fork; don't edit them here.
+- Other projects are for ideas only. Never copy their code. One exception, decided 2026-09-29: the engine patches in `scripts/ghostty-patches`, taken unchanged from `thdxg/ghostty` (MIT) and credited in `NOTICE`. Refresh them from the fork; don't edit them here. Calm's own patches go beside them as separate files (0007 and up, decided 2026-09-29), each as small as it can be and worth offering upstream.
 
 ## Workflow
 

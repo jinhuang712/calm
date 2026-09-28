@@ -4,7 +4,7 @@
 `scripts/ghostty.env`, in name order, before building GhosttyKit. They give Calm smooth
 scrolling, which upstream Ghostty doesn't have yet (see DESIGNS.md → Motion in the terminal).
 
-They are taken unchanged from [thdxg/ghostty](https://github.com/thdxg/ghostty), the Ghostty fork
+0005 and 0006 are taken unchanged from [thdxg/ghostty](https://github.com/thdxg/ghostty), the Ghostty fork
 Macterm builds on, where they live in `.github/downstream/`. Like Ghostty, that fork is MIT
 licensed (Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors); the patches are the
 fork's author's work. See `NOTICE`.
@@ -21,6 +21,18 @@ Source: `thdxg/ghostty@6dffca46e3b7728fde24c61ada60c5a06c250e2d`, whose parent i
 bcd807059b18de3027528513e9952beba586be1bf0a72f8da20abafa1ac41e56  0005-smooth-scroll.patch
 62a234b11f2b4482ec503c058adf19f690c3403750e4802b808d5bb82ea80ad7  0006-custom-shader-cursor-hidden-offscreen.patch
 ```
+
+## Calm's own patches
+
+Numbered from 0007, after the fork's, and applied on top of them. Each is as small as it can be,
+says why in its header, and is worth offering to the fork or upstream; drop it once they cover it.
+
+| Patch | What it does |
+|---|---|
+| `0007-read-text-drawn-row.patch` | `ghostty_surface_read_text` reports a row's position where smooth scrolling draws it (`tl_px_y` plus the viewport's pixel shift), as 0005 does for the IME position. Calm's link marks and cell hit-testing (Copy Cell, the link tag) place things on rows from it. |
+
+After moving to a newer Ghostty, re-check that these still apply; one that doesn't is updated
+here, by hand, against the new 0005.
 
 ## Moving to a newer Ghostty
 

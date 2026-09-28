@@ -132,6 +132,21 @@
             return false
         }
 
+        /// What the grid's origin is worked out from: the baseline read_text reports, the IME point
+        /// (the cursor cell's bottom), the cell size and the origin found.
+        var gridGeometryForTesting: String {
+            guard let surface else { return "no surface" }
+            var text = ghostty_text_s()
+            let corner = ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT, x: 0, y: 0)
+            guard ghostty_surface_read_text(surface, ghostty_selection_s(top_left: corner, bottom_right: corner, rectangle: false), &text)
+            else { return "no text" }
+            defer { ghostty_surface_free_text(surface, &text) }
+            var x = 0.0, y = 0.0, width = 0.0, height = 0.0
+            ghostty_surface_ime_point(surface, &x, &y, &width, &height)
+            let origin = gridOrigin().map { "\($0)" } ?? "none"
+            return "baseline \(text.tl_px_y), ime bottom \(y), cell \(cellSize), view \(bounds.size), origin \(origin)"
+        }
+
         /// The links marked at rest, top to bottom.
         var linkMarksForTesting: [String] {
             links.marks.keys.compactMap { match in match.runs.first.map { (match, $0) } }

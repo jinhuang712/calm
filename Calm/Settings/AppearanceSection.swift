@@ -2,8 +2,8 @@ import CalmModel
 import SwiftUI
 
 /// Settings → Appearance (UIUX.md → Settings, Themes): a live miniature of the window in the
-/// picked theme and window options, the themes as chips, then background, layout, motion and
-/// where the terminal font comes from.
+/// picked theme and window options, the themes and the interface sizes as chips, then
+/// background, layout and motion.
 struct AppearanceSection: View {
     let themes: ThemePickerModel
     let windowOptions: WindowOptionsModel
@@ -47,18 +47,19 @@ struct AppearanceSection: View {
                 }
             }
             .padding(.bottom, 32.scaled)
+            // How large all of Calm's chrome is drawn, this page included; the terminal keeps its
+            // own font (⌘+ and ⌘−).
+            if let sizePreview = picked ?? calmThemes.first.map({ style.isDark ? $0.dark : $0.light }) {
+                GroupHeading(title: "Interface size", style: style)
+                InterfaceSizePicker(selection: windowOptions.interfaceSize, preview: sizePreview, style: style) {
+                    windowOptions.setInterfaceSize($0)
+                }
+                .padding(.bottom, 32.scaled)
+            }
             SettingsGroup(style: style) {
                 // Closures, not method references: passing a model's method crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
                 // No help lines: the preview above shows what each choice does.
-                // How large all of Calm's chrome is drawn, this page included; the terminal keeps
-                // its own font (⌘+ and ⌘−).
-                SettingsRow(title: "Interface size", symbol: "textformat.size", style: style) {
-                    InterfaceSizePicker(selection: windowOptions.interfaceSize, style: style) {
-                        windowOptions.setInterfaceSize($0)
-                    }
-                }
-                RowDivider(style: style)
                 SettingsRow(title: "Background", symbol: "square.stack.3d.down.forward", style: style) {
                     CalmSegmented(
                         title: "Background", options: [(.solid, "Solid"), (.glass, "Glass")],
@@ -90,30 +91,12 @@ struct AppearanceSection: View {
     }
 
     private func chip(_ choice: ThemePickerModel.Choice, name: String) -> some View {
-        let selected = choice.id == themes.selectedID
-        let preview = style.isDark ? choice.dark : choice.light
-        return Button {
-            themes.pick(choice.id)
-        } label: {
-            VStack(spacing: 6.scaled) {
-                ThemeChipPreview(preview: preview)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12.scaled, style: .continuous)
-                            .strokeBorder(selected ? style.accent : .clear, lineWidth: 2)
-                            .padding(-4)
-                    }
-                Text(name)
-                    .calmFont(size: SettingsMetrics.note, weight: selected ? .medium : .regular)
-                    .foregroundStyle(selected ? style.primary : style.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        ChoiceChip(
+            name: name, selected: choice.id == themes.selectedID, style: style,
+            action: { themes.pick(choice.id) },
+            picture: { ThemeChipPreview(preview: style.isDark ? choice.dark : choice.light) },
+        )
         .accessibilityLabel("\(name) theme")
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

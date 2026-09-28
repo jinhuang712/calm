@@ -298,6 +298,38 @@ struct SettingsMenu<Value: Hashable>: View {
     }
 }
 
+/// A choice shown as a picture with its name under it, ringed in the theme's accent when chosen:
+/// the themes and the interface sizes in Appearance, so the two rows read as one kind of thing.
+struct ChoiceChip<Picture: View>: View {
+    let name: String
+    let selected: Bool
+    let style: SidebarStyle
+    let action: () -> Void
+    @ViewBuilder let picture: Picture
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6.scaled) {
+                picture
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12.scaled, style: .continuous)
+                            .strokeBorder(selected ? style.accent : .clear, lineWidth: 2)
+                            .padding(-4)
+                    }
+                Text(name)
+                    .calmFont(size: SettingsMetrics.note, weight: selected ? .medium : .regular)
+                    .foregroundStyle(selected ? style.primary : style.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
 /// Something in a section is broken: a triangle in the theme's red (never color alone).
 struct WarningMark: View {
     let style: SidebarStyle

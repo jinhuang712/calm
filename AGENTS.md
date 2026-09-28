@@ -40,3 +40,4 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - Self-tests: `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` launches the Debug app, drives it, saves a PNG of its window, the screen text and a log, and quits; `scripts/xcode.sh snapshot <out.png> [delay]` is the short form. They need no Screen Recording permission and run **headless** by default (no window, no focus taken; `--visible` to watch), isolated from a Calm you may be running (own state, socket, config and zmx directory).
 - `Calm.xcodeproj` is generated from `project.yml`; never edit the project file by hand.
 - Run tests and lint before calling work done; report failures honestly.
+- After landing on `main` and pushing it to `origin/main`, always reinstall: run `./install.sh` from a checkout at that `main` commit, so the installed Calm matches `main`. It quits and reopens a running Calm; shells stay alive.

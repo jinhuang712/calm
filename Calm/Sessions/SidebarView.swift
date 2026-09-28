@@ -111,8 +111,9 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Room for the window's traffic lights.
-            Color.clear.frame(height: 46)
+            // Room for the window's traffic lights. The titlebar's safe area is ignored below, so
+            // this is the only gap; counting both left a hole above the search field.
+            Color.clear.frame(height: 40)
             searchField
                 .padding(.horizontal, 14)
                 .padding(.bottom, 18)
@@ -134,6 +135,7 @@ struct SidebarView: View {
         }
         .frame(width: Self.width)
         .frame(maxHeight: .infinity)
+        .ignoresSafeArea(.container, edges: .top)
         .background(style.background.opacity(style.surfaceOpacity))
         // The adaptive background (UIUX.md → Motion): when an app repaints the terminal's
         // background, the sidebar eases into the new colors instead of snapping.

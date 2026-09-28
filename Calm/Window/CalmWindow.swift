@@ -41,6 +41,14 @@ final class CalmWindow: NSWindow {
         guard event.locationInWindow.y >= frame.height - titleBar, let frameView = contentView?.superview else { return false }
         // Controls there (the traffic lights, a viewer's buttons) keep their clicks.
         let hit = frameView.hitTest(frameView.convert(event.locationInWindow, from: nil))
+        // The title's ⋯ button only answers a hit over itself (SessionTitleHost).
+        var view = hit
+        while let current = view {
+            if current is SessionTitleHost {
+                return false
+            }
+            view = current.superview
+        }
         return !(hit is NSControl)
     }
 

@@ -56,7 +56,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 - Secondary text stays muted; only the name is in the primary text color.
 - Projects collapse to one line with a summary.
 
-**Right-click a card:** Rename…, Resume <agent> Conversation (after the agent exited), Fork into New Split, Fork into New Tab (where the agent can fork), Pin to Project, Close Session. Rename edits the title in place, in the card's own spot.
+**Right-click a card**, or the **⋯ button** at the right of the title strip (for the session you're in), the same menu: Rename…, Resume <agent> Conversation (after the agent exited), Fork into New Split, Fork into New Tab (where the agent can fork); Copy Session ID, Copy Resume Command, Copy Folder Path, Reveal in Finder (where there is something to give); Move to Project or Keep as Project…, Close Session. Rename edits the title in place, in the card's own spot. The ⋯ button is quiet (the tertiary color, 13 pt) until the pointer is on it, then it brightens on a soft tile.
 
 ## Viewing files
 

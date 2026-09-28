@@ -1,5 +1,6 @@
 #if DEBUG
     import AppKit
+    import CalmAgents
     import CalmModel
 
     extension MainWindowController {
@@ -18,7 +19,18 @@
                 + "accent \(NSColor(sidebarStyle.accent).hexString), theme chrome \(themed)"
             let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), title \(titleHost?.frame ?? .zero), "
                 + "overlays \(overlays)"
-            return "\(frames); \(chrome); welcome \(welcomePage.isShowing); window title \(window?.title ?? "")"
+            return "\(frames); \(chrome); welcome \(welcomePage.isShowing); window title \(window?.title ?? ""); \(titleMenuForTesting)"
+        }
+
+        /// Where the title's ⋯ button is, and whether a click lands on it (and not beside it).
+        private var titleMenuForTesting: String {
+            guard let host = titleHost, host.menuFrame != .zero else { return "title menu none" }
+            func hit(_ x: CGFloat, _ y: CGFloat) -> Bool {
+                let point = NSPoint(x: x, y: host.isFlipped ? y : host.bounds.height - y)
+                return host.hitTest(host.convert(point, to: host.superview)) != nil
+            }
+            let frame = host.menuFrame
+            return "title menu \(frame), hit on button \(hit(frame.midX, frame.midY)), beside \(hit(frame.minX - 40, frame.midY))"
         }
 
         /// Calm's own actions for self-tests. Keys go through the app's event queue, so the
@@ -209,7 +221,12 @@
                 // agent:<state>: the focused session becomes a Claude Code card with a recap and a
                 // todo list, in that state, so cards can be snapshotted without running an agent.
                 if let state = SessionState(rawValue: String(state.dropFirst(6))), let id = focusedPane?.id {
-                    manager.noteAgentSession(id, kind: .claudeCode, agentSessionID: nil, transcriptPath: nil)
+                    manager.noteAgentSession(
+                        id,
+                        kind: .claudeCode,
+                        agentSessionID: "5e1f0c2a-4b7d-4c1e-9a52-0d3f8e6b7a19",
+                        transcriptPath: nil,
+                    )
                     let tail = TranscriptTail(
                         lastMessage: "Moved the token refresh behind the retry loop and added a test for the expired case.",
                         progress: TodoProgress(done: 2, total: 5),
@@ -218,6 +235,19 @@
                     if state != .idle {
                         manager.report(id, StatusReport(state: state, message: nil, source: .hook))
                     }
+                }
+            case let text where text.hasPrefix("copy:"):
+                // copy:<sessionID|resumeCommand|folderPath>: what the title's ⋯ menu copies, read back from
+                // the self-test pasteboard.
+                let names: [String: SessionCopy] = ["sessionID": .sessionID, "resumeCommand": .resumeCommand, "folderPath": .folderPath]
+                guard let kind = names[String(text.dropFirst(5))], let id = focusedPane?.id else { return false }
+                copy(kind, of: id)
+                let copied = NSPasteboard(name: .init("calm-selftest")).string(forType: .string)
+                FileHandle.standardError.write(Data("calm-selftest: copied \(copied ?? "nothing")\n".utf8))
+            case "rename":
+                // What the title's ⋯ → Rename… does.
+                if let id = focusedPane?.id {
+                    beginRename(id)
                 }
             default:
                 return false

@@ -15,7 +15,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
     private var searchHost: NSView?
-    private var sidebarWidth: NSLayoutConstraint?
+    private(set) var sidebarWidth: NSLayoutConstraint?
     private(set) var peek: SidebarPeek?
     /// The peek's state before Settings covered the window.
     private var peekWasEnabled = false
@@ -114,20 +114,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             onNewSession: { [weak self] in self?.newSession() },
             onNewProject: { [weak self] in self?.chooseNewProject() },
             editing: sidebarEditing,
-            actions: SidebarActions(
-                rename: { [weak self] id, name in self?.rename(id, to: name) },
-                resume: { [weak self] id in self?.resumeConversation(in: id) },
-                fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
-                newScratchSession: { [weak self] in self?.newScratchSession() },
-                search: { [weak self] in self?.toggleSearch() },
-                newSessionIn: { [weak self] project in self?.newSession(in: project) },
-                addProjects: { [weak self] urls in self?.addProjects(urls) },
-                makeProject: { [weak self] id in self?.manager.makeProject(id) },
-                removeProject: { [weak self] id in self?.manager.removeProject(id) },
-                move: { [weak self] id, project in self?.manager.move(id, to: project) },
-                followFolder: { [weak self] id in self?.manager.followFolder(id) },
-                keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
-            ),
+            actions: sessionActions,
         )
     }
 

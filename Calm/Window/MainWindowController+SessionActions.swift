@@ -26,6 +26,56 @@ extension MainWindowController {
             .forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
     }
 
+    /// What the sidebar's cards and the title's ⋯ button both do.
+    var sessionActions: SidebarActions {
+        SidebarActions(
+            rename: { [weak self] id, name in self?.rename(id, to: name) },
+            resume: { [weak self] id in self?.resumeConversation(in: id) },
+            fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
+            newScratchSession: { [weak self] in self?.newScratchSession() },
+            search: { [weak self] in self?.toggleSearch() },
+            newSessionIn: { [weak self] project in self?.newSession(in: project) },
+            addProjects: { [weak self] urls in self?.addProjects(urls) },
+            makeProject: { [weak self] id in self?.manager.makeProject(id) },
+            removeProject: { [weak self] id in self?.manager.removeProject(id) },
+            move: { [weak self] id, project in self?.manager.move(id, to: project) },
+            followFolder: { [weak self] id in self?.manager.followFolder(id) },
+            keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
+            copy: { [weak self] id, copy in self?.copy(copy, of: id) },
+            reveal: { [weak self] id in self?.revealFolder(of: id) },
+        )
+    }
+
+    /// Starts renaming `id` in place on its card. A hidden sidebar comes back first, since the
+    /// name is edited there.
+    func beginRename(_ id: Session.ID) {
+        if sidebarWidth?.constant == 0 {
+            toggleSidebar()
+        }
+        sidebarEditing.renamingSessionID = id
+    }
+
+    /// Puts what `copy` names for `id` on the pasteboard, with a quiet note by the pointer.
+    func copy(_ copy: SessionCopy, of id: Session.ID) {
+        guard let session = manager.workspace.session(id), let text = copy.text(for: session) else { return }
+        // Headless self-tests copy to a pasteboard of their own, so a run never replaces the user's clipboard.
+        let pasteboard = Headless.isOn ? NSPasteboard(name: .init("calm-selftest")) : .general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        let pointer = window.map { container.convert($0.mouseLocationOutsideOfEventStream, from: nil) }
+        CopyToast.show(copy.copiedNote, at: pointer ?? NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+    }
+
+    /// Shows the session's folder in Finder. Headless self-tests log it instead of opening a window.
+    func revealFolder(of id: Session.ID) {
+        guard let session = manager.workspace.session(id), !session.isScratch else { return }
+        if Headless.isOn {
+            FileHandle.standardError.write(Data("calm-selftest: would reveal \(session.workingDirectory)\n".utf8))
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([URL(filePath: session.workingDirectory)])
+    }
+
     func rename(_ id: Session.ID, to name: String?) {
         manager.rename(id, to: name)
         sidebarEditing.renamingSessionID = nil

@@ -1,3 +1,4 @@
+import CalmAgents
 import CalmModel
 import SwiftUI
 
@@ -211,44 +212,17 @@ struct SidebarView: View {
                     sessionView(session)
                         .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
                         .onTapGesture { onSelect(session.id) }
-                        .contextMenu { sessionMenu(session) }
+                        .contextMenu {
+                            SessionMenu(
+                                session: session, manager: manager, actions: actions,
+                                onRename: { beginRename(session) }, onClose: { onClose(session.id) },
+                            )
+                        }
                         .matchedGeometryEffect(id: session.id, in: rows)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
-    }
-
-    /// A session's right-click actions (FEATURES.md → F12): the agent-backed ones appear only
-    /// where its agent has the command.
-    @ViewBuilder
-    private func sessionMenu(_ session: Session) -> some View {
-        Button("Rename…") { beginRename(session) }
-        if MainWindowController.resumeCommand(for: session) != nil, let kind = session.resumableConversation?.kind {
-            Button("Resume \(kind.displayName) Conversation") { actions.resume(session.id) }
-        }
-        if MainWindowController.forkCommand(for: session) != nil {
-            Button("Fork into New Split") { actions.fork(session.id, .split) }
-            Button("Fork into New Tab") { actions.fork(session.id, .tab) }
-        }
-        Divider()
-        if session.isScratch {
-            Button("Keep as Project…") { actions.keepScratch(session.id) }
-        } else {
-            let projects = manager.workspace.orderedProjects.filter { $0.kind == .project && $0.id != session.projectID }
-            if !projects.isEmpty {
-                Menu("Move to Project") {
-                    ForEach(projects) { project in
-                        Button(project.name) { actions.move(session.id, project.id) }
-                    }
-                }
-            }
-            if session.isPinned, manager.workspace.project(session.projectID)?.kind == .project {
-                Button("Let It Follow Its Folder") { actions.followFolder(session.id) }
-            }
-        }
-        Divider()
-        Button("Close Session") { onClose(session.id) }
     }
 
     @ViewBuilder
@@ -328,9 +302,7 @@ struct SidebarView: View {
     }
 
     private func beginRename(_ session: Session) {
-        draftName = session.customName ?? session.title(agentTitle: session.agent?.tail?.title)
         editing.renamingSessionID = session.id
-        nameFieldFocused = true
     }
 
     /// The inline name field that stands in for a session's card while it's renamed: return keeps
@@ -352,7 +324,11 @@ struct SidebarView: View {
             .frame(height: 40)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.selection))
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
-            .onAppear { nameFieldFocused = true }
+            .onAppear {
+                // Also where the title's ⋯ menu starts a rename, which only sets `editing`.
+                draftName = session.customName ?? session.title(agentTitle: session.agent?.tail?.title)
+                nameFieldFocused = true
+            }
     }
 
     /// Agent sessions get a card; plain shells stay one compact line (UIUX.md → Session cards).
@@ -549,6 +525,8 @@ struct SidebarActions {
     let move: (Session.ID, Project.ID) -> Void
     let followFolder: (Session.ID) -> Void
     let keepScratch: (Session.ID) -> Void
+    let copy: (Session.ID, SessionCopy) -> Void
+    let reveal: (Session.ID) -> Void
 }
 
 /// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.

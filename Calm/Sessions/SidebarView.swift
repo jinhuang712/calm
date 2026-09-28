@@ -252,6 +252,11 @@ struct SidebarView: View {
             Button("New Session Here") { actions.newSessionIn(project) }
         }
         Button(project.isCollapsed ? "Expand" : "Collapse") { manager.toggleCollapsed(project.id) }
+        if project.kind == .project {
+            Divider()
+            // Only the grouping goes: sessions stay open and files stay put, so no confirmation.
+            Button("Remove Project") { actions.removeProject(project.id) }
+        }
     }
 
     @ViewBuilder
@@ -462,6 +467,7 @@ struct SidebarActions {
     let newSessionIn: (Project) -> Void
     let addProjects: ([URL]) -> Void
     let makeProject: (Project.ID) -> Void
+    let removeProject: (Project.ID) -> Void
     let move: (Session.ID, Project.ID) -> Void
     let followFolder: (Session.ID) -> Void
     let keepScratch: (Session.ID) -> Void

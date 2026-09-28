@@ -48,6 +48,37 @@ struct SessionGroupingTests {
         #expect(workspace.project(project.id) != nil) // a project the user made stays when empty
     }
 
+    @Test func `removing a project keeps its sessions, grouped by their folders again`() throws {
+        var workspace = Workspace()
+        let project = workspace.addProject(path: "/Users/me/work/payments")
+        let inside = workspace.newSession(in: "/Users/me/work/payments", placement: .project(project.id), gitRoot: gitRoot)
+        let moved = workspace.newSession(in: "/Users/me/dev/calm/Packages", gitRoot: gitRoot)
+        workspace.move(moved.id, to: project.id)
+        let other = workspace.newSession(in: "/tmp", gitRoot: gitRoot)
+
+        workspace.removeProject(project.id, gitRoot: gitRoot)
+        #expect(workspace.project(project.id) == nil)
+        #expect(workspace.sessions.count == 3)
+        #expect(group(workspace, inside)?.path == "/Users/me/work/payments")
+        #expect(group(workspace, inside)?.kind == .directory)
+        #expect(group(workspace, moved)?.path == "/Users/me/dev/calm")
+        #expect(group(workspace, other)?.path == "/tmp")
+        #expect(workspace.sessions.allSatisfy { !$0.isPinned })
+        #expect(workspace.projects.allSatisfy { $0.kind == .directory })
+
+        // Only a project the user made can be removed.
+        let folder = try #require(group(workspace, other))
+        workspace.removeProject(folder.id, gitRoot: gitRoot)
+        #expect(workspace.project(folder.id) != nil)
+    }
+
+    @Test func `an empty project can be removed`() {
+        var workspace = Workspace()
+        let project = workspace.addProject(path: "/Users/me/work")
+        workspace.removeProject(project.id, gitRoot: gitRoot)
+        #expect(workspace.projects.isEmpty)
+    }
+
     @Test func `a folder inside a project the user made joins it without sticking`() {
         var workspace = Workspace()
         let project = workspace.addProject(path: "/Users/me/work")

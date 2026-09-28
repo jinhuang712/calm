@@ -357,6 +357,12 @@ final class SessionManager {
         scheduleSave()
     }
 
+    /// A project the user made goes back to being folders (FEATURES.md → F2).
+    func removeProject(_ projectID: Project.ID) {
+        Motion.animate { workspace.removeProject(projectID, gitRoot: GitRoot.find) }
+        scheduleSave()
+    }
+
     func move(_ id: Session.ID, to projectID: Project.ID) {
         Motion.animate { workspace.move(id, to: projectID) }
         scheduleSave()

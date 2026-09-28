@@ -283,6 +283,18 @@ public struct Workspace: Codable, Hashable, Sendable {
         }
     }
 
+    /// A project the user made goes away (its "Remove Project"), undoing "Make Project": its
+    /// sessions stay open and group by their folders again. Nothing on disk is touched.
+    public mutating func removeProject(_ projectID: Project.ID, gitRoot: (String) -> String? = { _ in nil }) {
+        guard project(projectID)?.kind == .project else { return }
+        let members = sessions.filter { $0.projectID == projectID }.map(\.id)
+        projects.removeAll { $0.id == projectID }
+        for id in members {
+            setPinned(id, false)
+            refile(id, gitRoot: gitRoot)
+        }
+    }
+
     public mutating func setCollapsed(_ projectID: Project.ID, _ collapsed: Bool) {
         guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
         projects[index].isCollapsed = collapsed

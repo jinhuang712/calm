@@ -121,6 +121,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
                 newSessionIn: { [weak self] project in self?.newSession(in: project) },
                 addProjects: { [weak self] urls in self?.addProjects(urls) },
                 makeProject: { [weak self] id in self?.manager.makeProject(id) },
+                removeProject: { [weak self] id in self?.manager.removeProject(id) },
                 move: { [weak self] id, project in self?.manager.move(id, to: project) },
                 followFolder: { [weak self] id in self?.manager.followFolder(id) },
                 keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },

@@ -11,8 +11,11 @@ extension MainWindowController {
 
     /// The command that resumes the conversation that ended in `session`, if its agent has one.
     static func resumeCommand(for session: Session) -> String? {
-        guard let conversation = session.resumableConversation else { return nil }
-        return Agents.adapter(for: conversation.kind)?
+        session.resumableConversation.flatMap(resumeCommand)
+    }
+
+    static func resumeCommand(for conversation: AgentConversation) -> String? {
+        Agents.adapter(for: conversation.kind)?
             .resumeCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
     }
 
@@ -33,6 +36,17 @@ extension MainWindowController {
         guard let session = manager.workspace.session(id), let command = Self.resumeCommand(for: session) else { return }
         select(id)
         runAgentCommand(command, in: manager.panes[id])
+    }
+
+    /// ⌘⇧T: opens the session closed last again, and resumes the conversation of the agent that was
+    /// running in it. The shell is a new one: closing ended the old.
+    func reopenClosedSession() {
+        guard let (session, conversation) = manager.reopenClosedSession() else { return }
+        hideSettings()
+        showSelectedLayout(animated: true)
+        if let command = conversation.flatMap(Self.resumeCommand) {
+            runAgentCommand(command, in: manager.panes[session.id])
+        }
     }
 
     /// Forks `id`'s conversation into a new split beside it or a new tab, in the same folder.

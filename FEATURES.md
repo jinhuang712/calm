@@ -41,7 +41,7 @@ A fast, correct terminal on libghostty.
 - Quitting Calm detaches shells instead of killing them. Relaunching reattaches, with scrollback and running processes intact.
 - **Restart Calm** (Calm menu, no shortcut) quits and opens Calm again once the old one has fully exited, so every session comes back as after any relaunch, agents still running. It opens the app from the same place, so a version installed meanwhile (`install.sh`) is the one that starts. When shells aren't being kept alive (zmx missing or failing) and something is running, it asks first, as Quit does.
 - Projects, sessions and split layouts are restored.
-- Closing a session ends its shell. Shells Calm no longer knows about (for example after a crash) are ended at the next launch; other apps' sessions are never touched.
+- Closing a session ends its shell (⌘⇧T opens a new one in its place; F12). Shells Calm no longer knows about (for example after a crash) are ended at the next launch; other apps' sessions are never touched.
 - Each session can show a one-line attach command so it can be reached from another device over SSH.
 
 **Settings:** none.
@@ -161,6 +161,7 @@ A quick, read-only look at the repository without leaving Calm.
 - **Rename** a session: right-click → Rename… edits the name in place (return keeps it, esc cancels, an empty name gives the session back its own title). The name wins over the shell's and the agent's titles, in the sidebar, the title strip above the terminal, switcher, arrival card and notifications, and survives relaunch.
 - **Resume** an agent conversation: when the agent exits, the session remembers its conversation, and right-click → Resume <agent> Conversation continues it in the same shell. A conversation whose session was closed is resumed from ⌘K search (F7), in its project folder.
 - **Close** a session with ⌘W (or the row's ×). While an agent runs in it, or a process Ghostty can see, Calm asks first ("Claude Code is running in it. Closing the session ends it."). With Settings, search or a file open, ⌘W closes that instead of the session behind it. One ⌘W closes one session.
+- **Reopen** the session closed last with **⌘⇧T** (Shell → Reopen Closed Session; greyed out until something has been closed), and again for the one before it, up to the last ten. The shell is a new one, since closing ended the old, but everything else comes back: its folder (the project's, or home, if that's gone), its name, its project if it stayed in one, and its place in the sidebar. If an agent was running in it, its conversation resumes with the agent's own command (the table below); one that had already exited isn't started again. Scratch sessions aren't reopened: closing removes their folder. Kept in memory, so a relaunch starts with nothing to reopen. A shell that exits by itself (`exit`, ⌃D) counts as closed.
 - **Fork** an agent conversation into a new split beside it or a new tab, in the same folder, while it runs or after it ended. The fork is a new conversation; the original stays as it was.
 - Uses each agent's own commands:
 

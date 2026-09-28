@@ -184,6 +184,7 @@ Conversations can be renamed, resumed and forked.
 - [x] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command. *In place after the agent exits (the session remembers its conversation); closed sessions from ⌘K.*
 - [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi, omp.*
 - [x] **M7.4 Menus:** right-click actions on session cards.
+- [x] **M7.5 Reopen closed session:** ⌘⇧T opens the session closed last again (up to ten, in memory), resuming the agent conversation that was running in it. *Ghostty's `undo` binding on ⌘⇧T is unbound in Calm's defaults.*
 
 **Exit criteria**
 - Resuming or forking a conversation is one right-click.

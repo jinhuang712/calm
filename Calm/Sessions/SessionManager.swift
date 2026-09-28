@@ -24,6 +24,8 @@ final class SessionManager {
     @ObservationIgnored private let store: WorkspaceStore
     @ObservationIgnored private(set) var panes: [Session.ID: TerminalSurfaceView] = [:]
     @ObservationIgnored private var saveTask: Task<Void, Never>?
+    /// The last few sessions closed, for ⌘⇧T. Kept in memory only.
+    @ObservationIgnored private var recentlyClosed = ClosedSessions()
 
     /// Turned off for the rest of the run if persistent shells fail to start.
     @ObservationIgnored var persistenceEnabled = true
@@ -179,6 +181,9 @@ final class SessionManager {
     /// has files).
     func closeSession(_ id: Session.ID) {
         if let session = workspace.session(id) {
+            if let closed = ClosedSession(session, in: workspace) {
+                recentlyClosed.push(closed)
+            }
             PersistentShell.kill(name: session.persistentName)
             if let folder = session.scratchFolder, !workspace.sessions.contains(where: { $0.id != id && $0.scratchFolder == folder }) {
                 ScratchFolders.discard(folder)
@@ -188,6 +193,25 @@ final class SessionManager {
         panes[id] = nil
         workspace.removeSession(id)
         scheduleSave()
+    }
+
+    var canReopenClosedSession: Bool {
+        !recentlyClosed.isEmpty
+    }
+
+    /// ⌘⇧T: opens the session closed last again, with the conversation to resume if an agent was
+    /// running in it. Its folder may be gone by now; the project's folder, then home, stand in.
+    func reopenClosedSession() -> (session: Session, conversation: AgentConversation?)? {
+        guard let closed = recentlyClosed.pop() else { return nil }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let projectFolder = closed.projectID.flatMap { workspace.project($0)?.path }
+        let directory = [closed.workingDirectory, projectFolder].compactMap(\.self).first { path in
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
+        } ?? home
+        let session = workspace.reopen(closed, in: directory, gitRoot: GitRoot.find)
+        scheduleSave()
+        return (session, closed.conversation)
     }
 
     func select(_ id: Session.ID) {

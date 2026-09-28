@@ -186,6 +186,7 @@ struct ShortcutsSection: View {
                 (["⌘", "T"], "New session"),
                 (["⌘", "⇧", "N"], "New scratch session"),
                 (["⌘", "O"], "New project"),
+                (["⌘", "⇧", "T"], "Reopen closed session"),
             ]),
         ],
         [

@@ -128,6 +128,8 @@
                 newScratchSession()
             case "close":
                 focusedPane.map { requestCloseSession($0.id) }
+            case "cmd_shift_t":
+                pressKeyEquivalentForTesting(keyCode: 17, characters: "t", modifiers: [.command, .shift])
             case let add where add.hasPrefix("add_project:"):
                 // add_project:<path>: what + New Project does once a folder is picked
                 addProjects([URL(filePath: String(add.dropFirst(12)), directoryHint: .isDirectory)])
@@ -147,6 +149,16 @@
                         kind: kind, agentSessionID: parts[2], transcriptPath: "/tmp/\(parts[2]).jsonl", title: "A past conversation",
                     ))
                 }
+            case let run where run.hasPrefix("agent_run:"):
+                // agent_run:<agent>:<id>: a stand-in for an agent running in the focused session, with
+                // its conversation known (no agent is started)
+                let parts = run.split(separator: ":").map(String.init)
+                if parts.count == 3, let kind = AgentKind(rawValue: parts[1]), let id = focusedPane?.id {
+                    manager.noteAgentSession(id, kind: kind, agentSessionID: parts[2], transcriptPath: "/tmp/\(parts[2]).jsonl")
+                }
+            case "confirm_sheet":
+                // What Return does on a confirmation (a headless window is never key)
+                window?.attachedSheet?.defaultButtonCell?.performClick(nil)
             case let name where name.hasPrefix("rename:"):
                 focusedPane.map { rename($0.id, to: String(name.dropFirst(7))) }
             case "rename_begin":
@@ -226,7 +238,9 @@
             let terminalTookIt = focusedPane?.performKeyEquivalent(with: event) ?? false
             var menuItem: String?
             if !terminalTookIt, let menu = NSApp.mainMenu, let (owner, index) = Self.item(in: menu, key: characters, modifiers: modifiers) {
-                menuItem = owner.items[index].title
+                // AppKit validates the items (greyed out or not) before it performs a key equivalent.
+                owner.update()
+                menuItem = owner.items[index].title + (owner.items[index].isEnabled ? "" : " (disabled)")
                 owner.performActionForItem(at: index)
             }
             FileHandle.standardError

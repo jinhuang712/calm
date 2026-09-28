@@ -63,6 +63,12 @@ enum MainMenu {
             mods: [.command, .shift],
         ))
         menu.addItem(actionItem("New Project…", #selector(TerminalMenuTarget.newProject(_:)), key: "o"))
+        menu.addItem(actionItem(
+            "Reopen Closed Session",
+            #selector(TerminalMenuTarget.reopenClosedSession(_:)),
+            key: "t",
+            mods: [.command, .shift],
+        ))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Split Right", "new_split:right", key: "d"))
         menu.addItem(terminalItem("Split Down", "new_split:down", key: "d", mods: [.command, .shift]))
@@ -142,7 +148,8 @@ enum MainMenu {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
         let targeted = [
-            "newSession", "newScratchSession", "newProject", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession",
+            "newSession", "newScratchSession", "newProject", "reopenClosedSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles",
+            "jumpToWaitingSession",
             "showArrivalCard",
             "searchSessions",
         ]
@@ -168,6 +175,10 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func newProject(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().chooseNewProject()
+    }
+
+    @objc func reopenClosedSession(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().reopenClosedSession()
     }
 
     @objc func toggleFiles(_: Any?) {
@@ -221,5 +232,12 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func toggleCommandPalette(_: Any?) {
         TerminalWindowManager.shared.focusedController?.toggleCommandPalette()
+    }
+}
+
+extension TerminalMenuTarget: NSMenuItemValidation {
+    /// Reopen Closed Session waits until a session has been closed.
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        item.action == #selector(reopenClosedSession(_:)) ? SessionManager.shared.canReopenClosedSession : true
     }
 }

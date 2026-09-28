@@ -32,6 +32,7 @@ struct EngineSmokeTests {
         defer { try? FileManager.default.removeItem(at: file) }
         let contents = CalmDefaults.contents(reduceMotion: true, cursorShader: nil)
         #expect(contents.contains("window-padding-color = extend"))
+        #expect(contents.contains("keybind = super+shift+t=unbind")) // Ghostty's undo, in the way of Reopen Closed Session
         try contents.write(to: file, atomically: true, encoding: .utf8)
         let config = try #require(ghostty_config_new())
         defer { ghostty_config_free(config) }

@@ -47,6 +47,9 @@ enum CalmDefaults {
         lines.append("keybind = super+shift+k=clear_screen")
         // ⌘, opens Settings, the Mac convention; Ghostty's open_config isn't supported in Calm.
         lines.append("keybind = super+,=unbind") // the character, as Ghostty binds it (`comma` is the physical key)
+        // ⌘⇧T reopens the last closed session. Ghostty binds it to undo, which Calm doesn't do; that
+        // binding would take the key first and pass it on to the shell.
+        lines.append("keybind = super+shift+t=unbind")
         if !reduceMotion, let cursorShader {
             // A soft cursor glide (UIUX.md → Motion). The animation loop only runs in the focused pane.
             lines.append("custom-shader = \(cursorShader.path)")

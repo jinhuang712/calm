@@ -200,7 +200,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Section | Contents |
 |---|---|
 | **Appearance** | a live miniature of the window, the themes, interface size, glass or solid, edge to edge or card, motion (full, reduced, off) |
-| **Agents** | a card per installed agent, two to a row: its mark (moving while one of its sessions works), a pill for where it stands (Connected in sage, One step left in amber, which explains itself when clicked), what it's doing now ("2 sessions · 1 working", or "Not running"), and Connect, or Disconnect under ⋯, where Calm must add a file. Then which states notify, and sound. Calm → Agents… opens this section |
+| **Agents** | a card per installed agent, two to a row: its mark (moving while one of its sessions works), where it stands in quiet text (✓ Connected), or the one thing it needs as a button (Connect; Set Up… for a step in the agent's own settings, which explains itself in a popover), what it's doing now ("2 sessions · 1 working", or "Not running"), and Connect, or Disconnect under ⋯, where Calm must add a file. Then which states notify, and sound. Calm → Agents… opens this section |
 | **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's with the font it sets, the themes folder) |
 | **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
 
@@ -247,7 +247,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 - VoiceOver labels for every sidebar row and state.
 - State is never shown by color alone: each state also has a shape.
 - Respects Reduce Motion and Increase Contrast.
-- **Interface size** (Settings → Appearance): Default, Large, Larger or Largest (100, 115, 130, 150%) scales every size and length in Calm's chrome at once: the sidebar and its width, cards, the files column, search, the palette, the arrival card, the welcome page and Settings. The terminal keeps the Ghostty font's size (⌘+ and ⌘−). A change applies at once; saved as `ui-size` in `config.toml`.
+- **Interface size** (Settings → Appearance), picked the way macOS picks a display scaling: four little windows of the same size whose text grows, the chosen one ringed in the theme's accent, each labeled with its name and percentage. Default, Large, Larger or Largest (100, 115, 130, 150%) scales every size and length in Calm's chrome at once: the sidebar and its width, cards, the files column, search, the palette, the arrival card, the welcome page and Settings. The terminal keeps the Ghostty font's size (⌘+ and ⌘−). A change applies at once; saved as `ui-size` in `config.toml`.
 - **Increase Contrast:** the chrome's secondary text, hints, selection and dividers get stronger. A Calm theme's text colors each reach 4.5:1 by moving toward white (dark) or black (light), so dim text stays dimmer than normal text. A theme from the user's Ghostty config is left as it is (Ghostty's `minimum-contrast` is theirs to set).
 - A change to Reduce Motion or Increase Contrast in System Settings applies at once, without a relaunch.
 - The files column's files are buttons, so Full Keyboard Access and VoiceOver reach them; each reads its name and change ("README.md, modified").

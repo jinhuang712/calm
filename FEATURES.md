@@ -149,7 +149,7 @@ A quick, read-only look at the repository without leaving Calm.
 - The default gives way to a theme or colors in the user's Ghostty config, so any Ghostty theme can still be used; the chrome then derives its colors from it. A theme picked in Calm wins over the Ghostty config.
 - Your own themes go in `~/.config/calm/themes/` as small TOML files (DESIGNS.md → Themes).
 - **Window options**, under the picker in Settings → Appearance:
-  - **Interface size:** Default, Large, Larger or Largest; everything Calm draws around the terminal grows together (UIUX.md → Accessibility). The terminal's own text stays the Ghostty font's size.
+  - **Interface size:** Default, Large, Larger or Largest, shown as little windows whose text grows (as macOS shows display scaling); everything Calm draws around the terminal grows together (UIUX.md → Accessibility). The terminal's own text stays the Ghostty font's size.
   - **Background:** solid, or glass (the system's blur behind a translucent terminal and sidebar; panels and the viewer stay solid).
   - **Layout:** edge to edge, or card (the terminal floats as a rounded card on the sidebar's color).
   - **Motion:** full, reduced or off; the system's Reduce Motion always wins.

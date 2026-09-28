@@ -255,7 +255,7 @@ private struct AgentCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// Where the agent stands: a pill, or the one action it needs.
+    /// Where the agent stands, in quiet text, or the one action it needs.
     @ViewBuilder
     private var standing: some View {
         switch (row.adapter.setup, row.state) {
@@ -264,8 +264,8 @@ private struct AgentCard: View {
                 .buttonStyle(SettingsButtonStyle(style: style))
                 .help("Adds \(Self.paths(files)), so it can tell Calm when it's working or waiting.")
         case (_, .connected?):
-            HStack(spacing: 6.scaled) {
-                StatusPill(text: "Connected", symbol: "checkmark", tint: style.done, style: style)
+            HStack(spacing: 4.scaled) {
+                StatusLabel(text: "Connected", symbol: "checkmark", style: style)
                 Menu {
                     Button("Disconnect", action: onDisconnect)
                 } label: {
@@ -282,59 +282,47 @@ private struct AgentCard: View {
                 .accessibilityLabel("More for \(row.adapter.kind.displayName)")
             }
         case let (_, .conflict(path)?):
-            explainedPill(
-                "Left alone", symbol: "minus.circle", tint: style.secondary,
-                text: "~/\(path) already exists and wasn't written by Calm, so Calm leaves it alone.",
-            )
+            StatusLabel(text: "Left alone", symbol: "minus.circle", style: style)
+                .help("~/\(path) already exists and wasn't written by Calm, so Calm leaves it alone.")
         case let (.hint(text), _):
-            explainedPill("One step left", symbol: "circle.lefthalf.filled", tint: style.attention, text: text)
+            // The one step is the user's to take in the agent's own settings: the button says
+            // how, in a popover, instead of a paragraph on the page.
+            Button("Set Up…") { explaining.toggle() }
+                .buttonStyle(SettingsButtonStyle(style: style))
+                .popover(isPresented: $explaining, arrowEdge: .bottom) {
+                    Text(text)
+                        .calmFont(size: SettingsMetrics.note)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(width: 280.scaled, alignment: .leading)
+                        .padding(16.scaled)
+                }
+                .accessibilityHint(text)
         default:
-            StatusPill(text: "Connected", symbol: "checkmark", tint: style.done, style: style)
+            StatusLabel(text: "Connected", symbol: "checkmark", style: style)
         }
     }
 
     private static func paths(_ files: [String: String]) -> String {
         files.keys.sorted().map { "~/\($0)" }.joined(separator: ", ")
     }
-
-    /// A pill that says more when clicked.
-    private func explainedPill(_ label: String, symbol: String, tint: Color, text: String) -> some View {
-        Button {
-            explaining.toggle()
-        } label: {
-            StatusPill(text: label, symbol: symbol, tint: tint, style: style)
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $explaining, arrowEdge: .bottom) {
-            Text(text)
-                .calmFont(size: SettingsMetrics.note)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: 280.scaled, alignment: .leading)
-                .padding(16.scaled)
-        }
-        .accessibilityHint(text)
-    }
 }
 
-/// Where something stands, in a soft tint of its color.
-private struct StatusPill: View {
+/// Where an agent stands, as quiet text with its mark.
+private struct StatusLabel: View {
     let text: String
     let symbol: String
-    let tint: Color
     let style: SidebarStyle
 
     var body: some View {
         Label {
             Text(text)
         } icon: {
-            Image(systemName: symbol).calmFont(size: 11, weight: .semibold)
+            Image(systemName: symbol).calmFont(size: 12, weight: .semibold)
         }
         .labelStyle(.titleAndIcon)
-        .calmFont(size: 13, weight: .medium)
-        .foregroundStyle(tint)
-        .padding(.horizontal, 11.scaled)
+        .calmFont(size: SettingsMetrics.control)
+        .foregroundStyle(style.secondary)
         .frame(height: 28.scaled)
-        .background(Capsule().fill(tint.opacity(style.isDark ? 0.14 : 0.12)))
         .fixedSize()
     }
 }

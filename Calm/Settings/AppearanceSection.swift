@@ -41,7 +41,7 @@ struct AppearanceSection: View {
                 if let ghostty {
                     Rectangle()
                         .fill(style.hairline)
-                        .frame(width: 1, height: 62)
+                        .frame(width: 1, height: 68)
                     chip(ghostty, name: "Your Ghostty")
                         .help("The colors your Ghostty config sets, instead of a Calm theme")
                 }
@@ -68,7 +68,7 @@ struct AppearanceSection: View {
                 SettingsRow(title: "Motion", note: motionNote, style: style) {
                     CalmSegmented(
                         title: "Motion", options: [(.full, "Full"), (.reduced, "Reduced"), (.off, "Off")],
-                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 88,
+                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 100,
                         isDisabled: AccessibilitySettings.reduceMotion, style: style,
                     ) { windowOptions.setMotion($0) }
                 }
@@ -126,7 +126,7 @@ private struct ThemeChipPreview: View {
             .background(preview.background)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 62)
+        .frame(height: 68)
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(preview.foreground.opacity(0.14)))
     }

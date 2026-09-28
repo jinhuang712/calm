@@ -8,14 +8,19 @@ import SwiftUI
 /// The page's sizes, in one place: roomy enough to read at a glance in a large window, as the
 /// sidebar is (UIUX.md → Settings screen).
 enum SettingsMetrics {
-    static let title: CGFloat = 30
-    static let heading: CGFloat = 15
-    static let label: CGFloat = 15
-    static let note: CGFloat = 13
-    static let control: CGFloat = 14
-    static let controlHeight: CGFloat = 30
-    static let rowHeight: CGFloat = 60
-    static let rowInset: CGFloat = 18
+    static let title: CGFloat = 34
+    static let heading: CGFloat = 16
+    static let label: CGFloat = 17
+    static let note: CGFloat = 14
+    static let control: CGFloat = 15
+    static let controlHeight: CGFloat = 32
+    static let rowHeight: CGFloat = 64
+    static let rowInset: CGFloat = 20
+    /// The section list's own sizes: a step above the sidebar's, to match the page.
+    static let listTitle: CGFloat = 24
+    static let listItem: CGFloat = 16
+    static let listRow: CGFloat = 46
+    static let listTile: CGFloat = 32
 }
 
 /// A section's title, and the line under it when it has one.
@@ -128,7 +133,7 @@ struct CalmSegmented<Value: Hashable>: View {
     let title: String
     let options: [(value: Value, label: String)]
     let selection: Value
-    var segmentWidth: CGFloat = 116
+    var segmentWidth: CGFloat = 128
     var isDisabled = false
     let style: SidebarStyle
     let onSelect: (Value) -> Void
@@ -181,7 +186,7 @@ struct CalmSwitchStyle: ToggleStyle {
         } label: {
             Capsule()
                 .fill(configuration.isOn ? style.accent : style.primary.opacity(style.isDark ? 0.2 : 0.16))
-                .frame(width: 40, height: 24)
+                .frame(width: 44, height: 26)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     Circle()
                         .fill(style.isDark ? Color(white: 0.93) : .white)
@@ -241,7 +246,7 @@ struct SettingsMenu<Value: Hashable>: View {
             HStack(spacing: 8) {
                 Text(current)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
             }
             .font(.system(size: SettingsMetrics.control))
             .foregroundStyle(style.primary)

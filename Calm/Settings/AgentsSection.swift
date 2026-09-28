@@ -169,7 +169,7 @@ struct AgentsSection: View {
 
     private var blockedRow: some View {
         HStack(spacing: 14) {
-            WarningMark(style: style, size: 16)
+            WarningMark(style: style, size: 18)
             Text("macOS is blocking Calm's notifications")
                 .font(.system(size: SettingsMetrics.label))
                 .foregroundStyle(style.primary)
@@ -183,7 +183,7 @@ struct AgentsSection: View {
 
     private func agentRow(_ row: AgentsSettingsModel.Row) -> some View {
         HStack(spacing: 14) {
-            AgentLogo(agent: row.adapter.kind, size: 34, style: style)
+            AgentLogo(agent: row.adapter.kind, size: 38, style: style)
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.adapter.kind.displayName)
                     .font(.system(size: SettingsMetrics.label, weight: .medium))
@@ -251,7 +251,7 @@ struct AgentsSection: View {
         Label {
             Text(text)
         } icon: {
-            Image(systemName: symbol).font(.system(size: 10, weight: .semibold))
+            Image(systemName: symbol).font(.system(size: 12, weight: .semibold))
         }
         .labelStyle(.titleAndIcon)
         .font(.system(size: SettingsMetrics.control))

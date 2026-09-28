@@ -211,9 +211,9 @@ private struct SettingsList: View {
             Color.clear.frame(height: 40)
             if !compact {
                 Text("Settings")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: SettingsMetrics.listTitle, weight: .medium))
                     .foregroundStyle(style.primary)
-                    .frame(height: 36, alignment: .leading)
+                    .frame(height: 40, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     .accessibilityAddTraits(.isHeader)
@@ -228,11 +228,11 @@ private struct SettingsList: View {
             VStack(spacing: 2) {
                 ListButton(style: style, help: compact ? "Back (esc)" : "", action: actions.close) {
                     HStack(spacing: 11) {
-                        KeyCaps(keys: ["esc"], style: style)
-                            .frame(width: 28)
+                        KeyCaps(keys: ["esc"], style: style, large: true)
+                            .frame(width: SettingsMetrics.listTile)
                         if !compact {
                             Text(hasSessions ? "Back to your sessions" : "Back")
-                                .font(.system(size: 14))
+                                .font(.system(size: SettingsMetrics.listItem))
                             Spacer(minLength: 4)
                         }
                     }
@@ -257,15 +257,15 @@ private struct SettingsList: View {
         } label: {
             HStack(spacing: 11) {
                 Image(systemName: section.symbol)
-                    .font(.system(size: 14))
-                    .frame(width: 28, height: 28)
+                    .font(.system(size: 16))
+                    .frame(width: SettingsMetrics.listTile, height: SettingsMetrics.listTile)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(style.primary.opacity(selected ? 0.1 : 0.055)),
                     )
                 if !compact {
                     Text(section.title)
-                        .font(.system(size: 14, weight: selected ? .medium : .regular))
+                        .font(.system(size: SettingsMetrics.listItem, weight: selected ? .medium : .regular))
                     Spacer(minLength: 4)
                 }
                 if warnings.contains(section) {
@@ -292,7 +292,7 @@ private struct ListButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: SettingsMetrics.listRow, alignment: .leading)
                 .foregroundStyle(isSelected || hovering ? style.primary : style.secondary)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)

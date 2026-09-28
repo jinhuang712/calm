@@ -209,10 +209,10 @@ struct ShortcutsSection: View {
                                                 .font(.system(size: SettingsMetrics.label))
                                                 .foregroundStyle(style.primary)
                                             Spacer(minLength: 8)
-                                            KeyCaps(keys: row.keys, style: style)
+                                            KeyCaps(keys: row.keys, style: style, large: true)
                                         }
                                         .padding(.horizontal, SettingsMetrics.rowInset)
-                                        .frame(height: 44)
+                                        .frame(height: 50)
                                         .accessibilityElement(children: .ignore)
                                         .accessibilityLabel("\(row.action), \(row.keys.joined())")
                                     }

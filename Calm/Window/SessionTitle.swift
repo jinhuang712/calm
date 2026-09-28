@@ -24,19 +24,28 @@ struct SessionTitleView: View {
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
         HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.system(size: 13.5, weight: .medium))
-                    .foregroundStyle(style.primary)
-                    .truncationMode(.tail)
-                if strip.title != nil, let folder = strip.folder {
-                    Text(folder)
-                        .font(.system(size: 11))
+            HStack(spacing: 10) {
+                // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
+                // folder or scratch glyph, so the text starts in the same place for every session.
+                if let project {
+                    GroupMark(project: project, style: style)
                         .foregroundStyle(style.tertiary)
-                        .truncationMode(.head)
+                        .frame(width: 20, height: 20)
                 }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 13.5, weight: .medium))
+                        .foregroundStyle(style.primary)
+                        .truncationMode(.tail)
+                    if strip.title != nil, let folder = strip.folder {
+                        Text(folder)
+                            .font(.system(size: 11))
+                            .foregroundStyle(style.tertiary)
+                            .truncationMode(.head)
+                    }
+                }
+                .lineLimit(1)
             }
-            .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .animation(nil, value: strip.folder)
             .animation(nil, value: strip.title)
@@ -79,6 +88,10 @@ struct SessionTitleView: View {
 
     private var session: Session? {
         manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID) }
+    }
+
+    private var project: Project? {
+        session.flatMap { manager.workspace.project($0.projectID) }
     }
 
     private var strip: (folder: String?, title: String?) {

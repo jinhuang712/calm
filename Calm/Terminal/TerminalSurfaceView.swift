@@ -622,6 +622,21 @@ final class TerminalSurfaceView: NSView {
         return action.withCString { ghostty_surface_binding_action(surface, $0, UInt(action.utf8.count)) }
     }
 
+    /// The text size in points, or nil if libghostty won't say (`window-inherit-font-size = false`).
+    var fontSize: Float? {
+        guard let surface else { return nil }
+        // libghostty also copies the working directory and offers no way to free it: a few bytes
+        // per font change, which only happens when the user changes the size or reloads the config.
+        let size = ghostty_surface_inherited_config(surface, GHOSTTY_SURFACE_CONTEXT_SPLIT).font_size
+        return size > 0 ? size : nil
+    }
+
+    /// Sets the text size, or goes back to the config's with nil. Uses the binding actions, not
+    /// the surface config, so libghostty counts the size as the user's and keeps it on config reload.
+    func setFontSize(_ points: Float?) {
+        perform(points.map { "set_font_size:\($0)" } ?? "reset_font_size")
+    }
+
     @objc func copy(_: Any?) {
         perform("copy_to_clipboard")
     }

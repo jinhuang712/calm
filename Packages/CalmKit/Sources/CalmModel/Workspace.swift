@@ -173,6 +173,9 @@ public struct Workspace: Codable, Hashable, Sendable {
     public var sessions: [Session] = []
     public var layouts: [PaneLayout] = []
     public var selectedLayoutID: PaneLayout.ID?
+    /// The text size, in points, that every session shows after ⌘+ or ⌘−; nil means the
+    /// config's `font-size` (FEATURES.md → F1).
+    public var fontSize: Float?
 
     public init() {}
 
@@ -480,6 +483,20 @@ public struct Workspace: Codable, Hashable, Sendable {
     private mutating func pruneAutomaticProject(_ projectID: Project.ID) {
         guard let project = project(projectID), project.isAutomatic, sessions(in: projectID).isEmpty else { return }
         projects.removeAll { $0.id == projectID }
+    }
+}
+
+// MARK: Text size
+
+public extension Workspace {
+    /// Records the text size a pane now shows (`configured` is the config's `font-size`, which
+    /// is stored as nil). Returns whether the shared size changed, so the other panes should follow.
+    mutating func noteFontSize(_ points: Float, configured: Float?) -> Bool {
+        let isConfigured = configured.map { abs(points - $0) < 0.01 } ?? false
+        let size = isConfigured ? nil : points
+        guard size != fontSize else { return false }
+        fontSize = size
+        return true
     }
 }
 

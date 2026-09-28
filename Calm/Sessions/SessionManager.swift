@@ -124,8 +124,24 @@ final class SessionManager {
         options.environment.merge(AgentIntegrations.environment(settings: settings)) { current, _ in current }
         let pane = TerminalSurfaceView(id: session.id, options: options)
         pane.host = host
+        if let fontSize = workspace.fontSize {
+            pane.setFontSize(fontSize)
+        }
         panes[session.id] = pane
         return pane
+    }
+
+    /// One text size for every session (FEATURES.md → F1): a pane that changed size takes the
+    /// others with it, and the size is saved for the next launch.
+    func paneFontSizeDidChange(_ pane: TerminalSurfaceView) {
+        // Panes the sync below resizes report back the size just saved, so this stops there.
+        guard panes[pane.id] === pane, let points = pane.fontSize,
+              workspace.noteFontSize(points, configured: TerminalEngine.shared.config?.float("font-size"))
+        else { return }
+        for other in panes.values where other !== pane {
+            other.setFontSize(workspace.fontSize)
+        }
+        scheduleSave()
     }
 
     // MARK: Sessions

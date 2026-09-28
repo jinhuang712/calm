@@ -263,6 +263,13 @@ final class TerminalEngine {
         case GHOSTTY_ACTION_CELL_SIZE:
             let size = action.action.cell_size
             view?.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))
+            // The cell size follows the font size, whatever changed it (⌘+, the user's keybinding,
+            // the palette, a config reload). Later, so it isn't inside libghostty's own call.
+            if let view {
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { SessionManager.shared.paneFontSizeDidChange(view) }
+                }
+            }
         case GHOSTTY_ACTION_RING_BELL:
             // No system beep (Ghostty's default is silent too): a bell is a quiet signal to the
             // attention system.

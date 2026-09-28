@@ -15,6 +15,7 @@ A fast, correct terminal on libghostty.
 - Reads the user's Ghostty config (`~/.config/ghostty/config`) for fonts, keybindings and terminal behavior, so existing setups carry over.
 - Tabs and splits (horizontal and vertical), with keyboard navigation.
 - Command palette (⌘P) listing every action with its shortcut.
+- One text size for every session: ⌘+ and ⌘− (or the user's own font-size keybindings) resize all sessions and splits together, new ones start at that size, and it's kept across relaunches. ⌘0 goes back to the config's `font-size`.
 - Rectangle selection with ⌥-drag, inline images, true color, ligatures (all from libghostty).
 - ⌘V pastes text as text and copied files as their escaped paths. An image with neither (a screenshot, a picture copied from a browser) is saved as a PNG in the temporary folder, and its path is pasted, so agents like Claude Code attach it (`[Image #1]`). Dropping such an image works the same way.
 - A drop-down quick terminal on a global hotkey.

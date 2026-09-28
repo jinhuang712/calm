@@ -143,6 +143,12 @@ final class TerminalConfig: @unchecked Sendable {
         return get(key, into: &value) ? value : nil
     }
 
+    /// For `f32` keys such as `font-size` (libghostty writes the key's own width).
+    func float(_ key: String) -> Float? {
+        var value: Float = 0
+        return get(key, into: &value) ? value : nil
+    }
+
     func string(_ key: String) -> String? {
         var value: UnsafePointer<CChar>?
         guard get(key, into: &value), let value else { return nil }

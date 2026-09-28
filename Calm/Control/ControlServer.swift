@@ -11,7 +11,13 @@ final class ControlServer {
     private var listenFD: Int32 = -1
     private var source: DispatchSourceRead?
     private let queue = DispatchQueue(label: "calm.control")
-    private(set) var socketPath = ControlProtocol.defaultSocketPath
+    private(set) var socketPath: String
+    /// The socket file this server bound, so `stop()` never removes another Calm's socket.
+    private var boundFile: (device: dev_t, inode: ino_t)?
+
+    init(socketPath: String = ControlProtocol.defaultSocketPath) {
+        self.socketPath = socketPath
+    }
 
     func start() {
         guard listenFD < 0 else { return }
@@ -45,6 +51,7 @@ final class ControlServer {
         }
         chmod(path, 0o600) // only this user may talk to Calm
         listenFD = fd
+        boundFile = Self.fileID(at: path)
 
         source = Self.makeAcceptSource(fd: fd, queue: queue)
     }
@@ -69,7 +76,19 @@ final class ControlServer {
             close(listenFD)
         }
         listenFD = -1
-        unlink(socketPath)
+        // Only our own file: the unit-test host never starts a server but still quits through
+        // here, and another Calm may have bound this path since; unlinking theirs would cut
+        // every hook off from the Calm that is running.
+        if let boundFile, let current = Self.fileID(at: socketPath), current == boundFile {
+            unlink(socketPath)
+        }
+        boundFile = nil
+    }
+
+    private static func fileID(at path: String) -> (device: dev_t, inode: ino_t)? {
+        var info = stat()
+        guard lstat(path, &info) == 0 else { return nil }
+        return (info.st_dev, info.st_ino)
     }
 
     /// Runs on the control queue: read one line, handle it on main, write the reply.

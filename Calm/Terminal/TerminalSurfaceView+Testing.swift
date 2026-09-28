@@ -51,6 +51,23 @@
             return "\(size.columns)x\(size.rows)"
         }
 
+        /// One row's height in the frame's pixels.
+        var cellHeightPixelsForTesting: Int {
+            guard let surface else { return 0 }
+            return Int(ghostty_surface_size(surface).cell_height_px)
+        }
+
+        /// One column's width in the frame's pixels.
+        var cellWidthPixelsForTesting: Int {
+            guard let surface else { return 0 }
+            return Int(ghostty_surface_size(surface).cell_width_px)
+        }
+
+        /// The frame on screen: libghostty sets the layer's contents to each frame it presents.
+        var presentedFrameForTesting: IOSurface? {
+            layer?.contents as? IOSurface
+        }
+
         /// Drags across the first rows of the pane, copies the selection, and returns the pasteboard text.
         func dragAndCopyFirstRowForTesting() -> String? {
             guard let window else { return nil }

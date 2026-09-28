@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds GhosttyKit.xcframework and Ghostty's runtime resources from the
-# pinned upstream Ghostty commit (scripts/ghostty.env), then copies them into
-# Frameworks/. Builds are cached per commit under ~/Library/Caches/calm, so
+# pinned upstream Ghostty commit (scripts/ghostty.env) with Calm's patches
+# (scripts/ghostty-patches) applied, then copies them into Frameworks/.
+# Builds are cached per commit and patch set under ~/Library/Caches/calm, so
 # worktrees and repeat runs reuse the same build.
 set -euo pipefail
 
@@ -9,18 +10,27 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/ghostty.env
 source "$root/scripts/ghostty.env"
 
-cache="${CALM_CACHE_DIR:-$HOME/Library/Caches/calm}/ghostty/$GHOSTTY_COMMIT"
+# Applied in name order. A build is named by the commit and a hash of the
+# patches, so changing a patch never reuses a build made without it.
+patches=("$root"/scripts/ghostty-patches/*.patch)
+patches_id="$(cat "${patches[@]}" | shasum -a 256 | cut -c1-12)"
+build="$GHOSTTY_COMMIT-$patches_id"
+
+cache_root="${CALM_CACHE_DIR:-$HOME/Library/Caches/calm}/ghostty"
+cache="$cache_root/$build"
 src="$cache/src"
 out="$cache/out"
 dest="$root/Frameworks"
 
-if [[ -f "$dest/.ghostty-commit" && "$(cat "$dest/.ghostty-commit")" == "$GHOSTTY_COMMIT" ]]; then
-  echo "GhosttyKit $GHOSTTY_REF is up to date."
+if [[ -f "$dest/.ghostty-build" && "$(cat "$dest/.ghostty-build")" == "$build" ]]; then
+  echo "GhosttyKit $GHOSTTY_REF (patches $patches_id) is up to date."
   exit 0
 fi
 
 if [[ ! -d "$out/GhosttyKit.xcframework" ]]; then
-  if [[ ! -d "$src/.git" ]]; then
+  # A checkout is reused only once every patch is in: a run stopped halfway
+  # starts over rather than building a half-patched tree.
+  if [[ ! -f "$src/.calm-patches" || "$(cat "$src/.calm-patches")" != "$patches_id" ]]; then
     echo "Fetching Ghostty $GHOSTTY_REF ($GHOSTTY_COMMIT)…"
     rm -rf "$src"
     mkdir -p "$src"
@@ -28,10 +38,23 @@ if [[ ! -d "$out/GhosttyKit.xcframework" ]]; then
     git -C "$src" remote add origin https://github.com/ghostty-org/ghostty.git
     git -C "$src" fetch -q --depth 1 origin "$GHOSTTY_COMMIT"
     git -C "$src" checkout -q FETCH_HEAD
+
+    for patch in "${patches[@]}"; do
+      echo "Applying $(basename "$patch")…"
+      if ! git -C "$src" apply --check "$patch"; then
+        echo "error: $(basename "$patch") does not apply to Ghostty $GHOSTTY_COMMIT." >&2
+        echo "Take the patches from the $GHOSTTY_PATCHES_FROM commit whose parent is that commit" >&2
+        echo "(see scripts/ghostty-patches/README.md)." >&2
+        exit 1
+      fi
+      git -C "$src" apply "$patch"
+    done
+    echo "$patches_id" > "$src/.calm-patches"
   fi
 
   echo "Fetching Ghostty's dependencies…"
-  python3 "$root/scripts/ghostty-deps.py" "$src" "$cache/downloads"
+  # Downloads are named by content hash, so every build shares them.
+  python3 "$root/scripts/ghostty-deps.py" "$src" "$cache_root/downloads"
 
   echo "Building GhosttyKit (this takes a while the first time)…"
   (
@@ -58,5 +81,6 @@ rsync -a --delete "$out/GhosttyKit.xcframework/" "$dest/GhosttyKit.xcframework/"
 if [[ -d "$out/share" ]]; then
   rsync -a --delete "$out/share/" "$dest/ghostty-share/"
 fi
-echo "$GHOSTTY_COMMIT" > "$dest/.ghostty-commit"
-echo "GhosttyKit $GHOSTTY_REF ready in Frameworks/."
+rm -f "$dest/.ghostty-commit" # the stamp before patches were part of a build
+echo "$build" > "$dest/.ghostty-build"
+echo "GhosttyKit $GHOSTTY_REF (patches $patches_id) ready in Frameworks/."

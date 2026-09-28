@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/calm/ghostty
-          key: ghosttykit-${{ runner.os }}-${{ hashFiles('scripts/ghostty.env', 'scripts/ghosttykit.sh', 'scripts/ghostty-deps.py', 'mise.toml') }}
+          key: ghosttykit-${{ runner.os }}-${{ hashFiles('scripts/ghostty.env', 'scripts/ghosttykit.sh', 'scripts/ghostty-deps.py', 'scripts/ghostty-patches/*.patch', 'mise.toml') }}
 
       - name: Install Metal toolchain
         if: steps.ghosttykit-cache.outputs.cache-hit != 'true'

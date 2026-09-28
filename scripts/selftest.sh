@@ -27,6 +27,8 @@ delay="1.5"
 keys=""
 drag=""
 resize=""
+motion=""
+motion_cells=""
 persist=""
 state=""
 config=""
@@ -47,6 +49,8 @@ while [[ $# -gt 0 ]]; do
     --keys) keys="$2"; shift 2 ;;         # typed through real key events; "\r" in the text means Return
     --drag) drag=1; shift ;;              # drag-select the first rows, copy, and log the clipboard
     --resize) resize="$2"; shift 2 ;;     # e.g. 700x420: resize the window and log the grid size
+    --motion) motion="$2"; shift 2 ;;     # sample the pane's frames this many seconds and log how its content moved
+    --motion-cells) motion_cells="$2"; shift 2 ;; # col,row,col,row: watch only these cells (default: the whole pane)
     --persist) persist=1; shift ;;        # keep zmx persistence on (default: off, so runs leave nothing behind)
     --state) state="$2"; shift 2 ;;       # use this state file (default: a fresh one per run)
     --plain-shell) shell=/bin/bash; shift ;; # persistent sessions get no shell integration (no OSC 7)
@@ -115,6 +119,8 @@ env \
   CALM_SELFTEST_KEYS="$(printf '%b' "$keys")" \
   CALM_SELFTEST_DRAG="$drag" \
   CALM_SELFTEST_RESIZE="$resize" \
+  CALM_SELFTEST_MOTION="$motion" \
+  CALM_SELFTEST_MOTION_CELLS="$motion_cells" \
   CALM_SNAPSHOT_DELAY="$delay" \
   CALM_SNAPSHOT_QUIT=1 \
   OS_ACTIVITY_DT_MODE=1 \

@@ -9,6 +9,10 @@
     ///   `calm.<name>` runs one of Calm's own (see `MainWindowController.performForTesting`).
     /// - `CALM_SNAPSHOT=/path/shot.png` saves the key window to a PNG once the UI settles.
     /// - `CALM_SELFTEST_TEXT=/path/screen.txt` saves the focused terminal's visible text.
+    /// - `CALM_SELFTEST_MOTION=4` samples the focused pane's frames for this many seconds after
+    ///   the typing and logs how its content moved (`MotionProbe`); `CALM_SELFTEST_MOTION_CELLS=
+    ///   col,row,col,row` watches only that rectangle of cells, and `CALM_SELFTEST_MOTION_DUMP=
+    ///   /path.csv` also writes each frame's row profile, for a closer look.
     /// - `CALM_SNAPSHOT_DELAY=2.5` seconds to wait before capturing (default 1.5).
     /// - `CALM_SNAPSHOT_QUIT=1` quits after capturing.
     @MainActor
@@ -56,6 +60,11 @@
                     try? await Task.sleep(for: .seconds(0.6))
                     let copied = pane.dragAndCopyFirstRowForTesting()
                     log("drag-copied: \(copied.debugDescription)")
+                }
+                if let seconds = env["CALM_SELFTEST_MOTION"].flatMap(Double.init), let pane {
+                    let cells = env["CALM_SELFTEST_MOTION_CELLS"].flatMap(MotionProbe.Cells.init)
+                    let report = await MotionProbe.run(on: pane, seconds: seconds, cells: cells)
+                    log(report.summary)
                 }
                 try? await Task.sleep(for: .seconds(delay))
                 logLayout()

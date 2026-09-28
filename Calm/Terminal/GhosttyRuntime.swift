@@ -50,6 +50,14 @@ enum GhosttyRuntime {
         return String(bytes: bytes, encoding: .utf8) ?? "unknown"
     }
 
+    /// Whether the engine has Calm's smooth-scrolling patch (scripts/ghostty-patches): only then
+    /// does libghostty know the `smooth-scroll` key. Asked once, of an empty config, after
+    /// `initializeProcess`.
+    static let hasSmoothScroll: Bool = {
+        guard let raw = ghostty_config_new() else { return false }
+        return TerminalConfig(owning: raw).bool("smooth-scroll") != nil
+    }()
+
     static var statusLine: String {
         isReady ? "Engine ready · libghostty \(engineVersion)" : "Engine failed to start (code \(initResult ?? -1))"
     }

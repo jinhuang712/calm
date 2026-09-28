@@ -151,7 +151,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 | Motion | Behavior |
 |---|---|
-| Smooth scrolling | scrollback glides with the trackpad instead of jumping line by line. **Blocked:** upstream Ghostty scrolls by whole rows; pixel-smooth scrolling needs an engine change (see DESIGNS.md) |
+| Smooth scrolling | scrolling moves by pixels, not whole rows. Scrollback follows the trackpad; a program that scrolls part of its screen (Claude Code's full-screen view as an answer streams in, `less`, vim) has that part slide into place, each jump easing home in about a quarter second, so steady output reads as one flow; a resize or divider drag slides the content instead of stepping it. At rest, a pane whose height isn't a whole number of rows shows part of the scrollback row above its first row instead of an empty strip. Full motion only |
 | Smooth cursor | a soft smear follows the cursor when it jumps (not when typing moves it one cell), fading in about 140 ms. Calm's own shader `cursor_glide.glsl`, loaded through Ghostty's custom-shader support |
 | Cursor trail | part of the same shader: the smear's tail catches up with its head, so it reads as a short trail |
 

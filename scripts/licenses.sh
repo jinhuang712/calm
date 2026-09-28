@@ -8,8 +8,7 @@ out="$root/Calm/Resources/Licenses"
 mkdir -p "$out"
 source "$root/scripts/ghostty.env"
 
-ghostty_source="${CALM_CACHE_DIR:-$HOME/Library/Caches/calm}/ghostty/$GHOSTTY_COMMIT/src/LICENSE"
-cp "$ghostty_source" "$out/Ghostty.txt"
+curl -sfL --retry 3 -o "$out/Ghostty.txt" "https://raw.githubusercontent.com/ghostty-org/ghostty/$GHOSTTY_COMMIT/LICENSE"
 curl -sfL --retry 3 -o "$out/zmx.txt" https://raw.githubusercontent.com/neurosnap/zmx/main/LICENSE
 curl -sfL --retry 3 -o "$out/markdown-it.txt" https://cdn.jsdelivr.net/npm/markdown-it@15.0.2/LICENSE
 curl -sfL --retry 3 -o "$out/highlight.js.txt" https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/LICENSE

@@ -33,7 +33,7 @@ enum CalmDefaults {
     }
 
     /// The settings Calm applies by default.
-    static func contents(reduceMotion: Bool, cursorShader: URL?, theme: [String] = []) -> String {
+    static func contents(reduceMotion: Bool, cursorShader: URL?, smoothScroll: Bool = false, theme: [String] = []) -> String {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
@@ -55,6 +55,13 @@ enum CalmDefaults {
             lines.append("custom-shader = \(cursorShader.path)")
             lines.append("custom-shader-animation = true")
         }
+        if !reduceMotion, smoothScroll {
+            // Scrolling moves by pixels (UIUX.md → Motion): trackpad scrollback, and a program
+            // scrolling a region of its screen (Claude Code's full-screen view, less) slides instead
+            // of jumping rows. The key comes with Calm's engine patch (scripts/ghostty-patches); an
+            // engine without it would report an unknown key, so it's left out there.
+            lines.append("smooth-scroll = true")
+        }
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -66,7 +73,12 @@ enum CalmDefaults {
         let settings = CalmSettings.load()
         let reduceMotion = AccessibilitySettings.reduceMotion || settings.motion != .full
         let theme = TerminalTheme.defaultLines(settings: settings, directory: directory)
-        let text = contents(reduceMotion: reduceMotion, cursorShader: shader, theme: theme)
+        let text = contents(
+            reduceMotion: reduceMotion,
+            cursorShader: shader,
+            smoothScroll: GhosttyRuntime.hasSmoothScroll,
+            theme: theme,
+        )
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try text.write(to: fileURL, atomically: true, encoding: .utf8)

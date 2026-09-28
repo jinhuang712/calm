@@ -8,6 +8,10 @@ Ghostty (https://github.com/ghostty-org/ghostty), MIT License.
 Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors.
 Calm's terminal engine is built from Ghostty's source.
 
+Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/ghostty), the
+Ghostty fork Macterm builds on, MIT License (Ghostty's, above). Applied unchanged to the engine;
+see scripts/ghostty-patches.
+
 zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
 Copyright (c) 2025 Eric Bower.
 Bundled to keep shells running while Calm is closed.

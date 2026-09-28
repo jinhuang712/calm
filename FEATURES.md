@@ -154,7 +154,7 @@ A quick, read-only look at the repository without leaving Calm.
   - **Interface size:** Default, Large, Larger or Largest, shown as chips of Calm's sidebar growing beside a terminal that doesn't; everything Calm draws around the terminal grows together (UIUX.md → Accessibility). The terminal's own text stays the Ghostty font's size.
   - **Background:** solid, or glass (the system's blur behind a translucent terminal and sidebar; panels and the viewer stay solid).
   - **Layout:** edge to edge, or card (the terminal floats as a rounded card on the sidebar's color).
-  - **Motion:** full, reduced or off; the system's Reduce Motion always wins.
+  - **Motion:** full, reduced or off; the system's Reduce Motion always wins. Full motion includes the terminal's own: the cursor glide, and smooth scrolling (scrollback and programs' scrolling move by pixels, so an agent's streaming answer flows instead of jumping; UIUX.md → Motion). `smooth-scroll = false` in `~/.config/calm/terminal.ghostty` turns just the scrolling off.
   - In config.toml: `ui-size = "larger"`, `[window] background = "glass"`, `layout = "card"`, and `motion`. Choosing a default removes the key.
 
 **Settings:** the picker itself.

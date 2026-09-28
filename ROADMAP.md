@@ -64,7 +64,7 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [x] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
 - [x] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
 - [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
-- [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling is blocked on an engine change; see DESIGNS.md → Motion in the terminal.
+- [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
 - [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
 - [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Moved to Later: not needed for daily agent work.*
 - [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Needs the author; automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*

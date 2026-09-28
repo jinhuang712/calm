@@ -209,6 +209,8 @@ final class SessionManager {
     }
 
     func titleChanged(_ id: Session.ID, _ title: String) {
+        // Compared without an agent's spinner glyph, so a turning spinner doesn't save the state each frame.
+        let title = Session.shellTitle(title)
         guard workspace.session(id)?.title != title else { return }
         workspace.setTitle(id, title)
         scheduleSave()

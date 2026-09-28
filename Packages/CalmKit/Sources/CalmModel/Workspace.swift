@@ -126,7 +126,26 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         if isScratch {
             return scratchLabel
         }
+        let title = Self.shellTitle(title)
         return title.isEmpty ? WorkspacePath.displayName(for: workingDirectory) : title
+    }
+
+    /// A shell title without the status glyph an agent puts in front of it: Claude Code shows
+    /// "✳" when idle and a turning half circle ("◐◓◑◒") or braille dots while working. The
+    /// card already shows the state, and a glyph that turns would make the title flicker.
+    public static func shellTitle(_ raw: String) -> String {
+        var title = Substring(raw)
+        while let first = title.unicodeScalars.first, isStatusGlyph(first) {
+            title = Substring(title.unicodeScalars.dropFirst()).drop(while: \.isWhitespace)
+        }
+        return String(title)
+    }
+
+    private static func isStatusGlyph(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x2733, 0x25D0 ... 0x25D3, 0x2800 ... 0x28FF: true // ✳, ◐◓◑◒, braille
+        default: false
+        }
     }
 
     /// "Scratch · 14:32", or with the day for an older one.
@@ -425,7 +444,7 @@ public struct Workspace: Codable, Hashable, Sendable {
 
     public mutating func setTitle(_ id: Session.ID, _ title: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
-        sessions[index].title = title
+        sessions[index].title = Session.shellTitle(title)
     }
 
     public mutating func setState(_ id: Session.ID, _ state: SessionState) {

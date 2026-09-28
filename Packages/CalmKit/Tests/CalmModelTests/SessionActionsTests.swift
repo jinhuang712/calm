@@ -66,4 +66,27 @@ struct SessionActionsTests {
         #expect(decoded.session(id)?.customName == nil)
         #expect(decoded.session(id)?.lastConversation == nil)
     }
+
+    @Test(arguments: [
+        "✳ Fix the flaky test",
+        "◐ Fix the flaky test",
+        "◓◑  Fix the flaky test",
+        "⠂ Fix the flaky test",
+        "Fix the flaky test",
+    ])
+    func `a shell title loses an agent's status glyph`(raw: String) throws {
+        var (workspace, id) = workspace()
+        workspace.setTitle(id, raw)
+        #expect(try #require(workspace.session(id)).displayTitle == "Fix the flaky test")
+    }
+
+    @Test func `a glyph inside a title stays, and a saved title with one reads clean`() throws {
+        #expect(Session.shellTitle("Build ✳ ship") == "Build ✳ ship")
+        let (workspace, id) = workspace()
+        var session = try #require(workspace.session(id))
+        session.title = "◑ Settings page redesign"
+        #expect(session.displayTitle == "Settings page redesign")
+        session.title = "✳"
+        #expect(session.displayTitle == "app")
+    }
 }

@@ -120,7 +120,8 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Room for the window's traffic lights. The titlebar's safe area is ignored below, so
             // this is the only gap; counting both left a hole above the search field.
-            Color.clear.frame(height: 40)
+            // As tall as the window's title strip, so the search field and the terminal start level.
+            Color.clear.frame(height: CalmWindow.titleStripHeight)
             searchField
                 .padding(.horizontal, 14)
                 .padding(.bottom, 18)

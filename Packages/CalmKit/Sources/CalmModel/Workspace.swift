@@ -166,6 +166,34 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         customName ?? agentTitle.flatMap { $0.isEmpty ? nil : $0 } ?? displayTitle
     }
 
+    /// What the title strip above the terminal shows (UIUX.md → Title bar): the session's title
+    /// and the folder it's in. The title is left out when it only repeats the folder (a
+    /// plain shell titled "~" or "calm"); a scratch session shows no folder, as everywhere else.
+    public func titleStrip(agentTitle: String?, home: String = NSHomeDirectory()) -> (folder: String?, title: String?) {
+        let title = title(agentTitle: agentTitle)
+        if isScratch {
+            return (nil, title)
+        }
+        let folder = WorkspacePath.abbreviated(workingDirectory, home: home)
+        return (folder, repeatsFolder(title, folder: folder) ? nil : title)
+    }
+
+    /// Whether a title only names the folder: its path, its name, or a prompt's shortened path
+    /// ("…/apps/calm").
+    private func repeatsFolder(_ title: String, folder: String) -> Bool {
+        if title.isEmpty || title == folder || title == WorkspacePath.displayName(for: workingDirectory)
+            || WorkspacePath.standardize(title) == workingDirectory {
+            return true
+        }
+        for ellipsis in ["…", "..."] where title.hasPrefix(ellipsis) {
+            let tail = title.dropFirst(ellipsis.count)
+            if tail.hasPrefix("/"), workingDirectory.hasSuffix(tail) {
+                return true
+            }
+        }
+        return false
+    }
+
     /// The conversation that can be forked: the running agent's, else the last one.
     public var conversation: AgentConversation? {
         agent?.conversation ?? lastConversation
@@ -563,6 +591,14 @@ public enum WorkspacePath {
             result.removeLast()
         }
         return result
+    }
+
+    /// A folder with the home folder written as "~": "~/dev/calm", "/opt/tools".
+    public static func abbreviated(_ path: String, home: String = NSHomeDirectory()) -> String {
+        let path = standardize(path)
+        let home = standardize(home)
+        guard home != "/", isInside(path, folder: home) else { return path }
+        return "~" + path.dropFirst(home.count)
     }
 
     public static func isInside(_ directory: String, folder: String) -> Bool {

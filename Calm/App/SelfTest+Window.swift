@@ -3,6 +3,24 @@
     import CalmModel
 
     extension MainWindowController {
+        func peekForTesting() {
+            peek?.showForTesting()
+        }
+
+        /// Frames of the window's parts, for self-test logs.
+        var layoutForTesting: String {
+            let overlays = container.subviews
+                .filter { $0 !== sidebarHost && $0 !== mainArea && $0 !== titleHost }
+                .map { "\(type(of: $0)) \($0.frame)" }
+            let background = focusedPane?.effectiveBackgroundColor ?? window?.backgroundColor ?? .clear
+            let themed = TerminalTheme.chromeColors(matching: background) != nil
+            let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
+                + "accent \(NSColor(sidebarStyle.accent).hexString), theme chrome \(themed)"
+            let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), title \(titleHost?.frame ?? .zero), "
+                + "overlays \(overlays)"
+            return "\(frames); \(chrome); welcome \(welcomePage.isShowing); window title \(window?.title ?? "")"
+        }
+
         /// Calm's own actions for self-tests. Keys go through the app's event queue, so the
         /// session switcher sees them exactly as it sees the keyboard.
         func performForTesting(_ action: String) -> Bool {

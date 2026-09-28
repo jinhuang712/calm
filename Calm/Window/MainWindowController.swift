@@ -10,12 +10,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     let manager: SessionManager
     let container = NSView()
     let mainArea = NSView()
-    private var sidebarHost: NSHostingView<SidebarView>?
+    private(set) var sidebarHost: NSHostingView<SidebarView>?
+    var titleHost: SessionTitleHost?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
     private var searchHost: NSView?
     private var sidebarWidth: NSLayoutConstraint?
-    private var peek: SidebarPeek?
+    private(set) var peek: SidebarPeek?
     /// The peek's state before Settings covered the window.
     private var peekWasEnabled = false
     private lazy var switcher = SessionSwitcher(controller: self)
@@ -97,6 +98,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             width,
         ])
         windowStyle.install(mainArea: mainArea, after: files, in: container)
+        installTitle()
         container.layoutSubtreeIfNeeded()
         peek = SidebarPeek(container: container, width: Self.sidebarWidth) { [unowned self] in
             NSHostingView(rootView: makeSidebar(style: sidebarStyle))
@@ -158,23 +160,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         applyAppearance()
     }
-
-    #if DEBUG
-        func peekForTesting() {
-            peek?.showForTesting()
-        }
-
-        /// Frames of the window's parts, for self-test logs.
-        var layoutForTesting: String {
-            let overlays = container.subviews.filter { $0 !== sidebarHost && $0 !== mainArea }.map { "\(type(of: $0)) \($0.frame)" }
-            let background = focusedPane?.effectiveBackgroundColor ?? window?.backgroundColor ?? .clear
-            let themed = TerminalTheme.chromeColors(matching: background) != nil
-            let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
-                + "accent \(NSColor(sidebarStyle.accent).hexString), theme chrome \(themed)"
-            let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays)"
-            return "\(frames); \(chrome); welcome \(welcomePage.isShowing)"
-        }
-    #endif
 
     /// Only the selected layout's panes render; the rest are occluded.
     func restorePaneVisibility() {
@@ -307,6 +292,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)
+        titleHost?.rootView = makeTitle(style: style)
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }

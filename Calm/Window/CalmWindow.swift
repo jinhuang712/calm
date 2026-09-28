@@ -20,8 +20,9 @@ enum TitleBarDoubleClick: Equatable {
 /// the title bar, and AppKit never zooms. The window does it instead, the way the user set it.
 final class CalmWindow: NSWindow {
     /// The strip at the top that stands in for the title bar (WindowStyle leaves it above the
-    /// terminal area).
-    static let titleStripHeight: CGFloat = 30
+    /// terminal area): a header row of its own for the session title, below the traffic lights'
+    /// line. The sidebar leaves the same room above its search field, so the two start level.
+    static let titleStripHeight: CGFloat = 48
 
     private var frameBeforeFill: NSRect?
 

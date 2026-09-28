@@ -27,7 +27,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 │  └────────────────────────┘  │              │                                     │
 │  + New Project            ⌘O │              │                                     │
 └──────────────────────────────┴──────────────┴─────────────────────────────────────┘
-   sidebar (periphery)          files (⌘⇧E,     main area (center): the session,
+   sidebar (periphery)          files (⌘\,      main area (center): the session,
                                 optional)       or a viewed file (esc returns)
 ```
 
@@ -223,7 +223,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘1…9 | Jump to session by position |
 | ⌃Tab / ⌃⇧Tab | Cycle sessions down / up the sidebar (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
-| ⌘⇧E | Toggle the files column |
+| ⌘\\ | Toggle the files column |
 | esc | Close a viewed file and return to the session |
 | ⌘⇧I | Show the arrival card again |
 | ⌘, | Settings |
@@ -236,7 +236,8 @@ Audited against Ghostty's macOS defaults (M1.10):
 - **⌘,** is Ghostty's *open config*, which Calm doesn't support; Calm's defaults unbind it so it opens Settings, the Mac convention.
 - **⌘⇧T** is Ghostty's *undo* (of a closed tab or split), which Calm doesn't do. Calm's defaults unbind it and give it to Reopen Closed Session, the browser convention. Left bound, Ghostty would take the key first and send it on to the shell, and the menu would never see it. ⌘Z, Ghostty's other undo key, stays unused.
 - **Restart Calm** (Calm menu) has no shortcut on purpose: it's rare, and next to ⌘Q it would be easy to hit by mistake.
-- ⌘P, ⌘⇧E, ⌘⇧I, ⌘⇧N, ⌘O are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
+- **⌘\\** toggles the files column. It was ⌘⇧E until the author's own Ghostty config turned out to bind that to *equalize splits*, so the column never opened; nothing in Ghostty's defaults uses backslash. 1Password's autofill is ⌘\\ by default, a global shortcut that takes the key first while 1Password runs; View → Toggle Files still works then.
+- ⌘P, ⌘\\, ⌘⇧I, ⌘⇧N, ⌘O are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
 
 ## Accessibility
 

@@ -5,7 +5,7 @@ import CalmModel
 extension MainWindowController {
     // MARK: Files column
 
-    /// ⌘⇧E: the focused session's project files.
+    /// ⌘\: the focused session's project files.
     func toggleFiles() {
         filesColumn.toggle(project: focusedProjectPath, isScratch: focusedSession?.isScratch == true, in: container)
     }

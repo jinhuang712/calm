@@ -3,7 +3,7 @@ import CalmModel
 import SwiftUI
 
 /// The files column (FEATURES.md → F10): the focused session's project, right of the sidebar;
-/// git-ignored files hidden, changed files marked; ⌘⇧E toggles it; a click opens the viewer.
+/// git-ignored files hidden, changed files marked; ⌘\ toggles it; a click opens the viewer.
 @MainActor
 @Observable
 final class FilesModel {

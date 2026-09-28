@@ -193,7 +193,7 @@ struct ShortcutsSection: View {
             Group(title: "View", rows: [
                 (["⌘", "P"], "Command palette"),
                 (["⌘", "⌃", "S"], "Toggle the sidebar"),
-                (["⌘", "⇧", "E"], "Toggle the files column"),
+                (["⌘", "\\"], "Toggle the files column"),
                 (["esc"], "Close a viewed file"),
                 (["⌘", ","], "Settings"),
             ]),

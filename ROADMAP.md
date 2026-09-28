@@ -145,7 +145,7 @@ Agent output is easy to act on.
 
 - [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
 - [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
-- [x] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘⇧E, follows the focused session. *Built: git listing off the main thread (or a bounded walk outside git), M/A/D/R/U markers and dots on changed folders, branch and change count in the header, 5 s refresh while shown, click opens the viewer with the viewed file highlighted. The sidebar and the column now slide without resizing the terminal on every frame.*
+- [x] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘\\ (first ⌘⇧E), follows the focused session. *Built: git listing off the main thread (or a bounded walk outside git), M/A/D/R/U markers and dots on changed folders, branch and change count in the header, 5 s refresh while shown, click opens the viewer with the viewed file highlighted. The sidebar and the column now slide without resizing the terminal on every frame.*
 - [x] **M5.4 Decision:** viewer rendering — native or a web view.
 - [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
 - [x] **M5.6 CLI:** `calm open <file>`.

@@ -110,8 +110,8 @@
                 }
             case "cmd_comma":
                 pressKeyEquivalentForTesting(keyCode: 43, characters: ",")
-            case "cmd_shift_e":
-                pressKeyEquivalentForTesting(keyCode: 14, characters: "e", modifiers: [.command, .shift])
+            case "cmd_backslash":
+                pressKeyEquivalentForTesting(keyCode: 42, characters: "\\")
             case "arrival":
                 showArrivalCard()
             case "jump_waiting":

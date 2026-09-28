@@ -107,6 +107,7 @@ struct SidebarView: View {
     @State private var draftName = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var hoveredSessionID: Session.ID?
+    @State private var hoveredGroupID: Project.ID?
 
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
@@ -172,7 +173,10 @@ struct SidebarView: View {
                     GroupMark(kind: project.kind, style: style)
                     groupName(project)
                     Spacer(minLength: 4)
-                    if project.isCollapsed {
+                    if hoveredGroupID == project.id {
+                        // Room for the hover controls laid over this end of the header.
+                        Color.clear.frame(width: groupControlsWidth(project), height: 1)
+                    } else if project.isCollapsed {
                         Text(summary(sessions))
                             .font(.system(size: 12))
                             .foregroundStyle(style.tertiary)
@@ -193,6 +197,12 @@ struct SidebarView: View {
             .buttonStyle(.plain)
             // A scratch group's folder is Calm's business; the others show theirs.
             .help(project.kind == .scratch ? "" : project.path)
+            .overlay(alignment: .trailing) {
+                if hoveredGroupID == project.id {
+                    groupControls(project).padding(.trailing, 4)
+                }
+            }
+            .onHover { hoveredGroupID = $0 ? project.id : (hoveredGroupID == project.id ? nil : hoveredGroupID) }
             .contextMenu { groupMenu(project) }
 
             if !project.isCollapsed {
@@ -257,6 +267,40 @@ struct SidebarView: View {
             // Only the grouping goes: sessions stay open and files stay put, so no confirmation.
             Button("Remove Project") { actions.removeProject(project.id) }
         }
+    }
+
+    /// A group's own actions, shown on hover in the place of its summary (UIUX.md → Layout):
+    /// + starts a session there; ⋯ holds what changes the group itself, one step away.
+    private func groupControls(_ project: Project) -> some View {
+        HStack(spacing: 2) {
+            GroupControl(style: style, systemImage: "plus", help: project.kind == .scratch ? "New Scratch Session" : "New Session Here") {
+                if project.kind == .scratch {
+                    actions.newScratchSession()
+                } else {
+                    actions.newSessionIn(project)
+                }
+            }
+            if project.kind != .scratch {
+                Menu {
+                    switch project.kind {
+                    case .directory: Button("Make Project") { actions.makeProject(project.id) }
+                    case .project: Button("Remove Project") { actions.removeProject(project.id) }
+                    case .scratch: EmptyView()
+                    }
+                } label: {
+                    GroupControlLabel(style: style, systemImage: "ellipsis")
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(project.kind == .project ? "Remove Project" : "Make Project")
+            }
+        }
+    }
+
+    private func groupControlsWidth(_ project: Project) -> CGFloat {
+        project.kind == .scratch ? 22 : 46
     }
 
     @ViewBuilder
@@ -413,6 +457,39 @@ private struct FooterButton<Label: View>: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(help)
+    }
+}
+
+/// One of a group header's hover controls: a small glyph that lights up under the pointer.
+private struct GroupControl: View {
+    let style: SidebarStyle
+    let systemImage: String
+    let help: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            GroupControlLabel(style: style, systemImage: systemImage)
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+}
+
+private struct GroupControlLabel: View {
+    let style: SidebarStyle
+    let systemImage: String
+    @State private var hovering = false
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(hovering ? style.primary : style.tertiary)
+            .frame(width: 22, height: 22)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hovering ? style.selection : .clear))
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
     }
 }
 

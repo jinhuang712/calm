@@ -50,6 +50,28 @@ extension ClaudeCodeAdapter: TranscriptIndexing {
         return messages
     }
 
+    /// `~/.claude/history.jsonl`: `{display, pastedContents, timestamp (ms), project, sessionId}`
+    /// per prompt, kept after Claude Code cleans up transcripts (`cleanupPeriodDays`, 30 by
+    /// default). Bare slash commands such as `/model` are skipped.
+    public var promptHistoryFile: String? {
+        ".claude/history.jsonl"
+    }
+
+    public func historyPrompt(in record: [String: Any]) -> HistoryPrompt? {
+        guard let sessionID = record["sessionId"] as? String,
+              let text = record["display"] as? String,
+              let milliseconds = record["timestamp"] as? Double
+        else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed.hasPrefix("/") && !trimmed.contains(" ") {
+            return nil
+        }
+        return HistoryPrompt(
+            agentSessionID: sessionID, directory: record["project"] as? String,
+            date: Date(timeIntervalSince1970: milliseconds / 1000), text: trimmed,
+        )
+    }
+
     private static func texts(of record: [String: Any]) -> [String] {
         guard let message = record["message"] as? [String: Any] else { return [] }
         if let text = message["content"] as? String {

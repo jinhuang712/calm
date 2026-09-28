@@ -17,7 +17,7 @@ public struct HookReport: Equatable, Sendable {
     }
 
     /// Long agent messages are cut for a one- or two-line recap.
-    static func recap(_ text: String?, limit: Int = 280) -> String? {
+    public static func recap(_ text: String?, limit: Int = 280) -> String? {
         guard let text else { return nil }
         let flat = text
             .split(whereSeparator: \.isNewline)

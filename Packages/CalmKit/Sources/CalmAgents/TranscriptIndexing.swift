@@ -34,6 +34,22 @@ public struct TranscriptInfo: Sendable, Equatable {
     }
 }
 
+/// One prompt from an agent's prompt log, which can outlive its transcripts (Claude Code deletes
+/// transcripts after 30 days but keeps `history.jsonl`).
+public struct HistoryPrompt: Sendable, Equatable {
+    public var agentSessionID: String
+    public var directory: String?
+    public var date: Date
+    public var text: String
+
+    public init(agentSessionID: String, directory: String?, date: Date, text: String) {
+        self.agentSessionID = agentSessionID
+        self.directory = directory
+        self.date = date
+        self.text = text
+    }
+}
+
 /// Agents whose transcripts can be searched (M4). Parsers read complete JSONL records and
 /// skip anything they don't recognize.
 public protocol TranscriptIndexing: AgentAdapter {
@@ -43,11 +59,24 @@ public protocol TranscriptIndexing: AgentAdapter {
     func isTranscript(_ path: String) -> Bool
     /// The messages in `records`, updating `info` with what they reveal about the session.
     func messages(in records: [[String: Any]], info: inout TranscriptInfo) -> [TranscriptMessage]
+    /// A JSONL file under home where the agent logs every prompt with its session, if it keeps
+    /// one. Search uses it for sessions whose transcript was deleted before Calm indexed it.
+    var promptHistoryFile: String? { get }
+    /// The prompt in one record of that file, or nil to skip the record.
+    func historyPrompt(in record: [String: Any]) -> HistoryPrompt?
 }
 
 public extension TranscriptIndexing {
     func isTranscript(_: String) -> Bool {
         true
+    }
+
+    var promptHistoryFile: String? {
+        nil
+    }
+
+    func historyPrompt(in _: [String: Any]) -> HistoryPrompt? {
+        nil
     }
 }
 

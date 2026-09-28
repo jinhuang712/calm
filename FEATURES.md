@@ -90,6 +90,7 @@ A fast, correct terminal on libghostty.
 - **⌘K** opens a search box over every past and present session, across all agents.
 - Results are sessions, not lines: agent, project, title, last active time and the matching snippet.
 - **Enter** jumps to the session if it is open; otherwise it offers to resume it in its project folder.
+- History outlives the agents' cleanup: a conversation stays searchable after its agent deletes the transcript (Claude Code does after 30 days). Claude Code conversations deleted before Calm indexed them are found through the prompts in `~/.claude/history.jsonl`. These can't be resumed; Enter opens a new session in their folder.
 - Searches what the user and agents wrote; skips tool output and file dumps.
 - Works for English and Chinese text.
 - Ranking: text relevance (BM25), then recency, title matches and the current project.

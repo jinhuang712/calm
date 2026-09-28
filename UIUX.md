@@ -113,9 +113,9 @@ Rules:
 
 ## Search (⌘K)
 
-- A centered, native-feeling panel with one text field; it hugs a short list of results.
-- Results update as the user types; each row shows agent icon, title, project, relative time and a highlighted snippet.
-- ↑/↓ to move, Enter to jump or resume, Esc to close. The selected row says what Enter does: "↵ Open" for a session open in Calm, "↵ Resume in <folder>" otherwise (a new session runs the agent's resume command there).
+- A centered, native-feeling panel with one text field behind a quiet magnifying glass; it hugs a short list of results and shows seven and a half rows before scrolling.
+- Results update as the user types; each row has one fixed height and two lines: agent icon, title, then project · time on the right ("3h" within a week, a date like "Apr 14" after); below, one line of snippet that opens a few words before the match, so the highlighted match is always visible.
+- ↑/↓ to move, Enter to jump or resume, Esc to close. A quiet footer line says what Enter does for the selected row, so rows never change height: "↵ Open" for a session open in Calm, "↵ Resume in <folder>" otherwise (a new session runs the agent's resume command there), and "↵ New session in <folder> · <agent> deleted this conversation, so it can't be resumed" when the transcript is gone.
 - An empty field lists the most recent sessions.
 - The current project's sessions rank slightly higher.
 

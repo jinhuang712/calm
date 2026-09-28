@@ -112,15 +112,101 @@ struct SearchIndexTests {
         #expect(fixture.index.search("tokenizer").count == 1)
     }
 
-    @Test func `a rewritten file is read again, a removed one is forgotten`() throws {
+    @Test func `a rewritten file is read again`() throws {
         let fixture = try makeFixture()
         try fixture.write(".claude/projects/-a/one.jsonl", [Self.claudeUser("short")])
         fixture.index.update(home: fixture.home)
         #expect(fixture.index.search("zmx").isEmpty)
         #expect(fixture.index.search("short").count == 1)
+    }
+
+    @Test func `a deleted transcript stays searchable, marked deleted`() throws {
+        let fixture = try makeFixture()
         try FileManager.default.removeItem(at: fixture.home.appending(path: ".codex"))
         #expect(fixture.index.update(home: fixture.home).filesRemoved == 1)
-        #expect(fixture.index.search("sidebar").isEmpty)
+        #expect(fixture.index.update(home: fixture.home).filesRemoved == 0) // counted once
+        let codex = try #require(fixture.index.search("looks wrong").first)
+        #expect(codex.transcriptDeleted)
+        #expect(fixture.index.search("daemon").first?.transcriptDeleted == false)
+        // Back on disk: resumable again.
+        try fixture.write(".codex/sessions/2026/09/27/rollout-1.jsonl", [
+            #"{"type":"session_meta","payload":{"id":"C1","cwd":"/Users/me/src/api"}}"#,
+            #"{"type":"response_item","payload":{"type":"message","role":"user","#
+                + #""content":[{"type":"input_text","text":"the sidebar looks wrong"}]}}"#,
+        ])
+        fixture.index.update(home: fixture.home)
+        #expect(fixture.index.search("looks wrong").map(\.transcriptDeleted) == [false])
+    }
+
+    private static func historyLine(_ text: String, session: String, milliseconds: Int = 1_776_182_341_656) -> String {
+        #"{"display":"\#(text)","pastedContents":{},"timestamp":\#(milliseconds),"project":"/Users/me/src/old","sessionId":"\#(session)"}"#
+    }
+
+    @Test func `sessions whose transcripts were deleted are found in the prompt history`() throws {
+        let fixture = try makeFixture()
+        try fixture.write(".claude/history.jsonl", [
+            Self.historyLine("/model", session: "OLD"),
+            Self.historyLine("why does the pager flicker?", session: "OLD"),
+            Self.historyLine("how does zmx keep shells alive?", session: "S"), // has a transcript
+        ])
+        let stats = fixture.index.update(home: fixture.home)
+        #expect(stats.messagesAdded == 1)
+        let old = try #require(fixture.index.search("pager").first)
+        #expect(old.title == "why does the pager flicker?")
+        #expect(old.directory == "/Users/me/src/old")
+        #expect(old.agentSessionID == "OLD")
+        #expect(old.transcriptDeleted)
+        #expect(old.lastActive == Date(timeIntervalSince1970: 1_776_182_341.656))
+        #expect(fixture.index.search("/model").isEmpty)
+        #expect(fixture.index.search("zmx").count == 1) // not doubled by its history entry
+
+        // Read incrementally, into the same session.
+        try fixture.append(".claude/history.jsonl", Self.historyLine("and the scrollbar?", session: "OLD"))
+        #expect(fixture.index.update(home: fixture.home).messagesAdded == 1)
+        #expect(fixture.index.search("pager scrollbar").count == 1)
+        #expect(fixture.index.update(home: fixture.home).messagesAdded == 0)
+
+        // A transcript that turns up later replaces the stand-in.
+        try fixture.write(".claude/projects/-c/old.jsonl", [
+            #"{"type":"user","sessionId":"OLD","cwd":"/Users/me/src/old","#
+                + #""message":{"role":"user","content":"why does the pager flicker?"}}"#,
+        ])
+        fixture.index.update(home: fixture.home)
+        #expect(fixture.index.search("pager").map(\.transcriptDeleted) == [false])
+        #expect(fixture.index.search("scrollbar").isEmpty)
+    }
+
+    @Test func `a version 1 index keeps its sessions`() throws {
+        let fixture = Fixture()
+        let url = fixture.home.appending(path: "v1.sqlite")
+        try FileManager.default.createDirectory(at: fixture.home, withIntermediateDirectories: true)
+        let old = try SQLiteDatabase(path: url.path)
+        try old.execute("""
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE files (id INTEGER PRIMARY KEY, path TEXT UNIQUE NOT NULL, agent TEXT NOT NULL,
+            offset INTEGER NOT NULL DEFAULT 0, size INTEGER NOT NULL DEFAULT 0, mtime REAL NOT NULL DEFAULT 0,
+            session_id TEXT, directory TEXT, title TEXT, first_prompt TEXT, last_active REAL NOT NULL DEFAULT 0);
+        CREATE VIRTUAL TABLE messages USING fts5(text, file_id UNINDEXED, role UNINDEXED, tokenize = 'trigram');
+        INSERT INTO meta VALUES ('schema', '1');
+        INSERT INTO files (id, path, agent, title) VALUES (1, '/gone.jsonl', 'claudeCode', 'kept');
+        INSERT INTO messages (text, file_id, role) VALUES ('a message about lanterns', 1, 'user');
+        """)
+        let index = try SearchIndex(url: url)
+        index.update(home: fixture.home) // no transcripts on disk
+        let result = try #require(index.search("lanterns").first)
+        #expect(result.title == "kept")
+        #expect(result.transcriptDeleted)
+    }
+
+    @Test func `snippets open just before the match`() {
+        let text = String(repeating: "filler words here ", count: 10) + "the needle is here\nand more after it"
+        let snippet = SearchQuery.snippet(text, around: "needle")
+        #expect(snippet.hasPrefix("…"))
+        #expect(snippet.contains("\u{2}needle\u{3} is here and more"))
+        let lead = snippet.components(separatedBy: "\u{2}")[0]
+        #expect(lead.count <= 30)
+        #expect(!lead.dropFirst().hasPrefix(" ")) // starts on a whole word
+        #expect(SearchQuery.snippet("Needle first", around: "needle") == "\u{2}Needle\u{3} first")
     }
 
     @Test func `recency, titles and the current project lift results`() throws {

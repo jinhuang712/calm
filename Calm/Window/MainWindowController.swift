@@ -397,6 +397,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session.
+    /// A conversation whose transcript the agent deleted can't be resumed: it gets a plain new
+    /// session in its folder.
     func openSearchResult(_ item: SearchPanelModel.Item) {
         hideSearch()
         if let id = item.openSession {
@@ -404,9 +406,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             return
         }
         let result = item.result
-        guard let command = Agents.adapter(for: result.agent)?
+        let command = result.transcriptDeleted ? nil : Agents.adapter(for: result.agent)?
             .resumeCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath)
-        else { return }
+        guard command != nil || result.transcriptDeleted else { return }
         var directory = FileManager.default.homeDirectoryForCurrentUser.path
         if let folder = result.directory, FileManager.default.fileExists(atPath: folder) {
             directory = folder
@@ -414,7 +416,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         hideSettings()
         let session = manager.newSession(in: directory)
         showSelectedLayout(animated: true)
-        runAgentCommand(command, in: manager.panes[session.id])
+        if let command {
+            runAgentCommand(command, in: manager.panes[session.id])
+        }
     }
 
     private func hideCommandPalette() {

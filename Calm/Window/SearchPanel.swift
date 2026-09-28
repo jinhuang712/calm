@@ -86,13 +86,18 @@ struct SearchPanelView: View {
                 .onTapGesture(perform: onDismiss)
 
             VStack(spacing: 0) {
-                TextField("Search sessions", text: $model.query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 16))
-                    .padding(.horizontal, 18)
-                    .frame(height: 50)
-                    .focused($fieldFocused)
-                    .onSubmit(openSelection)
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.tertiary)
+                    TextField("Search every session", text: $model.query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 15))
+                        .focused($fieldFocused)
+                        .onSubmit(openSelection)
+                }
+                .padding(.horizontal, 18)
+                .frame(height: 48)
 
                 Divider().opacity(0.5)
 
@@ -108,7 +113,9 @@ struct SearchPanelView: View {
                         .padding(6)
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
                     }
-                    .frame(height: min(contentHeight, 420))
+                    .scrollIndicators(.never)
+                    // Seven and a half rows: the half row says there's more below.
+                    .frame(height: min(contentHeight, 6 + 7.5 * (Self.rowHeight + 2)))
                     .onChange(of: model.selection) { proxy.scrollTo(model.selection, anchor: .center) }
                 }
 
@@ -117,6 +124,16 @@ struct SearchPanelView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .frame(height: 44)
+                } else if let item = model.selectedItem {
+                    // What Enter does lives here, so rows keep one height as the selection moves.
+                    Divider().opacity(0.5)
+                    Text(action(item))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .frame(height: 30)
                 }
             }
             .frame(width: 620)
@@ -141,12 +158,16 @@ struct SearchPanelView: View {
         }
     }
 
+    static let rowHeight: CGFloat = 52
+
+    /// Two lines at one fixed height: title with project and time, then the snippet. Snippets
+    /// open just before the match (SearchIndex), so one line is enough to show it.
     private func row(_ item: SearchPanelModel.Item, selected: Bool) -> some View {
         let result = item.result
-        return HStack(alignment: .top, spacing: 10) {
-            AgentLogo(agent: result.agent, size: 20)
+        return HStack(spacing: 12) {
+            AgentLogo(agent: result.agent, size: 22)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(result.title)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
@@ -155,23 +176,19 @@ struct SearchPanelView: View {
                     Text(detail(result))
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
+                        .monospacedDigit()
                         .lineLimit(1)
+                        .layoutPriority(1)
                 }
-                if !result.snippet.isEmpty {
-                    Text(Self.highlighted(result.snippet))
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                if selected {
-                    Text(action(item))
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                }
+                Text(Self.highlighted(result.snippet))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .frame(height: Self.rowHeight)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(selected ? Color.primary.opacity(0.08) : .clear),
@@ -180,10 +197,17 @@ struct SearchPanelView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// "api · 2h ago".
+    /// "api · 2h", or "api · Apr 14" once it's more than a week old.
     private func detail(_ result: SearchResult) -> String {
         let project = result.directory.map { WorkspacePath.displayName(for: $0) } ?? result.agent.displayName
-        return "\(project) · \(RelativeTimeText.format(Date().timeIntervalSince(result.lastActive)))"
+        return "\(project) · \(Self.when(result.lastActive, now: Date()))"
+    }
+
+    static func when(_ date: Date, now: Date) -> String {
+        let interval = now.timeIntervalSince(date)
+        guard interval >= 7 * 86400 else { return RelativeTimeText.format(interval) }
+        let sameYear = Calendar.current.isDate(date, equalTo: now, toGranularity: .year)
+        return date.formatted(sameYear ? .dateTime.month(.abbreviated).day() : .dateTime.month(.abbreviated).day().year())
     }
 
     private func action(_ item: SearchPanelModel.Item) -> String {
@@ -191,6 +215,10 @@ struct SearchPanelView: View {
             return "↵ Open"
         }
         let folder = item.result.directory.map { WorkspacePath.displayName(for: $0) } ?? "~"
+        if item.result.transcriptDeleted {
+            // Found through the index's copy; the agent has nothing left to resume from.
+            return "↵ New session in \(folder) · \(item.result.agent.displayName) deleted this conversation, so it can't be resumed"
+        }
         return "↵ Resume in \(folder)"
     }
 

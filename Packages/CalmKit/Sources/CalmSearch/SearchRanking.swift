@@ -47,12 +47,18 @@ enum SearchQuery {
         return "%\(escaped)%"
     }
 
-    /// A short excerpt around the first match, marked like FTS5's snippets.
-    static func snippet(_ text: String, around term: String, context: Int = 40) -> String {
-        let flat = text.replacingOccurrences(of: "\n", with: " ")
-        guard let range = flat.range(of: term, options: .caseInsensitive) else { return String(flat.prefix(context * 2)) }
-        let start = flat.index(range.lowerBound, offsetBy: -context, limitedBy: flat.startIndex) ?? flat.startIndex
-        let end = flat.index(range.upperBound, offsetBy: context, limitedBy: flat.endIndex) ?? flat.endIndex
+    /// An excerpt from the first match on, marked with U+0002 and U+0003. It opens a few words
+    /// before the match, so the match stays on screen when the row truncates the rest.
+    static func snippet(_ text: String, around term: String, before: Int = 28, after: Int = 160) -> String {
+        let flat = text.split(whereSeparator: \.isNewline).joined(separator: " ")
+        guard let range = flat.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) else {
+            return String(flat.prefix(after))
+        }
+        var start = flat.index(range.lowerBound, offsetBy: -before, limitedBy: flat.startIndex) ?? flat.startIndex
+        if start > flat.startIndex, let space = flat[start ..< range.lowerBound].firstIndex(of: " ") {
+            start = flat.index(after: space) // begin on a whole word
+        }
+        let end = flat.index(range.upperBound, offsetBy: after, limitedBy: flat.endIndex) ?? flat.endIndex
         let prefix = start > flat.startIndex ? "…" : ""
         let suffix = end < flat.endIndex ? "…" : ""
         return prefix + flat[start ..< range.lowerBound] + "\u{2}" + flat[range] + "\u{3}" + flat[range.upperBound ..< end] + suffix

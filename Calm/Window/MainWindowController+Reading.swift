@@ -7,7 +7,7 @@ extension MainWindowController {
 
     /// ⌘⇧E: the focused session's project files.
     func toggleFiles() {
-        filesColumn.toggle(project: focusedProjectPath, in: container)
+        filesColumn.toggle(project: focusedProjectPath, isScratch: focusedSession?.isScratch == true, in: container)
     }
 
     #if DEBUG
@@ -18,8 +18,12 @@ extension MainWindowController {
         }
     #endif
 
+    var focusedSession: Session? {
+        manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID) }
+    }
+
     var focusedProjectPath: String? {
-        guard let session = manager.workspace.selectedLayout.flatMap({ manager.workspace.session($0.focusedSessionID) }) else { return nil }
+        guard let session = focusedSession else { return nil }
         return session.scratchFolder ?? manager.workspace.project(session.projectID)?.path
     }
 

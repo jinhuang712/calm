@@ -8,6 +8,8 @@ import SwiftUI
 @Observable
 final class FilesModel {
     var root: String?
+    /// Set while `root` is a scratch session's folder.
+    var isScratch = false
     var branch: String?
     var nodes: [FileNode] = []
     var changedCount = 0
@@ -22,8 +24,14 @@ final class FilesModel {
         onOpen((root as NSString).appendingPathComponent(path))
     }
 
+    /// The column's heading. A scratch session's folder name is Calm's business.
+    var title: String {
+        guard let root else { return "No project" }
+        return isScratch ? "Scratch" : WorkspacePath.displayName(for: root)
+    }
+
     /// Shows `root`'s tree, reading it again if it's a different folder or `force`d.
-    func follow(_ root: String?, force: Bool = false) {
+    func follow(_ root: String?, isScratch: Bool = false, force: Bool = false) {
         guard force || root != self.root else { return }
         if root != self.root {
             nodes = []
@@ -31,6 +39,7 @@ final class FilesModel {
             changedCount = 0
         }
         self.root = root
+        self.isScratch = isScratch
         guard let root else { return }
         loading?.cancel()
         loading = Task { [weak self] in
@@ -156,14 +165,17 @@ final class FilesColumn {
         return host
     }
 
-    func toggle(project: String?, in container: NSView) {
+    func toggle(project: String?, isScratch: Bool, in container: NSView) {
         guard let widthConstraint else { return }
         let show = !isShown
         if show {
-            model.follow(project, force: true)
+            model.follow(project, isScratch: isScratch, force: true)
             // Changes appear while the column is open; reading a repository's listing is cheap.
             timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.model.follow(self?.model.root, force: true) }
+                MainActor.assumeIsolated {
+                    guard let model = self?.model else { return }
+                    model.follow(model.root, isScratch: model.isScratch, force: true)
+                }
             }
         } else {
             timer?.invalidate()
@@ -182,9 +194,7 @@ struct FilesColumnView: View {
         let style = model.style
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
-                // A scratch session's folder name is Calm's business.
-                Text(model.root
-                    .map { $0.hasPrefix(ScratchFolders.root.path) ? "Scratch" : WorkspacePath.displayName(for: $0) } ?? "No project")
+                Text(model.title)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(style.primary)
                     .lineLimit(1)

@@ -154,7 +154,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             window?.makeFirstResponder(pane)
         }
         if filesColumn.isShown {
-            filesColumn.model.follow(focusedProjectPath)
+            filesColumn.model.follow(focusedProjectPath, isScratch: focusedSession?.isScratch == true)
         }
         applyAppearance()
     }

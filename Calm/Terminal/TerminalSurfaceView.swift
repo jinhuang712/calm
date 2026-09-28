@@ -241,13 +241,24 @@ final class TerminalSurfaceView: NSView {
         if let surface {
             self.surface = nil
             ghostty_surface_free(surface)
+            // libghostty queues messages by the surface's address, and the next pane's surface
+            // can be allocated at the same address. Drain them now, while the address belongs to
+            // no surface, or a closed pane's "child exited" closes the pane that replaces it
+            // (found in real use: one ⌘W closed two sessions).
+            TerminalEngine.shared.tick()
         }
     }
 
     // MARK: Engine callbacks
 
     func engineRequestsClose(needsConfirm: Bool) {
-        host?.surfaceRequestsClose(self, needsConfirm: needsConfirm)
+        // Later, so the surface is never freed from inside libghostty's own call.
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.surface != nil else { return }
+                self.host?.surfaceRequestsClose(self, needsConfirm: needsConfirm)
+            }
+        }
     }
 
     /// Title changes are coalesced briefly so fast updates don't flicker.

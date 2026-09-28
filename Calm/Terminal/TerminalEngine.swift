@@ -22,6 +22,8 @@ final class TerminalEngine {
     weak var delegate: TerminalEngineDelegate?
 
     private var observers: [NSObjectProtocol] = []
+    /// A tick can free a surface (which ticks again to drain its messages); the running one does that.
+    private var isTicking = false
     private var appearanceObservation: NSKeyValueObservation?
     private var lastColorScheme: ghostty_color_scheme_e?
 
@@ -56,7 +58,9 @@ final class TerminalEngine {
     }
 
     func tick() {
-        guard let app else { return }
+        guard let app, !isTicking else { return }
+        isTicking = true
+        defer { isTicking = false }
         ghostty_app_tick(app)
     }
 
@@ -229,7 +233,10 @@ final class TerminalEngine {
             return host?.surface(view, requestsSession: target) ?? false
         case GHOSTTY_ACTION_CLOSE_TAB:
             guard let view else { return false }
-            host?.surfaceRequestsCloseTab(view)
+            // Later, so the surface is never freed from inside libghostty's own call.
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { view.host?.surfaceRequestsCloseTab(view) }
+            }
             return true
         case GHOSTTY_ACTION_CLOSE_WINDOW:
             guard let view else { return false }
@@ -280,6 +287,8 @@ final class TerminalEngine {
             // The shell ended. Close the pane after this callback returns (never free a
             // surface from inside libghostty), instead of "Press any key to close".
             guard let view else { return false }
+            // A report for a surface that was freed can reach the one now at its address.
+            guard view.ownsChildExit(runtime: action.action.child_exited.timetime_ms) else { return true }
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { view.host?.surfaceChildExited(view) }
             }

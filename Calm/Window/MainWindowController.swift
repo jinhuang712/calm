@@ -265,11 +265,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     func requestCloseSession(_ id: Session.ID) {
         let close = { [weak self] in
             guard let self else { return }
-            if let pane = manager.panes[id] {
-                surfaceRequestsClose(pane, needsConfirm: pane.needsConfirmQuit)
-            } else {
-                closeSession(id)
-            }
+            confirmClose(id, processRunning: manager.panes[id]?.needsConfirmQuit ?? false)
         }
         if let session = manager.workspace.session(id), session.isScratch {
             requestCloseScratch(session, then: close)
@@ -506,23 +502,45 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window?.performClose(nil)
     }
 
+    /// ⌘W (Close Session, or the user's own close_surface binding).
     func surfaceRequestsClose(_ view: TerminalSurfaceView, needsConfirm: Bool) {
-        guard needsConfirm, let window else {
-            closeSession(view.id)
+        // A confirmation already up takes the key; another ⌘W doesn't stack a second one.
+        guard window?.attachedSheet == nil else { return }
+        // ⌘W closes what's in front first: Settings, search or a file, never the session behind it.
+        if settingsPage.isShowing {
+            hideSettings()
+        } else if searchHost != nil {
+            hideSearch()
+        } else if fileViewer.isShowing {
+            fileViewer.close()
+        } else {
+            confirmClose(view.id, processRunning: needsConfirm)
+        }
+    }
+
+    /// Closes a session, asking first while something runs in it. libghostty can't see an
+    /// agent inside a persistent shell (zmx is the pane's process), so a running agent always asks.
+    private func confirmClose(_ id: Session.ID, processRunning: Bool) {
+        let agent = manager.workspace.session(id)?.agent?.kind
+        guard processRunning || agent != nil, let window else {
+            closeSession(id)
             return
         }
         let alert = NSAlert()
         alert.messageText = "Close this session?"
-        alert.informativeText = "A process is still running in it. Closing the session ends it."
+        alert.informativeText = agent.map { "\($0.displayName) is running in it. Closing the session ends it." }
+            ?? "A process is still running in it. Closing the session ends it."
         alert.addButton(withTitle: "Close")
         alert.addButton(withTitle: "Cancel")
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
-            MainActor.assumeIsolated { self?.closeSession(view.id) }
+            MainActor.assumeIsolated { self?.closeSession(id) }
         }
     }
 
     func surfaceChildExited(_ view: TerminalSurfaceView) {
+        // A session Calm already closed (its pane is gone or replaced) isn't a shell that failed.
+        guard manager.panes[view.id] === view else { return }
         // A shell that dies right after starting means persistence is broken (not a user
         // exit): stop using it rather than opening shell after failing shell.
         if Date().timeIntervalSince(view.createdAt) < 2, manager.persistenceEnabled {

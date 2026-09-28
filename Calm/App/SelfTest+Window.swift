@@ -16,21 +16,6 @@
                 toggleSidebar()
             case "toggle_files":
                 toggleFiles()
-            case "settings":
-                TerminalMenuTarget.shared.showSettings(nil)
-            case let section where section.hasPrefix("settings:"):
-                SettingsWindowController.shared.show(SettingsWindowController.Section(rawValue: String(section.dropFirst(9))))
-            case let option where option.hasPrefix("set:"):
-                // set:<key>=<value>, as a click in Settings (Window: background, layout, motion;
-                // General: editor, open-paths, auto-grouping)
-                let parts = option.dropFirst(4).split(separator: "=").map(String.init)
-                if parts.count == 2 {
-                    SettingsWindowController.shared.windowOptions.set(parts[0], parts[1])
-                    SettingsWindowController.shared.general.set(parts[0], parts[1])
-                }
-            case let theme where theme.hasPrefix("pick_theme:"):
-                // What a click on a theme in Settings does
-                SettingsWindowController.shared.themes.pick(String(theme.dropFirst(11)).lowercased())
             case "viewer_text":
                 Task { @MainActor in
                     let text = await fileViewer.renderedTextForTesting() ?? "no page"
@@ -46,8 +31,6 @@
                 openFromFilesForTesting(String(file.dropFirst(11)))
             case "peek":
                 peekForTesting()
-            case "agents":
-                showAgentsPanel()
             case let file where file.hasPrefix("view:"):
                 // view:<path>[:line]
                 if case let .file(path, line, _) = Link.parse(String(file.dropFirst(5)), relativeTo: nil, home: NSHomeDirectory()) {
@@ -132,6 +115,42 @@
                 focusedPane.map { forkConversation(of: $0.id, into: .split) }
             case "fork_tab":
                 focusedPane.map { forkConversation(of: $0.id, into: .tab) }
+            default:
+                return performSettingsActionForTesting(action)
+            }
+            return true
+        }
+
+        /// Settings (F14) and session states for self-tests.
+        private func performSettingsActionForTesting(_ action: String) -> Bool {
+            switch action {
+            case "settings":
+                TerminalMenuTarget.shared.showSettings(nil)
+            case let section where section.hasPrefix("settings:"):
+                // settings:appearance|agents|general|shortcuts
+                showSettings(SettingsPage.Section(rawValue: String(section.dropFirst(9))))
+            case let option where option.hasPrefix("set:"):
+                // set:<key>=<value>, as a click in Settings (Appearance: background, layout, motion;
+                // General: editor, open-paths, auto-grouping)
+                let parts = option.dropFirst(4).split(separator: "=").map(String.init)
+                if parts.count == 2 {
+                    settingsPage.windowOptions.set(parts[0], parts[1])
+                    settingsPage.general.set(parts[0], parts[1])
+                }
+            case let theme where theme.hasPrefix("pick_theme:"):
+                // What a click on a theme in Settings does
+                if settingsPage.themes.choices.isEmpty {
+                    settingsPage.themes.refresh()
+                }
+                settingsPage.themes.pick(String(theme.dropFirst(11)).lowercased())
+            case "agents":
+                showSettings(.agents)
+            case let state where state.hasPrefix("report:"):
+                // report:<state>: the focused session reports a state, as an agent's hook would
+                // (e.g. report:needsYou), without starting an agent.
+                if let state = SessionState(rawValue: String(state.dropFirst(7))), let id = focusedPane?.id {
+                    manager.report(id, StatusReport(state: state, message: "Allow edit?", source: .hook))
+                }
             default:
                 return false
             }

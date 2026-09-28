@@ -13,10 +13,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var sidebarHost: NSHostingView<SidebarView>?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
-    private var agentsHost: NSView?
     private var searchHost: NSView?
     private var sidebarWidth: NSLayoutConstraint?
     private var peek: SidebarPeek?
+    /// The peek's state before Settings covered the window.
+    private var peekWasEnabled = false
     private lazy var switcher = SessionSwitcher(controller: self)
     private lazy var arrivalCard = ArrivalCard(container: container)
     lazy var fileViewer = FileViewer(container: container)
@@ -24,6 +25,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
     lazy var welcomePage = WelcomePage(container: container)
+    lazy var settingsPage = SettingsPage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
     static let sidebarWidth = SidebarView.width
@@ -212,6 +214,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     // MARK: Sessions
 
     func select(_ id: Session.ID) {
+        // Going to a session leaves Settings (a click on its "needs you", ⌃Tab, ⌘1…9, search).
+        hideSettings()
         let previous = manager.workspace.selectedLayoutID
         let previousSession = manager.workspace.selectedLayout?.focusedSessionID
         if let previousSession, previousSession != id {
@@ -240,6 +244,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func newSession(inheriting pane: TerminalSurfaceView? = nil) {
+        hideSettings()
         let source = pane ?? focusedPane
         let (placement, directory) = placementAndFolder(
             from: source?.id ?? manager.workspace.selectedLayout?.focusedSessionID,
@@ -308,8 +313,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }
-        // The welcome page takes the chrome's colors too (they settle after it first shows).
+        // The welcome page and Settings take the chrome's colors too (they settle after they first show).
         updateWelcomePage()
+        if settingsPage.isShowing {
+            settingsPage.restyle(style: style, background: background, actions: settingsActions)
+        }
     }
 
     // MARK: Command palette
@@ -403,33 +411,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         if let folder = result.directory, FileManager.default.fileExists(atPath: folder) {
             directory = folder
         }
+        hideSettings()
         let session = manager.newSession(in: directory)
         showSelectedLayout(animated: true)
         runAgentCommand(command, in: manager.panes[session.id])
-    }
-
-    // MARK: Agents panel
-
-    /// Calm → Agents…, and once at first launch.
-    func showAgentsPanel() {
-        guard agentsHost == nil else { return }
-        let view = AgentsPanelView(model: AgentsPanelModel(), style: sidebarStyle) { [weak self] in self?.hideAgentsPanel() }
-        let host = NSHostingView(rootView: view)
-        host.frame = container.bounds
-        host.autoresizingMask = [.width, .height]
-        container.addSubview(host, positioned: .above, relativeTo: nil)
-        agentsHost = host
-        Motion.fadeIn(host, duration: 0.15)
-        window?.makeFirstResponder(host)
-    }
-
-    private func hideAgentsPanel() {
-        guard let host = agentsHost else { return }
-        agentsHost = nil
-        Motion.fadeOutAndRemove(host, duration: 0.12)
-        if let focusedPane {
-            window?.makeFirstResponder(focusedPane)
-        }
     }
 
     private func hideCommandPalette() {
@@ -574,7 +559,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     // MARK: NSWindowDelegate
 
     func windowDidBecomeKey(_: Notification) {
-        if let focusedPane, window?.firstResponder !== focusedPane, paletteHost == nil {
+        if let focusedPane, window?.firstResponder !== focusedPane, paletteHost == nil, !settingsPage.isShowing {
             window?.makeFirstResponder(focusedPane)
         }
     }
@@ -586,6 +571,54 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     func windowWillClose(_: Notification) {
         switcher.uninstall()
         NSApp.terminate(nil)
+    }
+}
+
+// MARK: Settings
+
+/// Settings (FEATURES.md → F14): the page that takes the whole window.
+extension MainWindowController {
+    /// ⌘, (FEATURES.md → F14): Settings takes the whole window; ⌘, again or esc goes back.
+    func toggleSettings() {
+        if settingsPage.isShowing {
+            hideSettings()
+        } else {
+            showSettings()
+        }
+    }
+
+    /// Opens Settings at `section` (else where it was left); Calm → Agents… opens Agents.
+    func showSettings(_ section: SettingsPage.Section? = nil) {
+        if !settingsPage.isShowing {
+            // The hidden sidebar's peek would slide the sessions over the page.
+            peekWasEnabled = peek?.isEnabled ?? false
+            peek?.isEnabled = false
+        }
+        let background = focusedPane?.effectiveBackgroundColor
+            ?? TerminalEngine.shared.config?.backgroundColor
+            ?? NSColor(white: 0.15, alpha: 1)
+        settingsPage.show(section, style: sidebarStyle, background: background, actions: settingsActions)
+    }
+
+    func hideSettings() {
+        guard settingsPage.isShowing else { return }
+        settingsPage.hide()
+        peek?.isEnabled = peekWasEnabled
+        if let focusedPane {
+            window?.makeFirstResponder(focusedPane)
+        }
+    }
+
+    var settingsActions: SettingsView.Actions {
+        SettingsView.Actions(
+            close: { [weak self] in self?.hideSettings() },
+            goToSession: { [weak self] id in self?.select(id) },
+            reload: { [weak self] in
+                TerminalEngine.shared.reloadConfig(soft: false)
+                self?.settingsPage.refresh()
+                self?.applyAppearance()
+            },
+        )
     }
 }
 

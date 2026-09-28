@@ -2,20 +2,23 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance → Window (ROADMAP.md → M6.4): background, layout and motion. A change
-/// is saved to config.toml (a default removes its key) and applied at once.
+/// Settings → Appearance (ROADMAP.md → M6.4): background, layout and motion, and the terminal
+/// font's name. A change is saved to config.toml (a default removes its key) and applied at once.
 @MainActor
 @Observable
 final class WindowOptionsModel {
     private(set) var background = CalmSettings.WindowBackground.solid
     private(set) var layout = CalmSettings.WindowLayout.edge
     private(set) var motion = CalmSettings.MotionLevel.full
+    /// "JetBrains Mono · 13 pt": set in the Ghostty config, which is where it's changed.
+    private(set) var terminalFont = ""
 
     func refresh() {
         let settings = SessionManager.shared.settings
         background = settings.windowBackground
         layout = settings.windowLayout
         motion = settings.motion
+        terminalFont = TerminalConfig.fontDescription
     }
 
     func setBackground(_ value: CalmSettings.WindowBackground) {
@@ -59,57 +62,5 @@ final class WindowOptionsModel {
             TerminalEngine.shared.reloadConfig(soft: false)
         }
         TerminalWindowManager.shared.controllers.forEach { $0.applyAppearance() }
-    }
-}
-
-struct WindowOptionsView: View {
-    let model: WindowOptionsModel
-
-    var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 10) {
-            row("Background", selection: model.background, set: model.setBackground) { value in
-                switch value {
-                case .solid: "Solid"
-                case .glass: "Glass"
-                }
-            }
-            row("Layout", selection: model.layout, set: model.setLayout) { value in
-                switch value {
-                case .edge: "Edge to edge"
-                case .card: "Card"
-                }
-            }
-            row("Motion", selection: model.motion, set: model.setMotion) { value in
-                switch value {
-                case .full: "Full"
-                case .reduced: "Reduced"
-                case .off: "Off"
-                }
-            }
-            GridRow {
-                Color.clear.frame(width: 1, height: 1)
-                Text("The system's Reduce Motion always wins.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func row<Value: Hashable & CaseIterable>(
-        _ title: String, selection: Value, set: @escaping (Value) -> Void, label: @escaping (Value) -> String,
-    ) -> some View where Value.AllCases: RandomAccessCollection {
-        GridRow {
-            Text(title)
-                .font(.system(size: 12))
-                .gridColumnAlignment(.trailing)
-            Picker(title, selection: Binding(get: { selection }, set: { set($0) })) {
-                ForEach(Array(Value.allCases), id: \.self) { value in
-                    Text(label(value)).tag(value)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-        }
     }
 }

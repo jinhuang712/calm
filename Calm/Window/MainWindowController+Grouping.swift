@@ -8,6 +8,7 @@ extension MainWindowController {
 
     /// ⌘⇧N: a scratch session in a new hidden folder, on top of the sidebar.
     func newScratchSession() {
+        hideSettings()
         guard manager.newScratchSession() != nil else { return }
         showSelectedLayout(animated: true)
     }
@@ -99,6 +100,7 @@ extension MainWindowController {
 
     /// A new session in a project the user made, which it stays in; or in a directory group's folder.
     func newSession(in project: Project) {
+        hideSettings()
         manager.newSession(in: project.path, placement: project.kind == .project ? .project(project.id) : .directory)
         showSelectedLayout(animated: true)
     }
@@ -130,7 +132,7 @@ extension MainWindowController {
                 newSession: { [weak self] in self?.newSession() },
                 newScratchSession: { [weak self] in self?.newScratchSession() },
                 newProject: { [weak self] in self?.chooseNewProject() },
-                setUpAgents: { SettingsWindowController.shared.show(.agents) },
+                setUpAgents: { [weak self] in self?.showSettings(.agents) },
             ),
         )
     }

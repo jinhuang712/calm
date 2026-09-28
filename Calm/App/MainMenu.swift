@@ -194,12 +194,13 @@ final class TerminalMenuTarget: NSObject {
         TerminalWindowManager.shared.openMainWindow().toggleSearch()
     }
 
+    /// ⌘,: Settings takes the window; ⌘, again goes back.
     @objc func showSettings(_: Any?) {
-        SettingsWindowController.shared.show()
+        TerminalWindowManager.shared.openMainWindow().toggleSettings()
     }
 
     @objc func showAgentsPanel(_: Any?) {
-        SettingsWindowController.shared.show(.agents)
+        TerminalWindowManager.shared.openMainWindow().showSettings(.agents)
     }
 
     /// ⌘⇧I: what the focused agent session is and last said.

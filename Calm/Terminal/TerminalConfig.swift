@@ -78,8 +78,7 @@ final class TerminalConfig: @unchecked Sendable {
             return nil
         }
         ghostty_config_load_default_files(raw)
-        let text = userConfigFiles.compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
-        if let pair = CalmTheme.ghosttyThemePair(configText: text) {
+        if let pair = CalmTheme.ghosttyThemePair(configText: userConfigText) {
             let probe = CalmDefaults.directory.appending(path: "ghostty-theme-probe.ghostty")
             try? FileManager.default.createDirectory(at: CalmDefaults.directory, withIntermediateDirectories: true)
             if (try? "theme = \(dark ? pair.dark : pair.light)\n".write(to: probe, atomically: true, encoding: .utf8)) != nil {
@@ -101,6 +100,28 @@ final class TerminalConfig: @unchecked Sendable {
         var background: NSColor
         var foreground: NSColor
         var palette: [NSColor]
+    }
+
+    /// The text of the user's Ghostty config files, in the order Ghostty reads them.
+    static var userConfigText: String {
+        userConfigFiles.compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+    }
+
+    /// The terminal font as Settings names it: the main family and the size sessions show (the
+    /// one ⌘+ and ⌘− set, else the config's). Ghostty can't hand back `font-family` (a repeatable
+    /// key has no C value), so the family is read from the files; Calm's defaults set no font, so
+    /// none there means Ghostty's own.
+    @MainActor
+    static var fontDescription: String {
+        let readsUserConfig = ProcessInfo.processInfo.environment["CALM_GHOSTTY_CONFIG"] != "none"
+        let overrides = (try? String(contentsOf: overridesURL, encoding: .utf8)) ?? ""
+        let text = readsUserConfig ? userConfigText + "\n" + overrides : ""
+        // JetBrains Mono is the font Ghostty embeds and falls back to.
+        let family = GhosttyConfigText.fontFamily(in: text) ?? "JetBrains Mono"
+        guard let size = SessionManager.shared.workspace.fontSize ?? TerminalEngine.shared.config?.float("font-size") else {
+            return family
+        }
+        return "\(family) · \(size.formatted(.number.precision(.fractionLength(0 ... 1)))) pt"
     }
 
     /// The Ghostty config file to open for editing: the first that exists, else the usual one.

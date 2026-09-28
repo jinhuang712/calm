@@ -32,7 +32,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 ```
 
 - **Sidebar:** session groups and session cards. The periphery, where status lives. At the top, under the traffic lights, a soft filled **Search sessions ⌘ K** field opens search. Then scratch sessions, projects you made (uppercase, with a project mark), and folder groups (the folder's own name, its parent folder on the right). Scratch rows show a quiet × on hover or while selected, in the place of the time or state mark so nothing overlaps; a scratch session's folder never shows anywhere. The footer is three rows, each with its icon on a small tile and its shortcut as key caps: New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O; each row lights up on hover. Sizes lean roomy (a 320 pt sidebar, 14 pt text, 40 pt rows, 26 pt agent marks in each agent's own soft tint) so the sidebar reads at a glance without leaning in.
-- **Welcome page:** with no session open, a short page fills the whole window (no sidebar; only the traffic lights above it), centered: Calm's mark (nested rounded squares in the theme's accent), a title ("Welcome to Calm" the first time, "No sessions open" later), three cards (New Session ⌘T, the one in the accent; New Scratch Session ⌘⇧N; New Project… ⌘O), and under them a quiet pill showing the agents Calm works with, each with its tinted letter mark, that opens Set up agents. A window too small for that gets the same choices as a short list. It replaces the first-launch Agents panel.
+- **Welcome page:** with no session open, a short page fills the whole window (no sidebar; only the traffic lights above it), centered: Calm's mark (nested rounded squares in the theme's accent), a title ("Welcome to Calm" the first time, "No sessions open" later), three cards (New Session ⌘T, the one in the accent; New Scratch Session ⌘⇧N; New Project… ⌘O), and under them a quiet pill showing the agents Calm works with, each with its own mark, that opens Settings → Agents. A window too small for that gets the same choices as a short list. It replaces the first-launch Agents panel.
 - **Files:** an optional column right of the sidebar, showing the focused session's project.
 - **Main area:** the session's terminal. Calm never draws over it, except the arrival card, which fades. A viewed file temporarily takes its place.
 
@@ -165,11 +165,11 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |
 
-**Settings:** Settings → Appearance → Window holds one motion control (full, reduced or off), saved as `motion` in `config.toml`. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
+**Settings:** Settings → Appearance holds one motion control (full, reduced or off), saved as `motion` in `config.toml`; it dims and says why while the system's Reduce Motion is on. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
 
 ## Themes
 
-- The picker is a grid of live previews (sidebar, tabs and terminal together), in Settings → Appearance.
+- The picker, in Settings → Appearance, is a row of small previews under a live miniature of the window (sidebar and terminal in the picked theme, layout and background). The user's Ghostty colors, when their config sets any, are a separate last choice.
 - Themes come in light and dark pairs and follow the system appearance.
 - Calm's default theme gives way to a theme set in the user's Ghostty config; a theme picked in Calm wins.
 - Optional glass background uses the system's material; the terminal can float as a rounded card or run edge to edge.
@@ -177,13 +177,34 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 ## Settings screen
 
+⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, and the page sits beside it at a reading width, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
+
+```
+┌────────────────────┬──────────────────────────────────────────────┐
+│ ● ● ●              │   Appearance                                 │
+│                    │   ┌ live miniature of the window ──────────┐ │
+│ Settings           │   └────────────────────────────────────────┘ │
+│ ◐ Appearance       │   Theme              ▢ ▢ ▢ ▢ ▢ ▢ │ ▢ Ghostty │
+│ ✦ Agents        ⚠  │   ┌──────────────────────────────────────┐   │
+│ ≡ General          │   │ Background            [Solid | Glass] │   │
+│ ⌨ Shortcuts        │   │ Layout         [Edge to edge | Card]  │   │
+│                    │   │ Motion        [Full | Reduced | Off]  │   │
+│ ┌ fix login test ┐ │   │ Terminal font   Open Ghostty Config   │   │
+│ └ Needs you ─────┘ │   └──────────────────────────────────────┘   │
+│ esc Back           │                                              │
+└────────────────────┴──────────────────────────────────────────────┘
+```
+
 | Section | Contents |
 |---|---|
-| **Appearance** | theme picker, font and size, glass or solid, edge to edge or card, motion (full, reduced, off) |
-| **General** | editor, where paths open, auto-grouping |
-| **Agents** | how each installed agent connects (Connect/Disconnect where Calm must add a file), which states notify, sound. Calm → Agents… opens this section |
-| **Keys** | Calm's shortcuts, read-only; keys are changed in the Ghostty config |
-| **Advanced** (last) | open config file, open themes folder, reload; later: updates, SSH options |
+| **Appearance** | a live miniature of the window, the themes, glass or solid, edge to edge or card, motion (full, reduced, off), and which font the terminal uses (it's set in the Ghostty config) |
+| **Agents** | each installed agent with its mark and where it stands (Connected, One step left, or Connect/Disconnect where Calm must add a file), the agents not installed, which states notify, sound. Calm → Agents… opens this section |
+| **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's, the themes folder) with Reload Files |
+| **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
+
+- A session that needs you shows at the foot of the list, in its card's tint; one click goes to it. Going to any session (⌃Tab, ⌘1…9, search, a new session) leaves Settings.
+- A section gets a small warning mark only when something in it is broken: Agents when macOS blocks Calm's notifications (with a button to System Settings), General when a line of config.toml can't be read (shown under the file).
+- Settings reopens on the section it was left on. A window too narrow for the list and the page shows the list as icons.
 
 Rules: one line of help text per setting at most; no setting that only shows or hides a button.
 

@@ -67,9 +67,9 @@ A fast, correct terminal on libghostty.
 
 - With Claude Code, Calm's hooks are on by default inside Calm (a plugin Claude loads only in Calm's shells; nothing is written to Claude's settings), so *needs you* arrives the moment Claude asks, with what it asks.
 
-- **Calm → Agents…** (also shown once at first launch) lists the installed agents and how each connects: Claude Code inside Calm; Codex and omp through their own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**); OpenCode with a hint, since its background service can't be tied to a terminal yet.
+- **Calm → Agents…** (Settings → Agents; the welcome page links to it) lists the installed agents and how each connects: Claude Code inside Calm; Codex and omp through their own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**); OpenCode with a hint, since its background service can't be tied to a terminal yet.
 
-**Settings:** 2, in the Agents panel — which states notify (default: only *needs you*; or also *done* and *failed*); notification sound on/off (default off). They're stored in config.toml as `notify` and `sound` under `[agents]`. In the config file only: `claude-code-hooks = false` under `[agents]`.
+**Settings:** 2, in Settings → Agents — which states notify (default: only *needs you*; or also *done* and *failed*); notification sound on/off (default off). They're stored in config.toml as `notify` and `sound` under `[agents]`. In the config file only: `claude-code-hooks = false` under `[agents]`.
 
 ## F6 — Arrival card ✅
 
@@ -140,7 +140,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 - A theme styles the **whole window**: terminal colors, sidebar, cards, panels, files column, viewer and accent. Glass or solid and the layout are window options beside it (Settings → Appearance).
 - A curated set of twelve themes, six light and dark pairs, all soft (low contrast and low saturation): **Calm** (the default), **Sage**, **Dune**, **Harbor**, **Heather** and **Ink**.
-- A picker in Settings → Appearance (⌘,) shows a small live preview of each theme (sidebar, output, cursor) in the current appearance; one click applies it and writes `theme = "Sage"` to `config.toml`. When the user's Ghostty config sets its own colors, a **Ghostty** choice comes first; picking it removes Calm's choice so those colors apply again.
+- A picker in Settings → Appearance (⌘,) shows a small preview of each theme in the current appearance, under a live miniature of the whole window; one click applies it and writes `theme = "Sage"` to `config.toml`. When the user's Ghostty config sets its own colors, a **Your Ghostty** choice comes last, set apart; picking it removes Calm's choice so those colors apply again.
 - Themes follow the system light/dark appearance.
 - The default gives way to a theme or colors in the user's Ghostty config, so any Ghostty theme can still be used; the chrome then derives its colors from it. A theme picked in Calm wins over the Ghostty config.
 - Your own themes go in `~/.config/calm/themes/` as small TOML files (DESIGNS.md → Themes).
@@ -184,14 +184,13 @@ A quick, read-only look at the repository without leaving Calm.
 
 ## F14 — Settings 🚧
 
-- Five sections: **Appearance, General, Agents, Keys, Advanced** (collapsed).
-- Everything else lives in the config file, reachable through Advanced → Open Config File.
-- A native window opened with ⌘,, one toolbar tab per section; each section sizes the window to its content.
-  - **Appearance:** the theme picker and the window options (F11).
-  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, and auto-grouping.
-  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, which states notify, and sound. Calm → Agents… opens it; the first-launch panel shows the same.
-  - **Keys:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
-  - **Advanced:** Open Config File, Open Themes Folder, Reload.
+- ⌘, turns the whole window into Settings (UIUX.md → Settings screen); ⌘, again or esc goes back to the session exactly as it was. A list of sections stands where the sidebar was: **Appearance, Agents, General, Shortcuts**.
+  - **Appearance:** a live miniature of the window, the theme picker and the window options (F11), and the terminal font's name with a way to its setting (Open Ghostty Config).
+  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, the agents that aren't installed, which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
+  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config and the themes folder, each with Open, and Reload Files.
+  - **Shortcuts:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
+- A session that needs you shows at the foot of the list; one click goes to it, as going to any session leaves Settings.
+- Everything else lives in the config file, reachable through General → Calm settings → Open.
 - Every change is saved to `config.toml` at once, keeping comments and unknown keys; choosing a default removes the key.
 
 ---

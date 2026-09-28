@@ -2,8 +2,8 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The theme picker (FEATURES.md → F11, UIUX.md → Themes): a grid of small live previews drawn
-/// from each theme's colors; one click writes `theme` to config.toml and applies it.
+/// The theme picker's model (FEATURES.md → F11, UIUX.md → Themes): each theme's colors for its
+/// previews; one click writes `theme` to config.toml and applies it.
 @MainActor
 @Observable
 final class ThemePickerModel {
@@ -15,6 +15,8 @@ final class ThemePickerModel {
         /// Red, green, yellow, blue, magenta, cyan.
         var hues: [Color]
         var cursor: Color
+        /// The theme's accent (its *needs you*); blue for colors that name none.
+        var accent: Color
     }
 
     struct Choice: Identifiable, Equatable {
@@ -72,100 +74,20 @@ final class ThemePickerModel {
         let foreground = color(colors.foreground) ?? .white
         return preview(
             background: background, foreground: foreground, palette: colors.palette.compactMap { color($0) },
-            sidebar: color(colors.sidebar), cursor: color(colors.cursor),
+            sidebar: color(colors.sidebar), cursor: color(colors.cursor), accent: color(colors.accent),
         )
     }
 
     private static func preview(
         background: NSColor, foreground: NSColor, palette: [NSColor], sidebar: NSColor? = nil, cursor: NSColor? = nil,
+        accent: NSColor? = nil,
     ) -> Preview {
         let hues = palette.count >= 7 ? Array(palette[1 ... 6]) : Array(repeating: foreground.withAlphaComponent(0.6), count: 6)
         let derivedSidebar = SidebarStyle.derived(from: background).background
         return Preview(
             background: Color(nsColor: background), foreground: Color(nsColor: foreground),
             sidebar: sidebar.map { Color(nsColor: $0) } ?? derivedSidebar, hues: hues.map { Color(nsColor: $0) },
-            cursor: Color(nsColor: cursor ?? foreground),
+            cursor: Color(nsColor: cursor ?? foreground), accent: Color(nsColor: accent ?? hues[3]),
         )
-    }
-}
-
-struct ThemePickerView: View {
-    let model: ThemePickerModel
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 3), spacing: 16) {
-            ForEach(model.choices) { choice in
-                let selected = choice.id == model.selectedID
-                Button {
-                    model.pick(choice.id)
-                } label: {
-                    VStack(spacing: 7) {
-                        ThemePreview(preview: colorScheme == .dark ? choice.dark : choice.light)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 2)
-                                    .padding(-3)
-                            }
-                        Text(choice.name)
-                            .font(.system(size: 12, weight: selected ? .medium : .regular))
-                            .foregroundStyle(selected ? .primary : .secondary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(choice.name) theme")
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-        }
-    }
-}
-
-/// A miniature of the window in a theme's colors: the sidebar, a few lines of output, the cursor.
-struct ThemePreview: View {
-    let preview: ThemePickerModel.Preview
-
-    var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 5) {
-                bar(preview.foreground.opacity(0.14), width: 22, height: 7)
-                bar(preview.foreground.opacity(0.3), width: 18)
-                bar(preview.foreground.opacity(0.3), width: 14)
-                Spacer(minLength: 0)
-            }
-            .padding(.top, 14)
-            .padding(.horizontal, 6)
-            .frame(width: 36, alignment: .leading)
-            .frame(maxHeight: .infinity)
-            .background(preview.sidebar)
-
-            VStack(alignment: .leading, spacing: 5) {
-                line([(preview.hues[1], 12), (preview.foreground, 28)])
-                line([(preview.foreground.opacity(0.7), 20), (preview.hues[3], 16)])
-                line([(preview.hues[2], 10), (preview.hues[4], 18), (preview.hues[5], 12)])
-                line([(preview.hues[0], 24), (preview.foreground.opacity(0.45), 14)])
-                bar(preview.cursor, width: 5, height: 8)
-                Spacer(minLength: 0)
-            }
-            .padding(.top, 12)
-            .padding(.horizontal, 9)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(preview.background)
-        }
-        .frame(height: 84)
-        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(Color.primary.opacity(0.1)))
-    }
-
-    private func line(_ parts: [(Color, CGFloat)]) -> some View {
-        HStack(spacing: 4) {
-            ForEach(parts.indices, id: \.self) { index in
-                bar(parts[index].0, width: parts[index].1)
-            }
-        }
-    }
-
-    private func bar(_ color: Color, width: CGFloat, height: CGFloat = 4) -> some View {
-        RoundedRectangle(cornerRadius: height / 2).fill(color).frame(width: width, height: height)
     }
 }

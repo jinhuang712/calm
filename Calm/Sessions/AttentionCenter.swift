@@ -20,7 +20,7 @@ final class AttentionCenter: NSObject {
 
     /// Self-tests and unit tests never touch the real notification center: the first request
     /// would show the user a permission prompt. They log what would be delivered instead.
-    private let deliversNotifications = ProcessInfo.processInfo.environment["CALM_NO_NOTIFICATIONS"] != "1"
+    static let deliversNotifications = ProcessInfo.processInfo.environment["CALM_NO_NOTIFICATIONS"] != "1"
         && ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
 
     func start() {
@@ -43,7 +43,7 @@ final class AttentionCenter: NSObject {
                 }
             })
         }
-        if deliversNotifications {
+        if Self.deliversNotifications {
             UNUserNotificationCenter.current().delegate = self
         }
     }
@@ -88,7 +88,7 @@ final class AttentionCenter: NSObject {
 
     private func withdraw(_ id: Session.ID) {
         queue.withdraw(id)
-        guard deliversNotifications else { return }
+        guard Self.deliversNotifications else { return }
         let identifier = Self.identifier(for: id)
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
@@ -110,7 +110,7 @@ final class AttentionCenter: NSObject {
         guard let session = manager.workspace.session(item.sessionID), manager.lookingAtSessionID != item.sessionID else { return }
         let project = manager.workspace.project(session.projectID)?.name ?? ""
         Self.log.info("notify \(session.displayTitle, privacy: .public) · \(project, privacy: .public): \(item.message, privacy: .public)")
-        guard deliversNotifications else { return }
+        guard Self.deliversNotifications else { return }
 
         let content = UNMutableNotificationContent()
         content.title = session.displayTitle

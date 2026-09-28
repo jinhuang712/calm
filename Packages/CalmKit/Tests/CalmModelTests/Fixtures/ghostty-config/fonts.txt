@@ -1,0 +1,16 @@
+# A Ghostty config in the shape Ghostty's docs describe: font-family repeats to add
+# fallbacks, and an empty value clears the list set so far (e.g. by an earlier file).
+font-family = "Menlo"
+font-family = Apple Color Emoji
+
+# The theme and window, as a real config has them.
+theme = light:Rose Pine Dawn,dark:Rose Pine
+window-padding-x = 8
+
+# Start over: the fonts below replace the ones above.
+font-family =
+font-family = "JetBrains Mono"
+font-family = Symbols Nerd Font Mono
+font-family-bold = JetBrains Mono ExtraBold
+font-size = 14
+# font-family = Commented Out

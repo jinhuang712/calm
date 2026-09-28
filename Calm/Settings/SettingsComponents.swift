@@ -14,12 +14,13 @@ struct SettingsTitle: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 22, weight: .medium))
+                .font(.system(size: 26, weight: .medium))
+                .tracking(-0.2)
                 .foregroundStyle(style.primary)
                 .accessibilityAddTraits(.isHeader)
             if let note {
                 Text(note)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(style.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -37,18 +38,18 @@ struct GroupHeading: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(style.primary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
             if let note {
                 Text(note)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(style.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 10)
     }
 }
 
@@ -61,8 +62,8 @@ struct SettingsGroup<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.groupFill))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.hairline))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(style.groupFill))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(style.hairline))
     }
 }
 
@@ -73,7 +74,7 @@ struct RowDivider: View {
         Rectangle()
             .fill(style.hairline)
             .frame(height: 1)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
     }
 }
 
@@ -86,13 +87,13 @@ struct SettingsRow<Control: View>: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(style.primary)
                 if let note {
                     Text(note)
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundStyle(style.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -100,9 +101,9 @@ struct SettingsRow<Control: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             control
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .frame(minHeight: 44)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .frame(minHeight: 52)
         .accessibilityElement(children: .contain)
     }
 }
@@ -113,7 +114,7 @@ struct CalmSegmented<Value: Hashable>: View {
     let title: String
     let options: [(value: Value, label: String)]
     let selection: Value
-    var segmentWidth: CGFloat = 88
+    var segmentWidth: CGFloat = 104
     var isDisabled = false
     let style: SidebarStyle
     let onSelect: (Value) -> Void
@@ -125,7 +126,7 @@ struct CalmSegmented<Value: Hashable>: View {
             }
         }
         .padding(2)
-        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(style.primary.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.primary.opacity(0.08)))
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.45 : 1)
         .accessibilityElement(children: .contain)
@@ -140,11 +141,11 @@ struct CalmSegmented<Value: Hashable>: View {
             onSelect(value)
         } label: {
             Text(label)
-                .font(.system(size: 12))
+                .font(.system(size: 13))
                 .foregroundStyle(chosen ? style.primary : style.secondary)
-                .frame(width: segmentWidth, height: 22)
+                .frame(width: segmentWidth, height: 26)
                 .background(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(chosen ? style.raisedFill : Color.clear)
                         .shadow(color: .black.opacity(shadow), radius: 1, y: 1),
                 )
@@ -166,7 +167,7 @@ struct CalmSwitchStyle: ToggleStyle {
         } label: {
             Capsule()
                 .fill(configuration.isOn ? style.attention : style.primary.opacity(style.isDark ? 0.2 : 0.16))
-                .frame(width: 30, height: 18)
+                .frame(width: 34, height: 20)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     Circle()
                         .fill(style.isDark ? Color(white: 0.93) : .white)
@@ -188,12 +189,12 @@ struct SettingsButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12))
+            .font(.system(size: 13))
             .foregroundStyle(style.primary)
-            .padding(.horizontal, 12)
-            .frame(height: 22)
+            .padding(.horizontal, 14)
+            .frame(height: 26)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(style.buttonFill.opacity(configuration.isPressed ? 0.7 : 1))
                     .shadow(color: .black.opacity(style.isDark ? 0 : 0.12), radius: 0.5, y: 0.5),
             )
@@ -226,9 +227,9 @@ struct SettingsMenu<Value: Hashable>: View {
             HStack(spacing: 8) {
                 Text(current)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
             }
-            .font(.system(size: 12))
+            .font(.system(size: 13))
             .foregroundStyle(style.primary)
         }
         .menuStyle(.button)

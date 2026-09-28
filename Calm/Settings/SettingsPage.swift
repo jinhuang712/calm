@@ -128,29 +128,31 @@ struct SettingsView: View {
     let background: Color
     let actions: Actions
 
-    /// Room for the list and a full-width page; narrower windows show the list as icons.
-    private static let roomyWidth: CGFloat = 900
+    /// Room for the list and a full page; narrower windows show the list as icons.
+    private static let roomyWidth: CGFloat = SidebarView.width + 560
 
     var body: some View {
         GeometryReader { proxy in
             let compact = proxy.size.width < Self.roomyWidth
             HStack(spacing: 0) {
+                // As wide as the sidebar and drawn like it, so ⌘, reads as the sidebar changing
+                // what it lists rather than a new panel.
                 SettingsList(
                     navigation: page.navigation, compact: compact, style: style,
                     warnings: warnings, waiting: manager.workspace.sessionsNeedingYou.first,
                     hasSessions: !manager.workspace.sessions.isEmpty, actions: actions,
                 )
-                .frame(width: compact ? 64 : 232)
+                .frame(width: compact ? 68 : SidebarView.width)
                 .background(style.background)
                 Rectangle()
                     .fill(style.hairline)
                     .frame(width: 1)
                 ScrollView {
                     content
-                        .frame(maxWidth: 600, alignment: .leading)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 46)
-                        .padding(.bottom, 40)
+                        .frame(maxWidth: 720, alignment: .leading)
+                        .padding(.horizontal, 48)
+                        .padding(.top, 40)
+                        .padding(.bottom, 48)
                         .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.never)
@@ -199,73 +201,78 @@ private struct SettingsList: View {
     let actions: SettingsView.Actions
 
     var body: some View {
-        VStack(alignment: compact ? .center : .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Room for the traffic lights, as the sidebar leaves above its search field.
+            Color.clear.frame(height: 40)
             if !compact {
                 Text("Settings")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(style.primary)
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 12)
+                    .frame(height: 36, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                     .accessibilityAddTraits(.isHeader)
             }
-            ForEach(SettingsPage.Section.allCases) { section in
-                item(section)
-            }
-            Spacer(minLength: 16)
-            if let waiting {
-                waitingRow(waiting)
-                    .padding(.bottom, 4)
-            }
-            Button(action: actions.close) {
-                HStack(spacing: 8) {
-                    KeyCaps(keys: ["esc"], style: style)
-                    if !compact {
-                        Text(hasSessions ? "Back to your sessions" : "Back")
-                            .font(.system(size: 12))
-                            .foregroundStyle(style.secondary)
-                    }
+            VStack(spacing: 2) {
+                ForEach(SettingsPage.Section.allCases) { section in
+                    item(section)
                 }
-                .padding(.horizontal, compact ? 0 : 10)
-                .frame(height: 30)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(hasSessions ? "Back to your sessions" : "Back")
+            .padding(.horizontal, 12)
+            Spacer(minLength: 16)
+            VStack(spacing: 2) {
+                if let waiting {
+                    waitingRow(waiting)
+                        .padding(.bottom, 4)
+                }
+                ListButton(style: style, help: compact ? "Back (esc)" : "", action: actions.close) {
+                    HStack(spacing: 11) {
+                        KeyCaps(keys: ["esc"], style: style)
+                            .frame(width: 28)
+                        if !compact {
+                            Text(hasSessions ? "Back to your sessions" : "Back")
+                                .font(.system(size: 14))
+                            Spacer(minLength: 4)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
+                .accessibilityLabel(hasSessions ? "Back to your sessions" : "Back")
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
+            // The sidebar's footer line.
+            .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
         }
-        // Below the traffic lights, as the sidebar's search field sits.
-        .padding(.top, 58)
-        .padding(.horizontal, compact ? 8 : 12)
-        .padding(.bottom, 14)
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
+    /// A section, drawn as the sidebar's footer rows are: its icon on a small tile.
     private func item(_ section: SettingsPage.Section) -> some View {
         let selected = navigation.section == section
-        return Button {
+        return ListButton(style: style, isSelected: selected, help: compact ? section.title : "") {
             navigation.section = section
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 11) {
                 Image(systemName: section.symbol)
                     .font(.system(size: 14))
-                    .frame(width: 18)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(style.primary.opacity(selected ? 0.1 : 0.055)),
+                    )
                 if !compact {
                     Text(section.title)
-                        .font(.system(size: 13))
+                        .font(.system(size: 14, weight: selected ? .medium : .regular))
                     Spacer(minLength: 4)
                 }
                 if warnings.contains(section) {
-                    WarningMark(style: style, size: compact ? 10 : 12)
+                    WarningMark(style: style, size: compact ? 10 : 13)
                 }
             }
-            .foregroundStyle(selected ? style.primary : style.secondary)
-            .padding(.horizontal, 10)
-            .frame(maxWidth: compact ? nil : .infinity, alignment: .leading)
-            .frame(height: 32)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? style.selection : .clear))
-            .contentShape(Rectangle())
+            .padding(.horizontal, 8)
         }
-        .buttonStyle(.plain)
-        .help(compact ? section.title : "")
         .accessibilityLabel(section.title)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -275,33 +282,63 @@ private struct SettingsList: View {
         Button {
             actions.goToSession(session.id)
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 11) {
                 Circle()
                     .fill(style.attention)
-                    .frame(width: 7, height: 7)
+                    .frame(width: 8, height: 8)
+                    .frame(width: 28)
                 if !compact {
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(session.displayTitle)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(style.primary)
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        Text("Needs you")
-                            .font(.system(size: 11))
+                        Text(session.lastReport?.message ?? "Needs you")
+                            .font(.system(size: 12))
                             .foregroundStyle(style.secondary)
+                            .lineLimit(1)
                     }
                     Spacer(minLength: 0)
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: compact ? nil : .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(style.attention.opacity(0.14)))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.attention.opacity(0.14)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(compact ? "\(session.displayTitle) needs you" : "")
         .accessibilityLabel("\(session.displayTitle) needs you")
+    }
+}
+
+/// A row in the list: a full-width target, a quiet hover and the selection's surface, as the
+/// sidebar's footer rows have.
+private struct ListButton<Label: View>: View {
+    let style: SidebarStyle
+    var isSelected = false
+    let help: String
+    let action: () -> Void
+    @ViewBuilder let label: Label
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .foregroundStyle(isSelected || hovering ? style.primary : style.secondary)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isSelected ? style.selection : hovering ? style.selection.opacity(0.6) : .clear),
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
     }
 }
 

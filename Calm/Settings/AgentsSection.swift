@@ -129,9 +129,9 @@ struct AgentsSection: View {
             SettingsGroup(style: style) {
                 if model.rows.isEmpty {
                     Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp once they're installed.")
-                        .font(.system(size: 12))
+                        .font(.system(size: 13))
                         .foregroundStyle(style.secondary)
-                        .padding(14)
+                        .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
@@ -143,11 +143,11 @@ struct AgentsSection: View {
                     if !model.missing.isEmpty {
                         RowDivider(style: style)
                         Text(missingNote)
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundStyle(style.tertiary)
-                            .padding(.leading, 54)
-                            .padding(.trailing, 14)
-                            .padding(.vertical, 9)
+                            .padding(.leading, 60)
+                            .padding(.trailing, 16)
+                            .padding(.vertical, 11)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -176,9 +176,9 @@ struct AgentsSection: View {
                 }
             }
             Text("Calm waits for a pause in your typing, and never notifies about the session you're looking at.")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(style.secondary)
-                .padding(.top, 8)
+                .padding(.top, 10)
                 .padding(.horizontal, 2)
             if let error = model.error {
                 Text(error)
@@ -201,29 +201,29 @@ struct AgentsSection: View {
             WarningMark(style: style, size: 15)
             VStack(alignment: .leading, spacing: 2) {
                 Text("macOS is blocking Calm's notifications")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(style.primary)
                 Text("Until they're allowed, Calm can't tell you when an agent needs you.")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(style.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button("Open System Settings") { SettingsActions.openNotificationSettings() }
                 .buttonStyle(SettingsButtonStyle(style: style))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
     }
 
     private func agentRow(_ row: AgentsSettingsModel.Row) -> some View {
         HStack(spacing: 12) {
-            AgentLogo(agent: row.adapter.kind, size: 28, style: style)
-            VStack(alignment: .leading, spacing: 2) {
+            AgentLogo(agent: row.adapter.kind, size: 32, style: style)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(row.adapter.kind.displayName)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(style.primary)
                 Text(description(row))
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .lineSpacing(1)
                     .foregroundStyle(style.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -231,8 +231,8 @@ struct AgentsSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             trailing(row)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
         .accessibilityElement(children: .contain)
     }
 
@@ -266,7 +266,7 @@ struct AgentsSection: View {
                 status("Connected", symbol: "checkmark")
                 Button("Disconnect") { model.disconnect(row) }
                     .buttonStyle(.plain)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundStyle(style.tertiary)
             }
         case (_, .conflict?):
@@ -285,7 +285,7 @@ struct AgentsSection: View {
             Image(systemName: symbol).font(.system(size: 10, weight: .semibold))
         }
         .labelStyle(.titleAndIcon)
-        .font(.system(size: 12))
+        .font(.system(size: 13))
         .foregroundStyle(style.secondary)
         .fixedSize()
     }

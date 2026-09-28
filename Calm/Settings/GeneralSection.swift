@@ -114,14 +114,14 @@ struct GeneralSection: View {
                 RowDivider(style: style)
                 HStack {
                     Text("Edited a file by hand?")
-                        .font(.system(size: 11))
+                        .font(.system(size: 12))
                         .foregroundStyle(style.secondary)
                     Spacer()
                     Button("Reload Files", action: onReload)
                         .buttonStyle(SettingsButtonStyle(style: style))
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
         }
     }
@@ -134,12 +134,12 @@ struct GeneralSection: View {
     /// A file or folder with its path, and what Calm couldn't read in it.
     private func fileRow(_ title: String, path: URL, problems: [String], open: @escaping () -> Void) -> some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(style.primary)
                 Text((path.path as NSString).abbreviatingWithTildeInPath)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(style.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -147,9 +147,9 @@ struct GeneralSection: View {
                     Label {
                         Text("\(problem.prefix(1).uppercased())\(problem.dropFirst()). Calm skipped it.")
                     } icon: {
-                        WarningMark(style: style, size: 11)
+                        WarningMark(style: style, size: 12)
                     }
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(style.failure)
                 }
             }
@@ -157,9 +157,9 @@ struct GeneralSection: View {
             Button("Open", action: open)
                 .buttonStyle(SettingsButtonStyle(style: style))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .frame(minHeight: 44)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .frame(minHeight: 52)
     }
 }
 
@@ -212,7 +212,7 @@ struct ShortcutsSection: View {
                     .buttonStyle(SettingsButtonStyle(style: style))
             }
             Text("Calm's own keys. They come from your Ghostty config, where a keybinding of yours wins over Calm's.")
-                .font(.system(size: 13))
+                .font(.system(size: 14))
                 .foregroundStyle(style.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
@@ -227,13 +227,13 @@ struct ShortcutsSection: View {
                                     ForEach(group.rows, id: \.action) { row in
                                         HStack(spacing: 10) {
                                             Text(row.action)
-                                                .font(.system(size: 12))
+                                                .font(.system(size: 13))
                                                 .foregroundStyle(style.primary)
                                             Spacer(minLength: 8)
                                             KeyCaps(keys: row.keys, style: style)
                                         }
-                                        .padding(.horizontal, 12)
-                                        .frame(height: 30)
+                                        .padding(.horizontal, 14)
+                                        .frame(height: 36)
                                         .accessibilityElement(children: .ignore)
                                         .accessibilityLabel("\(row.action), \(row.keys.joined())")
                                     }

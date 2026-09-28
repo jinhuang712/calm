@@ -24,28 +24,28 @@ struct AppearanceSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsTitle(title: "Appearance", style: style)
-                .padding(.bottom, 18)
+                .padding(.bottom, 20)
             if let picked {
                 WindowPreview(
                     preview: picked, card: windowOptions.layout == .card, glass: windowOptions.background == .glass,
                     isDark: style.isDark,
                 )
-                .padding(.bottom, 22)
+                .padding(.bottom, 26)
             }
             GroupHeading(title: "Theme", note: "Each has a light and a dark side and follows the system", style: style)
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
                 ForEach(calmThemes) { choice in
                     chip(choice, name: choice.name)
                 }
                 if let ghostty {
                     Rectangle()
                         .fill(style.hairline)
-                        .frame(width: 1, height: 44)
+                        .frame(width: 1, height: 54)
                     chip(ghostty, name: "Your Ghostty")
                         .help("The colors your Ghostty config sets, instead of a Calm theme")
                 }
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
             SettingsGroup(style: style) {
                 // Closures, not method references: passing a model's method crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
@@ -66,7 +66,7 @@ struct AppearanceSection: View {
                 SettingsRow(title: "Motion", note: motionNote, style: style) {
                     CalmSegmented(
                         title: "Motion", options: [(.full, "Full"), (.reduced, "Reduced"), (.off, "Off")],
-                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 66,
+                        selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 80,
                         isDisabled: AccessibilitySettings.reduceMotion, style: style,
                     ) { windowOptions.setMotion($0) }
                 }
@@ -94,17 +94,17 @@ struct AppearanceSection: View {
             VStack(spacing: 6) {
                 ThemeChipPreview(preview: preview)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .strokeBorder(selected ? style.attention : .clear, lineWidth: 2)
                             .padding(-4)
                     }
                 Text(name)
-                    .font(.system(size: 11, weight: selected ? .medium : .regular))
+                    .font(.system(size: 12, weight: selected ? .medium : .regular))
                     .foregroundStyle(selected ? style.primary : style.secondary)
                     .lineLimit(1)
                     .fixedSize()
             }
-            .frame(width: 70)
+            .frame(width: 84)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -119,19 +119,19 @@ private struct ThemeChipPreview: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            preview.sidebar.frame(width: 18)
-            VStack(alignment: .leading, spacing: 4) {
-                bar(preview.hues[1], width: 26)
-                bar(preview.foreground.opacity(0.6), width: 34)
-                bar(preview.accent, width: 18)
+            preview.sidebar.frame(width: 22)
+            VStack(alignment: .leading, spacing: 5) {
+                bar(preview.hues[1], width: 30)
+                bar(preview.foreground.opacity(0.6), width: 40)
+                bar(preview.accent, width: 22)
             }
-            .padding(.horizontal, 7)
+            .padding(.horizontal, 9)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(preview.background)
         }
-        .frame(width: 70, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(preview.foreground.opacity(0.14)))
+        .frame(width: 84, height: 54)
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(preview.foreground.opacity(0.14)))
     }
 
     private func bar(_ color: Color, width: CGFloat) -> some View {
@@ -153,22 +153,25 @@ struct WindowPreview: View {
             let height = proxy.size.height
             ZStack {
                 desk(width: width, height: height)
-                window(width: width - 44, height: height - 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                // A solid window fills the column, lined up with the rows below; glass sits inset
+                // on its desktop so there's something to show through.
+                window(width: glass ? width - 44 : width, height: glass ? height - 32 : height)
             }
             .frame(width: width, height: height)
         }
         .aspectRatio(600 / 236, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .animation(.easeInOut(duration: 0.25), value: card)
         .animation(.easeInOut(duration: 0.25), value: glass)
         .accessibilityHidden(true)
     }
 
-    /// A quiet desktop; glass shows a little color through the window.
+    /// Behind the window: nothing for a solid one (the page shows around it), a quiet desktop
+    /// with a little color for glass to show through.
     private func desk(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
-            Color(white: isDark ? 0.14 : 0.87)
             if glass {
+                Color(white: isDark ? 0.14 : 0.87)
                 Circle()
                     .fill(Color(hue: 0.53, saturation: 0.25, brightness: isDark ? 0.55 : 0.8))
                     .frame(width: width * 0.4)

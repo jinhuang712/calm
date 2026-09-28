@@ -170,7 +170,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 ## Themes
 
-- The picker, in Settings → Appearance, is a row of small previews under a live miniature of the window (sidebar and terminal in the picked theme, layout and background). The user's Ghostty colors, when their config sets any, are a separate last choice.
+- The picker, in Settings → Appearance, is a row of small previews under a live miniature of the window (sidebar and terminal in the picked theme, layout and background). A solid window fills the page's width; glass sits on a soft desktop that shows through it. The user's Ghostty colors, when their config sets any, are a separate last choice.
 - Themes come in light and dark pairs and follow the system appearance.
 - Calm's default theme gives way to a theme set in the user's Ghostty config; a theme picked in Calm wins.
 - Optional glass background uses the system's material; the terminal can float as a rounded card or run edge to edge.
@@ -178,7 +178,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 ## Settings screen
 
-⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, and the page sits beside it at a reading width, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
+⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer (14 pt rows of 40 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (720 pt at most, 14 pt labels, 52 pt rows), in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
 
 ```
 ┌────────────────────┬──────────────────────────────────────────────┐

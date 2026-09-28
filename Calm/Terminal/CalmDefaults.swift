@@ -6,12 +6,21 @@ import CalmModel
 enum CalmDefaults {
     /// `~/Library/Application Support/Calm`, overridable with `CALM_SUPPORT_DIR` (self-tests).
     static var directory: URL {
-        if let override = ProcessInfo.processInfo.environment["CALM_SUPPORT_DIR"], !override.isEmpty {
+        let environment = ProcessInfo.processInfo.environment
+        if let override = environment["CALM_SUPPORT_DIR"], !override.isEmpty {
             return URL(filePath: override, directoryHint: .isDirectory)
+        }
+        // Unit tests host the app: a folder of their own, or they'd rewrite the running Calm's
+        // files (found in real use: its cursor shader pointed into a worktree's Debug build).
+        if environment["XCTestConfigurationFilePath"] != nil {
+            return testDirectory
         }
         return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appending(path: "Calm", directoryHint: .isDirectory)
     }
+
+    private static let testDirectory = FileManager.default.temporaryDirectory
+        .appending(path: "calm-tests-\(ProcessInfo.processInfo.processIdentifier)", directoryHint: .isDirectory)
 
     static var fileURL: URL {
         directory.appending(path: "defaults.ghostty")

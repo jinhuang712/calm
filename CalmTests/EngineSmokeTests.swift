@@ -39,4 +39,10 @@ struct EngineSmokeTests {
         ghostty_config_finalize(config)
         #expect(ghostty_config_diagnostics_count(config) == 0)
     }
+
+    /// The test host is a real Calm; it must never write the running Calm's support files.
+    @Test func `tests keep out of the real support folder`() {
+        let real = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "Calm")
+        #expect(!CalmDefaults.directory.path.hasPrefix(real.path))
+    }
 }

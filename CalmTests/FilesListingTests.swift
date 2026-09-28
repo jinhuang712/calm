@@ -1,4 +1,5 @@
 @testable import Calm
+import CalmModel
 import Foundation
 import Testing
 
@@ -72,5 +73,55 @@ struct FilesListingTests {
         #expect(listing.paths.sorted() == ["README.md", "gone.txt", "notes.txt", "src/main.swift"])
         #expect(listing.changes == ["README.md": .modified, "gone.txt": .deleted, "notes.txt": .untracked])
         #expect(listing.branch == "main")
+    }
+
+    @Test func `a repository subfolder: each change's lines, from git and for untracked files`() throws {
+        let repo = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: repo) }
+        let write = { (path: String, text: String) in
+            let url = URL(filePath: repo).appending(path: path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(text.utf8).write(to: url)
+        }
+        try write("app/README.md", "one\ntwo\nthree\n")
+        try write("app/src/Old.swift", "let a = 1\nlet b = 2\nlet c = 3\nlet d = 4\nlet e = 5\n")
+        try write("app/gone.txt", "x\n")
+        try Data([0x00, 0x01, 0x02]).write(to: URL(filePath: repo).appending(path: "app/icon.bin"))
+        try write("top.txt", "top\n")
+        try git(["init", "-q", "-b", "main"], in: repo)
+        try git(["add", "-A"], in: repo)
+        try git(["commit", "-qm", "init"], in: repo)
+
+        try write("app/README.md", "one\nTWO\nthree\nfour\n") // 2 added, 1 removed
+        try git(["mv", "app/src/Old.swift", "app/src/New.swift"], in: repo)
+        try write("app/src/New.swift", "let a = 1\nlet b = 2\nlet c = 3\nlet d = 4\nlet e = 50\n")
+        try git(["add", "app/src/New.swift"], in: repo) // renamed, 1 line changed
+        try FileManager.default.removeItem(atPath: repo + "/app/gone.txt")
+        try Data([0x00, 0x09, 0x09]).write(to: URL(filePath: repo).appending(path: "app/icon.bin")) // binary
+        try write("app/Staged.md", "fresh\nfile\n")
+        try git(["add", "app/Staged.md"], in: repo)
+        try write("app/notes.txt", "a\nb\nc") // untracked, no newline at the end
+        try write("top.txt", "top\nmore\n") // outside the folder
+
+        let listing = FilesListing.read(repo + "/app")
+        #expect(listing.changes["src/New.swift"] == .renamed)
+        #expect(listing.lines == [
+            "README.md": LineCounts(added: 2, deleted: 1),
+            "src/New.swift": LineCounts(added: 1, deleted: 1),
+            "gone.txt": LineCounts(added: 0, deleted: 1),
+            "Staged.md": LineCounts(added: 2, deleted: 0),
+            "notes.txt": LineCounts(added: 3, deleted: 0),
+        ])
+    }
+
+    @Test func `a repository without commits lists its files, uncounted`() throws {
+        let repo = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: repo) }
+        try touch("a.txt", in: repo)
+        try git(["init", "-q", "-b", "main"], in: repo)
+        let listing = FilesListing.read(repo)
+        #expect(listing.paths == ["a.txt"])
+        #expect(listing.changes == ["a.txt": .untracked])
+        #expect(listing.lines == ["a.txt": LineCounts(added: 1, deleted: 0)]) // counted by Calm, not git
     }
 }

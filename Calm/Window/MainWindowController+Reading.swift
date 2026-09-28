@@ -11,10 +11,25 @@ extension MainWindowController {
     }
 
     #if DEBUG
-        func openFromFilesForTesting(_ path: String) {
-            filesColumn.model.open(path)
-            let viewed = filesColumn.model.viewedFile ?? "none"
-            FileHandle.standardError.write(Data("calm-selftest: files column opened \(path), viewing \(viewed)\n".utf8))
+        /// `files_open:<file>` opens a file as a click on its row does; `files_expand:<folder>`
+        /// opens or closes a folder of the tree; `files_state` logs what the column holds.
+        func filesColumnForTesting(_ action: String) {
+            let model = filesColumn.model
+            if action == "files_state" {
+                let state = "root \(model.root ?? "none"), \(model.nodes.count) top entries, \(model.rows.count) rows, "
+                    + "\(model.changes.count) changes, totals \(model.totals.map { "+\($0.added) −\($0.deleted)" } ?? "none")"
+                FileHandle.standardError.write(Data("calm-selftest: files column \(state)\n".utf8))
+            } else if action.hasPrefix("files_expand:") {
+                let folder = String(action.dropFirst(13))
+                model.toggle(folder)
+                FileHandle.standardError
+                    .write(Data("calm-selftest: files column folder \(folder) open \(model.expanded.contains(folder))\n".utf8))
+            } else if action.hasPrefix("files_open:") {
+                let path = String(action.dropFirst(11))
+                model.open(path)
+                let viewed = model.viewedFile ?? "none"
+                FileHandle.standardError.write(Data("calm-selftest: files column opened \(path), viewing \(viewed)\n".utf8))
+            }
         }
     #endif
 

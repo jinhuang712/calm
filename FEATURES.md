@@ -127,12 +127,13 @@ A fast, correct terminal on libghostty.
 
 A quick, read-only look at the repository without leaving Calm.
 
-- **File tree:** a column on the left, right of the session sidebar, showing the focused session's project. Hides files ignored by git and marks changed files. Toggled with one shortcut (⌘\\).
-  - The header names the project, with the branch and how many files changed (`main · 3 Δ`).
-  - Folders come first, then files, each in natural order (`View2` before `View10`). A changed file carries a quiet letter: **M** modified, **A** added, **D** deleted (in the failure tone), **R** renamed, **U** untracked. A folder holding changes carries a small dot.
+- **Files column:** a column on the left, right of the session sidebar, showing the focused session's project: what changed first, then the whole tree. Hides files ignored by git. Toggled with one shortcut (⌘\\).
+  - The header names the project, with its branch and every line the changes add and remove (`calm  main  +128 −41`). The branch shows only when it fits whole.
+  - **Changes** lists every changed file (what `git status` shows, staged or not), in path order: its letter (**M** modified, **A** added, **D** deleted, **R** renamed, **U** untracked), its name, the folder it's in when there's room, and the lines it adds and removes against the last commit (`+64 −31`; an untracked file's lines all count as added; binary files have none). The full path is the row's tooltip. With nothing changed, the section isn't there.
+  - **Files** is the tree: folders first, then files, each in natural order (`View2` before `View10`). Folders open and close with a click; they all close again for another project. A changed file is brighter and carries its letter; a folder holding changes carries a small dot; dotfiles are quieter.
   - It follows the focused session: switching to a session in another project shows that project. While shown it re-reads every 5 seconds, so an agent's edits appear as they happen.
-  - A folder that isn't a git repository is listed directly, skipping hidden folders and build output (`node_modules`, `build`, `DerivedData`, `Pods`, `target`, `dist`), up to 5,000 files.
-  - Clicking a file opens it in the viewer; the file being viewed is highlighted in the tree.
+  - A folder that isn't a git repository is listed directly, skipping hidden folders and build output (`node_modules`, `build`, `DerivedData`, `Pods`, `target`, `dist`), up to 5,000 files. It has no branch and no Changes.
+  - Clicking a file opens it in the viewer; the file being viewed is highlighted in Changes and in the tree.
   - A ⌘\\ keybinding in the user's own Ghostty config wins over Calm's, and so does a global shortcut such as 1Password's autofill (⌘\\ by default; see UIUX.md → Keyboard); Toggle Files stays in the View menu.
 - **Viewer:** opening a viewable file (Markdown, HTML, PDF, images; code with syntax highlighting) **covers the main area** where the session was. **Esc** returns to the session exactly as it was; the session keeps running underneath.
 - Files open from the tree, from ⌘-click (F8), or from `calm open <file>` (also `file:line`, which highlights that line).

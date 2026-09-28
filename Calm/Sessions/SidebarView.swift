@@ -16,7 +16,7 @@ struct SidebarStyle: Equatable {
     /// The theme's accent, for chrome only: a switch that's on, the picked theme, the project mark.
     /// Calm's amber when the theme has none.
     var accent: Color
-    /// *Failed*: a muted red, used for nothing else.
+    /// *Failed*: a muted red, used for nothing else but deletions in the files column.
     var failure: Color
     var isDark: Bool
     /// How opaque the sidebar and files column are: less on a glass window (WindowStyle).
@@ -32,7 +32,7 @@ struct SidebarStyle: Equatable {
         isDark ? .white.opacity(0.75) : Color(hue: 0.59, saturation: 0.8, brightness: 0.72)
     }
 
-    /// *Done*, until the user looks: a soft sage.
+    /// *Done*, until the user looks: a soft sage. The files column's added lines take it too.
     var done: Color {
         Color(hue: 0.3, saturation: isDark ? 0.23 : 0.42, brightness: isDark ? 0.75 : 0.5)
     }

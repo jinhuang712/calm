@@ -55,10 +55,10 @@
             case let appearance where appearance.hasPrefix("appearance:"):
                 // appearance:light|dark, as if the system's appearance changed
                 NSApp.appearance = NSAppearance(named: appearance.hasSuffix("light") ? .aqua : .darkAqua)
-            case let file where file.hasPrefix("files_open:"):
-                // What a click on a file row does (a headless window is never key, so AppKit won't
-                // deliver the click to the list).
-                openFromFilesForTesting(String(file.dropFirst(11)))
+            case let files where files.hasPrefix("files_"):
+                // What a click on a row of the files column does (a headless window is never key,
+                // so AppKit won't deliver the click): files_open:<file>, files_expand:<folder>.
+                filesColumnForTesting(files)
             case let name where name.hasPrefix("shuffle_mark:"):
                 // What a click on a project's mark does (headless clicks never reach SwiftUI).
                 return SessionManager.shared.shuffleMarkForTesting(named: String(name.dropFirst(13)))

@@ -295,6 +295,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             sidebarWidth.constant = Self.sidebarWidth
         }
         peek?.width = Self.sidebarWidth
+        filesColumn.updateWidth()
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)

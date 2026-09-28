@@ -74,7 +74,7 @@ struct SidebarStyle: Equatable {
 
 /// Projects and their sessions: the periphery, where status lives.
 struct SidebarView: View {
-    static let width: CGFloat = 280
+    static let width: CGFloat = 320
     let manager: SessionManager
     let style: SidebarStyle
     let onSelect: (Session.ID) -> Void
@@ -97,21 +97,21 @@ struct SidebarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Room for the window's traffic lights.
-            Color.clear.frame(height: 38)
+            Color.clear.frame(height: 46)
             searchField
-                .padding(.horizontal, 10)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 18)
 
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 22) {
                     // Scratch sessions on top, then projects the user made, then directory groups.
                     ForEach(manager.workspace.orderedProjects) { project in
                         projectSection(project)
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 16)
             }
             .scrollIndicators(.never)
 
@@ -137,13 +137,13 @@ struct SidebarView: View {
 
     private func projectSection(_ project: Project) -> some View {
         let sessions = manager.workspace.sessions(in: project.id)
-        return VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 6) {
             Button {
                 manager.toggleCollapsed(project.id)
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
+                        .font(.system(size: 9, weight: .semibold))
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
                         .frame(width: 10)
                     GroupMark(kind: project.kind, style: style)
@@ -151,20 +151,20 @@ struct SidebarView: View {
                     Spacer(minLength: 4)
                     if project.isCollapsed {
                         Text(summary(sessions))
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundStyle(style.tertiary)
                     } else if project.kind == .directory, project.path != WorkspacePath.standardize(NSHomeDirectory()) {
                         // Where the folder is, so two groups with the same name can be told apart.
                         Text(WorkspacePath.displayName(for: (project.path as NSString).deletingLastPathComponent))
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundStyle(style.tertiary)
                             .lineLimit(1)
                             .truncationMode(.head)
                     }
                 }
-                .foregroundStyle(style.secondary)
-                .padding(.horizontal, 6)
-                .frame(height: 22)
+                .foregroundStyle(style.tertiary)
+                .padding(.horizontal, 8)
+                .frame(height: 26)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -237,12 +237,13 @@ struct SidebarView: View {
         if project.kind == .directory {
             // A folder's own name, as it is on disk.
             Text(project.name)
-                .font(.system(size: 12))
+                .font(.system(size: 13.5, weight: .medium))
+                .foregroundStyle(style.secondary)
                 .lineLimit(1)
         } else {
             Text(project.name.uppercased())
-                .font(.system(size: 11, weight: .medium))
-                .tracking(0.6)
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(0.7)
                 .lineLimit(1)
         }
     }
@@ -255,16 +256,16 @@ struct SidebarView: View {
            hoveredSessionID == session.id || selectedSessionID == session.id {
             Button { onClose(session.id) } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(style.secondary)
-                    .frame(width: 18, height: 18)
-                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style.selection))
+                    .frame(width: 22, height: 22)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.selection))
             }
             .buttonStyle(.plain)
             .help("Close Scratch Session")
             .accessibilityLabel("Close scratch session")
-            .padding(.top, 6)
-            .padding(.trailing, 6)
+            .padding(.top, 9)
+            .padding(.trailing, 9)
         }
     }
 
@@ -279,7 +280,7 @@ struct SidebarView: View {
     private func nameField(_ session: Session) -> some View {
         TextField("Name", text: $draftName, prompt: Text(session.title(agentTitle: session.agent?.tail?.title)))
             .textFieldStyle(.plain)
-            .font(.system(size: 13, weight: .medium))
+            .font(.system(size: 14.5, weight: .medium))
             .foregroundStyle(style.primary)
             .focused($nameFieldFocused)
             .onSubmit { actions.rename(session.id, draftName) }
@@ -289,10 +290,10 @@ struct SidebarView: View {
                     actions.rename(session.id, draftName)
                 }
             }
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.selection))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+            .padding(.horizontal, 12)
+            .frame(height: 40)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.selection))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
             .onAppear { nameFieldFocused = true }
     }
 
@@ -323,20 +324,21 @@ struct SidebarView: View {
     /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.
     private var searchField: some View {
         FooterButton(style: style, help: "Search Sessions (⌘K)", action: actions.search) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                 Text("Search sessions")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                 Spacer(minLength: 4)
-                Text("⌘K")
-                    .font(.system(size: 12))
-                    .foregroundStyle(style.tertiary)
+                KeyCaps(keys: ["⌘", "K"], style: style)
             }
-            .padding(.horizontal, 10)
+            .foregroundStyle(style.tertiary)
+            .padding(.leading, 12)
+            .padding(.trailing, 9)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(style.tertiary.opacity(0.25)))
+            .frame(height: 38)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.primary.opacity(0.055)))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.primary.opacity(0.06)))
         }
         .accessibilityLabel("Search sessions")
     }
@@ -344,31 +346,28 @@ struct SidebarView: View {
     /// The three ways to start something, one row each with its shortcut, so the corner reads at
     /// a glance and every target is a full row.
     private var footer: some View {
-        VStack(spacing: 1) {
-            footerRow("New Session", symbol: "square.and.pencil", shortcut: "⌘T", action: onNewSession)
-            footerRow("New Scratch Session", symbol: "square.dashed", shortcut: "⌘⇧N", action: actions.newScratchSession)
-            footerRow("New Project…", symbol: "plus", shortcut: nil, action: onNewProject)
+        VStack(spacing: 2) {
+            footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
+            footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
+            footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 14)
         .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
     }
 
-    private func footerRow(_ title: String, symbol: String, shortcut: String?, action: @escaping () -> Void) -> some View {
-        FooterButton(style: style, help: shortcut.map { "\(title) (\($0))" } ?? title, action: action) {
-            HStack(spacing: 9) {
+    private func footerRow(_ title: String, symbol: String, keys: [String], action: @escaping () -> Void) -> some View {
+        FooterButton(style: style, help: "\(title) (\(keys.joined()))", action: action) {
+            HStack(spacing: 11) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13))
-                    .frame(width: 18)
+                    .font(.system(size: 14))
+                    .frame(width: 28, height: 28)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.primary.opacity(0.055)))
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                 Spacer(minLength: 4)
-                if let shortcut {
-                    Text(shortcut)
-                        .font(.system(size: 12))
-                        .foregroundStyle(style.tertiary)
-                }
+                KeyCaps(keys: keys, style: style)
             }
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -387,14 +386,34 @@ private struct FooterButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .frame(height: 28)
+                .frame(minHeight: 40)
                 .foregroundStyle(hovering ? style.primary : style.secondary)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hovering ? style.selection : .clear))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? style.selection : .clear))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(help)
+    }
+}
+
+/// A shortcut drawn as small key caps (⌘ T), the way the menu bar would print it but calmer.
+struct KeyCaps: View {
+    let keys: [String]
+    let style: SidebarStyle
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
+                Text(key)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(style.tertiary)
+                    .frame(minWidth: 20, minHeight: 20)
+                    .padding(.horizontal, key.count > 1 ? 4 : 0)
+                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(style.primary.opacity(0.06)))
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -422,16 +441,16 @@ struct GroupMark: View {
         switch kind {
         case .project:
             Image(systemName: "square.stack")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(style.attention)
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")
-                .font(.system(size: 9))
+                .font(.system(size: 12))
                 .accessibilityLabel("Folder")
         case .scratch:
             Image(systemName: "square.dashed")
-                .font(.system(size: 9))
+                .font(.system(size: 12))
                 .accessibilityLabel("Scratch")
         }
     }
@@ -444,14 +463,14 @@ struct SessionRow: View {
     let style: SidebarStyle
 
     var body: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 10) {
             Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(style.tertiary)
-                .frame(width: 18, height: 18)
-                .background(RoundedRectangle(cornerRadius: 5).strokeBorder(style.tertiary.opacity(0.5)))
+                .frame(width: 26, height: 26)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
             Text(session.displayTitle)
-                .font(.system(size: 13, weight: isSelected ? .medium : .regular))
+                .font(.system(size: 14, weight: isSelected ? .medium : .regular))
                 .foregroundStyle(isSelected ? style.primary : style.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -460,11 +479,11 @@ struct SessionRow: View {
                 StateMark(state: session.state, style: style)
             }
         }
-        .padding(.horizontal, 8)
-        .frame(height: 30)
+        .padding(.horizontal, 12)
+        .frame(height: 40)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(session.state == .needsYou ? style.attention.opacity(0.19) : isSelected ? style.selection : .clear),
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
         )
         .contentShape(Rectangle())
         // A scratch session's folder stays hidden.

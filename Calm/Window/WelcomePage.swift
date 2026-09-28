@@ -72,7 +72,7 @@ struct WelcomeView: View {
                     shortcut: "⌘⇧N",
                     action: actions.newScratchSession,
                 )
-                row("New Project…", detail: "A folder whose sessions stay together", shortcut: nil, action: actions.newProject)
+                row("New Project…", detail: "A folder whose sessions stay together", shortcut: "⌘O", action: actions.newProject)
             }
             if firstUse {
                 Button(action: actions.setUpAgents) {

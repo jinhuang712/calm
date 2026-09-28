@@ -149,6 +149,7 @@ struct KeysSettingsView: View {
         ("⌘⇧E", "Toggle the files column"),
         ("⌘⌃S", "Toggle the sidebar"),
         ("⌘T  ⌘D  ⌘⇧D", "New tab, split right, split down"),
+        ("⌘⇧N  ⌘O", "New scratch session, new project"),
         ("⌘⇧K", "Clear the screen"),
         ("esc", "Close a viewed file"),
         ("⌘,", "Settings"),

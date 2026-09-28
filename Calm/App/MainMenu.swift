@@ -56,6 +56,7 @@ enum MainMenu {
             key: "n",
             mods: [.command, .shift],
         ))
+        menu.addItem(actionItem("New Project…", #selector(TerminalMenuTarget.newProject(_:)), key: "o"))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Split Right", "new_split:right", key: "d"))
         menu.addItem(terminalItem("Split Down", "new_split:down", key: "d", mods: [.command, .shift]))
@@ -135,7 +136,7 @@ enum MainMenu {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
         let targeted = [
-            "newSession", "newScratchSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession",
+            "newSession", "newScratchSession", "newProject", "toggleCommandPalette", "toggleSidebar", "toggleFiles", "jumpToWaitingSession",
             "showArrivalCard",
             "searchSessions",
         ]
@@ -157,6 +158,10 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func newScratchSession(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().newScratchSession()
+    }
+
+    @objc func newProject(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().chooseNewProject()
     }
 
     @objc func toggleFiles(_: Any?) {

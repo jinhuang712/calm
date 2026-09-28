@@ -25,14 +25,14 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 │  │ Should I also update…  │  │              │                                     │
 │  │ ⎇ wt-fix-login  +12 −4 │  │              │                                     │
 │  └────────────────────────┘  │              │                                     │
-│  + New Project               │              │                                     │
+│  + New Project            ⌘O │              │                                     │
 └──────────────────────────────┴──────────────┴─────────────────────────────────────┘
    sidebar (periphery)          files (⌘⇧E,     main area (center): the session,
                                 optional)       or a viewed file (esc returns)
 ```
 
-- **Sidebar:** session groups and session cards. The periphery, where status lives. At the top, under the traffic lights, a quiet **Search sessions ⌘K** field opens search. Then scratch sessions, projects you made (uppercase, with a project mark), and folder groups (the folder's own name, its parent folder on the right). Scratch rows show a quiet × on hover or while selected; a scratch session's folder never shows anywhere. The footer is three rows, each with its icon and shortcut: New Session ⌘T, New Scratch Session ⌘⇧N, New Project…; each row lights up on hover.
-- **Welcome page:** with no session open, a short page fills the whole window (no sidebar; only the traffic lights above it): a title, New Session (⌘T), New Scratch Session (⌘⇧N), New Project…, and on the very first launch a line to set up agents. It replaces the first-launch Agents panel.
+- **Sidebar:** session groups and session cards. The periphery, where status lives. At the top, under the traffic lights, a soft filled **Search sessions ⌘ K** field opens search. Then scratch sessions, projects you made (uppercase, with a project mark), and folder groups (the folder's own name, its parent folder on the right). Scratch rows show a quiet × on hover or while selected; a scratch session's folder never shows anywhere. The footer is three rows, each with its icon on a small tile and its shortcut as key caps: New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O; each row lights up on hover. Sizes lean roomy (a 320 pt sidebar, 14 pt text, 40 pt rows, 26 pt agent marks in each agent's own soft tint) so the sidebar reads at a glance without leaning in.
+- **Welcome page:** with no session open, a short page fills the whole window (no sidebar; only the traffic lights above it): a title, New Session (⌘T), New Scratch Session (⌘⇧N), New Project… (⌘O), and on the very first launch a line to set up agents. It replaces the first-launch Agents panel.
 - **Files:** an optional column right of the sidebar, showing the focused session's project.
 - **Main area:** the session's terminal. Calm never draws over it, except the arrival card, which fades. A viewed file temporarily takes its place.
 
@@ -177,6 +177,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘P | Command palette |
 | ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
 | ⌘⇧N | New scratch session |
+| ⌘O | New project |
 | ⌘1…9 | Jump to session by position |
 | ⌃Tab / ⌃⇧Tab | Cycle sessions, most recent first (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
@@ -191,7 +192,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 - **⌘⇧J** is Ghostty's *write screen to file*, so "jump to the next session that needs you" uses **⌘⇧A** (A for attention).
 - **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - **⌘,** is Ghostty's *open config*, which Calm doesn't support; Calm's defaults unbind it so it opens Settings, the Mac convention.
-- ⌘P, ⌘⇧E, ⌘⇧I, ⌘⇧N are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
+- ⌘P, ⌘⇧E, ⌘⇧I, ⌘⇧N, ⌘O are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).
 
 ## Accessibility
 

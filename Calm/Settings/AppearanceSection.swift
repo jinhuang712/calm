@@ -47,19 +47,18 @@ struct AppearanceSection: View {
                 }
             }
             .padding(.bottom, 32.scaled)
-            // How large all of Calm's chrome is drawn, this page included; the terminal keeps its
-            // own font (⌘+ and ⌘−).
-            GroupHeading(title: "Interface size", style: style)
-            SettingsGroup(style: style) {
-                InterfaceSizePicker(selection: windowOptions.interfaceSize, preview: picked, style: style) {
-                    windowOptions.setInterfaceSize($0)
-                }
-            }
-            .padding(.bottom, 32.scaled)
             SettingsGroup(style: style) {
                 // Closures, not method references: passing a model's method crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
                 // No help lines: the preview above shows what each choice does.
+                // How large all of Calm's chrome is drawn, this page included; the terminal keeps
+                // its own font (⌘+ and ⌘−).
+                SettingsRow(title: "Interface size", symbol: "textformat.size", style: style) {
+                    InterfaceSizePicker(selection: windowOptions.interfaceSize, style: style) {
+                        windowOptions.setInterfaceSize($0)
+                    }
+                }
+                RowDivider(style: style)
                 SettingsRow(title: "Background", symbol: "square.stack.3d.down.forward", style: style) {
                     CalmSegmented(
                         title: "Background", options: [(.solid, "Solid"), (.glass, "Glass")],

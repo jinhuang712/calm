@@ -44,10 +44,42 @@ extension MainWindowController {
 
     // MARK: Links
 
-    func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String) {
+    /// The folders a pane's links resolve against: the session's, then its project's.
+    private func linkFolders(of view: TerminalSurfaceView) -> (directory: String?, project: String?) {
         let session = manager.workspace.session(view.id)
-        let directory = view.workingDirectory ?? session?.workingDirectory
-        let project = session.flatMap { manager.workspace.project($0.projectID)?.path }
+        return (view.workingDirectory ?? session?.workingDirectory, session.flatMap { manager.workspace.project($0.projectID)?.path })
+    }
+
+    func surface(_ view: TerminalSurfaceView, resolveLink text: String) -> Link? {
+        let folders = linkFolders(of: view)
+        return LinkOpener.resolveExactly(text, directory: folders.directory, projectDirectory: folders.project)
+    }
+
+    func surface(_ view: TerminalSurfaceView, hoversLink hover: LinkHover?) {
+        guard let hover, let cells = view.rect(row: hover.anchor.row, columns: hover.anchor.columns) else {
+            linkTag.hide(animated: true)
+            return
+        }
+        let folders = linkFolders(of: view)
+        let link = LinkOpener.resolve(hover.text, directory: folders.directory, projectDirectory: folders.project)
+        let preview = LinkOpener.preview(of: link, text: hover.text)
+        var image: String?
+        if preview.kind == .image, case let .file(path, _, _) = link {
+            image = path
+        }
+        linkTag.show(
+            preview,
+            image: image,
+            under: view.convert(cells, to: container),
+            in: view.convert(view.bounds, to: container),
+            background: view.effectiveBackgroundColor,
+            style: sidebarStyle,
+        )
+    }
+
+    func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String) {
+        linkTag.hide(animated: false)
+        let (directory, project) = linkFolders(of: view)
         guard let link = LinkOpener.resolve(text, directory: directory, projectDirectory: project) else {
             CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
             return

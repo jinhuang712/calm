@@ -32,6 +32,13 @@ struct LinkTests {
         #expect(parse("  ") == nil)
     }
 
+    @Test func `a path's trailing words are tried away one at a time`() {
+        #expect(Link.candidates(for: "~/dev/apps and then") == ["~/dev/apps and then", "~/dev/apps and", "~/dev/apps"])
+        #expect(Link.candidates(for: "/tmp/test folder/file.txt") == ["/tmp/test folder/file.txt", "/tmp/test"])
+        #expect(Link.candidates(for: "src/main.swift:12") == ["src/main.swift:12"])
+        #expect(Link.candidates(for: "a b c d e f g").count == 5)
+    }
+
     @Test func `editor arguments put the cursor at the line`() {
         #expect(Editor.vscode.arguments(file: "/a.swift", line: 42, column: 7) == ["-g", "/a.swift:42:7"])
         #expect(Editor.cursor.arguments(file: "/a.swift", line: nil, column: nil) == ["-g", "/a.swift"])

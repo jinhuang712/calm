@@ -110,6 +110,9 @@ A fast, correct terminal on libghostty.
 - File paths open in Calm's viewer (F10) or in the user's editor at the line.
 
 - A path that isn't there relative to the session's folder is tried against its project's folder (agents often print repository-relative paths); if it's nowhere, a small note says so.
+- A path the terminal ran on into the words after it ("~/dev/apps and then") opens as the path.
+- **At rest**, every link on screen that opens (a URL, or a file or folder that's there) has a faint dotted line under it, including one the terminal wrapped onto the next row. Rows that change lose their marks at once and get them back when the text holds still, so marks never trail scrolling or streaming output. Programs that take the mouse (vim, htop) get none, since ⌘-click can't open links there.
+- **Holding ⌘** over a link shows a small tag just under it (above it at the pane's bottom): the file's name and line, its folder, and what a click does ("Open in viewer", "Open in Cursor", "Open in browser", "Open in Finder", or "Not found" before you click). An image's tag shows its thumbnail. The tag goes away when ⌘ or the pointer leaves the link, or on typing, clicking or scrolling.
 
 **Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; overridable with `editor = "…"` in config.toml); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
 

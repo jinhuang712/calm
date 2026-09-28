@@ -1,0 +1,13 @@
+● Update(plugins/billing/workbench/packages/desktop/e2e/workbench.spec.ts)
+  ⎿  Updated plugins/billing/workbench/packages/desktop/e2e/workbench.spec.ts (+57 -0)
+     282       expect(existsSync(join(root, "bills", "unknown", "神秘账单.csv"))).toBe(true);
+     283 +     await expect(card.getByTestId("import-missing")).toContainText("淘宝");
+On branch wt-link-hover
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+        modified:   Packages/CalmKit/Sources/CalmModel/Link.swift
+Calm/Window/MainWindowController+Reading.swift:36:        guard let link = LinkOpener.resolve(text, directory: directory, projectDirectory: project) else {
+ Calm/Terminal/SurfaceEdgeColor.swift  | 64 ++++++++++++++++++++++++++++++++---
+Ghostty (https://github.com/ghostty-org/ghostty), MIT License.
+zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
+● 已更新 文档/说明.md，另见 https://example.com/说明。

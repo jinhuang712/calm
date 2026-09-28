@@ -6,7 +6,9 @@ Calm.app/Contents/Resources/Licenses (and Calm/Resources/Licenses in the source)
 
 Ghostty (https://github.com/ghostty-org/ghostty), MIT License.
 Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors.
-Calm's terminal engine is built from Ghostty's source.
+Calm's terminal engine is built from Ghostty's source. The link pattern in
+Packages/CalmKit/Sources/CalmModel/LinkMatcher.swift is adapted from Ghostty's src/config/url.zig,
+and LinkMatcherTests use some of its test cases.
 
 Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/ghostty), the
 Ghostty fork Macterm builds on, MIT License (Ghostty's, above). Applied unchanged to the engine;

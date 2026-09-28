@@ -250,6 +250,25 @@
                     beginRename(id)
                 }
             default:
+                return performLinkActionForTesting(action)
+            }
+            return true
+        }
+
+        /// Smart links (F8): the marks at rest, and the tag under ⌘.
+        private func performLinkActionForTesting(_ action: String) -> Bool {
+            switch action {
+            case let link where link.hasPrefix("link_hover:"):
+                // link_hover:<text on screen>: the pointer rests on it with ⌘ held
+                let found = focusedPane?.hoverLinkForTesting(String(link.dropFirst(11))) ?? false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.3))
+                    FileHandle.standardError.write(Data("calm-selftest: hover found \(found): \(linkTag.descriptionForTesting)\n".utf8))
+                }
+            case "link_marks":
+                let marks = focusedPane?.linkMarksForTesting ?? []
+                FileHandle.standardError.write(Data("calm-selftest: \(marks.count) link marks: \(marks.joined(separator: " | "))\n".utf8))
+            default:
                 return false
             }
             return true

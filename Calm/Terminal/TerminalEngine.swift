@@ -267,6 +267,12 @@ final class TerminalEngine {
             view.workingDirectory = String(cString: pwd)
         case GHOSTTY_ACTION_MOUSE_SHAPE:
             view?.setMouseShape(action.action.mouse_shape)
+        case GHOSTTY_ACTION_MOUSE_OVER_LINK:
+            // The link under ⌘, for the tag beside it (FEATURES.md → F8); empty when it's left.
+            let link = action.action.mouse_over_link
+            let text = link.url
+                .flatMap { link.len > 0 ? String(bytes: UnsafeRawBufferPointer(start: $0, count: link.len), encoding: .utf8) : nil }
+            view?.linkHoverDidChange(text)
         case GHOSTTY_ACTION_CELL_SIZE:
             let size = action.action.cell_size
             view?.cellSizeDidChange(pixels: NSSize(width: Double(size.width), height: Double(size.height)))

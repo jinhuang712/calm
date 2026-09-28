@@ -8,6 +8,8 @@ final class TerminalWorkspaceView: NSView {
     private(set) var panes: [UUID: TerminalSurfaceView] = [:]
     private var dividers: [DividerView] = []
     private(set) var zoomedPane: UUID?
+    /// The dotted lines under links that open, above the panes (they can't take subviews).
+    private let linkMarks = LinkMarksView()
 
     var dividerColor = NSColor(white: 1, alpha: 0.08) {
         didSet { dividers.forEach { $0.color = dividerColor } }
@@ -139,6 +141,41 @@ final class TerminalWorkspaceView: NSView {
         return true
     }
 
+    // MARK: Link marks
+
+    override func didAddSubview(_ subview: NSView) {
+        super.didAddSubview(subview)
+        guard let pane = subview as? TerminalSurfaceView else { return }
+        pane.links.onChange = { [weak self, weak pane] in
+            guard let self, let pane else { return }
+            linkMarks.update(pane)
+        }
+    }
+
+    override func willRemoveSubview(_ subview: NSView) {
+        if let pane = subview as? TerminalSurfaceView {
+            pane.links.onChange = nil
+            linkMarks.remove(pane.id)
+        }
+        super.willRemoveSubview(subview)
+    }
+
+    /// Keeps the marks above the panes and in step with them.
+    private func layoutLinkMarks(animated: Bool) {
+        let lastPane = subviews.lastIndex { $0 is TerminalSurfaceView }
+        if let lastPane, (subviews.firstIndex(of: linkMarks) ?? -1) < lastPane {
+            addSubview(linkMarks, positioned: .above, relativeTo: subviews[lastPane])
+        }
+        linkMarks.frame = bounds
+        for pane in panes.values {
+            if animated {
+                pane.resetLinkMarks() // the pane is about to change size; its text will move
+            } else {
+                linkMarks.update(pane)
+            }
+        }
+    }
+
     // MARK: Layout
 
     override func layout() {
@@ -148,6 +185,7 @@ final class TerminalWorkspaceView: NSView {
 
     func layoutPanes(animated: Bool) {
         guard let tree else { return }
+        defer { layoutLinkMarks(animated: animated) }
         let frames = paneFrames(tree)
         let apply = {
             for (id, frame) in frames {

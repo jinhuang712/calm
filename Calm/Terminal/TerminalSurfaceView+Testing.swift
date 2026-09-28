@@ -116,8 +116,31 @@
     extension TerminalSurfaceView {
         /// ⌥-double-clicks the first cell showing `text`, through the real mouse path, and returns
         /// what was copied. The user's clipboard is put back afterwards.
+        /// Rests the pointer, with ⌘ held, on the first cell of `text` on screen, as the mouse would.
+        func hoverLinkForTesting(_ text: String) -> Bool {
+            guard let surface else { return false }
+            let grid = TextGrid(lines: viewportRows())
+            for (row, cells) in grid.cells.enumerated() {
+                let line = cells.compactMap(\.self).map(String.init).joined()
+                guard let range = line.range(of: text) else { continue }
+                let column = line[..<range.lowerBound].reduce(0) { $0 + CellWidth.of($1) } + 1
+                guard let cell = rect(row: row, columns: column ..< column + 1) else { return false }
+                links.pointer = NSPoint(x: cell.midX, y: cell.midY)
+                ghostty_surface_mouse_pos(surface, cell.midX, bounds.height - cell.midY, TerminalInput.mods(.command))
+                return true
+            }
+            return false
+        }
+
+        /// The links marked at rest, top to bottom.
+        var linkMarksForTesting: [String] {
+            links.marks.keys.compactMap { match in match.runs.first.map { (match, $0) } }
+                .sorted { ($0.1.row, $0.1.columns.lowerBound) < ($1.1.row, $1.1.columns.lowerBound) }
+                .map { $0.0.runs.count > 1 ? "\($0.0.text) (\($0.0.runs.count) rows)" : $0.0.text }
+        }
+
         func copyCellForTesting(_ text: String) -> String? {
-            guard let window, let surface else { return nil }
+            guard let window else { return nil }
             let grid = TextGrid(lines: viewportRows())
             var target: (row: Int, column: Int)?
             for (row, cells) in grid.cells.enumerated() {
@@ -127,21 +150,8 @@
                     break
                 }
             }
-            guard let target else { return nil }
-            var origin = ghostty_text_s()
-            let corner = ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT, x: 0, y: 0)
-            guard ghostty_surface_read_text(
-                surface,
-                ghostty_selection_s(top_left: corner, bottom_right: corner, rectangle: false),
-                &origin,
-            ) else {
-                return nil
-            }
-            let point = NSPoint(
-                x: origin.tl_px_x + (Double(target.column) + 0.5) * cellSize.width,
-                y: bounds.height - origin.tl_px_y - (Double(target.row) + 0.5) * cellSize.height,
-            )
-            ghostty_surface_free_text(surface, &origin)
+            guard let target, let cell = rect(row: target.row, columns: target.column ..< target.column + 1) else { return nil }
+            let point = NSPoint(x: cell.midX, y: cell.midY)
 
             let saved = NSPasteboard.general.string(forType: .string)
             NSPasteboard.general.clearContents()

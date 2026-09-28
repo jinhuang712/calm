@@ -15,8 +15,14 @@ enum LinkOpener {
     }
 
     /// What a link points at, trying the project's folder for a relative path that isn't in the
-    /// session's. Files that don't exist resolve to nil.
+    /// session's, and a path without the words the terminal swept up after it (`Link.candidates`).
+    /// Files that don't exist resolve to nil.
     static func resolve(_ text: String, directory: String?, projectDirectory: String?) -> Link? {
+        Link.candidates(for: text).lazy.compactMap { resolveExactly($0, directory: directory, projectDirectory: projectDirectory) }.first
+    }
+
+    /// `resolve` for this text only.
+    static func resolveExactly(_ text: String, directory: String?, projectDirectory: String?) -> Link? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         var link = Link.parse(text, relativeTo: directory, home: home)
         if case let .file(path, _, _) = link, !FileManager.default.fileExists(atPath: path) {
@@ -35,6 +41,33 @@ enum LinkOpener {
         guard let link = resolve(text, directory: directory, projectDirectory: projectDirectory) else { return false }
         openOutside(link)
         return true
+    }
+
+    /// What the tag beside a ⌘-hovered link says: where a click takes it, decided as a click would
+    /// (MainWindowController's `requestsOpenLink`: the viewer for files it shows, else the editor).
+    static func preview(of link: Link?, text: String) -> LinkPreview {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        switch link {
+        case nil:
+            return .missing(text)
+        case let .url(url):
+            return .url(url)
+        case let .file(path, line, _):
+            var isDirectory: ObjCBool = false
+            FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
+            if isDirectory.boolValue {
+                return .folder(path: path, home: home)
+            }
+            let kind = ViewableKind.of(path)
+            let destination: LinkPreview.Destination = if prefersViewer, kind != nil {
+                .viewer
+            } else if let (editor, _) = EditorLocator.find() {
+                .editor(editor.displayName)
+            } else {
+                .defaultApp
+            }
+            return .file(path: path, line: line, isImage: kind == .image, destination: destination, home: home)
+        }
     }
 
     static func openOutside(_ link: Link) {

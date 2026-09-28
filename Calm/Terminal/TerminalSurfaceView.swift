@@ -26,6 +26,10 @@ protocol TerminalSurfaceHost: AnyObject {
     func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal)
     /// A link was ⌘-clicked (a URL, or a path as the terminal matched it, maybe with `:line`).
     func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String)
+    /// Where a link in the pane's text leads, or nil if nowhere (resting marks show only links that open).
+    func surface(_ view: TerminalSurfaceView, resolveLink text: String) -> Link?
+    /// A link is under the pointer while ⌘ is held; nil when it no longer is.
+    func surface(_ view: TerminalSurfaceView, hoversLink hover: LinkHover?)
     /// A table cell was copied (Copy Cell); `point` is in the view's coordinates.
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint)
 }
@@ -106,6 +110,8 @@ final class TerminalSurfaceView: NSView {
     private var windowObservers: [NSObjectProtocol] = []
     private var frameObservation: NSKeyValueObservation?
     private var isEdgeSamplePending = false
+    /// Links in the visible text and the one under ⌘ (TerminalSurfaceView+Links).
+    let links = PaneLinks()
 
     // Keyboard and IME state, used by the keyboard extension.
     var markedText = NSMutableAttributedString()
@@ -199,7 +205,10 @@ final class TerminalSurfaceView: NSView {
     private func observeFrames() {
         frameObservation = layer?.observe(\.contents) { [weak self] _, _ in
             DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.scheduleEdgeSample() }
+                MainActor.assumeIsolated {
+                    self?.scheduleEdgeSample()
+                    self?.scheduleLinkScan()
+                }
             }
         }
     }
@@ -280,7 +289,11 @@ final class TerminalSurfaceView: NSView {
     func cellSizeDidChange(pixels: NSSize) {
         let points = convertFromBacking(pixels)
         DispatchQueue.main.async { [weak self] in
-            MainActor.assumeIsolated { self?.cellSize = points }
+            MainActor.assumeIsolated {
+                self?.cellSize = points
+                // The marks sit under cells, which just moved.
+                self?.resetLinkMarks()
+            }
         }
     }
 
@@ -512,6 +525,7 @@ final class TerminalSurfaceView: NSView {
     private func sendMousePosition(_ event: NSEvent) {
         guard let surface else { return }
         let point = convert(event.locationInWindow, from: nil)
+        links.pointer = point
         ghostty_surface_mouse_pos(surface, point.x, frame.height - point.y, TerminalInput.mods(event.modifierFlags))
     }
 
@@ -586,6 +600,7 @@ final class TerminalSurfaceView: NSView {
         guard let surface else { return }
         if NSEvent.pressedMouseButtons == 0 {
             // The cursor left the viewport.
+            links.pointer = nil
             ghostty_surface_mouse_pos(surface, -1, -1, TerminalInput.mods(event.modifierFlags))
         } else {
             sendMousePosition(event)
@@ -658,25 +673,6 @@ final class TerminalSurfaceView: NSView {
 
     @objc override func selectAll(_: Any?) {
         perform("select_all")
-    }
-
-    /// Reads text from the screen, e.g. for tests and later for search and Copy Cell.
-    func readText(_ selection: ghostty_selection_s) -> String? {
-        guard let surface else { return nil }
-        var text = ghostty_text_s()
-        guard ghostty_surface_read_text(surface, selection, &text) else { return nil }
-        defer { ghostty_surface_free_text(surface, &text) }
-        guard let pointer = text.text else { return nil }
-        return String(bytes: UnsafeRawBufferPointer(start: pointer, count: Int(text.text_len)), encoding: .utf8)
-    }
-
-    /// The visible screen as text.
-    func viewportText() -> String? {
-        readText(ghostty_selection_s(
-            top_left: ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_TOP_LEFT, x: 0, y: 0),
-            bottom_right: ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_BOTTOM_RIGHT, x: 0, y: 0),
-            rectangle: false,
-        ))
     }
 
     var needsConfirmQuit: Bool {

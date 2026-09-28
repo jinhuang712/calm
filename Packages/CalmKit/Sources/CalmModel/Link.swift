@@ -45,6 +45,21 @@ public enum Link: Equatable, Sendable {
             column: numbers.count > 1 ? numbers[1] : nil,
         )
     }
+
+    /// What to try for a link's text, longest first. The terminal lets a path run on across single
+    /// spaces (for folders with spaces in their names), which also sweeps up the words after a
+    /// plain path ("~/dev/apps and then"); those are dropped one at a time, a few at most.
+    public static func candidates(for text: String) -> [String] {
+        var candidates = [text]
+        var rest = text
+        while candidates.count < 5, let space = rest.lastIndex(of: " ") {
+            rest = String(rest[..<space])
+            if !rest.isEmpty, !rest.hasSuffix(" ") {
+                candidates.append(rest)
+            }
+        }
+        return candidates
+    }
 }
 
 /// Editors Calm can open a file in at a line, and how each takes the position. In detection

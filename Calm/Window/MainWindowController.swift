@@ -21,6 +21,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var peekWasEnabled = false
     private lazy var switcher = SessionSwitcher(controller: self)
     private lazy var arrivalCard = ArrivalCard(container: container)
+    lazy var linkTag = LinkTag(container: container)
     lazy var fileViewer = FileViewer(container: container)
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
     let windowStyle = WindowStyle()

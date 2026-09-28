@@ -72,13 +72,13 @@ struct GeneralSection: View {
                 .padding(.bottom, 24.scaled)
             GroupHeading(title: "Opening files", style: style)
             SettingsGroup(style: style) {
-                SettingsRow(title: "Editor", style: style) {
+                SettingsRow(title: "Editor", symbol: "chevron.left.forwardslash.chevron.right", style: style) {
                     SettingsMenu(
                         title: "Editor", options: editorOptions, selection: model.editor, style: style,
                     ) { model.setEditor($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Markdown, images and code", style: style) {
+                SettingsRow(title: "Markdown, images and code", symbol: "doc.richtext", style: style) {
                     SettingsMenu(
                         title: "Markdown, images and code", options: [(true, "Open in Calm"), (false, "Open in the editor")],
                         selection: model.opensInViewer, style: style,
@@ -88,7 +88,7 @@ struct GeneralSection: View {
             GroupHeading(title: "Sessions", style: style)
                 .padding(.top, 30.scaled)
             SettingsGroup(style: style) {
-                SettingsRow(title: "Group sessions by folder", style: style) {
+                SettingsRow(title: "Group sessions by folder", symbol: "folder", style: style) {
                     Toggle(
                         "Group sessions by folder",
                         isOn: Binding(get: { model.autoGrouping }, set: { model.setAutoGrouping($0) }),
@@ -100,14 +100,14 @@ struct GeneralSection: View {
             GroupHeading(title: "Config files", style: style)
                 .padding(.top, 30.scaled)
             SettingsGroup(style: style) {
-                fileRow("Calm settings", problems: model.problems) { SettingsActions.openConfigFile() }
+                fileRow("Calm settings", symbol: "gearshape", problems: model.problems) { SettingsActions.openConfigFile() }
                 RowDivider(style: style)
-                SettingsRow(title: "Ghostty settings", note: model.terminalFont, style: style) {
+                SettingsRow(title: "Ghostty settings", note: model.terminalFont, symbol: "terminal", style: style) {
                     Button("Open") { SettingsActions.openGhosttyConfig() }
                         .buttonStyle(SettingsButtonStyle(style: style))
                 }
                 RowDivider(style: style)
-                fileRow("Your themes", problems: []) { SettingsActions.openThemesFolder() }
+                fileRow("Your themes", symbol: "paintpalette", problems: []) { SettingsActions.openThemesFolder() }
             }
         }
     }
@@ -118,8 +118,9 @@ struct GeneralSection: View {
     }
 
     /// A file or folder, and any line of it Calm couldn't read.
-    private func fileRow(_ title: String, problems: [String], open: @escaping () -> Void) -> some View {
+    private func fileRow(_ title: String, symbol: String, problems: [String], open: @escaping () -> Void) -> some View {
         HStack(spacing: 16.scaled) {
+            SettingsIcon(symbol: symbol, style: style)
             VStack(alignment: .leading, spacing: 4.scaled) {
                 Text(title)
                     .calmFont(size: SettingsMetrics.label)

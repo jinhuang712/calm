@@ -119,11 +119,16 @@ struct RowDivider: View {
 struct SettingsRow<Control: View>: View {
     let title: String
     var note: String?
+    /// An SF Symbol on a small tile before the label, as the section list has.
+    var symbol: String?
     let style: SidebarStyle
     @ViewBuilder let control: Control
 
     var body: some View {
         HStack(spacing: 16.scaled) {
+            if let symbol {
+                SettingsIcon(symbol: symbol, style: style)
+            }
             VStack(alignment: .leading, spacing: 4.scaled) {
                 Text(title)
                     .calmFont(size: SettingsMetrics.label)
@@ -142,6 +147,21 @@ struct SettingsRow<Control: View>: View {
         .padding(.vertical, 14.scaled)
         .frame(minHeight: SettingsMetrics.rowHeight)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// A row's icon on a small tile, as the section list and the sidebar's footer draw theirs.
+struct SettingsIcon: View {
+    let symbol: String
+    let style: SidebarStyle
+
+    var body: some View {
+        Image(systemName: symbol)
+            .calmFont(size: 15)
+            .foregroundStyle(style.secondary)
+            .frame(width: 34.scaled, height: 34.scaled)
+            .background(RoundedRectangle(cornerRadius: 9.scaled, style: .continuous).fill(style.primary.opacity(0.06)))
+            .accessibilityHidden(true)
     }
 }
 

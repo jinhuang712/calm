@@ -112,6 +112,7 @@ final class AgentsSettingsModel {
 
 struct AgentsSection: View {
     @Bindable var model: AgentsSettingsModel
+    let manager: SessionManager
     let style: SidebarStyle
 
     var body: some View {
@@ -119,24 +120,29 @@ struct AgentsSection: View {
             SettingsTitle(title: "Agents", style: style)
                 .padding(.bottom, 24.scaled)
             GroupHeading(title: "Installed", style: style)
-            SettingsGroup(style: style) {
-                if model.rows.isEmpty {
+            if model.rows.isEmpty {
+                SettingsGroup(style: style) {
                     Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp once they're installed.")
                         .calmFont(size: SettingsMetrics.note)
                         .foregroundStyle(style.secondary)
                         .padding(SettingsMetrics.rowInset)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 {
-                            RowDivider(style: style)
-                        }
-                        agentRow(row)
+                }
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 16.scaled), GridItem(.flexible(), spacing: 16.scaled)],
+                    spacing: 16.scaled,
+                ) {
+                    ForEach(model.rows) { row in
+                        AgentCard(
+                            row: row, activity: activity(of: row.adapter.kind), style: style,
+                            onConnect: { model.connect(row) }, onDisconnect: { model.disconnect(row) },
+                        )
                     }
                 }
             }
             GroupHeading(title: "Notifications", style: style)
-                .padding(.top, 30.scaled)
+                .padding(.top, 34.scaled)
             SettingsGroup(style: style) {
                 if model.notificationsBlocked {
                     blockedRow
@@ -144,7 +150,7 @@ struct AgentsSection: View {
                 }
                 // Closures, not method references: passing `model.setSound` crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk).
-                SettingsRow(title: "Notify me when", style: style) {
+                SettingsRow(title: "Notify me when", symbol: "bell", style: style) {
                     SettingsMenu(
                         title: "Notify me when",
                         options: [(.needsYou, "An agent needs me"), (.all, "It needs me, finishes or fails")],
@@ -152,7 +158,7 @@ struct AgentsSection: View {
                     ) { model.setNotifyStates($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Play a sound", style: style) {
+                SettingsRow(title: "Play a sound", symbol: "speaker.wave.2", style: style) {
                     Toggle("Play a sound", isOn: Binding(get: { model.sound }, set: { model.setSound($0) }))
                         .toggleStyle(CalmSwitchStyle(style: style))
                         .labelsHidden()
@@ -167,9 +173,20 @@ struct AgentsSection: View {
         }
     }
 
+    /// What the agent is doing in Calm right now, from the open sessions.
+    private func activity(of kind: AgentKind) -> AgentCard.Activity {
+        let sessions = manager.workspace.sessions.filter { $0.agent?.kind == kind }
+        return AgentCard.Activity(
+            sessions: sessions.count,
+            working: sessions.count { $0.state == .working },
+            needsYou: sessions.count { $0.state == .needsYou },
+        )
+    }
+
     private var blockedRow: some View {
-        HStack(spacing: 14.scaled) {
+        HStack(spacing: 16.scaled) {
             WarningMark(style: style, size: 18)
+                .frame(width: 34.scaled)
             Text("macOS is blocking Calm's notifications")
                 .calmFont(size: SettingsMetrics.label)
                 .foregroundStyle(style.primary)
@@ -180,82 +197,144 @@ struct AgentsSection: View {
         .padding(.horizontal, SettingsMetrics.rowInset)
         .frame(minHeight: SettingsMetrics.rowHeight)
     }
+}
 
-    private func agentRow(_ row: AgentsSettingsModel.Row) -> some View {
-        HStack(spacing: 14.scaled) {
-            AgentLogo(agent: row.adapter.kind, size: 38, style: style)
-            VStack(alignment: .leading, spacing: 4.scaled) {
-                Text(row.adapter.kind.displayName)
-                    .calmFont(size: SettingsMetrics.label, weight: .medium)
-                    .foregroundStyle(style.primary)
-                if let detail = detail(row) {
-                    Text(detail)
-                        .calmFont(size: SettingsMetrics.note)
-                        .lineSpacing(1)
-                        .foregroundStyle(style.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            trailing(row)
+/// One installed agent: its mark (moving while one of its sessions works), where it stands, and
+/// what it's doing in Calm now. Anything longer (OpenCode's step, what Connect adds) waits
+/// behind its pill or button.
+private struct AgentCard: View {
+    struct Activity {
+        var sessions: Int
+        var working: Int
+        var needsYou: Int
+
+        var markState: SessionState? {
+            working > 0 ? .working : needsYou > 0 ? .needsYou : nil
         }
-        .padding(.horizontal, SettingsMetrics.rowInset)
-        .padding(.vertical, 12.scaled)
-        .frame(minHeight: SettingsMetrics.rowHeight)
+
+        var summary: String {
+            guard sessions > 0 else { return "Not running" }
+            var parts = [sessions == 1 ? "1 session" : "\(sessions) sessions"]
+            if needsYou > 0 {
+                parts.append("\(needsYou) needs you")
+            }
+            if working > 0 {
+                parts.append("\(working) working")
+            }
+            return parts.joined(separator: " · ")
+        }
+    }
+
+    let row: AgentsSettingsModel.Row
+    let activity: Activity
+    let style: SidebarStyle
+    let onConnect: () -> Void
+    let onDisconnect: () -> Void
+    @State private var explaining = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                AgentLogo(agent: row.adapter.kind, state: activity.markState, size: 48, style: style)
+                Spacer(minLength: 8.scaled)
+                standing
+            }
+            Spacer(minLength: 18.scaled)
+            Text(row.adapter.kind.displayName)
+                .calmFont(size: 19, weight: .medium)
+                .foregroundStyle(style.primary)
+            Text(activity.summary)
+                .calmFont(size: SettingsMetrics.note)
+                .foregroundStyle(activity.needsYou > 0 ? style.attention : style.secondary)
+                .padding(.top, 4.scaled)
+        }
+        .padding(20.scaled)
+        .frame(maxWidth: .infinity, minHeight: 172.scaled, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).fill(style.groupFill))
+        .overlay(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).strokeBorder(style.hairline))
         .accessibilityElement(children: .contain)
     }
 
-    /// A line under the name only when there's something to do or know; a connected agent is
-    /// just its name and "Connected".
-    private func detail(_ row: AgentsSettingsModel.Row) -> String? {
-        switch row.adapter.setup {
-        case .automatic, .notifications:
-            return nil
-        case let .hint(text):
-            return text
-        case let .files(files):
-            let paths = files.keys.sorted().map { "~/\($0)" }.joined(separator: ", ")
-            switch row.state {
-            case .connected: return nil
-            case let .conflict(path): return "~/\(path) already exists and wasn't written by Calm, so Calm leaves it alone."
-            default: return "Connect adds \(paths), so it can tell Calm when it's working, done or waiting."
-            }
-        }
-    }
-
-    /// Every row ends the same way: where it stands, or the one thing it needs.
+    /// Where the agent stands: a pill, or the one action it needs.
     @ViewBuilder
-    private func trailing(_ row: AgentsSettingsModel.Row) -> some View {
+    private var standing: some View {
         switch (row.adapter.setup, row.state) {
-        case (_, .notInstalled?):
-            Button("Connect") { model.connect(row) }
+        case let (.files(files), .notInstalled?):
+            Button("Connect", action: onConnect)
                 .buttonStyle(SettingsButtonStyle(style: style))
+                .help("Adds \(Self.paths(files)), so it can tell Calm when it's working or waiting.")
         case (_, .connected?):
-            HStack(spacing: 12.scaled) {
-                status("Connected", symbol: "checkmark")
-                Button("Disconnect") { model.disconnect(row) }
-                    .buttonStyle(.plain)
-                    .calmFont(size: SettingsMetrics.control)
-                    .foregroundStyle(style.tertiary)
+            HStack(spacing: 6.scaled) {
+                StatusPill(text: "Connected", symbol: "checkmark", tint: style.done, style: style)
+                Menu {
+                    Button("Disconnect", action: onDisconnect)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .calmFont(size: 13, weight: .semibold)
+                        .foregroundStyle(style.secondary)
+                        .frame(width: 28.scaled, height: 28.scaled)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .accessibilityLabel("More for \(row.adapter.kind.displayName)")
             }
-        case (_, .conflict?):
-            status("Left alone", symbol: "minus.circle")
-        case (.hint, _):
-            status("One step left", symbol: "circle.lefthalf.filled")
+        case let (_, .conflict(path)?):
+            explainedPill(
+                "Left alone", symbol: "minus.circle", tint: style.secondary,
+                text: "~/\(path) already exists and wasn't written by Calm, so Calm leaves it alone.",
+            )
+        case let (.hint(text), _):
+            explainedPill("One step left", symbol: "circle.lefthalf.filled", tint: style.attention, text: text)
         default:
-            status("Connected", symbol: "checkmark")
+            StatusPill(text: "Connected", symbol: "checkmark", tint: style.done, style: style)
         }
     }
 
-    private func status(_ text: String, symbol: String) -> some View {
+    private static func paths(_ files: [String: String]) -> String {
+        files.keys.sorted().map { "~/\($0)" }.joined(separator: ", ")
+    }
+
+    /// A pill that says more when clicked.
+    private func explainedPill(_ label: String, symbol: String, tint: Color, text: String) -> some View {
+        Button {
+            explaining.toggle()
+        } label: {
+            StatusPill(text: label, symbol: symbol, tint: tint, style: style)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $explaining, arrowEdge: .bottom) {
+            Text(text)
+                .calmFont(size: SettingsMetrics.note)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 280.scaled, alignment: .leading)
+                .padding(16.scaled)
+        }
+        .accessibilityHint(text)
+    }
+}
+
+/// Where something stands, in a soft tint of its color.
+private struct StatusPill: View {
+    let text: String
+    let symbol: String
+    let tint: Color
+    let style: SidebarStyle
+
+    var body: some View {
         Label {
             Text(text)
         } icon: {
-            Image(systemName: symbol).calmFont(size: 12, weight: .semibold)
+            Image(systemName: symbol).calmFont(size: 11, weight: .semibold)
         }
         .labelStyle(.titleAndIcon)
-        .calmFont(size: SettingsMetrics.control)
-        .foregroundStyle(style.secondary)
+        .calmFont(size: 13, weight: .medium)
+        .foregroundStyle(tint)
+        .padding(.horizontal, 11.scaled)
+        .frame(height: 28.scaled)
+        .background(Capsule().fill(tint.opacity(style.isDark ? 0.14 : 0.12)))
         .fixedSize()
     }
 }

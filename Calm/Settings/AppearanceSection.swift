@@ -52,7 +52,7 @@ struct AppearanceSection: View {
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
                 // How large all of Calm's chrome is drawn, this page included; the terminal
                 // keeps its own font (⌘+ and ⌘−).
-                SettingsRow(title: "Interface size", style: style) {
+                SettingsRow(title: "Interface size", symbol: "textformat.size", style: style) {
                     CalmSegmented(
                         title: "Interface size",
                         options: [(.standard, "Default"), (.large, "Large"), (.larger, "Larger"), (.largest, "Largest")],
@@ -61,21 +61,21 @@ struct AppearanceSection: View {
                 }
                 RowDivider(style: style)
                 // No help lines: the preview above shows what each choice does.
-                SettingsRow(title: "Background", style: style) {
+                SettingsRow(title: "Background", symbol: "square.stack.3d.down.forward", style: style) {
                     CalmSegmented(
                         title: "Background", options: [(.solid, "Solid"), (.glass, "Glass")],
                         selection: windowOptions.background, style: style,
                     ) { windowOptions.setBackground($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Layout", style: style) {
+                SettingsRow(title: "Layout", symbol: "rectangle.inset.filled", style: style) {
                     CalmSegmented(
                         title: "Layout", options: [(.edge, "Edge to edge"), (.card, "Card")],
                         selection: windowOptions.layout, style: style,
                     ) { windowOptions.setLayout($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Motion", note: motionNote, style: style) {
+                SettingsRow(title: "Motion", note: motionNote, symbol: "wind", style: style) {
                     CalmSegmented(
                         title: "Motion", options: [(.full, "Full"), (.reduced, "Reduced"), (.off, "Off")],
                         selection: AccessibilitySettings.reduceMotion ? .off : windowOptions.motion, segmentWidth: 100,

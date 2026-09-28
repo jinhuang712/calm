@@ -200,11 +200,12 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Section | Contents |
 |---|---|
 | **Appearance** | a live miniature of the window, the themes, interface size, glass or solid, edge to edge or card, motion (full, reduced, off) |
-| **Agents** | each installed agent with its mark and where it stands (Connected, One step left, or Connect/Disconnect where Calm must add a file), which states notify, sound. Calm → Agents… opens this section |
+| **Agents** | a card per installed agent, two to a row: its mark (moving while one of its sessions works), a pill for where it stands (Connected in sage, One step left in amber, which explains itself when clicked), what it's doing now ("2 sessions · 1 working", or "Not running"), and Connect, or Disconnect under ⋯, where Calm must add a file. Then which states notify, and sound. Calm → Agents… opens this section |
 | **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's with the font it sets, the themes folder) |
 | **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
 
 - Going to any session (⌃Tab, ⌘1…9, search, a notification, a new session) leaves Settings.
+- Each row starts with its icon on a small tile, as the section list and the sidebar's footer do.
 - Quiet by default: no help line under a row unless the control can't do what it shows (Motion while the system's Reduce Motion is on), and a line under an agent only when it needs a step. A hand edit shows after Calm → Reload Configuration.
 - A section gets a small warning mark only when something in it is broken: Agents when macOS blocks Calm's notifications (with a button to System Settings), General when a line of config.toml can't be read (shown under the file).
 - Settings reopens on the section it was left on. A window too narrow for the list and the page shows the list as icons.

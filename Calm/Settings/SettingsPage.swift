@@ -193,7 +193,7 @@ struct SettingsView: View {
     private var content: some View {
         switch page.navigation.section {
         case .appearance: AppearanceSection(themes: page.themes, windowOptions: page.windowOptions, style: style)
-        case .agents: AgentsSection(model: page.agents, style: style)
+        case .agents: AgentsSection(model: page.agents, manager: manager, style: style)
         case .general: GeneralSection(model: page.general, style: style)
         case .shortcuts: ShortcutsSection(style: style)
         }

@@ -195,7 +195,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 - ⌘, turns the whole window into Settings (UIUX.md → Settings screen); ⌘, again or esc goes back to the session exactly as it was. A list of sections stands where the sidebar was: **Appearance, Agents, General, Shortcuts**.
   - **Appearance:** a live miniature of the window, the theme picker and the window options (F11).
-  - **Agents:** how each installed agent connects, with Connect/Disconnect where Calm must add a file, which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
+  - **Agents:** a card per installed agent with how it connects and what it's doing in Calm now (its sessions, working or needing you), Connect/Disconnect where Calm must add a file; then which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
   - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
   - **Shortcuts:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
 - Going to any session leaves Settings. After a hand edit, Calm → Reload Configuration updates the page.

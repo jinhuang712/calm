@@ -68,15 +68,22 @@ struct AttentionTests {
         #expect(workspace.session(other)?.state == .working)
     }
 
-    @Test func `done and failed never interrupt and settle when seen`() {
+    @Test func `done and failed never interrupt and settle once the user moves on`() {
         let fixture = Fixture()
         var workspace = fixture.workspace
         let (watched, other) = (fixture.watched, fixture.other)
+        workspace.select(watched)
         #expect(workspace.report(other, hook(.done, "All tests pass."), focusedSessionID: watched) == .none)
         #expect(workspace.session(other)?.state == .done)
+        // Finishing where the user is looking stays *failed* until they leave.
         #expect(workspace.report(watched, hook(.failed), focusedSessionID: watched) == .none)
-        #expect(workspace.session(watched)?.state == .idle)
+        #expect(workspace.session(watched)?.state == .failed)
+
+        // Arriving keeps *done* while it's read; leaving settles the session left behind.
         workspace.select(other)
+        #expect(workspace.session(other)?.state == .done)
+        #expect(workspace.session(watched)?.state == .idle)
+        workspace.select(watched)
         #expect(workspace.session(other)?.state == .idle)
         #expect(workspace.session(other)?.lastReport?.message == "All tests pass.")
     }

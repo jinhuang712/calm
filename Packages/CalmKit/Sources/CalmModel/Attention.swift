@@ -67,7 +67,8 @@ public extension Workspace {
     /// - Repeating the current state and message changes nothing.
     /// - *Needs you* in a session the user isn't looking at asks for a notification; leaving
     ///   *needs you* takes it back.
-    /// - A session the user is looking at doesn't collect *done* or *failed*: they've seen it.
+    /// - *Done* and *failed* stay put even where the user is looking; the session settles when
+    ///   they leave it (`Workspace.select`, `settle`).
     @discardableResult
     mutating func report(_ id: Session.ID, _ report: StatusReport, focusedSessionID: Session.ID?) -> AttentionEffect {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return .none }
@@ -76,7 +77,7 @@ public extension Workspace {
             return .none
         }
         let isFocused = id == focusedSessionID
-        let newState = isFocused ? report.state.afterVisit() : report.state
+        let newState = report.state
         if previous.state == newState, previous.lastReport?.message == report.message,
            previous.lastReport?.source == report.source {
             return .none

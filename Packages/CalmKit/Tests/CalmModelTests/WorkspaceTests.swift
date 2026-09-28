@@ -114,14 +114,29 @@ struct WorkspaceTests {
         #expect(workspace.selectedLayout?.tree == .leaf(first.id))
     }
 
-    @Test func `selecting a session shows its layout and settles finished states`() {
+    @Test func `selecting a session shows its layout and settles the one left behind`() {
         var workspace = Workspace()
         let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
-        _ = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
         workspace.setState(first.id, .done)
         workspace.select(first.id)
         #expect(workspace.selectedLayout?.tree.contains(first.id) == true)
+        #expect(workspace.session(first.id)?.state == .done)
+        workspace.select(first.id)
+        #expect(workspace.session(first.id)?.state == .done)
+        workspace.select(second.id)
         #expect(workspace.session(first.id)?.state == .idle)
+    }
+
+    @Test func `a new session or split settles the session left behind`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.setState(first.id, .done)
+        let second = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        #expect(workspace.session(first.id)?.state == .idle)
+        workspace.setState(second.id, .failed)
+        workspace.splitSession(second.id, direction: .right, in: "/dev/apps/calm", gitRoot: gitRoot)
+        #expect(workspace.session(second.id)?.state == .idle)
     }
 
     @Test func `sessions keep creation order in the sidebar`() {

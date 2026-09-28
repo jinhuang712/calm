@@ -307,6 +307,9 @@ public struct Workspace: Codable, Hashable, Sendable {
         placement: Placement = .directory,
         gitRoot: (String) -> String? = { _ in nil },
     ) -> Session {
+        if let left = selectedLayout?.focusedSessionID {
+            settle(left)
+        }
         let session = makeSession(in: directory, placement: placement, gitRoot: gitRoot)
         sessions.append(session)
         let layout = PaneLayout(tree: .leaf(session.id), focusedSessionID: session.id)
@@ -325,6 +328,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         gitRoot: (String) -> String? = { _ in nil },
     ) -> Session? {
         guard let layoutIndex = layouts.firstIndex(where: { $0.tree.contains(existing) }) else { return nil }
+        settle(layouts[layoutIndex].focusedSessionID)
         let session = makeSession(in: directory, placement: placement, gitRoot: gitRoot)
         sessions.append(session)
         layouts[layoutIndex].tree = layouts[layoutIndex].tree.splitting(existing, direction: direction, with: session.id)
@@ -452,14 +456,22 @@ public struct Workspace: Codable, Hashable, Sendable {
         sessions[index].state = state
     }
 
-    /// Selects the layout that shows `sessionID` and focuses the session in it.
+    /// Selects the layout that shows `sessionID` and focuses the session in it. The session
+    /// being left settles: a finished one stays *done* while you read it, and goes quiet once
+    /// you move on.
     public mutating func select(_ sessionID: Session.ID) {
         guard let index = layouts.firstIndex(where: { $0.tree.contains(sessionID) }) else { return }
+        if let left = selectedLayout?.focusedSessionID, left != sessionID {
+            settle(left)
+        }
         layouts[index].focusedSessionID = sessionID
         selectedLayoutID = layouts[index].id
-        if let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }) {
-            sessions[sessionIndex].state = sessions[sessionIndex].state.afterVisit()
-        }
+    }
+
+    /// The user has seen a session and moved on (to another session, or away from Calm).
+    public mutating func settle(_ id: Session.ID) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].state = sessions[index].state.afterVisit()
     }
 
     public mutating func updateTree(_ layoutID: PaneLayout.ID, _ tree: SplitTree<Session.ID>) {

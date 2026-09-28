@@ -166,7 +166,7 @@ Transcript formats are undocumented and change between versions. Each adapter sh
 
 Window titles aren't used: agents' title formats vary and change. Calm never plays the system beep for a bell (Ghostty's default is silent too).
 
-**State machine.** Per session: `idle → working → (needsYou | done | failed) → idle` (on visit). Reports are idempotent; the latest report wins, except that terminal guesses never override a hook report from the same agent run (the run ends when the agent exits). Each session keeps its last `StatusReport` (state, message, source, time) for cards and the arrival card. Applying a report returns an effect: *notify* only for a new *needs you* in a session the user isn't looking at, *withdraw* when a session leaves *needs you*. A session the user is looking at doesn't collect *done* or *failed*.
+**State machine.** Per session: `idle → working → (needsYou | done | failed) → idle` (once the user leaves it). Reports are idempotent; the latest report wins, except that terminal guesses never override a hook report from the same agent run (the run ends when the agent exits). Each session keeps its last `StatusReport` (state, message, source, time) for cards and the arrival card. Applying a report returns an effect: *notify* only for a new *needs you* in a session the user isn't looking at, *withdraw* when a session leaves *needs you*. A finished session stays *done* or *failed* while the user reads it, even the one they are looking at; it settles to idle when they leave it: selecting another session, opening a new session or split, or Calm losing focus.
 
 **Notification scheduling.**
 

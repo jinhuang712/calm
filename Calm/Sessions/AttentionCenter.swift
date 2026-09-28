@@ -34,6 +34,9 @@ final class AttentionCenter: NSObject {
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated {
+                    if name == NSApplication.didResignActiveNotification {
+                        SessionManager.shared.settleOnScreen()
+                    }
                     let attention = AttentionCenter.shared
                     attention.queue.noteFocusChange(at: Date())
                     if let id = SessionManager.shared.lookingAtSessionID {

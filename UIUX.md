@@ -50,7 +50,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 - A name too long for its line keeps its start and ends in "…". Rest the pointer on the card or row for half a second and the name glides once to its end and holds; it slides back when the pointer leaves. With motion reduced it stays truncated.
 - Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
-- Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you look; an idle card recedes (its mark in gray, its name dimmer) and is shorter: no state line or progress bar, one line of recap, tighter padding. That includes done and failed cards once you've looked, since a visit settles them to idle. The selected card gets a slightly lighter surface.
+- Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you move on from it; an idle card recedes (its mark in gray, its name dimmer) and is shorter: no state line or progress bar, one line of recap, tighter padding. That includes done and failed cards once you move on: clicking one keeps it tall while you read, and it settles to idle when you go to another session or leave Calm. The selected card gets a slightly lighter surface.
 - The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π, ω) stands in if a mark can't be drawn.
 - Collapsed projects summarize what needs a look: "3 sessions · 1 needs you".
 - Secondary text stays muted; only the name is in the primary text color.
@@ -95,7 +95,7 @@ Rules:
 
 - Never more than one level of emphasis at a time per row.
 - No numeric badges, no rings around panes, no reordering rows when states change.
-- A visited session clears *done* and *failed* back to idle.
+- A session you leave (for another session, or another app) clears *done* and *failed* back to idle; arriving keeps them while you read.
 
 ## Notifications
 
@@ -124,7 +124,7 @@ Rules:
 
 - Soft palettes only in the default set: low contrast between text and background (roughly 6:1 to 11:1), low accent saturation, neutral backgrounds.
 - The accent color is used sparingly: the selected row and the *needs you* highlight.
-- Each state keeps one color: amber for *needs you*, a soft blue for *working*, sage for *done* (until you look), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
+- Each state keeps one color: amber for *needs you*, a soft blue for *working*, sage for *done* (until you move on), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
 - Red appears only for *failed* and real errors.
 - Chrome (sidebar, panels) takes its colors from the theme, never from a fixed system tint that clashes with the terminal.
 

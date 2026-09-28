@@ -1,3 +1,4 @@
+import AppKit
 @testable import Calm
 import CalmAgents
 import CalmModel
@@ -53,7 +54,7 @@ struct SVGPathTests {
 
 struct MarkMotionTests {
     @Test func `every motion loops back to where it began`() {
-        let periods: [AgentMarkArt.Motion: Double] = [.bloom: 2.4, .turnAndRest: 2.2, .build: 3.2]
+        let periods: [AgentMarkArt.Motion: Double] = [.turnAndRest: 2.2, .build: 3.2]
         for (motion, period) in periods {
             let start = MarkMotion.working(motion, shapes: 3, at: 0)
             let next = MarkMotion.working(motion, shapes: 3, at: period)
@@ -63,17 +64,35 @@ struct MarkMotionTests {
     }
 
     @Test func `settling ends at rest, upright`() {
-        for motion in [AgentMarkArt.Motion.bloom, .turnAndRest, .pulseGrid, .build, .gradientTurn] {
+        for motion in [AgentMarkArt.Motion.frames, .turnAndRest, .pulseGrid, .build, .gradientTurn] {
             let pose = MarkMotion.finishing(motion, shapes: 3, at: MarkMotion.finishDuration(motion))
             #expect(abs(pose.rotation.truncatingRemainder(dividingBy: 360)) < 0.001, "\(motion)")
             #expect(abs(pose.scale - 1) < 0.001, "\(motion)")
             #expect(pose.markOpacity == 1, "\(motion)")
             #expect(pose.gridOpacity == 0, "\(motion)")
-            #expect(pose.dotOpacity == 0, "\(motion)")
+            #expect(pose.framesOpacity == 0, "\(motion)")
             #expect(pose.shine == nil, "\(motion)")
             #expect(abs(pose.gradientTurn.truncatingRemainder(dividingBy: 360)) < 0.001, "\(motion)")
             #expect(pose.drops.allSatisfy { abs($0.offset) < 0.001 && $0.opacity == 1 }, "\(motion)")
         }
+    }
+
+    @Test func `frames show for as long as each lasts, and loop`() {
+        let sequence = [2, 0, 0, 1]
+        #expect(MarkMotion.frameIndex(sequence: sequence, framesPerSecond: 10, at: 0.05) == 2)
+        #expect(MarkMotion.frameIndex(sequence: sequence, framesPerSecond: 10, at: 0.25) == 0)
+        #expect(MarkMotion.frameIndex(sequence: sequence, framesPerSecond: 10, at: 0.35) == 1)
+        #expect(MarkMotion.frameIndex(sequence: sequence, framesPerSecond: 10, at: 0.45) == 2)
+        #expect(MarkMotion.frameIndex(sequence: [], framesPerSecond: 10, at: 1) == 0)
+    }
+
+    @Test func `the Claude spinner's frames are all there and read`() throws {
+        let frames = try #require(ClaudeCodeAdapter().mark.frames)
+        #expect(frames.sequence.allSatisfy(frames.images.indices.contains))
+        #expect(Set(frames.sequence) == Set(frames.images.indices))
+        #expect(abs(Double(frames.sequence.count) / frames.framesPerSecond - 4) < 0.001)
+        let sizes = try frames.images.map { try #require(NSImage(contentsOf: $0)).size }
+        #expect(Set(sizes.map(\.width)).count == 1 && sizes.allSatisfy { $0.width == $0.height })
     }
 
     @Test func `a turn rests before the next one`() {

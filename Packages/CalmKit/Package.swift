@@ -16,7 +16,8 @@ let package = Package(
     targets: [
         .target(name: "CalmModel"),
         .target(name: "CalmControl"),
-        .target(name: "CalmAgents", dependencies: ["CalmModel"]),
+        // Marks: an agent's own animation frames, where it has them (AgentMarkArt.Frames).
+        .target(name: "CalmAgents", dependencies: ["CalmModel"], resources: [.copy("Marks")]),
         // Uses the system SQLite (FTS5 with the trigram tokenizer): no dependency to add.
         .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"], resources: [.copy("Fixtures")]),

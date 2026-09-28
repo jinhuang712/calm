@@ -1,6 +1,9 @@
+import Foundation
+
 public extension ClaudeCodeAdapter {
-    /// Claude's spark, in its clay.
-    /// Source: Simple Icons (CC0 path data); the mark is Anthropic's.
+    /// Claude's spark, in its clay, and while Claude works, Claude Code's own spinner.
+    /// Sources: Simple Icons (CC0 path data) and Claude Code's spinner (see NOTICE); both are
+    /// Anthropic's.
     var mark: AgentMarkArt {
         AgentMarkArt(
             viewBox: .init(x: 0, y: 0, side: 24),
@@ -28,8 +31,33 @@ public extension ClaudeCodeAdapter {
                     fill: .color("#D97757"),
                 ),
             ],
-            motion: .bloom,
+            motion: .frames,
             scale: 0.62,
+            frames: Self.spinner,
         )
     }
+
+    /// The spinner's eight shapes (0 the smallest dot, 3 the largest spark, 7 the scalloped
+    /// blob), taken off its dark background and recolored to the mark's clay.
+    private static let spinner: AgentMarkArt.Frames? = {
+        let images = (0 ..< 8).compactMap {
+            Bundle.module.url(forResource: "claude-spinner-\($0)", withExtension: "png", subdirectory: "Marks")
+        }
+        guard images.count == 8 else { return nil }
+        // Four seconds at 30 frames a second, as (shape, frames): the spinner's own order,
+        // rearranged so it also runs backwards, where the shapes grow in size order and read
+        // smoother.
+        let runs = [
+            (7, 3), (0, 3), (1, 2), (2, 1), (4, 2), (3, 5), (4, 3), (5, 3), (6, 2),
+            (7, 3), (0, 3), (1, 2), (4, 3), (3, 5), (4, 3), (5, 3), (6, 3),
+            (7, 2), (0, 3), (1, 3), (4, 2), (3, 3), (4, 2), (1, 3),
+            (0, 3), (7, 2), (6, 3), (5, 3), (4, 3), (3, 5), (4, 3), (1, 2),
+            (0, 3), (7, 3), (6, 2), (5, 3), (4, 3), (3, 5), (4, 2), (2, 1), (1, 2),
+            (0, 3), (7, 2),
+        ]
+        let sequence = runs.flatMap { Array(repeating: $0.0, count: $0.1) }
+        // The largest shape fills 181 of each image's 186 pixels; this draws it at the
+        // resting spark's size.
+        return AgentMarkArt.Frames(images: images, sequence: sequence, framesPerSecond: 30, scale: 0.64)
+    }()
 }

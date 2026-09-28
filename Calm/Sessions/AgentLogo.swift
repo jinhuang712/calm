@@ -106,6 +106,25 @@ private enum MarkPaths {
     }
 }
 
+/// An agent's own frames, read once: the marks never change while Calm runs.
+@MainActor
+private enum MarkFrames {
+    private static var cache: [URL: NSImage] = [:]
+
+    static func image(_ frames: AgentMarkArt.Frames, at time: TimeInterval) -> NSImage? {
+        guard !frames.images.isEmpty else { return nil }
+        let index = MarkMotion.frameIndex(sequence: frames.sequence, framesPerSecond: frames.framesPerSecond, at: time)
+        guard frames.images.indices.contains(index) else { return nil }
+        let url = frames.images[index]
+        if let cached = cache[url] {
+            return cached
+        }
+        let image = NSImage(contentsOf: url)
+        cache[url] = image
+        return image
+    }
+}
+
 /// A mark drawn at one pose of its motion.
 private struct MarkDrawing: View {
     let art: AgentMarkArt
@@ -123,8 +142,11 @@ private struct MarkDrawing: View {
 
     var body: some View {
         let side = size * art.scale
+        let frame = pose.framesOpacity > 0 ? art.frames.flatMap { MarkFrames.image($0, at: time) } : nil
+        // Frames that can't be read leave the mark showing, still.
+        let markOpacity = pose.framesOpacity > 0 && frame == nil ? 1 : pose.markOpacity
         ZStack {
-            if pose.markOpacity > 0 {
+            if markOpacity > 0 {
                 ZStack {
                     ForEach(paths.indices, id: \.self) { index in
                         let drop = index < pose.drops.count ? pose.drops[index] : MarkPose.Drop()
@@ -137,14 +159,14 @@ private struct MarkDrawing: View {
                 .rotationEffect(.degrees(pose.rotation))
                 .scaleEffect(pose.scale)
                 .brightness(pose.brightness)
-                .opacity(pose.markOpacity)
+                .opacity(markOpacity)
             }
-            if pose.dotOpacity > 0, let color = firstColor {
-                Circle()
-                    .fill(color)
-                    .frame(width: size * 0.23, height: size * 0.23)
-                    .scaleEffect(pose.dotScale)
-                    .opacity(pose.dotOpacity)
+            if let frame, let frames = art.frames {
+                Image(nsImage: frame)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: size * frames.scale, height: size * frames.scale)
+                    .opacity(pose.framesOpacity)
             }
             if pose.gridOpacity > 0 {
                 PulseGrid(time: time, color: ink)
@@ -183,11 +205,6 @@ private struct MarkDrawing: View {
             .frame(width: side, height: side)
             .mask(path.fill(style: FillStyle(eoFill: shape.evenOdd)))
         }
-    }
-
-    private var firstColor: Color? {
-        guard case let .color(dark, light) = art.shapes.first?.fill else { return nil }
-        return color(isDark ? dark : light)
     }
 
     private func color(_ hex: String) -> Color {

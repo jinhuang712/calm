@@ -78,11 +78,11 @@ When the work ends, the mark settles once, in about a second, before it rests.
 
 ## Agent marks
 
-Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened; they run at 30 frames a second, and not at all with Reduce Motion.
+Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened where Calm poses them; they run at 30 frames a second, and not at all with Reduce Motion.
 
 | Agent | Mark | Working | Finishing up |
 |---|---|---|---|
-| Claude Code | the spark, in clay | turns, gathers into a dot and blooms back (2.4 s), after Claude's own thinking spark | one last bloom, then a full turn easing into place |
+| Claude Code | the spark, in clay | Claude Code's own spinner: a dot opening into the spark and drawing back in without a pause, running forwards and backwards (4 s) | the spinner fades into the resting spark |
 | Codex | OpenAI's Blossom, one color | one eased turn, then a short rest (1.6 s + 0.6 s) | slows to a stop |
 | OpenCode | its block frame | twelve small squares breathing on their own rhythms, as OpenCode's app spinner does | the squares fade into the mark |
 | pi | the pixel π in coral, blue and gold | the pieces drop into place, hold and fall away (3.2 s), after pi.dev's logo | the last piece lands and the π brightens twice, softly |

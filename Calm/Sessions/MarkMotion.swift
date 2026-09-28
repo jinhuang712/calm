@@ -6,12 +6,10 @@ struct MarkPose: Equatable {
     /// Degrees, clockwise.
     var rotation = 0.0
     var scale = 1.0
-    /// The dot a blooming mark gathers into.
-    var dotOpacity = 0.0
-    var dotScale = 1.0
-    /// The mark itself; a pulsing grid shows in its place while its agent works.
+    /// The mark itself; a pulsing grid or the agent's own frames show in its place while it works.
     var markOpacity = 1.0
     var gridOpacity = 0.0
+    var framesOpacity = 0.0
     /// Per shape, for marks that build: offset in mark heights (negative is above) and opacity.
     var drops: [Drop] = []
     /// Added brightness, for a built mark's closing flash.
@@ -35,12 +33,9 @@ enum MarkMotion {
     static func working(_ motion: AgentMarkArt.Motion, shapes: Int, at time: TimeInterval) -> MarkPose {
         var pose = MarkPose()
         switch motion {
-        case .bloom:
-            let p = fraction(time, of: 2.4)
-            pose.rotation = keyframes([(0, 0), (0.24, 22), (0.42, 58), (0.44, -28), (0.72, -6), (1, 0)], at: p)
-            pose.scale = keyframes([(0, 1), (0.24, 1.06), (0.42, 0.18), (0.44, 0.18), (0.72, 0.9), (1, 1)], at: p)
-            pose.dotOpacity = keyframes([(0, 0), (0.32, 0), (0.40, 1), (0.48, 1), (0.58, 0), (1, 0)], at: p)
-            pose.dotScale = keyframes([(0, 0.5), (0.32, 0.5), (0.40, 1), (0.48, 1), (0.58, 0.6), (1, 0.6)], at: p)
+        case .frames:
+            pose.markOpacity = 0
+            pose.framesOpacity = 1
         case .turnAndRest:
             let seconds = time.truncatingRemainder(dividingBy: 2.2)
             pose.rotation = seconds < 1.6 ? 360 * easeInOutCubic(seconds / 1.6) : 0
@@ -60,7 +55,7 @@ enum MarkMotion {
     /// How long the settling after the work takes.
     static func finishDuration(_ motion: AgentMarkArt.Motion) -> TimeInterval {
         switch motion {
-        case .bloom: 1.3
+        case .frames: 0.4
         case .turnAndRest: 1.3
         case .pulseGrid: 1.0
         case .build: 1.1
@@ -73,11 +68,10 @@ enum MarkMotion {
         var pose = MarkPose()
         let q = min(max(time / finishDuration(motion), 0), 1)
         switch motion {
-        case .bloom:
-            // One last bloom, then a full turn that eases into place.
-            pose.rotation = keyframes([(0, 0), (0.25, 30), (0.45, 80), (0.7, 300), (1, 360)], at: q)
-            pose.scale = keyframes([(0, 1), (0.25, 1.06), (0.45, 0.35), (0.7, 1.1), (1, 1)], at: q)
-            pose.dotOpacity = keyframes([(0, 0), (0.35, 0), (0.45, 0.9), (0.58, 0), (1, 0)], at: q)
+        case .frames:
+            // The frames keep playing as the resting mark fades in over them.
+            pose.markOpacity = smooth(q / 0.75)
+            pose.framesOpacity = 1 - pose.markOpacity
         case .turnAndRest:
             // Still turning when the work ends, slowing to a stop.
             pose.rotation = 360 * easeOutCubic(q)
@@ -124,6 +118,15 @@ enum MarkMotion {
         let (low, high) = gridSquares[square].inner ? (0.4, 1.0) : (0.15, 0.35)
         let wave = 0.5 - 0.5 * cos(2 * .pi * (time + gridDelays[square]) / gridPeriods[square])
         return low + (high - low) * wave
+    }
+
+    // MARK: - Frames
+
+    /// Which image of a looping sequence shows at `time`.
+    static func frameIndex(sequence: [Int], framesPerSecond: Double, at time: TimeInterval) -> Int {
+        guard !sequence.isEmpty, framesPerSecond > 0 else { return 0 }
+        let position = Int(fraction(time, of: Double(sequence.count) / framesPerSecond) * Double(sequence.count))
+        return sequence[min(position, sequence.count - 1)]
     }
 
     // MARK: - Building

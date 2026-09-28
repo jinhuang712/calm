@@ -24,7 +24,8 @@ Agent marks
 The sidebar shows each coding agent's own mark, only to say which agent a session runs. Calm
 is not affiliated with or endorsed by these projects, and the marks remain their owners':
 - Claude and the Claude spark are trademarks of Anthropic, PBC. Path data from Simple Icons
-  (https://simpleicons.org), CC0-1.0.
+  (https://simpleicons.org), CC0-1.0. The working animation's frames are Claude Code's own
+  spinner, taken off its background and recolored; they are Anthropic's.
 - OpenAI and the Blossom mark are trademarks of OpenAI. Path data from the Codex repository
   (https://github.com/openai/codex, codex-rs/tui/src/empty_state_animation/paths.rs),
   Apache-2.0.

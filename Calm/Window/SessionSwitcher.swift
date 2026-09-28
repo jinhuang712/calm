@@ -2,9 +2,9 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Hold ⌃ and press Tab to cycle sessions, most recent first; release ⌃ to settle on the
-/// chosen one (UIUX.md → Motion → Session switching). A quick ⌃Tab returns to the previous
-/// session without showing anything; holding shows small live previews.
+/// Hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom; release ⌃ to settle
+/// on the chosen one (UIUX.md → Motion → Session switching). A quick ⌃Tab moves to the next
+/// session down without showing anything; holding shows small live previews.
 @MainActor
 final class SessionSwitcher {
     private weak var controller: MainWindowController?
@@ -75,10 +75,13 @@ final class SessionSwitcher {
 
     private func open(backwards: Bool) {
         guard let manager = controller?.manager else { return }
-        let sessions = manager.recentSessions
+        let sessions = manager.orderedSessions
         guard sessions.count > 1 else { return }
+        let focused = manager.workspace.selectedLayout?.focusedSessionID
+        let current = sessions.firstIndex { $0.id == focused } ?? 0
         model.sessions = sessions
-        model.index = backwards ? sessions.count - 1 : 1
+        model.index = current
+        move(backwards ? -1 : 1)
         // Like ⌘Tab: a quick press-and-release switches without flashing the switcher.
         showTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(160))

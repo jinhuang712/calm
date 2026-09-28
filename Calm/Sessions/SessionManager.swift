@@ -28,9 +28,6 @@ final class SessionManager {
     /// Turned off for the rest of the run if persistent shells fail to start.
     @ObservationIgnored var persistenceEnabled = true
 
-    /// Sessions from most to least recently focused, for the session switcher. Not saved.
-    @ObservationIgnored private var recentSessionIDs: [Session.ID] = []
-
     /// Calm's own settings (`~/.config/calm/config.toml`); re-read with Reload Configuration.
     @ObservationIgnored var settings = CalmSettings.load()
 
@@ -81,7 +78,6 @@ final class SessionManager {
                 }
             }
         }
-        rememberFocus()
         scheduleSave()
     }
 
@@ -137,7 +133,6 @@ final class SessionManager {
     @discardableResult
     func newSession(in directory: String, placement: Workspace.Placement = .directory) -> Session {
         let session = workspace.newSession(in: directory, placement: placement, gitRoot: GitRoot.find)
-        rememberFocus()
         scheduleSave()
         return session
     }
@@ -148,7 +143,6 @@ final class SessionManager {
         placement: Workspace.Placement = .directory,
     ) -> Session? {
         let session = workspace.splitSession(existing, direction: direction, in: directory, placement: placement, gitRoot: GitRoot.find)
-        rememberFocus()
         scheduleSave()
         return session
     }
@@ -177,13 +171,11 @@ final class SessionManager {
         panes[id]?.teardown()
         panes[id] = nil
         workspace.removeSession(id)
-        recentSessionIDs.removeAll { $0 == id }
         scheduleSave()
     }
 
     func select(_ id: Session.ID) {
         workspace.select(id)
-        rememberFocus()
         AttentionCenter.shared.sessionVisited(id)
         scheduleSave()
     }
@@ -196,7 +188,6 @@ final class SessionManager {
     func setFocused(_ sessionID: Session.ID) {
         guard let layout = workspace.layout(containing: sessionID), layout.focusedSessionID != sessionID else { return }
         workspace.select(sessionID)
-        rememberFocus()
         AttentionCenter.shared.sessionVisited(sessionID)
         scheduleSave()
     }
@@ -362,20 +353,7 @@ final class SessionManager {
         scheduleSave()
     }
 
-    /// Sessions from most to least recently focused; ones not visited this run follow in sidebar order.
-    var recentSessions: [Session] {
-        let visited = recentSessionIDs.compactMap { workspace.session($0) }
-        let seen = Set(visited.map(\.id))
-        return visited + orderedSessions.filter { !seen.contains($0.id) }
-    }
-
-    private func rememberFocus() {
-        guard let id = workspace.selectedLayout?.focusedSessionID else { return }
-        recentSessionIDs.removeAll { $0 == id }
-        recentSessionIDs.insert(id, at: 0)
-    }
-
-    /// Sessions in sidebar order, for ⌘1…9.
+    /// Sessions in sidebar order, for ⌘1…9 and the ⌃Tab switcher.
     var orderedSessions: [Session] {
         workspace.orderedProjects.flatMap { workspace.sessions(in: $0.id) }
     }

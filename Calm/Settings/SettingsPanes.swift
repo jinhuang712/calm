@@ -142,7 +142,7 @@ struct KeysSettingsView: View {
     static let shortcuts: [(keys: String, action: String)] = [
         ("⌘K", "Search sessions"),
         ("⌘P", "Command palette"),
-        ("⌃Tab", "Cycle sessions, most recent first"),
+        ("⌃Tab", "Cycle sessions down the sidebar"),
         ("⌘1…9", "Jump to a session by position"),
         ("⌘⇧A", "Jump to the next session that needs you"),
         ("⌘⇧I", "Show the arrival card again"),

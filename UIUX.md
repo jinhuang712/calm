@@ -159,7 +159,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 |---|---|
 | Splits | new panes grow into place and closed panes fold away |
 | Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
-| Session switching | hold ⌃ and press Tab to cycle sessions, most recent first, over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight back to the previous session without showing anything |
+| Session switching | hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom (⌃⇧Tab goes up, both wrap), over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight to the next session down without showing anything |
 | Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping. The agent's mark moves while it works and settles once when the work ends (see Agent marks) |
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
 | Arrival card | fades in on arrival and dissolves when you type |
@@ -197,7 +197,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘⇧N | New scratch session |
 | ⌘O | New project |
 | ⌘1…9 | Jump to session by position |
-| ⌃Tab / ⌃⇧Tab | Cycle sessions, most recent first (hold ⌃) |
+| ⌃Tab / ⌃⇧Tab | Cycle sessions down / up the sidebar (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
 | ⌘⇧E | Toggle the files column |
 | esc | Close a viewed file and return to the session |

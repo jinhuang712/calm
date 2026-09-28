@@ -209,12 +209,53 @@ enum TerminalClipboard {
         }
     }
 
-    static func plainText(from pasteboard: NSPasteboard) -> String? {
+    /// Files become their escaped paths, text stays text, and an image with neither (a screenshot,
+    /// a picture copied from a browser) is saved to a temporary PNG whose path is pasted instead.
+    /// Terminals can't carry image data, but agents like Claude Code attach an image from its path.
+    static func plainText(from pasteboard: NSPasteboard, imageFolder: URL = pastedImagesFolder) -> String? {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
            !urls.isEmpty {
             return urls.map { shellEscaped($0.path) }.joined(separator: " ")
         }
-        return pasteboard.string(forType: .string)
+        if let text = pasteboard.string(forType: .string) {
+            return text
+        }
+        return savePastedImage(from: pasteboard, in: imageFolder).map { shellEscaped($0.path) }
+    }
+
+    /// In the per-user temporary folder, so macOS clears old pastes on its own.
+    static let pastedImagesFolder = FileManager.default.temporaryDirectory.appendingPathComponent("calm-pasted-images")
+
+    /// Local time, so the name matches the clock; the formatter follows the user's time zone.
+    private static let pasteStampFormat: DateFormatter = {
+        let format = DateFormatter()
+        format.locale = Locale(identifier: "en_US_POSIX")
+        format.dateFormat = "yyyyMMdd-HHmmss"
+        return format
+    }()
+
+    static func savePastedImage(from pasteboard: NSPasteboard, in folder: URL) -> URL? {
+        guard let png = pngData(from: pasteboard) else { return nil }
+        let stamp = pasteStampFormat.string(from: Date())
+        let url = folder.appendingPathComponent("image-\(stamp)-\(UUID().uuidString.prefix(4)).png")
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try png.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private static func pngData(from pasteboard: NSPasteboard) -> Data? {
+        if let png = pasteboard.data(forType: .png) {
+            return png
+        }
+        // Other images (TIFF from many apps, JPEG, HEIC) are converted.
+        guard pasteboard.canReadObject(forClasses: [NSImage.self]),
+              let tiff = NSImage(pasteboard: pasteboard)?.tiffRepresentation
+        else { return nil }
+        return NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
     }
 
     static func shellEscaped(_ path: String) -> String {

@@ -16,6 +16,7 @@ A fast, correct terminal on libghostty.
 - Tabs and splits (horizontal and vertical), with keyboard navigation.
 - Command palette (⌘P) listing every action with its shortcut.
 - Rectangle selection with ⌥-drag, inline images, true color, ligatures (all from libghostty).
+- ⌘V pastes text as text and copied files as their escaped paths. An image with neither (a screenshot, a picture copied from a browser) is saved as a PNG in the temporary folder, and its path is pasted, so agents like Claude Code attach it (`[Image #1]`). Dropping such an image works the same way.
 - A drop-down quick terminal on a global hotkey.
 
 **Settings:** none beyond the Ghostty config.

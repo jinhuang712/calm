@@ -16,6 +16,7 @@ A fast, correct terminal on libghostty.
 - Tabs and splits (horizontal and vertical), with keyboard navigation.
 - Command palette (⌘P) listing every action with its shortcut.
 - One text size for every session: ⌘+ and ⌘− (or the user's own font-size keybindings) resize all sessions and splits together, new ones start at that size, and it's kept across relaunches. ⌘0 goes back to the config's `font-size`.
+- The window comes back the way you left it: its size and place, and also a window left filling the screen (Zoom or Fill from a double-click on the title strip, or a window manager's maximize). Filled again, it still goes back to its earlier size on the next double-click. Full screen isn't restored: Calm opens in a window.
 - Rectangle selection with ⌥-drag, inline images, true color, ligatures (all from libghostty).
 - ⌘V pastes text as text and copied files as their escaped paths. An image with neither (a screenshot, a picture copied from a browser) is saved as a PNG in the temporary folder, and its path is pasted, so agents like Claude Code attach it (`[Image #1]`). Dropping such an image works the same way.
 - A drop-down quick terminal on a global hotkey.

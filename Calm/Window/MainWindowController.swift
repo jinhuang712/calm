@@ -28,6 +28,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var welcomePage = WelcomePage(container: container)
     lazy var settingsPage = SettingsPage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
+    /// Off until the saved frame is back, so restoring it isn't taken for the user leaving the
+    /// screen-filling state that is about to be restored (see `restoreFrame`).
+    var tracksFill = false
+
+    /// The name AppKit saves the window's frame under.
+    static let frameName = "CalmMainWindow"
 
     static var sidebarWidth: CGFloat {
         SidebarView.width
@@ -55,7 +61,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.minSize = NSSize(width: 560, height: 320)
-        window.setFrameAutosaveName("CalmMainWindow")
+        window.setFrameAutosaveName(Self.frameName)
         super.init(window: window)
         window.delegate = self
         buildLayout()
@@ -647,9 +653,7 @@ final class TerminalWindowManager: TerminalEngineDelegate {
         }
         let controller = MainWindowController(manager: SessionManager.shared)
         mainController = controller
-        if controller.window?.frameAutosaveName.isEmpty == false, controller.window?.setFrameUsingName("CalmMainWindow") != true {
-            controller.window?.center()
-        }
+        controller.restoreFrame()
         controller.showAndFocus()
         return controller
     }

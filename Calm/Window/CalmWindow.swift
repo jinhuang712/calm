@@ -73,4 +73,27 @@ final class CalmWindow: NSWindow {
             setFrame(screen.visibleFrame, display: true, animate: true)
         }
     }
+
+    // MARK: Filled windows
+
+    /// Whether `frame` covers the screen's usable area: what Zoom, Fill and a window manager's
+    /// maximize all leave behind. A point of slack, since they round.
+    static func isFilled(frame: NSRect, in visibleFrame: NSRect) -> Bool {
+        abs(frame.minX - visibleFrame.minX) <= 1 && abs(frame.minY - visibleFrame.minY) <= 1
+            && abs(frame.width - visibleFrame.width) <= 1 && abs(frame.height - visibleFrame.height) <= 1
+    }
+
+    var isFilled: Bool {
+        screen.map { Self.isFilled(frame: frame, in: $0.visibleFrame) } ?? false
+    }
+
+    /// Fills the screen again on a relaunch, from the frame the window has now (AppKit's saved,
+    /// windowed one; a zoomed window leaves it as it was). A window that opened already filled
+    /// has no size for Zoom or Fill to go back to: `zoom` records it for Zoom, and
+    /// `frameBeforeFill` for Fill.
+    func fillAsLeft() {
+        guard !isFilled else { return }
+        frameBeforeFill = frame
+        zoom(nil)
+    }
 }

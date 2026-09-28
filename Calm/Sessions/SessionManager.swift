@@ -150,6 +150,20 @@ final class SessionManager {
         scheduleSave()
     }
 
+    // MARK: Window
+
+    /// Whether the window was left filling the screen, so the next launch fills it again.
+    var windowWasFilled: Bool {
+        workspace.windowFilled == true
+    }
+
+    /// Called as the window settles into, or out of, filling the screen.
+    func windowFillDidChange(_ filled: Bool) {
+        if workspace.noteWindowFilled(filled) {
+            scheduleSave()
+        }
+    }
+
     // MARK: Sessions
 
     @discardableResult

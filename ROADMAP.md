@@ -79,7 +79,7 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 The core model arrives: sessions grouped under projects, restored after quitting.
 
 - [x] **M2.1 Model:** `Project`, `Session`, `Pane` and layout tree in the `Model` module, fully unit-tested.
-- [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The window frame uses AppKit's autosave.
+- [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The windowed frame uses AppKit's autosave; a window left filling the screen is remembered in `state.json` (AppKit's autosave doesn't record it).
 - [x] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
 - [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
 - [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)

@@ -228,6 +228,10 @@ public struct Workspace: Codable, Hashable, Sendable {
     /// The text size, in points, that every session shows after ⌘+ or ⌘−; nil means the
     /// config's `font-size` (FEATURES.md → F1).
     public var fontSize: Float?
+    /// True when the window was last left filling the screen (Zoom, Fill or a window manager's
+    /// maximize), nil otherwise. The size it had before is the window frame AppKit autosaves,
+    /// which stays at the windowed size while the window is zoomed (FEATURES.md → F1).
+    public var windowFilled: Bool?
 
     public init() {}
 
@@ -578,6 +582,19 @@ public extension Workspace {
         let size = isConfigured ? nil : points
         guard size != fontSize else { return false }
         fontSize = size
+        return true
+    }
+}
+
+// MARK: Window
+
+public extension Workspace {
+    /// Records whether the window now fills the screen (false is stored as nil). Returns whether
+    /// that changed, so callers save only then: a resize reports this on every step.
+    mutating func noteWindowFilled(_ filled: Bool) -> Bool {
+        let value = filled ? true : nil
+        guard value != windowFilled else { return false }
+        windowFilled = value
         return true
     }
 }

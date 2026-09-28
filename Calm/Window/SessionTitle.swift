@@ -6,7 +6,11 @@ import SwiftUI
 /// the folder it's in on a quieter line below, like a window's title and subtitle, and a ⋯ button
 /// at the right with the session's actions.
 struct SessionTitleView: View {
-    static let leadingInset: CGFloat = 16
+    /// 16 points at the standard interface size.
+    @MainActor
+    static var leadingInset: CGFloat {
+        16.scaled
+    }
 
     let manager: SessionManager
     let style: SidebarStyle
@@ -23,23 +27,23 @@ struct SessionTitleView: View {
         let strip = strip
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
-        HStack(spacing: 8) {
-            HStack(spacing: 10) {
+        HStack(spacing: 8.scaled) {
+            HStack(spacing: 10.scaled) {
                 // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
                 // folder or scratch glyph, so the text starts in the same place for every session.
                 if let project {
                     GroupMark(project: project, style: style)
                         .foregroundStyle(style.tertiary)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 20.scaled, height: 20.scaled)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(.system(size: 13.5, weight: .medium))
+                        .calmFont(size: 13.5, weight: .medium)
                         .foregroundStyle(style.primary)
                         .truncationMode(.tail)
                     if strip.title != nil, let folder = strip.folder {
                         Text(folder)
-                            .font(.system(size: 11))
+                            .calmFont(size: 11)
                             .foregroundStyle(style.tertiary)
                             .truncationMode(.head)
                     }
@@ -56,7 +60,9 @@ struct SessionTitleView: View {
             }
         }
         .padding(.leading, Self.leadingInset)
-        .padding(.trailing, 12)
+        .padding(.trailing, 12.scaled)
+        // The strip's height stays CalmWindow.titleStripHeight, level with the traffic lights; two
+        // lines at the largest size still fit in it.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .coordinateSpace(.named("titleStrip"))
         .onChange(of: title, initial: true) { _, title in onChange(title) }
@@ -71,10 +77,10 @@ struct SessionTitleView: View {
             )
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 13, weight: .semibold))
+                .calmFont(size: 13, weight: .semibold)
                 .foregroundStyle(menuHovered ? style.primary : style.tertiary)
-                .frame(width: 30, height: 26)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(menuHovered ? style.selection : .clear))
+                .frame(width: 30.scaled, height: 26.scaled)
+                .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(menuHovered ? style.selection : .clear))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

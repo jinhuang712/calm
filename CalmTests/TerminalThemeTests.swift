@@ -69,4 +69,14 @@ struct TerminalThemeTests {
         #expect(NSColor(derived.background).hexString != "#1b1814")
         #expect(NSColor(hex: "#1e1e2e")?.hexString == "#1e1e2e")
     }
+
+    @Test func `needs you stays amber whatever the theme's accent`() throws {
+        // Ink's dark variant: its blue accent is almost *working*'s hue.
+        let theme = CalmTheme.Colors(background: "#1d1e20", foreground: "#bcbec1", accent: "#89afd6")
+        let background = try #require(NSColor(hex: theme.background))
+        let style = SidebarStyle.derived(from: background, theme: theme)
+        #expect(NSColor(style.accent).hexString == theme.accent)
+        #expect(NSColor(style.attention).hexString == NSColor(SidebarStyle.derived(from: background).attention).hexString)
+        #expect(NSColor(style.attention).hexString != theme.accent)
+    }
 }

@@ -107,7 +107,7 @@ struct WelcomeView: View {
     private var roomy: some View {
         VStack(spacing: 40) {
             VStack(spacing: 18) {
-                CalmMark(color: style.attention)
+                CalmMark(color: style.accent)
                 VStack(spacing: 8) {
                     Text(title)
                         .font(.system(size: 34, weight: .medium))
@@ -221,9 +221,9 @@ private struct WelcomeCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Image(systemName: symbol)
                     .font(.system(size: 15))
-                    .foregroundStyle(isFirst ? style.attention : style.secondary)
+                    .foregroundStyle(isFirst ? style.accent : style.secondary)
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(isFirst ? style.attention.opacity(0.16) : style.primary.opacity(0.08)))
+                    .background(Circle().fill(isFirst ? style.accent.opacity(0.16) : style.primary.opacity(0.08)))
                     .padding(.bottom, 14)
                 Text(title)
                     .font(.system(size: 15, weight: .medium))

@@ -123,8 +123,8 @@ Rules:
 ## Color
 
 - Soft palettes only in the default set: low contrast between text and background (roughly 6:1 to 11:1), low accent saturation, neutral backgrounds.
-- The accent color is used sparingly: the selected row and the *needs you* highlight.
-- Each state keeps one color: amber for *needs you*, a soft blue for *working*, sage for *done* (until you move on), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
+- The accent color is used sparingly: a switch that's on, the picked theme and the project mark. It never colors a state.
+- Each state keeps one color on every theme: amber for *needs you* (whatever the theme's accent), a soft blue for *working*, sage for *done* (until you move on), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
 - Red appears only for *failed* and real errors.
 - Chrome (sidebar, panels) takes its colors from the theme, never from a fixed system tint that clashes with the terminal.
 

@@ -166,7 +166,7 @@ struct CalmSwitchStyle: ToggleStyle {
             configuration.isOn.toggle()
         } label: {
             Capsule()
-                .fill(configuration.isOn ? style.attention : style.primary.opacity(style.isDark ? 0.2 : 0.16))
+                .fill(configuration.isOn ? style.accent : style.primary.opacity(style.isDark ? 0.2 : 0.16))
                 .frame(width: 34, height: 20)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     Circle()

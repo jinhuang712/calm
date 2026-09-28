@@ -169,7 +169,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             let background = focusedPane?.effectiveBackgroundColor ?? window?.backgroundColor ?? .clear
             let themed = TerminalTheme.chromeColors(matching: background) != nil
             let chrome = "terminal \(background.hexString), sidebar \(NSColor(sidebarStyle.background).hexString), "
-                + "accent \(NSColor(sidebarStyle.attention).hexString), theme chrome \(themed)"
+                + "accent \(NSColor(sidebarStyle.accent).hexString), theme chrome \(themed)"
             let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), overlays \(overlays)"
             return "\(frames); \(chrome); welcome \(welcomePage.isShowing)"
         }

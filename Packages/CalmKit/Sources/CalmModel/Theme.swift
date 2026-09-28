@@ -16,7 +16,7 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
         public var palette: [String]
         /// The sidebar's background; derived from `background` when unset.
         public var sidebar: String?
-        /// The *needs you* highlight; Calm's soft amber when unset.
+        /// The chrome accent (switches, the picked theme); Calm's soft amber when unset. Never a state color.
         public var accent: String?
 
         public init(

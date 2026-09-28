@@ -285,7 +285,7 @@ extension SidebarStyle {
         }
         return [
             "bg": css(background), "fg": css(primary), "muted": css(secondary), "faint": css(tertiary),
-            "line": css(tertiary.opacity(0.35)), "code-bg": css(selection), "mark": css(attention.opacity(0.18)),
+            "line": css(tertiary.opacity(0.35)), "code-bg": css(selection), "mark": css(accent.opacity(0.18)),
         ]
     }
 }

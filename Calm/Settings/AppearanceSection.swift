@@ -95,7 +95,7 @@ struct AppearanceSection: View {
                 ThemeChipPreview(preview: preview)
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(selected ? style.attention : .clear, lineWidth: 2)
+                            .strokeBorder(selected ? style.accent : .clear, lineWidth: 2)
                             .padding(-4)
                     }
                 Text(name)

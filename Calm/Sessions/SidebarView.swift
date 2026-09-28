@@ -9,8 +9,12 @@ struct SidebarStyle: Equatable {
     var primary: Color
     var secondary: Color
     var tertiary: Color
-    /// *Needs you*: a soft, low-saturation amber, the only tint a card gets (UIUX.md → Color).
+    /// *Needs you*: a soft, low-saturation amber on every theme, so it never reads as another
+    /// state's color (a blue accent looked like *working*, a green one like *done*; UIUX.md → Color).
     var attention: Color
+    /// The theme's accent, for chrome only: a switch that's on, the picked theme, the project mark.
+    /// Calm's amber when the theme has none.
+    var accent: Color
     /// *Failed*: a muted red, used for nothing else.
     var failure: Color
     var isDark: Bool
@@ -46,7 +50,7 @@ struct SidebarStyle: Equatable {
             style.tertiary = Color(nsColor: foreground.withAlphaComponent(0.46))
         }
         if let accent = theme.accent.flatMap(NSColor.init(hex:)) {
-            style.attention = Color(nsColor: accent)
+            style.accent = Color(nsColor: accent)
         }
         if theme.palette.count == 16, let red = NSColor(hex: theme.palette[1]) {
             style.failure = Color(nsColor: red)
@@ -74,13 +78,15 @@ struct SidebarStyle: Equatable {
         let shade = isDark ? NSColor.black : NSColor(white: 0.0, alpha: 1)
         let background = base.blended(withFraction: isDark ? 0.18 : 0.04, of: shade) ?? base
         let ink = isDark ? NSColor.white : NSColor.black
+        let amber = Color(hue: 0.11, saturation: isDark ? 0.42 : 0.55, brightness: isDark ? 0.86 : 0.62)
         return SidebarStyle(
             background: Color(nsColor: background),
             selection: Color(nsColor: ink.withAlphaComponent(isDark ? 0.08 : 0.07)),
             primary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.86 : 0.85)),
             secondary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.55 : 0.55)),
             tertiary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.38 : 0.4)),
-            attention: Color(hue: 0.11, saturation: isDark ? 0.42 : 0.55, brightness: isDark ? 0.86 : 0.62),
+            attention: amber,
+            accent: amber,
             failure: Color(hue: 0.0, saturation: isDark ? 0.38 : 0.5, brightness: isDark ? 0.82 : 0.6),
             isDark: isDark,
         )
@@ -471,7 +477,7 @@ struct GroupMark: View {
         case .project:
             Image(systemName: "square.stack")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(style.attention)
+                .foregroundStyle(style.accent)
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")

@@ -581,7 +581,7 @@ struct GroupMark: View {
     }
 }
 
-/// A project's pixel mark from its name, in the space a 12 pt symbol takes: the mark's soft
+/// A project's pixel mark from its name, a 20 pt tile that fits the 26 pt header: the mark's soft
 /// hue on a pale tile of it (a deep one on a dark theme), low in saturation so it sits beside
 /// the state colors without competing (UIUX.md → Color).
 struct IdenticonTile: View {
@@ -594,7 +594,7 @@ struct IdenticonTile: View {
         let tile = Color(hue: hue, saturation: 0.18, brightness: style.isDark ? 0.26 : 0.93)
         Canvas { context, size in
             // Whole points per cell, so the pixels stay crisp instead of blurring across two.
-            let cell: CGFloat = 2
+            let cell: CGFloat = 3
             let inset = (size.width - cell * CGFloat(Identicon.size)) / 2
             var cells = Path()
             for (row, columns) in identicon.cells.enumerated() {
@@ -608,7 +608,7 @@ struct IdenticonTile: View {
             )
             context.fill(cells, with: .color(pixels))
         }
-        .frame(width: 14, height: 14)
+        .frame(width: 20, height: 20)
     }
 }
 

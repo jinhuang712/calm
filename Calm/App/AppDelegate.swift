@@ -38,12 +38,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
-        // With persistent shells, quitting only detaches: nothing is lost, so don't ask.
-        guard !PersistentShell.isAvailable, TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
+        // With persistent shells, quitting only detaches: nothing is lost, so don't ask. Persistence
+        // can also stop mid-run (zmx failing), and then shells end with Calm like anywhere else.
+        let shellsSurvive = PersistentShell.isAvailable && SessionManager.shared.persistenceEnabled
+        guard !shellsSurvive, TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "Quit Calm?"
-        alert.informativeText = "Processes are still running in some terminals."
-        alert.addButton(withTitle: "Quit")
+        if Restart.isRequested {
+            alert.messageText = "Restart Calm?"
+            alert.informativeText = "Processes are still running in some terminals. Restarting ends them."
+            alert.addButton(withTitle: "Restart")
+        } else {
+            alert.messageText = "Quit Calm?"
+            alert.informativeText = "Processes are still running in some terminals."
+            alert.addButton(withTitle: "Quit")
+        }
         alert.addButton(withTitle: "Cancel")
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
     }
@@ -51,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_: Notification) {
         ControlServer.shared.stop()
         SessionManager.shared.prepareForQuit()
+        Restart.relaunchAfterExit()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {

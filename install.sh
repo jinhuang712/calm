@@ -103,7 +103,7 @@ if [[ $was_running -eq 1 && $restart -eq 1 ]]; then
   open "$target"
   step "$installed"
 elif [[ $was_running -eq 1 ]]; then
-  step "$installed The running Calm is untouched; the new one starts next time you open Calm."
+  step "$installed The running Calm is untouched; the new one starts next time you open Calm, or with Calm → Restart Calm."
 else
   step "$installed"
 fi

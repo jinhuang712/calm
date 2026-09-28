@@ -43,6 +43,12 @@ enum MainMenu {
         )
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(.separator())
+        // No shortcut: a restart is rare, and one key away from ⌘Q it would be easy to hit by mistake.
+        let restart = NSMenuItem(title: "Restart Calm", action: #selector(TerminalMenuTarget.restart(_:)), keyEquivalent: "")
+        restart.target = TerminalMenuTarget.shared
+        // AppKit gives Hide and Quit their symbols; this one sits with Quit, so it gets one too.
+        restart.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
+        menu.addItem(restart)
         menu.addItem(withTitle: "Quit Calm", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         return menu
     }
@@ -201,6 +207,11 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func showAgentsPanel(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().showSettings(.agents)
+    }
+
+    /// Quit and open again; shells stay alive in between (see Restart).
+    @objc func restart(_: Any?) {
+        Restart.request()
     }
 
     /// ⌘⇧I: what the focused agent session is and last said.

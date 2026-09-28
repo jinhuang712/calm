@@ -39,6 +39,7 @@ A fast, correct terminal on libghostty.
 ## F3 — Persistent sessions 🚧
 
 - Quitting Calm detaches shells instead of killing them. Relaunching reattaches, with scrollback and running processes intact.
+- **Restart Calm** (Calm menu, no shortcut) quits and opens Calm again once the old one has fully exited, so every session comes back as after any relaunch, agents still running. It opens the app from the same place, so a version installed meanwhile (`install.sh`) is the one that starts. When shells aren't being kept alive (zmx missing or failing) and something is running, it asks first, as Quit does.
 - Projects, sessions and split layouts are restored.
 - Closing a session ends its shell. Shells Calm no longer knows about (for example after a crash) are ended at the next launch; other apps' sessions are never touched.
 - Each session can show a one-line attach command so it can be reached from another device over SSH.

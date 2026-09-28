@@ -98,9 +98,14 @@
             return true
         }
 
-        /// Session actions (F12) and grouping (F2) for self-tests.
+        /// Session actions (F12), grouping (F2) and restart (F3) for self-tests.
         private func performSessionActionForTesting(_ action: String) -> Bool {
             switch action {
+            case "restart":
+                // Calm → Restart Calm. The Calm that comes back has no test drivers, so it never
+                // snapshots or quits: whoever runs this stops it (not with selftest.sh, whose
+                // watchdog only knows the first process).
+                TerminalMenuTarget.shared.restart(nil)
             case "scratch":
                 newScratchSession()
             case "close":

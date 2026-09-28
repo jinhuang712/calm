@@ -86,24 +86,24 @@ struct SearchPanelView: View {
                 .onTapGesture(perform: onDismiss)
 
             VStack(spacing: 0) {
-                HStack(spacing: 10) {
+                HStack(spacing: 10.scaled) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14))
+                        .calmFont(size: 14)
                         .foregroundStyle(.tertiary)
                     TextField("Search every session", text: $model.query)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 15))
+                        .calmFont(size: 15)
                         .focused($fieldFocused)
                         .onSubmit(openSelection)
                 }
-                .padding(.horizontal, 18)
-                .frame(height: 48)
+                .padding(.horizontal, 18.scaled)
+                .frame(height: 48.scaled)
 
                 Divider().opacity(0.5)
 
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 2) {
+                        LazyVStack(spacing: 2.scaled) {
                             // Rows keep the ForEach's identity (the transcript): an `.id(index)`
                             // here made the lazy stack keep drawing the previous results' rows.
                             ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
@@ -111,7 +111,7 @@ struct SearchPanelView: View {
                                     .onTapGesture { onOpen(item) }
                             }
                         }
-                        .padding(6)
+                        .padding(6.scaled)
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
                     }
                     .scrollIndicators(.never)
@@ -122,26 +122,26 @@ struct SearchPanelView: View {
 
                 if model.items.isEmpty {
                     Text(model.query.isEmpty ? "No sessions indexed yet" : "No session mentions that")
-                        .font(.system(size: 13))
+                        .calmFont(size: 13)
                         .foregroundStyle(.secondary)
-                        .frame(height: 44)
+                        .frame(height: 44.scaled)
                 } else if let item = model.selectedItem {
                     // What Enter does lives here, so rows keep one height as the selection moves.
                     Divider().opacity(0.5)
                     Text(action(item))
-                        .font(.system(size: 11))
+                        .calmFont(size: 11)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18)
-                        .frame(height: 30)
+                        .padding(.horizontal, 18.scaled)
+                        .frame(height: 30.scaled)
                 }
             }
-            .frame(width: 620)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
+            .frame(width: 620.scaled)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14.scaled, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14.scaled, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
             .shadow(color: .black.opacity(0.25), radius: 24, y: 12)
-            .padding(.top, 90)
+            .padding(.top, 90.scaled)
         }
         .environment(\.colorScheme, isDark ? .dark : .light)
         .onAppear { fieldFocused = true }
@@ -159,39 +159,42 @@ struct SearchPanelView: View {
         }
     }
 
-    static let rowHeight: CGFloat = 52
+    @MainActor
+    static var rowHeight: CGFloat {
+        52.scaled
+    }
 
     /// Two lines at one fixed height: title with project and time, then the snippet. Snippets
     /// open just before the match (SearchIndex), so one line is enough to show it.
     private func row(_ item: SearchPanelModel.Item, selected: Bool) -> some View {
         let result = item.result
-        return HStack(spacing: 12) {
+        return HStack(spacing: 12.scaled) {
             AgentLogo(agent: result.agent, size: 22)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 3.scaled) {
+                HStack(spacing: 8.scaled) {
                     Text(result.title)
-                        .font(.system(size: 13, weight: .medium))
+                        .calmFont(size: 13, weight: .medium)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text(detail(result))
-                        .font(.system(size: 11))
+                        .calmFont(size: 11)
                         .foregroundStyle(.tertiary)
                         .monospacedDigit()
                         .lineLimit(1)
                         .layoutPriority(1)
                 }
                 Text(Self.highlighted(result.snippet))
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 12.scaled)
         .frame(height: Self.rowHeight)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
                 .fill(selected ? Color.primary.opacity(0.08) : .clear),
         )
         .contentShape(Rectangle())

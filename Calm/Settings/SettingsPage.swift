@@ -126,7 +126,9 @@ struct SettingsView: View {
     let actions: Actions
 
     /// Room for the list and a full page; narrower windows show the list as icons.
-    private static let roomyWidth: CGFloat = SidebarView.width + 560
+    private static var roomyWidth: CGFloat {
+        SidebarView.width + 560.scaled
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -138,7 +140,7 @@ struct SettingsView: View {
                     navigation: page.navigation, compact: compact, style: style,
                     warnings: warnings, hasSessions: !manager.workspace.sessions.isEmpty, actions: actions,
                 )
-                .frame(width: compact ? 68 : SidebarView.width)
+                .frame(width: compact ? 68.scaled : SidebarView.width)
                 .background(style.background)
                 Rectangle()
                     .fill(style.hairline)
@@ -146,10 +148,10 @@ struct SettingsView: View {
                 ScrollView {
                     content
                         .frame(maxWidth: Self.columnWidth, alignment: .leading)
-                        .padding(.leading, leadingInset(pane: proxy.size.width - (compact ? 68 : SidebarView.width) - 1))
-                        .padding(.trailing, 48)
-                        .padding(.top, 40)
-                        .padding(.bottom, 48)
+                        .padding(.leading, leadingInset(pane: proxy.size.width - (compact ? 68.scaled : SidebarView.width) - 1))
+                        .padding(.trailing, 48.scaled)
+                        .padding(.top, 40.scaled)
+                        .padding(.bottom, 48.scaled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollIndicators(.never)
@@ -164,13 +166,15 @@ struct SettingsView: View {
         .environment(\.colorScheme, style.isDark ? .dark : .light)
     }
 
-    private static let columnWidth: CGFloat = 780
+    private static var columnWidth: CGFloat {
+        780.scaled
+    }
 
     /// The page stays near the list, so the two read as one screen: centered while the pane is
     /// modest, then held 112 pt from the list. On a wide window a centered column ended up an
     /// island, far from the list it belongs to.
     private func leadingInset(pane: CGFloat) -> CGFloat {
-        min(max((pane - Self.columnWidth) / 2, 48), 112)
+        min(max((pane - Self.columnWidth) / 2, 48.scaled), 112.scaled)
     }
 
     /// Sections with something broken in them.
@@ -208,41 +212,41 @@ private struct SettingsList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Room for the traffic lights, as the sidebar leaves above its search field.
-            Color.clear.frame(height: 40)
+            Color.clear.frame(height: 40.scaled)
             if !compact {
                 Text("Settings")
-                    .font(.system(size: SettingsMetrics.listTitle, weight: .medium))
+                    .calmFont(size: SettingsMetrics.listTitle, weight: .medium)
                     .foregroundStyle(style.primary)
-                    .frame(height: 40, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .frame(height: 40.scaled, alignment: .leading)
+                    .padding(.horizontal, 16.scaled)
+                    .padding(.bottom, 16.scaled)
                     .accessibilityAddTraits(.isHeader)
             }
-            VStack(spacing: 2) {
+            VStack(spacing: 2.scaled) {
                 ForEach(SettingsPage.Section.allCases) { section in
                     item(section)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 12.scaled)
             Spacer(minLength: 16)
-            VStack(spacing: 2) {
+            VStack(spacing: 2.scaled) {
                 ListButton(style: style, help: compact ? "Back (esc)" : "", action: actions.close) {
-                    HStack(spacing: 11) {
+                    HStack(spacing: 11.scaled) {
                         KeyCaps(keys: ["esc"], style: style, large: true)
                             .frame(width: SettingsMetrics.listTile)
                         if !compact {
                             Text(hasSessions ? "Back to your sessions" : "Back")
-                                .font(.system(size: SettingsMetrics.listItem))
+                                .calmFont(size: SettingsMetrics.listItem)
                             Spacer(minLength: 4)
                         }
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 8.scaled)
                 }
                 .accessibilityLabel(hasSessions ? "Back to your sessions" : "Back")
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 12.scaled)
+            .padding(.top, 10.scaled)
+            .padding(.bottom, 14.scaled)
             // The sidebar's footer line.
             .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
         }
@@ -255,24 +259,24 @@ private struct SettingsList: View {
         return ListButton(style: style, isSelected: selected, help: compact ? section.title : "") {
             navigation.section = section
         } label: {
-            HStack(spacing: 11) {
+            HStack(spacing: 11.scaled) {
                 Image(systemName: section.symbol)
-                    .font(.system(size: 16))
+                    .calmFont(size: 16)
                     .frame(width: SettingsMetrics.listTile, height: SettingsMetrics.listTile)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
                             .fill(style.primary.opacity(selected ? 0.1 : 0.055)),
                     )
                 if !compact {
                     Text(section.title)
-                        .font(.system(size: SettingsMetrics.listItem, weight: selected ? .medium : .regular))
+                        .calmFont(size: SettingsMetrics.listItem, weight: selected ? .medium : .regular)
                     Spacer(minLength: 4)
                 }
                 if warnings.contains(section) {
                     WarningMark(style: style, size: compact ? 10 : 13)
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 8.scaled)
         }
         .accessibilityLabel(section.title)
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -295,7 +299,7 @@ private struct ListButton<Label: View>: View {
                 .frame(maxWidth: .infinity, minHeight: SettingsMetrics.listRow, alignment: .leading)
                 .foregroundStyle(isSelected || hovering ? style.primary : style.secondary)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                         .fill(isSelected ? style.selection : hovering ? style.selection.opacity(0.6) : .clear),
                 )
                 .contentShape(Rectangle())

@@ -69,7 +69,7 @@ struct GeneralSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsTitle(title: "General", style: style)
-                .padding(.bottom, 24)
+                .padding(.bottom, 24.scaled)
             GroupHeading(title: "Opening files", style: style)
             SettingsGroup(style: style) {
                 SettingsRow(title: "Editor", style: style) {
@@ -86,7 +86,7 @@ struct GeneralSection: View {
                 }
             }
             GroupHeading(title: "Sessions", style: style)
-                .padding(.top, 30)
+                .padding(.top, 30.scaled)
             SettingsGroup(style: style) {
                 SettingsRow(title: "Group sessions by folder", style: style) {
                     Toggle(
@@ -98,7 +98,7 @@ struct GeneralSection: View {
                 }
             }
             GroupHeading(title: "Config files", style: style)
-                .padding(.top, 30)
+                .padding(.top, 30.scaled)
             SettingsGroup(style: style) {
                 fileRow("Calm settings", problems: model.problems) { SettingsActions.openConfigFile() }
                 RowDivider(style: style)
@@ -119,10 +119,10 @@ struct GeneralSection: View {
 
     /// A file or folder, and any line of it Calm couldn't read.
     private func fileRow(_ title: String, problems: [String], open: @escaping () -> Void) -> some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 16.scaled) {
+            VStack(alignment: .leading, spacing: 4.scaled) {
                 Text(title)
-                    .font(.system(size: SettingsMetrics.label))
+                    .calmFont(size: SettingsMetrics.label)
                     .foregroundStyle(style.primary)
                 ForEach(problems, id: \.self) { problem in
                     Label {
@@ -130,7 +130,7 @@ struct GeneralSection: View {
                     } icon: {
                         WarningMark(style: style, size: SettingsMetrics.note)
                     }
-                    .font(.system(size: SettingsMetrics.note))
+                    .calmFont(size: SettingsMetrics.note)
                     .foregroundStyle(style.failure)
                 }
             }
@@ -139,7 +139,7 @@ struct GeneralSection: View {
                 .buttonStyle(SettingsButtonStyle(style: style))
         }
         .padding(.horizontal, SettingsMetrics.rowInset)
-        .padding(.vertical, 14)
+        .padding(.vertical, 14.scaled)
         .frame(minHeight: SettingsMetrics.rowHeight)
     }
 }
@@ -195,24 +195,24 @@ struct ShortcutsSection: View {
             }
             // Keys are changed in the Ghostty config (the button above), where the user's own
             // keybindings win over Calm's.
-            Color.clear.frame(height: 24)
-            HStack(alignment: .top, spacing: 20) {
+            Color.clear.frame(height: 24.scaled)
+            HStack(alignment: .top, spacing: 20.scaled) {
                 ForEach(Self.columns.indices, id: \.self) { column in
-                    VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 18.scaled) {
                         ForEach(Self.columns[column], id: \.title) { group in
                             VStack(alignment: .leading, spacing: 0) {
                                 GroupHeading(title: group.title, style: style)
                                 SettingsGroup(style: style) {
                                     ForEach(group.rows, id: \.action) { row in
-                                        HStack(spacing: 10) {
+                                        HStack(spacing: 10.scaled) {
                                             Text(row.action)
-                                                .font(.system(size: SettingsMetrics.label))
+                                                .calmFont(size: SettingsMetrics.label)
                                                 .foregroundStyle(style.primary)
                                             Spacer(minLength: 8)
                                             KeyCaps(keys: row.keys, style: style, large: true)
                                         }
                                         .padding(.horizontal, SettingsMetrics.rowInset)
-                                        .frame(height: 50)
+                                        .frame(height: 50.scaled)
                                         .accessibilityElement(children: .ignore)
                                         .accessibilityLabel("\(row.action), \(row.keys.joined())")
                                     }

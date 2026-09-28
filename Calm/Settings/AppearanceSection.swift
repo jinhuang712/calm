@@ -24,17 +24,17 @@ struct AppearanceSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsTitle(title: "Appearance", style: style)
-                .padding(.bottom, 24)
+                .padding(.bottom, 24.scaled)
             if let picked {
                 WindowPreview(
                     preview: picked, card: windowOptions.layout == .card, glass: windowOptions.background == .glass,
                     isDark: style.isDark,
                 )
-                .padding(.bottom, 32)
+                .padding(.bottom, 32.scaled)
             }
             GroupHeading(title: "Theme", style: style)
             // The chips share the column's width, so the row ends where the rows below it do.
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 12.scaled) {
                 ForEach(calmThemes) { choice in
                     chip(choice, name: choice.name)
                 }
@@ -46,10 +46,20 @@ struct AppearanceSection: View {
                         .help("The colors your Ghostty config sets, instead of a Calm theme")
                 }
             }
-            .padding(.bottom, 32)
+            .padding(.bottom, 32.scaled)
             SettingsGroup(style: style) {
                 // Closures, not method references: passing a model's method crashed the Swift 6.3.3
                 // compiler (IRGen, isolated reabstraction thunk; see AgentsSection).
+                // How large all of Calm's chrome is drawn, this page included; the terminal
+                // keeps its own font (⌘+ and ⌘−).
+                SettingsRow(title: "Interface size", style: style) {
+                    CalmSegmented(
+                        title: "Interface size",
+                        options: [(.standard, "Default"), (.large, "Large"), (.larger, "Larger"), (.largest, "Largest")],
+                        selection: windowOptions.interfaceSize, segmentWidth: 92, style: style,
+                    ) { windowOptions.setInterfaceSize($0) }
+                }
+                RowDivider(style: style)
                 // No help lines: the preview above shows what each choice does.
                 SettingsRow(title: "Background", style: style) {
                     CalmSegmented(
@@ -87,15 +97,15 @@ struct AppearanceSection: View {
         return Button {
             themes.pick(choice.id)
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 6.scaled) {
                 ThemeChipPreview(preview: preview)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: 12.scaled, style: .continuous)
                             .strokeBorder(selected ? style.accent : .clear, lineWidth: 2)
                             .padding(-4)
                     }
                 Text(name)
-                    .font(.system(size: SettingsMetrics.note, weight: selected ? .medium : .regular))
+                    .calmFont(size: SettingsMetrics.note, weight: selected ? .medium : .regular)
                     .foregroundStyle(selected ? style.primary : style.secondary)
                     .lineLimit(1)
                     .fixedSize()

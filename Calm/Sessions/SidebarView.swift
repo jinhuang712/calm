@@ -96,7 +96,12 @@ struct SidebarStyle: Equatable {
 
 /// Projects and their sessions: the periphery, where status lives.
 struct SidebarView: View {
-    static let width: CGFloat = 320
+    /// 320 points at the standard interface size.
+    @MainActor
+    static var width: CGFloat {
+        320.scaled
+    }
+
     let manager: SessionManager
     let style: SidebarStyle
     let onSelect: (Session.ID) -> Void
@@ -124,19 +129,19 @@ struct SidebarView: View {
             // As tall as the window's title strip, so the search field and the terminal start level.
             Color.clear.frame(height: CalmWindow.titleStripHeight)
             searchField
-                .padding(.horizontal, 14)
-                .padding(.bottom, 18)
+                .padding(.horizontal, 14.scaled)
+                .padding(.bottom, 18.scaled)
 
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 22.scaled) {
                     // Scratch sessions on top, then projects the user made, then directory groups.
                     ForEach(manager.workspace.orderedProjects) { project in
                         projectSection(project)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 12.scaled)
+                .padding(.bottom, 16.scaled)
             }
             .scrollIndicators(.never)
 
@@ -163,15 +168,15 @@ struct SidebarView: View {
 
     private func projectSection(_ project: Project) -> some View {
         let sessions = manager.workspace.sessions(in: project.id)
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: 6.scaled) {
             Button {
                 manager.toggleCollapsed(project.id)
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 8.scaled) {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
+                        .calmFont(size: 9, weight: .semibold)
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
-                        .frame(width: 10)
+                        .frame(width: 10.scaled)
                     GroupMark(project: project, style: style) { manager.shuffleMark(project.id) }
                     groupName(project)
                     Spacer(minLength: 4)
@@ -180,20 +185,20 @@ struct SidebarView: View {
                         Color.clear.frame(width: groupControlsWidth(project), height: 1)
                     } else if project.isCollapsed {
                         Text(summary(sessions))
-                            .font(.system(size: 12))
+                            .calmFont(size: 12)
                             .foregroundStyle(style.tertiary)
                     } else if project.kind == .directory, project.path != WorkspacePath.standardize(NSHomeDirectory()) {
                         // Where the folder is, so two groups with the same name can be told apart.
                         Text(WorkspacePath.displayName(for: (project.path as NSString).deletingLastPathComponent))
-                            .font(.system(size: 12))
+                            .calmFont(size: 12)
                             .foregroundStyle(style.tertiary)
                             .lineLimit(1)
                             .truncationMode(.head)
                     }
                 }
                 .foregroundStyle(style.tertiary)
-                .padding(.horizontal, 8)
-                .frame(height: 26)
+                .padding(.horizontal, 8.scaled)
+                .frame(height: 26.scaled)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -201,7 +206,7 @@ struct SidebarView: View {
             .help(project.kind == .scratch ? "" : project.path)
             .overlay(alignment: .trailing) {
                 if hoveredGroupID == project.id {
-                    groupControls(project).padding(.trailing, 4)
+                    groupControls(project).padding(.trailing, 4.scaled)
                 }
             }
             .onHover { hoveredGroupID = $0 ? project.id : (hoveredGroupID == project.id ? nil : hoveredGroupID) }
@@ -247,7 +252,7 @@ struct SidebarView: View {
     /// A group's own actions, shown on hover in the place of its summary (UIUX.md → Layout):
     /// + starts a session there; ⋯ holds what changes the group itself, one step away.
     private func groupControls(_ project: Project) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 2.scaled) {
             GroupControl(style: style, systemImage: "plus", help: project.kind == .scratch ? "New Scratch Session" : "New Session Here") {
                 if project.kind == .scratch {
                     actions.newScratchSession()
@@ -283,12 +288,12 @@ struct SidebarView: View {
         if project.kind == .directory {
             // A folder's own name, as it is on disk.
             Text(project.name)
-                .font(.system(size: 13.5, weight: .medium))
+                .calmFont(size: 13.5, weight: .medium)
                 .foregroundStyle(style.secondary)
                 .lineLimit(1)
         } else {
             Text(project.name.uppercased())
-                .font(.system(size: 12, weight: .semibold))
+                .calmFont(size: 12, weight: .semibold)
                 .tracking(0.7)
                 .lineLimit(1)
         }
@@ -310,7 +315,7 @@ struct SidebarView: View {
     private func nameField(_ session: Session) -> some View {
         TextField("Name", text: $draftName, prompt: Text(session.title(agentTitle: session.agent?.tail?.title)))
             .textFieldStyle(.plain)
-            .font(.system(size: 14.5, weight: .medium))
+            .calmFont(size: 14.5, weight: .medium)
             .foregroundStyle(style.primary)
             .focused($nameFieldFocused)
             .onSubmit { actions.rename(session.id, draftName) }
@@ -320,10 +325,10 @@ struct SidebarView: View {
                     actions.rename(session.id, draftName)
                 }
             }
-            .padding(.horizontal, 12)
-            .frame(height: 40)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.selection))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+            .padding(.horizontal, 12.scaled)
+            .frame(height: 40.scaled)
+            .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(style.selection))
+            .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
             .onAppear {
                 // Also where the title's ⋯ menu starts a rename, which only sets `editing`.
                 draftName = session.customName ?? session.title(agentTitle: session.agent?.tail?.title)
@@ -364,21 +369,21 @@ struct SidebarView: View {
     /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.
     private var searchField: some View {
         FooterButton(style: style, help: "Search Sessions (⌘K)", action: actions.search) {
-            HStack(spacing: 10) {
+            HStack(spacing: 10.scaled) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 14, weight: .medium))
+                    .calmFont(size: 14, weight: .medium)
                 Text("Search sessions")
-                    .font(.system(size: 14))
+                    .calmFont(size: 14)
                 Spacer(minLength: 4)
                 KeyCaps(keys: ["⌘", "K"], style: style)
             }
             .foregroundStyle(style.tertiary)
-            .padding(.leading, 12)
-            .padding(.trailing, 9)
+            .padding(.leading, 12.scaled)
+            .padding(.trailing, 9.scaled)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 38)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(style.primary.opacity(0.055)))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(style.primary.opacity(0.06)))
+            .frame(height: 38.scaled)
+            .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(style.primary.opacity(0.055)))
+            .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(style.primary.opacity(0.06)))
         }
         .accessibilityLabel("Search sessions")
     }
@@ -386,30 +391,30 @@ struct SidebarView: View {
     /// The three ways to start something, one row each with its shortcut, so the corner reads at
     /// a glance and every target is a full row.
     private var footer: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 2.scaled) {
             footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
             footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
             footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 10)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 12.scaled)
+        .padding(.top, 10.scaled)
+        .padding(.bottom, 14.scaled)
         .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
     }
 
     private func footerRow(_ title: String, symbol: String, keys: [String], action: @escaping () -> Void) -> some View {
         FooterButton(style: style, help: "\(title) (\(keys.joined()))", action: action) {
-            HStack(spacing: 11) {
+            HStack(spacing: 11.scaled) {
                 Image(systemName: symbol)
-                    .font(.system(size: 14))
-                    .frame(width: 28, height: 28)
-                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.primary.opacity(0.055)))
+                    .calmFont(size: 14)
+                    .frame(width: 28.scaled, height: 28.scaled)
+                    .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.primary.opacity(0.055)))
                 Text(title)
-                    .font(.system(size: 14))
+                    .calmFont(size: 14)
                 Spacer(minLength: 4)
                 KeyCaps(keys: keys, style: style)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 8.scaled)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -426,9 +431,9 @@ private struct FooterButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .frame(minHeight: 40)
+                .frame(minHeight: 40.scaled)
                 .foregroundStyle(hovering ? style.primary : style.secondary)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? style.selection : .clear))
+                .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(hovering ? style.selection : .clear))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -461,10 +466,10 @@ private struct GroupControlLabel: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 11, weight: .semibold))
+            .calmFont(size: 11, weight: .semibold)
             .foregroundStyle(hovering ? style.primary : style.tertiary)
-            .frame(width: 22, height: 22)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(hovering ? style.selection : .clear))
+            .frame(width: 22.scaled, height: 22.scaled)
+            .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(hovering ? style.selection : .clear))
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
     }
@@ -478,10 +483,10 @@ struct ScratchCloseButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "xmark")
-                .font(.system(size: 9, weight: .semibold))
+                .calmFont(size: 9, weight: .semibold)
                 .foregroundStyle(style.secondary)
-                .frame(width: 22, height: 22)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.selection))
+                .frame(width: 22.scaled, height: 22.scaled)
+                .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(style.selection))
         }
         .buttonStyle(.plain)
         .help("Close Scratch Session")
@@ -497,14 +502,17 @@ struct KeyCaps: View {
     var large = false
 
     var body: some View {
-        HStack(spacing: large ? 4 : 3) {
+        HStack(spacing: (large ? 4 : 3).scaled) {
             ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
                 Text(key)
-                    .font(.system(size: large ? 12 : 11.5))
+                    .calmFont(size: large ? 12 : 11.5)
                     .foregroundStyle(style.tertiary)
-                    .frame(minWidth: large ? 24 : 20, minHeight: large ? 24 : 20)
-                    .padding(.horizontal, key.count > 1 ? 4 : 0)
-                    .background(RoundedRectangle(cornerRadius: large ? 6 : 5, style: .continuous).fill(style.primary.opacity(0.06)))
+                    .frame(minWidth: (large ? 24 : 20).scaled, minHeight: (large ? 24 : 20).scaled)
+                    .padding(.horizontal, (key.count > 1 ? 4 : 0).scaled)
+                    .background(
+                        RoundedRectangle(cornerRadius: (large ? 6 : 5).scaled, style: .continuous)
+                            .fill(style.primary.opacity(0.06)),
+                    )
             }
         }
         .accessibilityHidden(true)
@@ -549,11 +557,11 @@ struct GroupMark: View {
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")
-                .font(.system(size: 12))
+                .calmFont(size: 12)
                 .accessibilityLabel("Folder")
         case .scratch:
             Image(systemName: "square.dashed")
-                .font(.system(size: 12))
+                .calmFont(size: 12)
                 .accessibilityLabel("Scratch")
         }
     }
@@ -571,8 +579,9 @@ struct IdenticonTile: View {
         let pixels = Color(hue: hue, saturation: style.isDark ? 0.38 : 0.42, brightness: style.isDark ? 0.78 : 0.62)
         let tile = Color(hue: hue, saturation: 0.18, brightness: style.isDark ? 0.26 : 0.93)
         Canvas { context, size in
-            // Whole points per cell, so the pixels stay crisp instead of blurring across two.
-            let cell: CGFloat = 3
+            // Whole points per cell, so the pixels stay crisp instead of blurring across two: 3 at
+            // the standard interface size, growing with the tile.
+            let cell = (size.width * 0.15).rounded()
             let inset = (size.width - cell * CGFloat(Identicon.size)) / 2
             var cells = Path()
             for (row, columns) in identicon.cells.enumerated() {
@@ -586,7 +595,7 @@ struct IdenticonTile: View {
             )
             context.fill(cells, with: .color(pixels))
         }
-        .frame(width: 20, height: 20)
+        .frame(width: 20.scaled, height: 20.scaled)
     }
 }
 
@@ -601,14 +610,14 @@ struct SessionRow: View {
     var onClose: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 10.scaled) {
             Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .calmFont(size: 10, weight: .semibold)
                 .foregroundStyle(style.tertiary)
-                .frame(width: 26, height: 26)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+                .frame(width: 26.scaled, height: 26.scaled)
+                .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
             ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
-                .font(.system(size: 14, weight: isSelected ? .medium : .regular))
+                .calmFont(size: 14, weight: isSelected ? .medium : .regular)
                 .foregroundStyle(isSelected ? style.primary : style.secondary)
             Spacer(minLength: 4)
             if let onClose {
@@ -617,10 +626,10 @@ struct SessionRow: View {
                 StateMark(state: session.state, style: style)
             }
         }
-        .padding(.horizontal, 12)
-        .frame(height: 40)
+        .padding(.horizontal, 12.scaled)
+        .frame(height: 40.scaled)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
         )
         .contentShape(Rectangle())

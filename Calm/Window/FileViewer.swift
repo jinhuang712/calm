@@ -245,10 +245,10 @@ struct ViewerHeader: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
                 Text((path as NSString).lastPathComponent)
-                    .font(.system(size: 13, weight: .medium))
+                    .calmFont(size: 13, weight: .medium)
                     .foregroundStyle(style.primary)
                 Text((path as NSString).abbreviatingWithTildeInPath)
-                    .font(.system(size: 11))
+                    .calmFont(size: 11)
                     .foregroundStyle(style.tertiary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -258,7 +258,7 @@ struct ViewerHeader: View {
                 .controlSize(.small)
             Button(action: onBack) {
                 Text("esc · Back to \(sessionTitle)")
-                    .font(.system(size: 11))
+                    .calmFont(size: 11)
                     .foregroundStyle(style.secondary)
                     .lineLimit(1)
             }

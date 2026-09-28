@@ -5,7 +5,8 @@ import AppKit
 @MainActor
 final class SidebarPeek {
     private weak var container: NSView?
-    private let width: CGFloat
+    /// Follows the interface size (MainWindowController.applyAppearance).
+    var width: CGFloat
     private let makeSidebar: () -> NSView
     private let sensor = EdgeSensor()
     private var panel: PeekPanel?

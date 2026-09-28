@@ -199,7 +199,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 | Section | Contents |
 |---|---|
-| **Appearance** | a live miniature of the window, the themes, glass or solid, edge to edge or card, motion (full, reduced, off) |
+| **Appearance** | a live miniature of the window, the themes, interface size, glass or solid, edge to edge or card, motion (full, reduced, off) |
 | **Agents** | each installed agent with its mark and where it stands (Connected, One step left, or Connect/Disconnect where Calm must add a file), which states notify, sound. Calm → Agents… opens this section |
 | **General** | editor, where paths open, auto-grouping, and the config files (Calm's, Ghostty's with the font it sets, the themes folder) |
 | **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
@@ -245,7 +245,8 @@ Audited against Ghostty's macOS defaults (M1.10):
 - Full keyboard operation.
 - VoiceOver labels for every sidebar row and state.
 - State is never shown by color alone: each state also has a shape.
-- Respects Reduce Motion, Increase Contrast and system text size for chrome.
+- Respects Reduce Motion and Increase Contrast.
+- **Interface size** (Settings → Appearance): Default, Large, Larger or Largest (100, 115, 130, 150%) scales every size and length in Calm's chrome at once: the sidebar and its width, cards, the files column, search, the palette, the arrival card, the welcome page and Settings. The terminal keeps the Ghostty font's size (⌘+ and ⌘−). A change applies at once; saved as `ui-size` in `config.toml`.
 - **Increase Contrast:** the chrome's secondary text, hints, selection and dividers get stronger. A Calm theme's text colors each reach 4.5:1 by moving toward white (dark) or black (light), so dim text stays dimmer than normal text. A theme from the user's Ghostty config is left as it is (Ghostty's `minimum-contrast` is theirs to set).
 - A change to Reduce Motion or Increase Contrast in System Settings applies at once, without a relaunch.
 - The files column's files are buttons, so Full Keyboard Access and VoiceOver reach them; each reads its name and change ("README.md, modified").

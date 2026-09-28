@@ -79,6 +79,15 @@ struct CalmSettingsWritingTests {
         #expect(CalmSettings(text: "[window]\nlayout = \"floating\"\n").windowLayout == .edge)
     }
 
+    @Test func `interface size: standard unless set, and it only grows`() {
+        #expect(CalmSettings(text: "").interfaceSize == .standard)
+        #expect(CalmSettings(text: "ui-size = \"Larger\"\n").interfaceSize == .larger)
+        #expect(CalmSettings(text: "ui-size = \"huge\"\n").interfaceSize == .standard)
+        let scales = CalmSettings.InterfaceSize.allCases.map(\.scale)
+        #expect(scales.first == 1)
+        #expect(scales == scales.sorted())
+    }
+
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {
         let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
         #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")

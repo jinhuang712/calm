@@ -35,6 +35,26 @@ public extension CalmSettings {
         values["window.layout"].flatMap { WindowLayout(rawValue: $0.lowercased()) } ?? .edge
     }
 
+    /// How large Calm's own interface is drawn (UIUX.md → Accessibility): the sidebar, cards,
+    /// Settings and panels, not the terminal, whose text is the Ghostty font's.
+    enum InterfaceSize: String, Sendable, CaseIterable {
+        case standard, large, larger, largest
+
+        /// Every size and length in the chrome is multiplied by this.
+        public var scale: Double {
+            switch self {
+            case .standard: 1
+            case .large: 1.15
+            case .larger: 1.3
+            case .largest: 1.5
+            }
+        }
+    }
+
+    var interfaceSize: InterfaceSize {
+        values["ui-size"].flatMap { InterfaceSize(rawValue: $0.lowercased()) } ?? .standard
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {

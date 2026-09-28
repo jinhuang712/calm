@@ -16,18 +16,18 @@ struct SessionCard: View {
     var onClose: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 6.scaled) {
+            HStack(spacing: 10.scaled) {
                 AgentLogo(agent: agent, state: session.state, style: style)
                 ScrollingTitle(text: title, isHovered: isHovered)
-                    .font(.system(size: 14.5, weight: .medium))
+                    .calmFont(size: 14.5, weight: .medium)
                     .foregroundStyle(isAsleep ? style.secondary : style.primary)
                 Spacer(minLength: 4)
                 if let onClose {
                     ScratchCloseButton(style: style, action: onClose)
                 } else if let date = session.lastReport?.date ?? session.agent?.startedAt {
                     RelativeTimeText(date: date)
-                        .font(.system(size: 12))
+                        .calmFont(size: 12)
                         .foregroundStyle(style.tertiary)
                 }
             }
@@ -41,7 +41,7 @@ struct SessionCard: View {
             }
             if let message = recap {
                 Text(message)
-                    .font(.system(size: 13))
+                    .calmFont(size: 13)
                     .lineSpacing(1.5)
                     .foregroundStyle(style.secondary)
                     .lineLimit(isCompact ? 1 : 2)
@@ -50,17 +50,17 @@ struct SessionCard: View {
             }
             if let worktree = GitRoot.worktreeName(session.workingDirectory) {
                 Label(worktree, systemImage: "arrow.triangle.branch")
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)
                     .lineLimit(1)
                     .padding(.leading, Self.indent)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 12.scaled)
         .padding(.vertical, isCompact ? 8 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(background))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(border))
+        .background(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).fill(background))
+        .overlay(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).strokeBorder(border))
         .contentShape(Rectangle())
         .animation(.easeInOut(duration: 0.25), value: session.state)
         .accessibilityElement(children: .combine)
@@ -90,14 +90,14 @@ struct SessionCard: View {
             // Twice a minute, for the time it's been at it.
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 ShimmerText(text: workingLine(at: context.date), color: style.working, highlight: style.workingHighlight)
-                    .font(.system(size: 13, weight: .medium))
+                    .calmFont(size: 13, weight: .medium)
                     .lineLimit(1)
             }
         } else {
-            HStack(spacing: 7) {
+            HStack(spacing: 7.scaled) {
                 StateMark(state: session.state, style: style)
                 Text(session.state.label)
-                    .font(.system(size: 13, weight: session.state == .done ? .medium : .regular))
+                    .calmFont(size: 13, weight: session.state == .done ? .medium : .regular)
                     .foregroundStyle(stateColor)
                     .lineLimit(1)
             }
@@ -142,7 +142,10 @@ struct SessionCard: View {
     }
 
     /// The detail lines start under the title, past the agent mark.
-    static let indent: CGFloat = 36
+    @MainActor
+    static var indent: CGFloat {
+        36.scaled
+    }
 
     /// The state's color and how strongly the card takes it.
     private struct Tint {
@@ -186,7 +189,7 @@ struct TodoProgressLine: View {
     let style: SidebarStyle
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 8.scaled) {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule().fill(style.selection)
@@ -195,9 +198,9 @@ struct TodoProgressLine: View {
                         .frame(width: geometry.size.width * CGFloat(progress.done) / CGFloat(max(progress.total, 1)))
                 }
             }
-            .frame(height: 4)
+            .frame(height: 4.scaled)
             Text("\(progress.done) of \(progress.total)")
-                .font(.system(size: 12))
+                .calmFont(size: 12)
                 .monospacedDigit()
                 .foregroundStyle(style.tertiary)
                 .fixedSize()
@@ -214,25 +217,25 @@ struct StateMark: View {
     var body: some View {
         switch state {
         case .needsYou:
-            Circle().fill(style.attention).frame(width: 8, height: 8)
+            Circle().fill(style.attention).frame(width: 8.scaled, height: 8.scaled)
         case .done:
             // Filled, so done reads at a glance next to the other marks.
             Circle()
                 .fill(style.done)
-                .frame(width: 14, height: 14)
+                .frame(width: 14.scaled, height: 14.scaled)
                 .overlay(
                     Image(systemName: "checkmark")
-                        .font(.system(size: 7.5, weight: .heavy))
+                        .calmFont(size: 7.5, weight: .heavy)
                         .foregroundStyle(style.background),
                 )
         case .failed:
             Image(systemName: "xmark")
-                .font(.system(size: 10, weight: .semibold))
+                .calmFont(size: 10, weight: .semibold)
                 .foregroundStyle(style.failure)
         case .working:
-            Circle().stroke(style.working, lineWidth: 1.5).frame(width: 8, height: 8)
+            Circle().stroke(style.working, lineWidth: 1.5).frame(width: 8.scaled, height: 8.scaled)
         case .idle:
-            Circle().fill(style.tertiary.opacity(0.6)).frame(width: 6, height: 6)
+            Circle().fill(style.tertiary.opacity(0.6)).frame(width: 6.scaled, height: 6.scaled)
         }
     }
 }

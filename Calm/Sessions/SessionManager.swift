@@ -31,7 +31,11 @@ final class SessionManager {
     @ObservationIgnored var persistenceEnabled = true
 
     /// Calm's own settings (`~/.config/calm/config.toml`); re-read with Reload Configuration.
-    @ObservationIgnored var settings = CalmSettings.load()
+    @ObservationIgnored var settings = CalmSettings.load() {
+        didSet {
+            InterfaceScale.shared.update(from: settings)
+        }
+    }
 
     /// Whether sessions move between projects when their folder changes (config: `auto-grouping`).
     var autoGrouping: Bool {

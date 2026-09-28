@@ -7,20 +7,38 @@ import SwiftUI
 
 /// The page's sizes, in one place: roomy enough to read at a glance in a large window, as the
 /// sidebar is (UIUX.md → Settings screen).
+@MainActor
 enum SettingsMetrics {
+    // Type sizes at the standard interface size: `.calmFont` grows them.
     static let title: CGFloat = 34
     static let heading: CGFloat = 16
     static let label: CGFloat = 17
     static let note: CGFloat = 14
     static let control: CGFloat = 15
-    static let controlHeight: CGFloat = 32
-    static let rowHeight: CGFloat = 64
-    static let rowInset: CGFloat = 20
-    /// The section list's own sizes: a step above the sidebar's, to match the page.
+    /// The section list's type, a step above the sidebar's to match the page.
     static let listTitle: CGFloat = 24
     static let listItem: CGFloat = 16
-    static let listRow: CGFloat = 46
-    static let listTile: CGFloat = 32
+
+    /// Lengths, already at the interface size.
+    static var controlHeight: CGFloat {
+        32.scaled
+    }
+
+    static var rowHeight: CGFloat {
+        64.scaled
+    }
+
+    static var rowInset: CGFloat {
+        20.scaled
+    }
+
+    static var listRow: CGFloat {
+        46.scaled
+    }
+
+    static var listTile: CGFloat {
+        32.scaled
+    }
 }
 
 /// A section's title, and the line under it when it has one.
@@ -30,15 +48,15 @@ struct SettingsTitle: View {
     let style: SidebarStyle
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6.scaled) {
             Text(title)
-                .font(.system(size: SettingsMetrics.title, weight: .medium))
+                .calmFont(size: SettingsMetrics.title, weight: .medium)
                 .tracking(-0.3)
                 .foregroundStyle(style.primary)
                 .accessibilityAddTraits(.isHeader)
             if let note {
                 Text(note)
-                    .font(.system(size: SettingsMetrics.label))
+                    .calmFont(size: SettingsMetrics.label)
                     .foregroundStyle(style.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -56,19 +74,19 @@ struct GroupHeading: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: SettingsMetrics.heading, weight: .medium))
+                .calmFont(size: SettingsMetrics.heading, weight: .medium)
                 .foregroundStyle(style.secondary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
             if let note {
                 Text(note)
-                    .font(.system(size: SettingsMetrics.note))
+                    .calmFont(size: SettingsMetrics.note)
                     .foregroundStyle(style.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.bottom, 12)
-        .padding(.leading, 2)
+        .padding(.bottom, 12.scaled)
+        .padding(.leading, 2.scaled)
     }
 }
 
@@ -81,8 +99,8 @@ struct SettingsGroup<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(style.groupFill))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(style.hairline))
+        .background(RoundedRectangle(cornerRadius: 14.scaled, style: .continuous).fill(style.groupFill))
+        .overlay(RoundedRectangle(cornerRadius: 14.scaled, style: .continuous).strokeBorder(style.hairline))
     }
 }
 
@@ -105,14 +123,14 @@ struct SettingsRow<Control: View>: View {
     @ViewBuilder let control: Control
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 16.scaled) {
+            VStack(alignment: .leading, spacing: 4.scaled) {
                 Text(title)
-                    .font(.system(size: SettingsMetrics.label))
+                    .calmFont(size: SettingsMetrics.label)
                     .foregroundStyle(style.primary)
                 if let note {
                     Text(note)
-                        .font(.system(size: SettingsMetrics.note))
+                        .calmFont(size: SettingsMetrics.note)
                         .foregroundStyle(style.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -121,7 +139,7 @@ struct SettingsRow<Control: View>: View {
             control
         }
         .padding(.horizontal, SettingsMetrics.rowInset)
-        .padding(.vertical, 14)
+        .padding(.vertical, 14.scaled)
         .frame(minHeight: SettingsMetrics.rowHeight)
         .accessibilityElement(children: .contain)
     }
@@ -139,13 +157,13 @@ struct CalmSegmented<Value: Hashable>: View {
     let onSelect: (Value) -> Void
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 2.scaled) {
             ForEach(options, id: \.value) { option in
                 segment(option.value, label: option.label)
             }
         }
-        .padding(2)
-        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.primary.opacity(0.08)))
+        .padding(2.scaled)
+        .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.primary.opacity(0.08)))
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.45 : 1)
         .accessibilityElement(children: .contain)
@@ -160,11 +178,11 @@ struct CalmSegmented<Value: Hashable>: View {
             onSelect(value)
         } label: {
             Text(label)
-                .font(.system(size: SettingsMetrics.control))
+                .calmFont(size: SettingsMetrics.control)
                 .foregroundStyle(chosen ? style.primary : style.secondary)
-                .frame(width: segmentWidth, height: SettingsMetrics.controlHeight)
+                .frame(width: segmentWidth.scaled, height: SettingsMetrics.controlHeight)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6.scaled, style: .continuous)
                         .fill(chosen ? style.raisedFill : Color.clear)
                         .shadow(color: .black.opacity(shadow), radius: 1, y: 1),
                 )
@@ -186,12 +204,12 @@ struct CalmSwitchStyle: ToggleStyle {
         } label: {
             Capsule()
                 .fill(configuration.isOn ? style.accent : style.primary.opacity(style.isDark ? 0.2 : 0.16))
-                .frame(width: 44, height: 26)
+                .frame(width: 44.scaled, height: 26.scaled)
                 .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                     Circle()
                         .fill(style.isDark ? Color(white: 0.93) : .white)
                         .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
-                        .padding(2)
+                        .padding(2.scaled)
                 }
                 .animation(.easeOut(duration: 0.15), value: configuration.isOn)
         }
@@ -208,12 +226,12 @@ struct SettingsButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: SettingsMetrics.control))
+            .calmFont(size: SettingsMetrics.control)
             .foregroundStyle(style.primary)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 16.scaled)
             .frame(height: SettingsMetrics.controlHeight)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 7.scaled, style: .continuous)
                     .fill(style.buttonFill.opacity(configuration.isPressed ? 0.7 : 1))
                     .shadow(color: .black.opacity(style.isDark ? 0 : 0.12), radius: 0.5, y: 0.5),
             )
@@ -243,12 +261,12 @@ struct SettingsMenu<Value: Hashable>: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 8.scaled) {
                 Text(current)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
+                    .calmFont(size: 12, weight: .semibold)
             }
-            .font(.system(size: SettingsMetrics.control))
+            .calmFont(size: SettingsMetrics.control)
             .foregroundStyle(style.primary)
         }
         .menuStyle(.button)
@@ -267,7 +285,7 @@ struct WarningMark: View {
 
     var body: some View {
         Image(systemName: "exclamationmark.triangle")
-            .font(.system(size: size - 1, weight: .medium))
+            .calmFont(size: size - 1, weight: .medium)
             .foregroundStyle(style.failure)
             .accessibilityLabel("Needs attention")
     }

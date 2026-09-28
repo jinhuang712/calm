@@ -11,6 +11,11 @@ struct AgentLogo: View {
     /// The session's state; nil where the mark only names the agent (welcome page, search).
     var state: SessionState?
     var size: CGFloat = 26
+    /// `size` at the interface size.
+    private var side: CGFloat {
+        size.scaled
+    }
+
     /// The sidebar's colors; nil for the system's (search, Settings).
     var style: SidebarStyle?
     /// When the work ended, while the mark settles.
@@ -31,15 +36,15 @@ struct AgentLogo: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
+            RoundedRectangle(cornerRadius: side * 0.3, style: .continuous)
                 .fill(ink.opacity(isDark ? 0.07 : 0.06))
             mark
                 // Idle: the agent is there but asleep (drawn in grays, below).
                 .opacity(state == .idle ? 0.45 : 1)
         }
-        .frame(width: size, height: size)
+        .frame(width: side, height: side)
         // Built marks drop in from above the tile.
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: side * 0.3, style: .continuous))
         .animation(.easeInOut(duration: 0.25), value: state)
         .onChange(of: state) { old, new in
             if new == .working {
@@ -67,17 +72,17 @@ struct AgentLogo: View {
                 TimelineView(.animation(minimumInterval: 1 / 30)) { context in
                     MarkDrawing(
                         art: art, paths: paths, pose: pose(art, at: context.date),
-                        time: context.date.timeIntervalSinceReferenceDate, size: size, isDark: isDark, ink: ink,
+                        time: context.date.timeIntervalSinceReferenceDate, size: side, isDark: isDark, ink: ink,
                     )
                 }
             } else {
                 MarkDrawing(
-                    art: art, paths: paths, pose: MarkPose(), time: 0, size: size, isDark: isDark, ink: ink, asleep: state == .idle,
+                    art: art, paths: paths, pose: MarkPose(), time: 0, size: side, isDark: isDark, ink: ink, asleep: state == .idle,
                 )
             }
         } else {
             Text(agent.monogram)
-                .font(.system(size: size * 0.46, weight: .semibold, design: .rounded))
+                .calmFont(size: size * 0.46, weight: .semibold, design: .rounded)
                 .foregroundStyle(ink.opacity(0.6))
         }
     }

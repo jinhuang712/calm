@@ -7,7 +7,7 @@ import SwiftUI
 enum CopyToast {
     static func show(_ text: String, at point: NSPoint, in container: NSView) {
         let host = NSHostingView(rootView: Text(text)
-            .font(.system(size: 11, weight: .medium))
+            .calmFont(size: 11, weight: .medium)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

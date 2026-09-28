@@ -29,7 +29,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var settingsPage = SettingsPage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
 
-    static let sidebarWidth = SidebarView.width
+    static var sidebarWidth: CGFloat {
+        SidebarView.width
+    }
 
     var focusedPane: TerminalSurfaceView? {
         guard let layout = manager.workspace.selectedLayout else { return nil }
@@ -282,6 +284,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         )
         fileViewer.cornerRadius = windowStyle.cornerRadius
         sidebarStyle = style
+        // The interface size sets the sidebar's width (a hidden sidebar stays hidden).
+        if let sidebarWidth, sidebarWidth.constant > 0, sidebarWidth.constant != Self.sidebarWidth {
+            sidebarWidth.constant = Self.sidebarWidth
+        }
+        peek?.width = Self.sidebarWidth
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)

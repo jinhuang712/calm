@@ -251,7 +251,7 @@ struct SessionSwitcherView: View {
                         .clipped()
                 } else {
                     Image(systemName: "terminal")
-                        .font(.system(size: 20, weight: .light))
+                        .calmFont(size: 20, weight: .light)
                         .foregroundStyle(style.tertiary)
                 }
             }
@@ -263,10 +263,10 @@ struct SessionSwitcherView: View {
             )
             VStack(alignment: .leading, spacing: 1) {
                 Text(session.displayTitle)
-                    .font(.system(size: 12, weight: isSelected ? .medium : .regular))
+                    .calmFont(size: 12, weight: isSelected ? .medium : .regular)
                     .foregroundStyle(isSelected ? style.primary : style.secondary)
                 Text(projectName(session.projectID))
-                    .font(.system(size: 11))
+                    .calmFont(size: 11)
                     .foregroundStyle(style.tertiary)
             }
             .lineLimit(1)

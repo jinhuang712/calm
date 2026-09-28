@@ -96,7 +96,7 @@ struct WelcomeView: View {
         ViewThatFits {
             roomy
             compact
-            ScrollView { compact.padding(.vertical, 24) }
+            ScrollView { compact.padding(.vertical, 24.scaled) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Under the title bar too, so only the traffic lights show above it.
@@ -105,20 +105,20 @@ struct WelcomeView: View {
     }
 
     private var roomy: some View {
-        VStack(spacing: 40) {
-            VStack(spacing: 18) {
+        VStack(spacing: 40.scaled) {
+            VStack(spacing: 18.scaled) {
                 CalmMark(color: style.accent)
-                VStack(spacing: 8) {
+                VStack(spacing: 8.scaled) {
                     Text(title)
-                        .font(.system(size: 34, weight: .medium))
+                        .calmFont(size: 34, weight: .medium)
                         .tracking(-0.3)
                         .foregroundStyle(style.primary)
                     Text(subtitle)
-                        .font(.system(size: 15))
+                        .calmFont(size: 15)
                         .foregroundStyle(style.secondary)
                 }
             }
-            HStack(spacing: 16) {
+            HStack(spacing: 16.scaled) {
                 ForEach(Array(choices.enumerated()), id: \.element.id) { index, choice in
                     WelcomeCard(
                         title: choice.title, detail: choice.detail, symbol: choice.symbol, keys: choice.keys,
@@ -126,58 +126,58 @@ struct WelcomeView: View {
                     )
                 }
             }
-            .frame(width: 700)
+            .frame(width: 700.scaled)
             WelcomeAgents(style: style, action: actions.setUpAgents)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 24.scaled)
         // As tall as the title bar, so the block sits centered in the window, not under it.
-        .padding(.bottom, 44)
+        .padding(.bottom, 44.scaled)
     }
 
     private var compact: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 22.scaled) {
+            VStack(alignment: .leading, spacing: 6.scaled) {
                 Text(title)
-                    .font(.system(size: 22, weight: .medium))
+                    .calmFont(size: 22, weight: .medium)
                     .foregroundStyle(style.primary)
                 Text(subtitle)
-                    .font(.system(size: 13))
+                    .calmFont(size: 13)
                     .foregroundStyle(style.secondary)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 4.scaled) {
                 ForEach(choices) { row($0) }
             }
             Button(action: actions.setUpAgents) {
                 Text("Works with \(AgentKind.allCases.map(\.displayName).formatted(.list(type: .and))). Set up agents…")
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)
                     .multilineTextAlignment(.leading)
             }
             .buttonStyle(.plain)
         }
-        .frame(width: 420, alignment: .leading)
-        .padding(.horizontal, 24)
+        .frame(width: 420.scaled, alignment: .leading)
+        .padding(.horizontal, 24.scaled)
     }
 
     private func row(_ choice: Choice) -> some View {
         Button(action: choice.action) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 12.scaled) {
+                VStack(alignment: .leading, spacing: 2.scaled) {
                     Text(choice.title)
-                        .font(.system(size: 13, weight: .medium))
+                        .calmFont(size: 13, weight: .medium)
                         .foregroundStyle(style.primary)
                     Text(choice.detail)
-                        .font(.system(size: 12))
+                        .calmFont(size: 12)
                         .foregroundStyle(style.secondary)
                 }
                 Spacer(minLength: 8)
                 Text(choice.keys.joined())
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.selection))
+            .padding(.horizontal, 12.scaled)
+            .padding(.vertical, 9.scaled)
+            .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.selection))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -190,17 +190,17 @@ private struct CalmMark: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 17, style: .continuous)
+            RoundedRectangle(cornerRadius: 17.scaled, style: .continuous)
                 .stroke(color.opacity(0.22), lineWidth: 1.5)
-                .frame(width: 52, height: 52)
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .frame(width: 52.scaled, height: 52.scaled)
+            RoundedRectangle(cornerRadius: 11.scaled, style: .continuous)
                 .stroke(color.opacity(0.45), lineWidth: 1.5)
-                .frame(width: 34, height: 34)
-            RoundedRectangle(cornerRadius: 5.5, style: .continuous)
+                .frame(width: 34.scaled, height: 34.scaled)
+            RoundedRectangle(cornerRadius: 5.5.scaled, style: .continuous)
                 .fill(color.opacity(0.85))
-                .frame(width: 16, height: 16)
+                .frame(width: 16.scaled, height: 16.scaled)
         }
-        .frame(width: 60, height: 60)
+        .frame(width: 60.scaled, height: 60.scaled)
         .accessibilityHidden(true)
     }
 }
@@ -220,31 +220,31 @@ private struct WelcomeCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
                 Image(systemName: symbol)
-                    .font(.system(size: 15))
+                    .calmFont(size: 15)
                     .foregroundStyle(isFirst ? style.accent : style.secondary)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 36.scaled, height: 36.scaled)
                     .background(Circle().fill(isFirst ? style.accent.opacity(0.16) : style.primary.opacity(0.08)))
-                    .padding(.bottom, 14)
+                    .padding(.bottom, 14.scaled)
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .calmFont(size: 15, weight: .medium)
                     .foregroundStyle(style.primary)
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 4.scaled)
                 // Room for two lines on every card, so the key caps line up across them.
                 Text(detail)
-                    .font(.system(size: 12.5))
+                    .calmFont(size: 12.5)
                     .foregroundStyle(style.secondary)
                     .lineLimit(2, reservesSpace: true)
                 Spacer(minLength: 12)
                 KeyCaps(keys: keys, style: style, large: true)
             }
-            .padding(20)
+            .padding(20.scaled)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 180)
+            .frame(height: 180.scaled)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 16.scaled, style: .continuous)
                     .fill(style.primary.opacity(hovering ? 0.085 : 0.055)),
             )
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(style.primary.opacity(0.08)))
+            .overlay(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).strokeBorder(style.primary.opacity(0.08)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -261,11 +261,11 @@ private struct WelcomeAgents: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 14.scaled) {
                 Text("Works with")
                     .foregroundStyle(style.tertiary)
                 ForEach(AgentKind.allCases, id: \.self) { agent in
-                    HStack(spacing: 6) {
+                    HStack(spacing: 6.scaled) {
                         AgentLogo(agent: agent, size: 20, style: style)
                         Text(agent.displayName)
                             .foregroundStyle(style.secondary)
@@ -274,16 +274,16 @@ private struct WelcomeAgents: View {
                 Rectangle()
                     .fill(style.primary.opacity(0.1))
                     .frame(width: 1, height: 14)
-                HStack(spacing: 4) {
+                HStack(spacing: 4.scaled) {
                     Text("Set up agents")
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .calmFont(size: 9, weight: .semibold)
                 }
                 .foregroundStyle(hovering ? style.primary : style.secondary)
             }
-            .font(.system(size: 12.5))
-            .padding(.horizontal, 16)
-            .frame(height: 36)
+            .calmFont(size: 12.5)
+            .padding(.horizontal, 16.scaled)
+            .frame(height: 36.scaled)
             .background(Capsule().fill(style.primary.opacity(hovering ? 0.05 : 0)))
             .overlay(Capsule().strokeBorder(style.primary.opacity(0.08)))
             .contentShape(Capsule())

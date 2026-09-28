@@ -24,9 +24,9 @@ struct CommandPaletteView: View {
             VStack(spacing: 0) {
                 TextField("Run a command", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 16))
-                    .padding(.horizontal, 18)
-                    .frame(height: 50)
+                    .calmFont(size: 16)
+                    .padding(.horizontal, 18.scaled)
+                    .frame(height: 50.scaled)
                     .focused($fieldFocused)
                     .onSubmit(runSelection)
                     .onChange(of: query) { selection = 0 }
@@ -35,34 +35,34 @@ struct CommandPaletteView: View {
 
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 2) {
+                        LazyVStack(spacing: 2.scaled) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, command in
                                 row(command, selected: index == selection)
                                     .id(index)
                                     .onTapGesture { onRun(command) }
                             }
                         }
-                        .padding(6)
+                        .padding(6.scaled)
                     }
-                    .frame(maxHeight: 360)
+                    .frame(maxHeight: 360.scaled)
                     .onChange(of: selection) { proxy.scrollTo(selection, anchor: .center) }
                 }
 
                 if results.isEmpty {
                     Text("No matching command")
-                        .font(.system(size: 13))
+                        .calmFont(size: 13)
                         .foregroundStyle(.secondary)
-                        .frame(height: 44)
+                        .frame(height: 44.scaled)
                 }
             }
-            .frame(width: 560)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .frame(width: 560.scaled)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14.scaled, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 14.scaled, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.08)),
             )
             .shadow(color: .black.opacity(0.25), radius: 24, y: 12)
-            .padding(.top, 90)
+            .padding(.top, 90.scaled)
         }
         .environment(\.colorScheme, isDark ? .dark : .light)
         .onAppear { fieldFocused = true }
@@ -81,14 +81,14 @@ struct CommandPaletteView: View {
     }
 
     private func row(_ command: TerminalCommand, selected: Bool) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12.scaled) {
+            VStack(alignment: .leading, spacing: 2.scaled) {
                 Text(command.title)
-                    .font(.system(size: 13, weight: .medium))
+                    .calmFont(size: 13, weight: .medium)
                     .foregroundStyle(.primary)
                 if !command.detail.isEmpty {
                     Text(command.detail)
-                        .font(.system(size: 12))
+                        .calmFont(size: 12)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -96,14 +96,14 @@ struct CommandPaletteView: View {
             Spacer(minLength: 12)
             if !command.shortcut.isEmpty {
                 Text(command.shortcut)
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 12.scaled)
+        .padding(.vertical, 7.scaled)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
                 .fill(selected ? Color.primary.opacity(0.08) : .clear),
         )
         .contentShape(Rectangle())

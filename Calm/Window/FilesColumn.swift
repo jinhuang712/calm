@@ -193,21 +193,21 @@ struct FilesColumnView: View {
     var body: some View {
         let style = model.style
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2.scaled) {
                 Text(model.title)
-                    .font(.system(size: 12, weight: .medium))
+                    .calmFont(size: 12, weight: .medium)
                     .foregroundStyle(style.primary)
                     .lineLimit(1)
                 if let branch = model.branch, !branch.isEmpty {
                     Text(model.changedCount > 0 ? "\(branch) · \(model.changedCount) Δ" : branch)
-                        .font(.system(size: 11))
+                        .calmFont(size: 11)
                         .foregroundStyle(style.tertiary)
                         .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 40)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 14.scaled)
+            .padding(.top, 40.scaled)
+            .padding(.bottom, 8.scaled)
 
             // Files are buttons rather than selected rows: the list's own selection is the system
             // accent, louder than the sidebar's quiet highlight. Buttons also reach the keyboard
@@ -225,7 +225,7 @@ struct FilesColumnView: View {
                 }
                 .accessibilityLabel(accessibilityLabel(node))
                 .listRowBackground(
-                    isViewed(node) ? RoundedRectangle(cornerRadius: 5).fill(style.selection).padding(.horizontal, 8) : nil,
+                    isViewed(node) ? RoundedRectangle(cornerRadius: 5.scaled).fill(style.selection).padding(.horizontal, 8.scaled) : nil,
                 )
             }
             .listStyle(.sidebar)
@@ -260,19 +260,19 @@ struct FilesColumnView: View {
 
     private func row(_ node: FileNode, style: SidebarStyle) -> some View {
         let viewed = isViewed(node)
-        return HStack(spacing: 6) {
+        return HStack(spacing: 6.scaled) {
             Text(node.name)
-                .font(.system(size: 12, weight: viewed ? .medium : .regular))
+                .calmFont(size: 12, weight: viewed ? .medium : .regular)
                 .foregroundStyle(viewed ? style.primary : style.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 4)
             if let change = node.change, !node.isFolder {
                 Text(change.rawValue)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .calmFont(size: 10, weight: .medium, design: .monospaced)
                     .foregroundStyle(change == .deleted ? style.failure : style.tertiary)
             } else if node.change != nil {
-                Circle().fill(style.tertiary).frame(width: 4, height: 4)
+                Circle().fill(style.tertiary).frame(width: 4.scaled, height: 4.scaled)
             }
         }
     }

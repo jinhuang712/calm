@@ -101,39 +101,39 @@ struct ArrivalCardView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 5.scaled) {
+            HStack(spacing: 8.scaled) {
                 StateMark(state: session.state, style: style)
                 Text(session.title(agentTitle: agent.tail?.title))
-                    .font(.system(size: 13, weight: .medium))
+                    .calmFont(size: 13, weight: .medium)
                     .foregroundStyle(style.primary)
                     .lineLimit(1)
                 Text("·").foregroundStyle(style.tertiary)
                 Text(session.state.label)
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.secondary)
                 Text("·").foregroundStyle(style.tertiary)
                 RelativeTimeText(date: session.lastReport?.date ?? agent.startedAt)
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)
                 Spacer(minLength: 0)
             }
             if let message {
                 Text(message)
-                    .font(.system(size: 12))
+                    .calmFont(size: 12)
                     .foregroundStyle(style.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14.scaled)
+        .padding(.vertical, 10.scaled)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(style.background))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(style.tertiary.opacity(0.25)))
+        .background(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).fill(style.background))
+        .overlay(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.25)))
         .shadow(color: .black.opacity(style.isDark ? 0.3 : 0.1), radius: 14, y: 4)
-        .padding(.horizontal, 2)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 2.scaled)
+        .padding(.bottom, 4.scaled)
         .contentShape(Rectangle())
         .onTapGesture(perform: onDismiss)
         .environment(\.colorScheme, style.isDark ? .dark : .light)

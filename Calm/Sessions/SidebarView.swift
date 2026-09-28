@@ -170,7 +170,7 @@ struct SidebarView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
                         .frame(width: 10)
-                    GroupMark(kind: project.kind, style: style)
+                    GroupMark(project: project, style: style)
                     groupName(project)
                     Spacer(minLength: 4)
                     if hoveredGroupID == project.id {
@@ -552,15 +552,13 @@ struct SidebarActions {
 
 /// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.
 struct GroupMark: View {
-    let kind: Project.Kind
+    let project: Project
     let style: SidebarStyle
 
     var body: some View {
-        switch kind {
+        switch project.kind {
         case .project:
-            Image(systemName: "square.stack")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(style.accent)
+            IdenticonTile(identicon: Identicon(name: project.name), style: style)
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")
@@ -571,6 +569,34 @@ struct GroupMark: View {
                 .font(.system(size: 12))
                 .accessibilityLabel("Scratch")
         }
+    }
+}
+
+/// A project's pixel mark from its name, in the space a 12 pt symbol takes: the theme's
+/// secondary text on a faint tile of it, so only shape tells projects apart and color stays
+/// for state (UIUX.md → Color).
+struct IdenticonTile: View {
+    let identicon: Identicon
+    let style: SidebarStyle
+
+    var body: some View {
+        Canvas { context, size in
+            // Whole points per cell, so the pixels stay crisp instead of blurring across two.
+            let cell: CGFloat = 2
+            let inset = (size.width - cell * CGFloat(Identicon.size)) / 2
+            var cells = Path()
+            for (row, columns) in identicon.cells.enumerated() {
+                for (column, isOn) in columns.enumerated() where isOn {
+                    cells.addRect(CGRect(x: inset + CGFloat(column) * cell, y: inset + CGFloat(row) * cell, width: cell, height: cell))
+                }
+            }
+            context.fill(
+                Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: size.width * 0.24, style: .continuous),
+                with: .color(style.secondary.opacity(0.14)),
+            )
+            context.fill(cells, with: .color(style.secondary))
+        }
+        .frame(width: 14, height: 14)
     }
 }
 

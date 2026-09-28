@@ -572,14 +572,17 @@ struct GroupMark: View {
     }
 }
 
-/// A project's pixel mark from its name, in the space a 12 pt symbol takes: the theme's
-/// secondary text on a faint tile of it, so only shape tells projects apart and color stays
-/// for state (UIUX.md → Color).
+/// A project's pixel mark from its name, in the space a 12 pt symbol takes: the mark's soft
+/// hue on a pale tile of it (a deep one on a dark theme), low in saturation so it sits beside
+/// the state colors without competing (UIUX.md → Color).
 struct IdenticonTile: View {
     let identicon: Identicon
     let style: SidebarStyle
 
     var body: some View {
+        let hue = identicon.hue
+        let pixels = Color(hue: hue, saturation: style.isDark ? 0.38 : 0.42, brightness: style.isDark ? 0.78 : 0.62)
+        let tile = Color(hue: hue, saturation: 0.18, brightness: style.isDark ? 0.26 : 0.93)
         Canvas { context, size in
             // Whole points per cell, so the pixels stay crisp instead of blurring across two.
             let cell: CGFloat = 2
@@ -592,9 +595,9 @@ struct IdenticonTile: View {
             }
             context.fill(
                 Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: size.width * 0.24, style: .continuous),
-                with: .color(style.secondary.opacity(0.14)),
+                with: .color(tile),
             )
-            context.fill(cells, with: .color(style.secondary))
+            context.fill(cells, with: .color(pixels))
         }
         .frame(width: 14, height: 14)
     }

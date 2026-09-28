@@ -12,6 +12,15 @@ struct IdenticonTests {
         #expect(Identicon(name: "Calm") == Identicon(name: "calm"))
     }
 
+    @Test func `hues come from the soft set and spread out`() {
+        let hues = (0 ..< 200).map { Identicon(name: "project-\($0)").hue }
+        #expect(hues.allSatisfy { hue in Identicon.hues.contains { abs($0 / 360 - hue) < 1e-9 } })
+        // Every hue gets used, none by more than a third of the names.
+        let counts = Dictionary(grouping: hues, by: \.self).mapValues(\.count)
+        #expect(counts.count == Identicon.hues.count)
+        #expect(counts.values.allSatisfy { $0 < 70 })
+    }
+
     @Test func `marks mirror left to right`() {
         for name in ["calm", "ghostty", "dotfiles", "api-gateway", "zmx", "笔记"] {
             for row in Identicon(name: name).cells {

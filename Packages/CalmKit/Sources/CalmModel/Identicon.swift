@@ -1,11 +1,17 @@
 /// A project's pixel mark, made from its name the way GitHub and GitLab make identicons: a 5×5
 /// grid mirrored left to right, so the same name always gets the same mark, on every Mac and
-/// launch. Shape only: the sidebar draws it in the theme's own color, which stays for state.
+/// launch. Each also gets one of a few soft hues, so projects tell apart at a glance.
 public struct Identicon: Equatable, Sendable {
     public static let size = 5
 
+    /// Soft hues, in degrees, spread around the wheel: a free hue from the hash bunches up
+    /// (4 of 10 sample names came out green), a short list keeps neighbors apart.
+    static let hues: [Double] = [8, 32, 48, 140, 175, 205, 235, 290]
+
     /// Rows top to bottom; `true` is a filled cell.
     public let cells: [[Bool]]
+    /// The mark's hue, 0 to 1; the view picks saturation and brightness for the theme.
+    public let hue: Double
 
     public init(name: String) {
         // Of the 15 bits a mark takes, too few read as noise and too many as a block: mix again
@@ -24,6 +30,8 @@ public struct Identicon: Equatable, Sendable {
             }
         }
         self.cells = cells
+        // Bits the pattern doesn't use, so hue and shape vary on their own.
+        hue = Self.hues[Int((hash >> 40) % UInt64(Self.hues.count))] / 360
     }
 
     /// Not `Hasher`: it's seeded per process, and a mark must not change between launches.

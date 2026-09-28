@@ -19,7 +19,7 @@ mise run test
 
 The first `setup` builds Ghostty's engine from source and takes a while; later runs reuse the cached build.
 
-To install, `./install.sh` builds a Release copy into `/Applications` and links the `calm` command into `~/.local/bin` (`--help` for options). A running Calm is quit and reopened; your shells stay alive.
+To install, `./install.sh` builds a Release copy into `/Applications` and links the `calm` command into `~/.local/bin` (`--help` for options). A running Calm is left running; restart it when you're ready to use the new version (your shells stay alive).
 
 ## Documents
 

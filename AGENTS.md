@@ -41,4 +41,4 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - `Calm.xcodeproj` is generated from `project.yml`; never edit the project file by hand.
 - Run tests and lint before calling work done; report failures honestly.
 - Never quit, reopen or launch the installed Calm (`/Applications/Calm.app`): the user restarts it when they choose. That rules out `osascript … quit`, `open Calm.app`, `mise run run` (it `pkill`s Calm) and `calm` commands that start Calm when its socket is missing. Self-tests stay headless and isolated; they never touch the running app.
-- After landing on `main` and pushing it to `origin/main`, reinstall: run `./install.sh` from a checkout at that `main` commit, so the installed Calm matches `main`. It quits and reopens a running Calm, so run it only when Calm isn't running; otherwise tell the user `main` is ready to install.
+- After landing on `main` and pushing it to `origin/main`, reinstall: run `./install.sh` from a checkout at that `main` commit, so the installed Calm matches `main`. It never quits a running Calm; tell the user to restart Calm to pick up the new version.

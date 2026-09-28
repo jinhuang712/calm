@@ -170,7 +170,7 @@ struct SidebarView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
                         .frame(width: 10)
-                    GroupMark(project: project, style: style)
+                    GroupMark(project: project, style: style) { manager.shuffleMark(project.id) }
                     groupName(project)
                     Spacer(minLength: 4)
                     if hoveredGroupID == project.id {
@@ -554,11 +554,19 @@ struct SidebarActions {
 struct GroupMark: View {
     let project: Project
     let style: SidebarStyle
+    /// Clicking a project's mark swaps it for another (an easter egg, FEATURES.md → F2).
+    var shuffle: () -> Void = {}
 
     var body: some View {
         switch project.kind {
         case .project:
-            IdenticonTile(identicon: Identicon(name: project.name), style: style)
+            let identicon = Identicon(name: project.name, seed: project.markSeed)
+            IdenticonTile(identicon: identicon, style: style)
+                // A new view per mark, so the old one crossfades into the new.
+                .id(identicon)
+                .transition(.opacity)
+                // Wins over the header's button, so the click doesn't also collapse the group.
+                .highPriorityGesture(TapGesture().onEnded(shuffle))
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")

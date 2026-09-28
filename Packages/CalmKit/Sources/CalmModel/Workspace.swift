@@ -18,6 +18,9 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
     public var name: String
     public var kind: Kind
     public var isCollapsed: Bool
+    /// Set when the user clicked the project's mark for another one (an easter egg); nil keeps
+    /// the mark its name gives.
+    public var markSeed: UInt64?
 
     /// Made by grouping rather than by the user, so removed again when empty.
     public var isAutomatic: Bool {
@@ -33,7 +36,7 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, path, name, kind, isAutomatic, isCollapsed
+        case id, path, name, kind, isAutomatic, isCollapsed, markSeed
     }
 
     /// State files before kinds had `isAutomatic`: automatic projects were directory groups.
@@ -43,6 +46,7 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
         path = try container.decode(String.self, forKey: .path)
         name = try container.decode(String.self, forKey: .name)
         isCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isCollapsed) ?? false
+        markSeed = try container.decodeIfPresent(UInt64.self, forKey: .markSeed)
         if let kind = try container.decodeIfPresent(Kind.self, forKey: .kind) {
             self.kind = kind
         } else {
@@ -58,6 +62,7 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
         try container.encode(kind, forKey: .kind)
         try container.encode(isAutomatic, forKey: .isAutomatic) // still read by older builds
         try container.encode(isCollapsed, forKey: .isCollapsed)
+        try container.encodeIfPresent(markSeed, forKey: .markSeed)
     }
 
     /// Whether `directory` is this project's folder or inside it.
@@ -298,6 +303,12 @@ public struct Workspace: Codable, Hashable, Sendable {
     public mutating func setCollapsed(_ projectID: Project.ID, _ collapsed: Bool) {
         guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
         projects[index].isCollapsed = collapsed
+    }
+
+    /// Gives a project the mark `seed` makes instead of the one its name gives.
+    public mutating func setMarkSeed(_ projectID: Project.ID, _ seed: UInt64) {
+        guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
+        projects[index].markSeed = seed
     }
 
     // MARK: Sessions

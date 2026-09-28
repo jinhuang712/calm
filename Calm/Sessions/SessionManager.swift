@@ -331,6 +331,13 @@ final class SessionManager {
     }
 
     #if DEBUG
+        /// Self-tests: what a click on the mark of the project called `name` does.
+        func shuffleMarkForTesting(named name: String) -> Bool {
+            guard let project = workspace.projects.first(where: { $0.kind == .project && $0.name == name }) else { return false }
+            shuffleMark(project.id)
+            return true
+        }
+
         /// Self-tests: a conversation that ended in `id`, without starting an agent.
         func setLastConversationForTesting(_ id: Session.ID, _ conversation: AgentConversation) {
             guard let index = workspace.sessions.firstIndex(where: { $0.id == id }) else { return }
@@ -383,6 +390,14 @@ final class SessionManager {
         guard let project = workspace.project(projectID) else { return }
         Motion.animate(.easeInOut(duration: 0.18)) {
             workspace.setCollapsed(projectID, !project.isCollapsed)
+        }
+        scheduleSave()
+    }
+
+    /// The easter egg: a project's mark, clicked, becomes another, kept across launches.
+    func shuffleMark(_ projectID: Project.ID) {
+        Motion.animate(.easeInOut(duration: 0.2)) {
+            workspace.setMarkSeed(projectID, .random(in: .min ... .max))
         }
         scheduleSave()
     }

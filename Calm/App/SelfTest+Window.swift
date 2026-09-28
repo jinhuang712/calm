@@ -29,6 +29,9 @@
                 // What a click on a file row does (a headless window is never key, so AppKit won't
                 // deliver the click to the list).
                 openFromFilesForTesting(String(file.dropFirst(11)))
+            case let name where name.hasPrefix("shuffle_mark:"):
+                // What a click on a project's mark does (headless clicks never reach SwiftUI).
+                return SessionManager.shared.shuffleMarkForTesting(named: String(name.dropFirst(13)))
             case "peek":
                 peekForTesting()
             case let file where file.hasPrefix("view:"):

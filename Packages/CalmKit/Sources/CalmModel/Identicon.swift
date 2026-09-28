@@ -1,7 +1,7 @@
 /// A project's pixel mark, made from its name the way GitHub and GitLab make identicons: a 5×5
 /// grid mirrored left to right, so the same name always gets the same mark, on every Mac and
 /// launch. Each also gets one of a few soft hues, so projects tell apart at a glance.
-public struct Identicon: Equatable, Sendable {
+public struct Identicon: Hashable, Sendable {
     public static let size = 5
 
     /// Soft hues, in degrees, spread around the wheel: a free hue from the hash bunches up
@@ -13,10 +13,15 @@ public struct Identicon: Equatable, Sendable {
     /// The mark's hue, 0 to 1; the view picks saturation and brightness for the theme.
     public let hue: Double
 
-    public init(name: String) {
+    /// With a `seed` (a project whose mark was clicked for another), the same name gets a
+    /// different mark; without one, the mark its name alone gives.
+    public init(name: String, seed: UInt64? = nil) {
         // Of the 15 bits a mark takes, too few read as noise and too many as a block: mix again
         // until the count sits in between (a few rounds at most, and always the same ones).
         var hash = Self.mix(Self.fnv1a(name.lowercased()))
+        if let seed {
+            hash = Self.mix(hash ^ Self.mix(seed))
+        }
         while !(5 ... 11).contains((hash & 0x7FFF).nonzeroBitCount) {
             hash = Self.mix(hash)
         }

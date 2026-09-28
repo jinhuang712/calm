@@ -40,4 +40,13 @@ struct IdenticonTests {
         #expect(Identicon(name: "calm") != Identicon(name: "calm-docs"))
         #expect(Identicon(name: "api") != Identicon(name: "apj"))
     }
+
+    @Test func `a seed gives the same name another mark, the same one each time`() {
+        let seeded = Identicon(name: "calm", seed: 42)
+        #expect(seeded == Identicon(name: "calm", seed: 42))
+        #expect(seeded != Identicon(name: "calm"))
+        // Different seeds mostly differ (a few may land on the same mark by chance).
+        let marks = Set((0 ..< 50).map { Identicon(name: "calm", seed: $0).cells })
+        #expect(marks.count > 40)
+    }
 }

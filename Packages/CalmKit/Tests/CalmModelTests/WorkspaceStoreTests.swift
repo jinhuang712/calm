@@ -27,6 +27,14 @@ struct WorkspaceStoreTests {
         #expect(store.load() == workspace)
     }
 
+    @Test func `a project's clicked-for mark survives a relaunch`() throws {
+        var workspace = Workspace()
+        let session = workspace.newSession(in: "/dev/apps/calm")
+        workspace.setMarkSeed(session.projectID, 7)
+        try store.save(workspace)
+        #expect(store.load().project(session.projectID)?.markSeed == 7)
+    }
+
     @Test func `a corrupt file is kept aside, not overwritten`() throws {
         try Data("{ not json".utf8).write(to: store.fileURL)
         #expect(store.load() == Workspace())

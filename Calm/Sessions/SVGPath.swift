@@ -53,7 +53,9 @@ enum SVGPath {
                 index += 1
             } else {
                 let start = index
-                if characters[index] == "-" || characters[index] == "+" { index += 1 }
+                if characters[index] == "-" || characters[index] == "+" {
+                    index += 1
+                }
                 var seenDot = false
                 while index < characters.count {
                     let next = characters[index]
@@ -64,7 +66,9 @@ enum SVGPath {
                         index += 1
                     } else if next == "e" || next == "E" {
                         index += 1
-                        if index < characters.count, characters[index] == "-" || characters[index] == "+" { index += 1 }
+                        if index < characters.count, characters[index] == "-" || characters[index] == "+" {
+                            index += 1
+                        }
                     } else {
                         break
                     }
@@ -102,8 +106,14 @@ enum SVGPath {
                 guard let produced = step(command) else { return nil }
                 commands.append(contentsOf: produced)
                 // After a move, further pairs are lines (SVG's implicit command).
-                if command == "M" { letter = "L" } else if command == "m" { letter = "l" }
-                if command == "Z" || command == "z" { letter = nil }
+                if command == "M" {
+                    letter = "L"
+                } else if command == "m" {
+                    letter = "l"
+                }
+                if command == "Z" || command == "z" {
+                    letter = nil
+                }
             }
             return commands
         }

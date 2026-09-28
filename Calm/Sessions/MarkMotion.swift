@@ -161,7 +161,9 @@ enum MarkMotion {
     /// Eased (in and out) between keyframes given as (fraction, value), in order.
     static func keyframes(_ frames: [(Double, Double)], at p: Double) -> Double {
         guard let first = frames.first else { return 0 }
-        if p <= first.0 { return first.1 }
+        if p <= first.0 {
+            return first.1
+        }
         for (from, to) in zip(frames, frames.dropFirst()) where p <= to.0 {
             let span = to.0 - from.0
             let u = span > 0 ? (p - from.0) / span : 1

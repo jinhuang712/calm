@@ -4,7 +4,7 @@ import Foundation
 import Testing
 
 struct AgentMarkTests {
-    @Test func `every agent has a mark the sidebar can draw`() throws {
+    @Test func `every agent has a mark the sidebar can draw`() {
         #expect(Agents.adapters.count == AgentKind.allCases.count)
         for adapter in Agents.adapters {
             let mark = adapter.mark

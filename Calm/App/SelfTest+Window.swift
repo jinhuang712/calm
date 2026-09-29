@@ -196,9 +196,17 @@
             return true
         }
 
-        /// Settings (F14), session states and the Dock icon for self-tests.
+        /// Settings (F14), session states, the Dock icon and the welcome page for self-tests.
         private func performSettingsActionForTesting(_ action: String) -> Bool {
             switch action {
+            case let name where name.hasPrefix("welcome_project:"):
+                // welcome_project:<name>: what a click on a project's chip on the welcome page does
+                // (false while the page isn't up)
+                let name = String(name.dropFirst(16))
+                guard welcomePage.isShowing,
+                      let project = manager.workspace.projects.first(where: { $0.kind == .project && $0.name == name })
+                else { return false }
+                welcomeActions.newSessionIn(project)
             case let folder where folder.hasPrefix("dock_icon:"):
                 // dock_icon:<folder>: the Dock icon's states as PNGs (headless runs have no Dock)
                 return DockIcon.shared.renderForTesting(to: URL(filePath: String(folder.dropFirst(10))))

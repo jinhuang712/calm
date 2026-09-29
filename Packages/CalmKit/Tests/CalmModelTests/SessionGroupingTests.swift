@@ -48,6 +48,22 @@ struct SessionGroupingTests {
         #expect(workspace.project(project.id) != nil) // a project the user made stays when empty
     }
 
+    @Test func `a project is still offered once its last session is closed, folder and scratch groups are not`() {
+        var workspace = Workspace()
+        let first = workspace.addProject(path: "/Users/me/work/payments")
+        let second = workspace.addProject(path: "/Users/me/work/billing")
+        let inFirst = workspace.newSession(in: "/Users/me/work/payments", placement: .project(first.id), gitRoot: gitRoot)
+        let folder = workspace.newSession(in: "/tmp", gitRoot: gitRoot)
+        let scratch = workspace.newSession(in: "/Users/me/.scratch/a", placement: .scratch, gitRoot: gitRoot)
+        #expect(workspace.madeProjects.map(\.id) == [first.id, second.id])
+
+        for id in [inFirst.id, folder.id, scratch.id] {
+            workspace.removeSession(id)
+        }
+        #expect(workspace.sessions.isEmpty)
+        #expect(workspace.madeProjects.map(\.id) == [first.id, second.id]) // in the order they were made
+    }
+
     @Test func `removing a project keeps its sessions, grouped by their folders again`() throws {
         var workspace = Workspace()
         let project = workspace.addProject(path: "/Users/me/work/payments")

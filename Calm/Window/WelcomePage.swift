@@ -4,8 +4,9 @@ import SwiftUI
 
 /// What the window shows with no session open (FEATURES.md → F2): a welcome on Calm's very
 /// first launch, and the same quiet page whenever the last session is closed. It covers the whole
-/// window, sidebar included: with nothing open there's nothing for the sidebar to show. Calm
-/// never opens a session nobody asked for.
+/// window, sidebar included, so the projects the user made are offered on the page itself: closing
+/// a project's last session must not leave the project out of reach. Calm never opens a session
+/// nobody asked for.
 @MainActor
 final class WelcomePage {
     private weak var container: NSView?
@@ -19,8 +20,10 @@ final class WelcomePage {
         host != nil
     }
 
-    func show(firstUse: Bool, style: SidebarStyle, background: NSColor, actions: WelcomeView.Actions) {
-        let view = WelcomeView(firstUse: firstUse, style: style, background: Color(nsColor: background), actions: actions)
+    func show(firstUse: Bool, projects: [Project], style: SidebarStyle, background: NSColor, actions: WelcomeView.Actions) {
+        let view = WelcomeView(
+            firstUse: firstUse, projects: projects, style: style, background: Color(nsColor: background), actions: actions,
+        )
         if let host {
             host.rootView = view
             return
@@ -46,10 +49,13 @@ struct WelcomeView: View {
         let newSession: () -> Void
         let newScratchSession: () -> Void
         let newProject: () -> Void
+        let newSessionIn: (Project) -> Void
         let setUpAgents: () -> Void
     }
 
     let firstUse: Bool
+    /// The projects the user made, in the sidebar's order: each a way to start a session there.
+    let projects: [Project]
     let style: SidebarStyle
     /// The terminal's background: the page stands where the sessions would.
     let background: Color
@@ -127,7 +133,12 @@ struct WelcomeView: View {
                 }
             }
             .frame(width: 700.scaled)
-            WelcomeAgents(style: style, action: actions.setUpAgents)
+            VStack(spacing: 16.scaled) {
+                if !projects.isEmpty {
+                    WelcomeProjects(projects: projects, style: style, action: actions.newSessionIn)
+                }
+                WelcomeAgents(style: style, action: actions.setUpAgents)
+            }
         }
         .padding(.horizontal, 24.scaled)
         // As tall as the title bar, so the block sits centered in the window, not under it.
@@ -146,6 +157,16 @@ struct WelcomeView: View {
             }
             VStack(alignment: .leading, spacing: 4.scaled) {
                 ForEach(choices) { row($0) }
+            }
+            if !projects.isEmpty {
+                VStack(alignment: .leading, spacing: 4.scaled) {
+                    Text("New session in")
+                        .calmFont(size: 12)
+                        .foregroundStyle(style.tertiary)
+                        .padding(.horizontal, 12.scaled)
+                        .padding(.bottom, 2.scaled)
+                    ForEach(projects) { projectRow($0) }
+                }
             }
             Button(action: actions.setUpAgents) {
                 Text("Works with \(AgentKind.allCases.map(\.displayName).formatted(.list(type: .and))). Set up agents…")
@@ -177,6 +198,29 @@ struct WelcomeView: View {
             }
             .padding(.horizontal, 12.scaled)
             .padding(.vertical, 9.scaled)
+            .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.selection))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func projectRow(_ project: Project) -> some View {
+        Button { actions.newSessionIn(project) } label: {
+            HStack(spacing: 10.scaled) {
+                IdenticonTile(identicon: Identicon(name: project.name, seed: project.markSeed), style: style)
+                Text(project.name)
+                    .calmFont(size: 13, weight: .medium)
+                    .foregroundStyle(style.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(WorkspacePath.abbreviated(project.path))
+                    .calmFont(size: 12)
+                    .foregroundStyle(style.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+            .padding(.horizontal, 12.scaled)
+            .padding(.vertical, 8.scaled)
             .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.selection))
             .contentShape(Rectangle())
         }
@@ -250,6 +294,100 @@ private struct WelcomeCard: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+}
+
+/// The projects the user made, each a chip with its pixel mark that starts a session there: with
+/// no session open there is no sidebar to hover a project's + in.
+private struct WelcomeProjects: View {
+    let projects: [Project]
+    let style: SidebarStyle
+    let action: (Project) -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14.scaled) {
+            Text("New session in")
+                .calmFont(size: 12.5)
+                .foregroundStyle(style.tertiary)
+            WrappingRow(spacing: 8.scaled) {
+                ForEach(projects) { project in
+                    WelcomeProjectChip(project: project, style: style) { action(project) }
+                }
+            }
+        }
+        .frame(maxWidth: 700.scaled)
+    }
+}
+
+private struct WelcomeProjectChip: View {
+    let project: Project
+    let style: SidebarStyle
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8.scaled) {
+                IdenticonTile(identicon: Identicon(name: project.name, seed: project.markSeed), style: style)
+                Text(project.name)
+                    .calmFont(size: 12.5)
+                    .foregroundStyle(hovering ? style.primary : style.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.leading, 8.scaled)
+            .padding(.trailing, 14.scaled)
+            .frame(height: 36.scaled)
+            .background(Capsule().fill(style.primary.opacity(hovering ? 0.05 : 0)))
+            .overlay(Capsule().strokeBorder(style.primary.opacity(0.08)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(project.path)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+}
+
+/// Subviews side by side, wrapping onto further rows when they don't fit, each row centered.
+private struct WrappingRow: Layout {
+    var spacing: CGFloat
+
+    private func rows(_ subviews: Subviews, width: CGFloat) -> [[Int]] {
+        var rows: [[Int]] = [[]]
+        var used: CGFloat = 0
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+            if !rows[rows.count - 1].isEmpty, used + spacing + size.width > width {
+                rows.append([])
+                used = 0
+            }
+            used += (rows[rows.count - 1].isEmpty ? 0 : spacing) + size.width
+            rows[rows.count - 1].append(index)
+        }
+        return rows
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        let rows = rows(subviews, width: width)
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let widest = rows.map { row in row.reduce(0) { $0 + sizes[$1].width } + spacing * CGFloat(max(row.count - 1, 0)) }.max() ?? 0
+        let heights = rows.map { row in row.map { sizes[$0].height }.max() ?? 0 }
+        return CGSize(width: widest, height: heights.reduce(0, +) + spacing * CGFloat(max(rows.count - 1, 0)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+        var y = bounds.minY
+        for row in rows(subviews, width: bounds.width) {
+            let sizes = row.map { subviews[$0].sizeThatFits(.unspecified) }
+            let rowWidth = sizes.reduce(0) { $0 + $1.width } + spacing * CGFloat(max(row.count - 1, 0))
+            var x = bounds.minX + (bounds.width - rowWidth) / 2
+            for (index, size) in zip(row, sizes) {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += (sizes.map(\.height).max() ?? 0) + spacing
+        }
     }
 }
 

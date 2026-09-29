@@ -127,13 +127,18 @@ extension MainWindowController {
         }
         let background = TerminalEngine.shared.config?.backgroundColor ?? NSColor(white: 0.15, alpha: 1)
         welcomePage.show(
-            firstUse: manager.isFirstUse, style: sidebarStyle, background: background,
-            actions: WelcomeView.Actions(
-                newSession: { [weak self] in self?.newSession() },
-                newScratchSession: { [weak self] in self?.newScratchSession() },
-                newProject: { [weak self] in self?.chooseNewProject() },
-                setUpAgents: { [weak self] in self?.showSettings(.agents) },
-            ),
+            firstUse: manager.isFirstUse, projects: manager.workspace.madeProjects,
+            style: sidebarStyle, background: background, actions: welcomeActions,
+        )
+    }
+
+    var welcomeActions: WelcomeView.Actions {
+        WelcomeView.Actions(
+            newSession: { [weak self] in self?.newSession() },
+            newScratchSession: { [weak self] in self?.newScratchSession() },
+            newProject: { [weak self] in self?.chooseNewProject() },
+            newSessionIn: { [weak self] project in self?.newSession(in: project) },
+            setUpAgents: { [weak self] in self?.showSettings(.agents) },
         )
     }
 }

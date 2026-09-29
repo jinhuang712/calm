@@ -284,6 +284,12 @@ public struct Workspace: Codable, Hashable, Sendable {
             .map(\.element)
     }
 
+    /// The projects the user made, in the sidebar's order, sessions or none: what the welcome page
+    /// offers a new session in (folder and scratch groups go with their last session).
+    public var madeProjects: [Project] {
+        orderedProjects.filter { $0.kind == .project }
+    }
+
     // MARK: Projects
 
     /// Adds a project for `path`, or returns the existing one; a directory group there becomes

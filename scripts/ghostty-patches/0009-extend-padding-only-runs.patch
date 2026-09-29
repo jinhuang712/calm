@@ -9,26 +9,36 @@ did the same, and so did a one-cell selection.
 
 A row's padding is now extended only when the first (or last) three cells
 share a background, so a background painted out to the edge still extends,
-and a cursor, which is at most two cells, does not. The neighbors are looked
-up the way the edge cell is (through smooth scrolling's shift and region
-animations), so a row that is animating decides the same as one at rest.
+and a cursor, which is at most two cells, does not. A shorter run still
+extends when the row above or below has the same color at the edge: a pane
+painted in one color whose content starts a cell or two in (OpenCode keeps a
+two-cell margin, so its message panels, scrollbar and prompt box all begin
+the third cell in) is a background, not a cursor; without this its padding
+fell back to the theme's color on exactly those rows. The neighbors are
+looked up the way the edge cell is (through smooth scrolling's shift and
+region animations), so a row that is animating decides the same as one at
+rest.
 
 Calm's own patch (not from thdxg/ghostty); applies on top of 0005.
 
 diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.metal
 --- a/src/renderer/shaders/shaders.metal
 +++ b/src/renderer/shaders/shaders.metal
-@@ -476,6 +476,21 @@
+@@ -475,7 +475,25 @@
+ // Cell Background Shader
  //-------------------------------------------------------------------
  #pragma mark - Cell BG Shader
- 
++
 +// How many cells in a row, counting the edge one, must share a background
 +// for it to be extended in to the padding. A shorter run is something drawn
 +// in the row, not a background painted out to the edge: a program's own
 +// cursor (a reverse-video cell, two over a wide character) would otherwise
 +// grow in to the padding beside it. Three is the widest cursor plus one.
++// A shorter run still extends when the row above or below has the same edge
++// color: a pane painted in one color whose content starts a cell or two in
++// (OpenCode keeps a two-cell margin) is a background, not a cursor.
 +constant int EXTEND_MIN_RUN = 3;
-+
+ 
 +// The background of the cell drawn at `rel`, a position in pixels from the
 +// grid's top left with the padding already decided (see below).
 +static float4 cell_bg_at(
@@ -40,7 +50,7 @@ diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.m
  fragment float4 cell_bg_fragment(
    FullScreenVertexOut in [[stage_in]],
    constant Uniforms& uniforms [[buffer(1)]],
-@@ -500,16 +515,22 @@
+@@ -500,16 +518,22 @@
  
    float4 bg = float4(0.0);
  
@@ -63,7 +73,7 @@ diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.m
      } else {
        return bg;
      }
-@@ -527,8 +548,33 @@
+@@ -527,9 +551,51 @@
        rel.y = visible.y - 0.5;
      } else {
        return bg;
@@ -73,18 +83,35 @@ diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.m
 +  float4 color = cell_bg_at(uniforms, cells, rel);
 +
 +  // Extend only a background that runs in from the edge: the cells next to
-+  // the edge one, looked up where they are drawn, must have its color.
++  // the edge one, looked up where they are drawn, must have its color, or
++  // the row above or below must have it at the edge (a background down the
++  // side of the pane, not something drawn in this row).
 +  if (side != 0) {
++    bool runs = true;
 +    for (int i = 1; i < EXTEND_MIN_RUN; i++) {
 +      float x = side > 0
 +          ? (float(i) + 0.5) * uniforms.cell_size.x
 +          : visible.x - (float(i) + 0.5) * uniforms.cell_size.x;
 +      if (any(cell_bg_at(uniforms, cells, float2(x, rel.y)) != color)) {
++        runs = false;
++        break;
++      }
++    }
++    if (!runs) {
++      bool beside = false;
++      for (int step = -1; step <= 1; step += 2) {
++        float y = rel.y + float(step) * uniforms.cell_size.y;
++        if (y >= 0.0 && y < visible.y &&
++            all(cell_bg_at(uniforms, cells, float2(rel.x, y)) == color)) {
++          beside = true;
++        }
++      }
++      if (!beside) {
 +        return bg;
 +      }
      }
    }
-+
+ 
 +  return color;
 +}
 +
@@ -94,13 +121,14 @@ diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.m
 +  float2 rel
 +) {
 +  float4 bg = float4(0.0);
- 
++
    float shift_y = uniforms.scroll_offset.x -
        uniforms.scroll_offset.y * uniforms.cell_size.y;
+   float2 grid_px = rel - float2(0.0, shift_y);
 diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/glsl/cell_bg.f.glsl
 --- a/src/renderer/shaders/glsl/cell_bg.f.glsl
 +++ b/src/renderer/shaders/glsl/cell_bg.f.glsl
-@@ -10,9 +10,19 @@
+@@ -10,9 +10,22 @@
      uint cells[];
  };
  
@@ -109,6 +137,9 @@ diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/gls
 +// in the row, not a background painted out to the edge: a program's own
 +// cursor (a reverse-video cell, two over a wide character) would otherwise
 +// grow in to the padding beside it. Three is the widest cursor plus one.
++// A shorter run still extends when the row above or below has the same edge
++// color: a pane painted in one color whose content starts a cell or two in
++// (OpenCode keeps a two-cell margin) is a background, not a cursor.
 +const int EXTEND_MIN_RUN = 3;
 +
 +// The background of the cell drawn at `rel`, a position in pixels from the
@@ -121,7 +152,7 @@ diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/gls
  
      // Position relative to the visible grid. Its extent comes from the
      // grid itself, not from grid_padding's bottom/right, which hold the
-@@ -30,16 +40,22 @@
+@@ -30,16 +43,22 @@
  
      vec4 bg = vec4(0.0);
  
@@ -144,20 +175,37 @@ diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/gls
          } else {
              return bg;
          }
-@@ -60,6 +76,30 @@
+@@ -60,6 +79,47 @@
          }
      }
  
 +    vec4 color = cell_bg_at(rel);
 +
 +    // Extend only a background that runs in from the edge: the cells next to
-+    // the edge one, looked up where they are drawn, must have its color.
++    // the edge one, looked up where they are drawn, must have its color, or
++    // the row above or below must have it at the edge (a background down the
++    // side of the pane, not something drawn in this row).
 +    if (side != 0) {
++        bool runs = true;
 +        for (int i = 1; i < EXTEND_MIN_RUN; i++) {
 +            float x = side > 0
 +                ? (float(i) + 0.5) * cell_size.x
 +                : visible.x - (float(i) + 0.5) * cell_size.x;
 +            if (cell_bg_at(vec2(x, rel.y)) != color) {
++                runs = false;
++                break;
++            }
++        }
++        if (!runs) {
++            bool beside = false;
++            for (int step = -1; step <= 1; step += 2) {
++                float y = rel.y + float(step) * cell_size.y;
++                if (y >= 0.0 && y < visible.y &&
++                    cell_bg_at(vec2(rel.x, y)) == color) {
++                    beside = true;
++                }
++            }
++            if (!beside) {
 +                return bg;
 +            }
 +        }

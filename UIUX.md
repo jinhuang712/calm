@@ -9,26 +9,33 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 ## Layout
 
 ```
-┌──────────────────────────────┬──────────────┬─────────────────────────────────────┐
-│  ⌘K  Search sessions         │  calm        │  ┌ arrival card (fades) ─────────┐  │
-│                              │  main · 2 Δ  │  │ fix login test · needs you    │  │
-│  VIBE-BILLING                │              │  │ "Should I also update the…"   │  │
-│  ┌────────────────────────┐  │  ▸ Sources   │  └───────────────────────────────┘  │
-│  │ C 审核记录未处理    now │  │  ▸ Tests     │                                     │
-│  │ ◠ Working · reconciling│  │  ▾ docs      │   (the agent's own TUI, untouched)  │
-│  │ ▬▬▬▬▬▬───── 3 of 5     │  │  README.md A │                                     │
-│  │ Matching unprocessed…  │  │  UIUX.md   M │                                     │
-│  └────────────────────────┘  │              │                                     │
-│  ┌────────────────────────┐  │              │                                     │
-│  │ C fix login test    2m │  │              │                                     │
-│  │ ● Needs you · asked    │  │              │                                     │
-│  │ Should I also update…  │  │              │                                     │
-│  │ ⎇ wt-fix-login  +12 −4 │  │              │                                     │
-│  └────────────────────────┘  │              │                                     │
-│  + New Project            ⌘O │              │                                     │
-└──────────────────────────────┴──────────────┴─────────────────────────────────────┘
-   sidebar (periphery)          files (⌘\,      main area (center): the session,
-                                optional)       or a viewed file (esc returns)
+┌──────────────────────────────┬────────────────────────┬────────────────────────────────┐
+│ ● ● ●                        │                        │ ▦ fix link marks             ⋯ │
+│                              │                        │   ~/dev/apps/calm              │
+│ ⌕ Search sessions        ⌘ K │ calm ⎇ main     +52 −4 │                                │
+│                              │                        │                                │
+│ ▾ ▦ CALM                     │ CHANGES 2              │                                │
+│ ┌──────────────────────────┐ │ M UIUX.md       +12 −4 │                                │
+│ │ C fix link marks     now │ │ A plan.md  docs    +40 │                                │
+│ │   Working · Adding tests │ │ ────────────────────── │                                │
+│ │   ▬▬▬▬▬▬▬▬───── 3 of 5   │ │ FILES                  │   (the agent's own TUI,        │
+│ │   Marks now wait for the │ │ › Calm                 │    untouched)                  │
+│ │   text to hold still.    │ │ ▾ docs               • │                                │
+│ └──────────────────────────┘ │     plan.md          A │                                │
+│ ┌──────────────────────────┐ │   README.md            │                                │
+│ │ C fix login test      2m │ │   UIUX.md            M │                                │
+│ │   ● Needs you            │ │                        │                                │
+│ │   Should I also update…  │ │                        │                                │
+│ │   ⎇ wt-fix-login         │ │                        │                                │
+│ └──────────────────────────┘ │                        │                                │
+│                              │                        │                                │
+│ ──────────────────────────── │                        │                                │
+│ ✎ New Session            ⌘ T │                        │                                │
+│ ▢ New Scratch Session  ⌘ ⇧ N │                        │                                │
+│ + New Project…           ⌘ O │                        │                                │
+└──────────────────────────────┴────────────────────────┴────────────────────────────────┘
+   sidebar (periphery)          files (⌘\, optional)     main area (center): the session,
+                                                         or a viewed file (esc returns)
 ```
 
 - **Sidebar:** session groups and session cards. The periphery, where status lives. At the top, under the traffic lights, a soft filled **Search sessions ⌘ K** field opens search. Then scratch sessions, projects you made (uppercase, each with its own pixel mark: a 5×5 pattern, mirrored like GitHub's identicons, made from the project's name, so the same name always gets the same mark; in one of eight soft, low-saturation hues on a pale 20 pt tile of it; clicking it crossfades to another, and never collapses the group), and folder groups (the folder's own name, its parent folder on the right). Scratch rows look like any other row, with no close button of their own (⌘W or the right-click menu closes one); a scratch session's folder never shows anywhere. Hovering a group header swaps its summary for two quiet controls: **+** (a new session there) and **⋯** (Make Project for a folder, Remove Project for a project; scratch has only +). Right-click offers the same. The footer is three rows, each with its icon on a small tile and its shortcut as key caps: New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O; each row lights up on hover. Sizes lean roomy (a 320 pt sidebar, 14 pt text, 40 pt rows, 26 pt agent marks in each agent's own soft tint) so the sidebar reads at a glance without leaning in.
@@ -47,20 +54,20 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | Line | Content | Shown when |
 |---|---|---|
 | 1 | agent's mark · **session name** · time since last activity | always |
-| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m"). A done card whose turn left shells running adds "· 2 shells running" in the tertiary color: a footnote, gone once you move on | not idle |
-| 3 | thin progress bar · "3 of 5 todos" | not idle, and the agent keeps a todo list |
+| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m"); while working, the agent's moving mark stands in for the state mark. A done card whose turn left shells running adds "· 2 shells running" in the tertiary color: a footnote, gone once you move on | not idle |
+| 3 | thin progress bar · "3 of 5" | not idle, and the agent keeps a todo list |
 | 4 | recap: the latest agent message as plain text (no Markdown marks: headings, code blocks and bold go, a list reads "a; b; c"), two lines at most (one when idle) | always |
-| 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
+| 5 | worktree mark · worktree name | the session runs in a git worktree |
 
 - A name too long for its line keeps its start and ends in "…". Rest the pointer on the card or row for half a second and the name glides once to its end and holds; it slides back when the pointer leaves. With motion reduced it stays truncated.
-- Plain shells are a single compact line: name and folder, plus the state mark when a long command finished (hover shows its message).
+- Plain shells are a single compact line: the shell's title (the folder's name when it has none), plus the state mark when a long command finished. Hover shows the last such command's message, or else the folder.
 - Each state has its own look (see Session states): *working* tints the card a soft blue, *needs you* amber, *done* sage until you move on from it; an idle card recedes (its mark in gray, its name dimmer) and is shorter: no state line or progress bar, one line of recap, tighter padding. That includes done and failed cards once you move on: clicking one keeps it tall while you read, and it settles to idle when you go to another session or leave Calm. The selected card gets a slightly lighter surface.
-- The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π, ω) stands in if a mark can't be drawn.
+- The agent mark is the agent's own logo in a small neutral tile (see Agent marks); a letter (C, X, O, π) stands in if a mark can't be drawn.
 - Collapsed projects summarize what needs a look: "3 sessions · 1 needs you".
 - Secondary text stays muted; only the name is in the primary text color.
 - Projects collapse to one line with a summary.
 
-**Right-click a card**, or the **⋯ button** at the right of the title strip (for the session you're in), the same menu: Rename…, Resume <agent> Conversation (after the agent exited), Fork into New Split, Fork into New Tab (where the agent can fork); Copy Session ID, Copy Resume Command, Copy Folder Path, Reveal in Finder (where there is something to give); Move to Project or Keep as Project…, Close Session. Rename edits the title in place, in the card's own spot. The ⋯ button is quiet (the tertiary color, 13 pt) until the pointer is on it, then it brightens on a soft tile.
+**Right-click a card**, or the **⋯ button** at the right of the title strip (for the session you're in), the same menu: Rename…, Resume <agent> Conversation (after the agent exited), Fork into New Split, Fork into New Tab (where the agent can fork); Copy Session ID, Copy Resume Command, Copy Folder Path, Reveal in Finder (where there is something to give); Move to Project, Let It Follow Its Folder (for a session kept in a project), or Keep as Project… (for a scratch session); Close Session. Rename edits the title in place, in the card's own spot. A copy leaves a quiet note by the pointer ("Path copied"). The ⋯ button is quiet (the tertiary color, 13 pt) until the pointer is on it, then it brightens on a soft tile.
 
 ## Links
 
@@ -153,7 +160,7 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 ## Arrival card
 
 - Appears at the top of the pane when switching into an agent session, only when it adds something: the sidebar is hidden (its card would say the same) and the session had activity since the user left it. ⌘⇧I shows it any time.
-- Content: state mark, title · state · time since last activity, and one or two lines: what the agent asked while it needs you, otherwise the last thing it said.
+- Content: state mark, title · state (with the card's "· 2 shells running" when a done turn left shells) · time since last activity, and one or two lines: what the agent asked while it needs you, otherwise the last thing it said.
 - Fades out on the first keystroke or after a few seconds. A shortcut shows it again.
 - Never covers the agent's input line.
 
@@ -168,9 +175,9 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 ## Color
 
 - Soft palettes only in the built-in set: low contrast between text and background (roughly 6:1 to 11:1), low saturation, and bright white only a step above the text. The default, Calm, is neutral and neither black nor white; each other theme is a direction of its own (a hue, a depth), never a tint of another.
-- The accent color is used sparingly: a switch that's on and the picked theme. It never colors a state.
+- The accent color is used sparingly: a switch that's on, the picked theme and interface size, the welcome page's mark and first card, and the line a viewed file opens at. It never colors a state.
 - A project's pixel mark is the one other tint in the sidebar: its own soft hue, pale and small, so it names the project without reading as a state.
-- Each state keeps one color on every theme: amber for *needs you* (whatever the theme's accent), a soft blue for *working*, sage for *done* (until you move on), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.
+- *Needs you*, *working* and *done* keep one color on every theme: amber for *needs you* (whatever the theme's accent), a soft blue for *working*, sage for *done* (until you move on). *Failed* takes the theme's own muted red. Every state also has its own mark and words, so color never carries it alone.
 - Red appears only for *failed* and real errors.
 - Chrome (sidebar, panels) takes its colors from the theme, never from a fixed system tint that clashes with the terminal.
 
@@ -197,7 +204,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Motion | Behavior |
 |---|---|
 | Smooth scrolling | scrolling moves by pixels, not whole rows. Scrollback follows the trackpad; a program that scrolls part of its screen (Claude Code's full-screen view as an answer streams in, `less`, vim), or moves it by redrawing every row (pi's full-screen view), has that part slide into place, each jump easing home in about a quarter second, so steady output reads as one flow, while something it keeps drawn over the scrolling part's edge (Claude Code's "Jump to bottom" hint) stays still and the text under and beside it keeps sliding; a resize or divider drag slides the content instead of stepping it. At rest, a pane whose height isn't a whole number of rows shows part of the scrollback row above its first row instead of an empty strip. Full motion only |
-| Smooth cursor | a soft smear follows the cursor when it jumps (not when typing moves it one cell), fading in about 140 ms. Calm's own shader `cursor_glide.glsl`, loaded through Ghostty's custom-shader support |
+| Smooth cursor | a soft smear follows the cursor when it jumps (not when typing moves it one cell), fading out in about 140 ms. Calm's own shader `cursor_glide.glsl`, loaded through Ghostty's custom-shader support |
 | Cursor trail | part of the same shader: the smear's tail catches up with its head, so it reads as a short trail |
 
 **Window**
@@ -206,7 +213,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 |---|---|
 | Splits | new panes grow into place and closed panes fold away |
 | Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
-| Session switching | hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom (⌃⇧Tab goes up, both wrap), over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight to the next session down without showing anything |
+| Session switching | hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom (⌃⇧Tab goes up, both wrap), over small live previews; release ⌃ to settle on the chosen one. While ⌃ is held, ← and → move too, Return settles and esc closes without switching. A quick ⌃Tab goes straight to the next session down without showing anything |
 | Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping. The agent's mark moves while it works and settles once when the work ends (see Agent marks) |
 | Restoring | after a launch nothing moves: rows come back as they were left. If the check is slow, rows hold their saved look with a placeholder that breathes (1.9 s) and settle together in one 0.45 s fade (see Session states) |
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
@@ -230,19 +237,22 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 ⌘, turns the whole window into Settings, as the welcome page fills it; ⌘, again or esc goes back to the session exactly as it was (it keeps running underneath). A list of sections takes the sidebar's place, as wide as the sidebar and drawn like its footer, a size up (16 pt rows of 46 pt, each icon on a small tile), so ⌘, reads as the sidebar changing what it lists. The page sits beside it at a reading width (780 pt at most, 34 pt titles, 17 pt labels, 64 pt rows), centered in its pane until it would stand more than 112 pt from the list, so a wide window keeps list and page together, in the theme's own colors: the sidebar's color for the list, the terminal's for the page, the theme's accent for the picked theme and a switch that's on. A chosen segment is a lighter surface, as a selected card is.
 
 ```
-┌────────────────────┬──────────────────────────────────────────────┐
-│ ● ● ●              │   Appearance                                 │
-│                    │   ┌ live miniature of the window ──────────┐ │
-│ Settings           │   └────────────────────────────────────────┘ │
-│ ◐ Appearance       │   Theme              ▢ ▢ ▢ ▢ ▢ ▢ │ ▢ Ghostty │
-│ ✦ Agents        ⚠  │   ┌──────────────────────────────────────┐   │
-│ ≡ General          │   │ Background            [Solid | Glass] │   │
-│ ⌨ Shortcuts        │   │ Layout         [Edge to edge | Card]  │   │
-│                    │   │ Motion        [Full | Reduced | Off]  │   │
-│                    │   └──────────────────────────────────────┘   │
-│                    │                                              │
-│ esc Back           │                                              │
-└────────────────────┴──────────────────────────────────────────────┘
+┌────────────────────────────┬─────────────────────────────────────────────────┐
+│ ● ● ●                      │                                                 │
+│                            │   Appearance                                    │
+│ Settings                   │   ┌ live miniature of the window ───────────┐   │
+│ ◐ Appearance               │   └─────────────────────────────────────────┘   │
+│ ✦ Agents                   │   Theme                                         │
+│ ≡ General                  │   Calm  Ink  Dusk  Forest  Plum │ Your Ghostty  │
+│ ⌨ Shortcuts                │   Interface size                                │
+│                            │   Default  Large  Larger  Largest               │
+│                            │   ┌─────────────────────────────────────────┐   │
+│                            │   │ Background              [Solid | Glass] │   │
+│                            │   │ Layout            [Edge to edge | Card] │   │
+│                            │   │ Motion           [Full | Reduced | Off] │   │
+│ ────────────────────────── │   └─────────────────────────────────────────┘   │
+│ esc  Back to your sessions │                                                 │
+└────────────────────────────┴─────────────────────────────────────────────────┘
 ```
 
 | Section | Contents |
@@ -254,7 +264,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 - Going to any session (⌃Tab, ⌘1…9, search, a notification, a new session) leaves Settings.
 - Each row starts with its icon on a small tile, as the section list and the sidebar's footer do.
-- Quiet by default: no help line under a row unless the control can't do what it shows (Motion while the system's Reduce Motion is on), and a line under an agent only when it needs a step. A hand edit shows after Calm → Reload Configuration.
+- Quiet by default: no help line under a row unless the control can't do what it shows (Motion while the system's Reduce Motion is on), and none under an agent: a step it needs explains itself in a popover. A hand edit shows after Calm → Reload Configuration.
 - The Editor menu ends with **Choose Application…** (the system's file picker, on /Applications); the app chosen stays in the menu, ticked. The row says "Opens the file, not at the line." only for an app that can't take a line.
 - A section gets a small warning mark only when something in it is broken: Agents when macOS blocks Calm's notifications (with a button to System Settings), General when a line of config.toml can't be read (shown under the file).
 - Settings reopens on the section it was left on. A window too narrow for the list and the page shows the list as icons.
@@ -267,14 +277,17 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 |---|---|
 | ⌘K | Search sessions |
 | ⌘P | Command palette |
-| ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
+| ⌘T / ⌘D / ⌘⇧D | New session / split right / split down |
 | ⌘⌥← → ↑ ↓ | Split left / right / up / down |
 | ⌘⇧N | New scratch session |
 | ⌘O | New project |
+| ⌘W | Close the session, or Settings, search or a viewed file in front of it |
 | ⌘⇧T | Reopen the session closed last |
 | ⌘1…9 | Jump to session by position |
+| ⌘⇧[ / ⌘⇧] | Previous / next session in the sidebar |
 | ⌃Tab / ⌃⇧Tab | Cycle sessions down / up the sidebar (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
+| ⌘⌃S | Show or hide the sidebar |
 | ⌘\\ | Toggle the files column |
 | esc | Close a viewed file and return to the session |
 | ⌘⇧I | Show the arrival card again |
@@ -287,7 +300,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 - **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - **⌘,** is Ghostty's *open config*, which Calm doesn't support; Calm's defaults unbind it so it opens Settings, the Mac convention.
 - **⌘⇧T** is Ghostty's *undo* (of a closed tab or split), which Calm doesn't do. Calm's defaults unbind it and give it to Reopen Closed Session, the browser convention. Left bound, Ghostty would take the key first and send it on to the shell, and the menu would never see it. ⌘Z, Ghostty's other undo key, stays unused.
-- **⌘⌥ + arrow** is Ghostty's *move focus to the split in that direction*. Calm's defaults rebind the four keys to *split toward that side* (2026-09-29, the author's call: moving focus by direction isn't worth the best chord, and ⌘[ / ⌘] still move it). The File menu lists these four; ⌘D and ⌘⇧D keep working for right and down, unlisted, since a menu item shows one key. Resize stays on ⌘⌃ + arrow. Calm's defaults load before the user's Ghostty config, so a user who has their own `goto_split` lines on ⌘⌥ + arrow (the author did) keeps focus movement there and gets no splits until those lines go. Self-tests press the keys with `calm.cmd_opt_left` (or `right`, `up`, `down`).
+- **⌘⌥ + arrow** is Ghostty's *move focus to the split in that direction*. Calm's defaults rebind the four keys to *split toward that side* (2026-09-29, the author's call: moving focus by direction isn't worth the best chord, and ⌘[ / ⌘] still move it). The Shell menu lists these four; ⌘D and ⌘⇧D keep working for right and down, unlisted, since a menu item shows one key. Resize stays on ⌘⌃ + arrow. Calm's defaults load before the user's Ghostty config, so a user who has their own `goto_split` lines on ⌘⌥ + arrow (the author did) keeps focus movement there and gets no splits until those lines go. Self-tests press the keys with `calm.cmd_opt_left` (or `right`, `up`, `down`).
 - **Restart Calm** (Calm menu) has no shortcut on purpose: it's rare, and next to ⌘Q it would be easy to hit by mistake.
 - **⌘\\** toggles the files column. It was ⌘⇧E until the author's own Ghostty config turned out to bind that to *equalize splits*, so the column never opened; nothing in Ghostty's defaults uses backslash. 1Password's autofill is ⌘\\ by default, a global shortcut that takes the key first while 1Password runs; View → Toggle Files still works then.
 - ⌘P, ⌘\\, ⌘⇧I, ⌘⇧N, ⌘O are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).

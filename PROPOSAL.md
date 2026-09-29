@@ -4,13 +4,13 @@
 
 ## The problem
 
-Working with CLI coding agents (Claude Code, Codex, OpenCode, pi, omp) has changed what a terminal is for. A typical day now means five to ten long-running agent sessions across several projects. The developer mostly reads, approves and steers; typing commands is the smaller part.
+Working with CLI coding agents (Claude Code, Codex, OpenCode, pi) has changed what a terminal is for. A typical day now means five to ten long-running agent sessions across several projects. The developer mostly reads, approves and steers; typing commands is the smaller part.
 
 Terminals were not built for this, and it shows:
 
 - **Too many terminals to track.** Which session is working, which finished, which is waiting on me? Finding out means clicking through tabs.
 - **Losing the thread.** Switching into a session often starts with "what was this one doing again?"
-- **History is scattered.** A decision made in yesterday's conversation is somewhere in one of hundreds of transcript files across five agents' folders.
+- **History is scattered.** A decision made in yesterday's conversation is somewhere in one of hundreds of transcript files across four agents' folders.
 - **Loud, messy interfaces.** Saturated themes, badges, rings, reordering tabs and settings screens with hundreds of options add stress instead of removing it.
 - **Output is hard to work with.** Agent output is Markdown, tables, diffs and file paths, but copying one table cell copies the whole row, and clicking a path rarely opens the right file at the right line.
 
@@ -32,13 +32,13 @@ Developers on macOS who run several CLI coding agents in parallel every day and 
 
 ## Approach
 
-A fresh codebase in Swift on libghostty, written from scratch around our own model (projects → sessions → panes, with attention as a first-class concept). Ghostty's own macOS app (MIT) is the reference for known pitfalls; code from other projects is never copied.
+A fresh codebase in Swift on libghostty, written from scratch around our own model (projects → sessions → panes, with attention as a first-class concept). Ghostty's own macOS app (MIT) is the reference for known pitfalls; code from other projects is never copied, except engine patches taken unchanged from a Ghostty fork (MIT) and credited in NOTICE.
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| A rewrite takes longer than a fork | A usable plain terminal early (roadmap phase 1), features added on a working app |
+| A rewrite takes longer than a fork | A usable plain terminal early (roadmap milestone 1), features added on a working app |
 | Terminal-embedding bugs others already solved | Study Ghostty's macOS app for known pitfalls before writing each layer |
 | Agents' transcript formats change without notice | One small adapter per agent, each with fixture tests |
 | Scope creep toward a platform | [PHILOSOPHY.md](PHILOSOPHY.md) and [GOALS.md](GOALS.md) define what we refuse to build |
@@ -52,5 +52,5 @@ A fresh codebase in Swift on libghostty, written from scratch around our own mod
 | [FEATURES.md](FEATURES.md) | Every feature and its exact behavior |
 | [UIUX.md](UIUX.md) | Layout, states, motion, color, settings |
 | [DESIGNS.md](DESIGNS.md) | Architecture and technical design |
-| [ROADMAP.md](ROADMAP.md) | Phases and milestones |
+| [ROADMAP.md](ROADMAP.md) | Milestones and what is left |
 | [AGENTS.md](AGENTS.md) | Instructions for coding agents working in this repo |

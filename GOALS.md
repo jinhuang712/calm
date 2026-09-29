@@ -29,6 +29,7 @@ Make supervising many CLI coding agents on a Mac feel calm: the user always know
 | Windows or Linux | macOS-native is the point |
 | Configurability for its own sake | Choice overload works against calm |
 | Replacing tmux for remote servers | Out of scope; SSH into a remote tmux still works inside Calm |
+| A drop-down quick terminal on a global hotkey | Not needed for daily agent work |
 
 ## Success criteria
 
@@ -42,7 +43,7 @@ These are checked by the author's daily use, since the first user is the author.
 
 ## Constraints
 
-- macOS only, Apple silicon first. Minimum macOS version to be decided in [DESIGNS.md](DESIGNS.md).
+- macOS 26 or later, Apple silicon only ([DESIGNS.md](DESIGNS.md)).
 - Swift and libghostty.
-- Apache-2.0. No code copied from other projects; Ghostty (MIT) may be adapted with attribution.
+- Apache-2.0. No code copied from other projects; Ghostty (MIT) may be adapted with attribution, and the engine patches come unchanged from a Ghostty fork (MIT), credited in NOTICE.
 - Everything stays local: no network calls except updates and what the user's own agents do.

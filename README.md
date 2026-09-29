@@ -12,7 +12,7 @@ Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and 
 
 ```sh
 xcodebuild -downloadComponent MetalToolchain   # once, for Ghostty's shaders
-mise run setup                                 # tools, GhosttyKit, Xcode project
+mise run setup                                 # tools, GhosttyKit, zmx, Xcode project
 mise run build                                 # or: mise run run
 mise run test
 ```
@@ -29,7 +29,7 @@ To install, `./install.sh` builds a Release copy into `/Applications` and links 
 - [Features](FEATURES.md) — exact behavior of each feature
 - [UI and UX](UIUX.md) — layout, states, motion, color
 - [Designs](DESIGNS.md) — architecture and technical design
-- [Roadmap](ROADMAP.md) — phases and milestones
+- [Roadmap](ROADMAP.md) — milestones and what is left
 
 ## Inspiration
 

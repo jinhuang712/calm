@@ -1,6 +1,6 @@
 # Designs
 
-Technical design of Calm Terminal. What the features do is in [FEATURES.md](FEATURES.md); this document covers how. Items marked **Decision** are open and should be settled before the phase that needs them.
+Technical design of Calm Terminal. What the features do is in [FEATURES.md](FEATURES.md); this document covers how. Items marked **Decided** record a choice and why; what is still open is marked as an open question. Source files and type names are given so the code can be read; the code is the reference for their exact shape.
 
 ## Tech stack
 
@@ -27,14 +27,15 @@ Technical design of Calm Terminal. What the features do is in [FEATURES.md](FEAT
 ```
 project.yml              XcodeGen spec (generates Calm.xcodeproj, not tracked)
 mise.toml                toolchain pins and tasks
-Calm/                    app target (AppKit + SwiftUI)
-  App/                   entry point, app delegate, menus
-  Terminal/              the only code that imports GhosttyKit
-CalmTests/               app-hosted tests (engine smoke tests)
+install.sh               builds a Release Calm and installs it
+Calm/                    app target (AppKit + SwiftUI), in the folders of the module map below
+CalmTests/               app-hosted tests (code that needs AppKit or the engine)
 CLI/                     the `calm` command-line tool
-Packages/CalmKit/        UI-free Swift package: CalmModel, CalmControl, CalmAgents, CalmSearch, CalmSQLite
-scripts/                 GhosttyKit build, xcodebuild wrapper, app icon (app-icon.py)
-Frameworks/              built GhosttyKit + Ghostty resources (not tracked)
+Packages/CalmKit/        UI-free Swift package (see the module map)
+scripts/                 GhosttyKit and zmx builds, xcodebuild wrapper, self-tests and their fixtures,
+                         theme and app-icon generators, viewer assets, license texts
+Frameworks/              built GhosttyKit, Ghostty resources and zmx (not tracked)
+.github/workflows/       CI
 ```
 
 Ghostty's resources are copied into `Calm.app/Contents/Resources/{ghostty,terminfo}` at build time, and `GHOSTTY_RESOURCES_DIR` points at them unless already set.
@@ -43,66 +44,43 @@ Ghostty's resources are copied into `Calm.app/Contents/Resources/{ghostty,termin
 
 ```
 Calm (app target)
-├── App            launch, windows, menus, lifecycle
-├── Terminal       GhosttyKit wrapper: app, surfaces, input, clipboard, links
-├── Model          Project, Session, Pane, Layout (pure Swift, no UI)
-├── Workspace      grouping sessions into projects, split layouts
-├── Agents         one adapter per agent (detection, transcripts, commands)
-├── Attention      session state machine, notification scheduling
-├── Search         transcript indexer and query engine
-├── Persistence    session daemon client, app state store
-├── Files          file tree column, full-area viewer (Markdown, HTML, PDF, code, images)
-├── Theme          theme files, tokens, picker
-├── Settings       config file, settings screen
-└── Control        local socket server for the `calm` CLI
-calm (CLI target)  talks to Control
+├── App          launch, menus, Dock icon, Restart, motion, interface size, self-test hooks
+├── Terminal     GhosttyKit wrapper: engine, config and themes, surfaces, input, clipboard, links
+├── Sessions     SessionManager, SessionProbe, zmx, shell integration, agent hooks,
+│                notifications, search service, sidebar and cards, agent marks
+├── Window       main window, title strip, files column and viewer, ⌘K panel, switcher, welcome page
+├── Settings     the Settings page and its sections
+└── Control      local socket server for the `calm` CLI
+calm (CLI target, module CalmCLI)   talks to Control through CalmControl
+CalmKit (Swift package)
+├── CalmModel    workspace and its store, attention, settings, themes, links, Copy Cell, file tree
+├── CalmAgents   one adapter per agent: detection, hooks, transcripts, setup, marks, resume and fork
+├── CalmSearch   transcript index and ranking
+├── CalmControl  socket protocol and client
+└── CalmSQLite   the system SQLite behind a small wrapper (package-internal)
 ```
 
 Rules:
 
-- **Model** has no dependency on SwiftUI, AppKit or GhosttyKit, so it is fully unit-testable.
-- **Terminal** is the only module that touches GhosttyKit.
-- Each **Agents** adapter is self-contained; adding an agent never changes the core.
+- **CalmKit** has no dependency on SwiftUI, AppKit or GhosttyKit, so it is fully unit-testable (`swift test`).
+- **Terminal** is the only code that touches GhosttyKit (two app-hosted tests aside).
+- Each **CalmAgents** adapter is self-contained; adding an agent never changes the core.
 
 ## Data model
 
-```swift
-struct Project: Identifiable {
-    let id: UUID
-    var path: URL             // the folder that defines the group
-    var name: String
-    var kind: Kind            // .project (made by the user), .directory, .scratch
-}
+In CalmModel (`Workspace.swift`, `AgentRun.swift`, `SessionState.swift`):
 
-struct Session: Identifiable {
-    let id: UUID              // also exported to the shell as CALM_SESSION_ID
-    var projectID: Project.ID
-    var title: String
-    var workingDirectory: URL
-    var isPinned: Bool        // stays in its group (project sessions, scratch sessions)
-    var scratchFolder: URL?   // a scratch session's own hidden folder
-    var agent: AgentRun?      // present while an agent runs in the foreground
-    var state: SessionState
-}
+- A `Project` is a sidebar group: a folder, a name, and a kind (`.project`, made by the user; `.directory`, made by grouping; `.scratch`).
+- A `Session` is one shell. It has its folder and group, whether it stays pinned there, its `SessionState` (idle, working, needs you, done, failed) with the `StatusReport` behind it, the user's name for it, and a scratch session's hidden folder. Its id is exported to the shell as `CALM_SESSION_ID`.
+- While an agent runs in the foreground, the session holds an `AgentRun`: which agent, its process, its own session id and transcript, and the latest `TranscriptTail` (title, recap, step, progress, interruption, the agent's folder). When the agent exits, its `AgentConversation` stays as `lastConversation`, so it can be resumed.
 
-struct AgentRun {
-    var kind: AgentKind       // .claudeCode, .codex, .openCode, .pi
-    var transcript: URL?      // the agent's session file, when known
-    var agentSessionID: String?
-    var lastMessage: String?
-    var lastActivity: Date
-}
-
-enum SessionState { case idle, working, needsYou, done, failed }
-```
-
-Panes and tabs are **views of sessions**: a layout tree references session IDs. Closing a pane doesn't delete the session; it detaches it.
+Panes and tabs are **views of sessions**: a layout tree references session IDs. Closing a pane closes its session and ends its shell (`SessionManager.closeSession`); quitting Calm detaches shells instead.
 
 As built (M2): `Workspace` holds `projects`, `sessions` and `layouts`. A `PaneLayout` is one tab: a `SplitTree<Session.ID>` plus the focused session. Every session is one pane, so a split creates a session and `⌘T` creates a session with its own layout. Calm has **one main window**; "new window" requests from libghostty become new sessions, since the sidebar replaces windows and tabs as the way to hold many shells.
 
 ## Auto-grouping
 
-1. The shell reports its working directory (OSC 7 through libghostty's pwd action). For panes that never send OSC 7, `WorkingDirectoryProbe` reads the shell's folder with `proc_pidinfo(PROC_PIDVNODEPATHINFO)` every 2 seconds: the shell's pid comes from `zmx list` for persistent sessions (looked up only when unknown) and from `ghostty_surface_foreground_pid` otherwise.
+1. The shell reports its working directory (OSC 7 through libghostty's pwd action). For panes that never send OSC 7, `SessionProbe` reads the shell's folder with `proc_pidinfo(PROC_PIDVNODEPATHINFO)` every 2 seconds: the shell's pid comes from `zmx list` for persistent sessions (looked up only when unknown) and from `ghostty_surface_foreground_pid` otherwise.
 2. On change, a session that isn't pinned is refiled: the most specific project the user made that contains the folder, else the directory group keyed by the git repository's root, or by the folder itself outside a repository (made if needed). A directory group matches its key exactly; it never contains other folders, which is what let an automatic home-folder project swallow every session under `~` before (found in real use).
 3. Pinned sessions stay: those started in a project (`Placement.project`, and ⌘T or splits inheriting it) and scratch sessions (`Placement.scratch`, only from ⌘⇧N). ⌘T or a split from a scratch session opens a directory session at home, so a scratch folder is never shared by accident.
 4. Moves are animated in the sidebar (`matchedGeometryEffect`, so a row glides from one group to the other). Empty directory groups and an empty scratch group are removed.
@@ -111,18 +89,11 @@ As built (M2): `Workspace` holds `projects`, `sessions` and `layouts`. A `PaneLa
 7. Scratch folders live under `~/.local/share/calm/scratch/`, named by time and never shown. Not a temporary directory, which macOS clears, and not Application Support: a working folder's path shows in the prompt and reaches every tool, and the space in "Application Support" trips tools that don't quote paths. The path is fixed, next to `~/.config/calm`, rather than read from `$XDG_DATA_HOME`, which an app opened from the Dock doesn't see. Folders made before this stay where they were: a session keeps its folder's full path, and the files column knows a scratch session by its session, not its path. The root is excluded from Time Machine; the exclusion is set on the root only, because it travels with a moved item and a folder kept as a project must be backed up. Self-tests and unit tests keep theirs under their own support folder. Closing the last session in one removes it when empty, or moves it to the Trash after asking. Keep as Project… moves the folder where the user picks; the shell stays inside it (only its path string is stale until it `cd`s).
 8. No session is opened at launch: the first launch (no state file yet) shows the welcome page, and a later launch restores what was open, the welcome page if nothing was. Self-tests start with a home session unless `--welcome`. What the page holds is in Search → Welcome page.
 
+**Project marks.** `Identicon` (CalmModel) makes a project's mark from its name: a 5×5 grid mirrored left to right, in one of eight hues spread around the wheel (a hue taken straight from the hash bunched up). The hash is FNV-1a, not Swift's `Hasher`, which is seeded per process: a mark must stay the same across launches. Clicking the mark stores a random `Project.markSeed`, mixed into the hash, so the new mark is kept. `GroupMark` and `IdenticonTile` draw it in the sidebar, the title strip and the welcome page.
+
 ## Agents
 
-```swift
-protocol AgentAdapter {
-    var kind: AgentKind { get }
-    func matches(process: ProcessInfoSnapshot) -> Bool
-    func transcripts() -> [TranscriptLocation]
-    func parse(_ transcript: URL, from offset: UInt64) throws -> [TranscriptMessage]
-    func resumeCommand(for id: String) -> [String]?
-    func forkCommand(for id: String) -> [String]?
-}
-```
+**Adapters (CalmAgents).** `AgentAdapter` says what an agent is: the names, binary prefixes and package paths its process runs under, its config folder (present means installed), how it connects to Calm (`AgentSetup`), its mark, and its resume and fork commands. An agent can also adopt `HookReporting` (its hooks call `calm hook <name>`), `TranscriptReading` (find and read its transcript for cards) and `TranscriptIndexing` (search). `Agents.adapters` lists them.
 
 **Detection (as built, M3.1).** `SessionProbe` looks at every session every 2 seconds. A persistent session's shell pid comes from `zmx list`; `proc_pidinfo(PROC_PIDTBSDINFO)` gives the terminal's foreground process group (`e_tpgid`), and when it differs from the shell's own group a job is running. Only when that job changes does Calm read its path and arguments (`sysctl KERN_PROCARGS2`) and ask the adapters. Without zmx, the pane's foreground process (`ghostty_surface_foreground_pid`) is used. Adapters in `CalmAgents` match on executable or script names, per-platform binary prefixes, and package paths for scripts run by node or bun. Agent runs saved by an earlier launch are kept and checked before the window opens (Launch, below); they used to be cleared and found again by the first probe tick.
 
@@ -145,7 +116,7 @@ protocol AgentAdapter {
 | OpenCode | native `opencode`; npm `opencode-ai` is a node wrapper. v2 may run the agent loop in a shared `opencode serve` process | SQLite `~/.local/share/opencode/opencode.db` (write-ahead log). Checked 2.0.18: version 2 keeps sessions in `session_v2` and `session_message` (`idle` messages carry `outcome`: `succeeded`, `failed`, `interrupted`); the old `session`, `message`, `part` and `todo` tables have not changed since the upgrade, so they are not read | A plugin file in `~/.config/opencode/plugins/`: `session.status` busy → working, idle → done; `permission.asked`/`question.asked` → needs you; `session.error` → failed. `event` handlers don't block. Its own OSC 777 notifications are off by default (`attention.notifications` in `~/.config/opencode/cli.json`, read from 2.0.18's code: `?? false`) and are sent only while OpenCode's terminal is unfocused |
 | pi | `pi` (node sets `process.title`; Bun builds are named `pi`); package `@earendil-works/pi-coding-agent` | `~/.pi/agent/sessions/--<folder>--/<ts>_<uuid>.jsonl` (`type: "message"`; checked 0.87.1 on 192 real sessions: an assistant message with `stopReason: "aborted"` is an interruption; records reach megabytes) | Extensions in `~/.pi/agent/extensions/*.ts`, **awaited in order** (Calm's must return at once): `agent_start` → working, `agent_settled` → done, `turn_end.outcome` error → failed. No permission prompts in pi itself |
 
-**Claude Code hooks (as built, M3.4).** At each launch Calm writes a plugin (`.claude-plugin/plugin.json`, `hooks/hooks.json`) to `~/Library/Application Support/Calm/agents/claude-code` and adds that folder to `CLAUDE_CODE_PLUGIN_DIRS` (keeping the user's own entries) in the shells it starts. Claude loads it as `calm@inline` in those sessions only; nothing is written to `~/.claude`. Every hook runs `[ -n "$CALM_CLI" ] && "$CALM_CLI" hook claude-code || true`, synchronously so reports keep their order (`calm hook` gives up on the socket after 1 s). `calm hook` reads the payload on stdin; `ClaudeCodeAdapter.hookReport` maps it (UserPromptSubmit/PreToolUse/PostToolUse → working, PermissionRequest → needs you with "Allow Bash: …", Notification permission/elicitation → needs you, Stop → done with a one-line recap of `last_assistant_message`, or working while its `background_tasks` lists a `subagent` in flight (it wakes Claude when it ends, and that turn's Stop reports again). Every other task in flight counts as a shell (a Monitor arrives as `shell`, and a dev server or watcher never ends, so nothing would wake Claude): the Stop is done, and the count travels to the app as `shells` on the control request and as `StatusReport.backgroundShells`, for the card's "· 2 shells running" (not saved: it is one Stop's snapshot). Only `running` and `pending` tasks count, and a task with no status counts too, since the list is for work still in flight. Only `shell` and `subagent` are seen in captured payloads; the count also isn't cleared when a shell dies without waking Claude, which is why it only lives while the card says done. StopFailure → failed) and passes on the agent's session id and transcript path for transcript tails. Opt out with `claude-code-hooks = false` under `[agents]`. Known gap: an Esc interrupt fires no `Stop`, so the card stays *working* until the next prompt (M3.7 can read the interruption from the transcript). Fixtures are built from the documented payload fields and should be replaced with captured payloads while dogfooding.
+**Claude Code hooks (as built, M3.4).** At each launch Calm writes a plugin (`.claude-plugin/plugin.json`, `hooks/hooks.json`) to `~/Library/Application Support/Calm/agents/claude-code` and adds that folder to `CLAUDE_CODE_PLUGIN_DIRS` (keeping the user's own entries) in the shells it starts. Claude loads it as `calm@inline` in those sessions only; nothing is written to `~/.claude`. Every hook runs `[ -n "$CALM_CLI" ] && "$CALM_CLI" hook claude-code || true`, synchronously so reports keep their order (`calm hook` gives up on the socket after 1 s). `calm hook` reads the payload on stdin; `ClaudeCodeAdapter.hookReport` maps it (UserPromptSubmit/PreToolUse/PostToolUse → working, PermissionRequest → needs you with "Allow Bash: …", Notification permission/elicitation → needs you, Stop → done with a one-line recap of `last_assistant_message`, or working while its `background_tasks` lists a `subagent` in flight (it wakes Claude when it ends, and that turn's Stop reports again). Every other task in flight counts as a shell (a Monitor arrives as `shell`, and a dev server or watcher never ends, so nothing would wake Claude): the Stop is done, and the count travels to the app as `shells` on the control request and as `StatusReport.backgroundShells`, for the card's "· 2 shells running" (not saved: it is one Stop's snapshot). Only `running` and `pending` tasks count, and a task with no status counts too, since the list is for work still in flight. Only `shell` and `subagent` are seen in captured payloads; the count also isn't cleared when a shell dies without waking Claude, which is why it only lives while the card says done. StopFailure → failed) and passes on the agent's session id and transcript path for transcript tails. Opt out with `claude-code-hooks = false` under `[agents]`. An Esc interrupt fires no `Stop`; the transcript tail catches it instead (below). Fixtures are built from the documented payload fields and should be replaced with captured payloads while dogfooding.
 
 **Transcript tails (as built, M3.7 and M3.7b).** Claude Code, Codex, OpenCode and pi each have a `TranscriptReading` adapter: `transcript(forProcess:)` finds its transcript, `readTail` reads it (title, the latest agent text as a plain-text recap through `MessageText.recap`, whether the newest turn was interrupted, and step and progress where the agent keeps todos), and `changeMarkers` names the files whose size or modification time show it changed (OpenCode's `-wal` too). `SessionProbe` re-reads only on a change, one background read per session at a time: a transcript can hold megabytes of tool output, so the reading never runs on the main thread. An interruption settles *working* to idle, but only if the transcript was written after the latest report, since a new prompt's hook can arrive before its transcript line.
 
@@ -174,15 +145,15 @@ Checked against the author's real history with opt-in tests that print counts on
 
 **Agent marks (as built).** Each adapter carries its mark as data (`AgentMarkArt` in `<Agent>+Mark.swift`): SVG path data in a view box, fill colors for dark and light (or a gradient), a scale, and a motion kind (`frames`, `turnAndRest`, `pulseGrid`, `build`, `gradientTurn`). A `frames` mark also carries its agent's own animation as transparent PNGs in the CalmAgents package's `Marks` resources, with the order they show in at a frame rate; Claude Code's spinner is played this way because posing its changing shapes from the spark didn't look like it. The app draws any mark the same way: `SVGPath` reads the path data (moves, lines, curves, closes; anything else falls back to the agent's letter), `MarkMotion` poses a mark as a pure function of time (looping while working, once for finishing up), and `AgentLogo` renders it in a `TimelineView` capped at 30 frames a second that runs only while the mark moves. Idle marks are drawn in the grays of their own colors rather than through a grayscale filter. `Session.stateSince` records when a report changed the state, for "Working · 4m".
 
-**What this means for Calm.** Terminal signals alone already cover Claude Code and Codex (M3.5), with no setup. Hooks add precision (immediate *needs you*, exact messages): Claude Code's plugin can be enabled inside Calm without writing anyone's config; Codex, OpenCode and pi need files in their config folders and the user's consent (and, for Codex, approval in `/hooks`, and its hooks can't tell Calm's sessions apart while its shared daemon runs: see Codex hooks). Transcript tails give every agent a recap and an interruption without any of that.
+**What this means for Calm.** Terminal signals alone already cover Claude Code and Codex (M3.5), with no setup. Hooks add precision (immediate *needs you*, exact messages): Claude Code's plugin is enabled inside Calm without writing anyone's config; pi's extension is a file Calm adds to pi's config folder only when the user clicks Connect; OpenCode's own notifications are a switch the user turns on in its `cli.json`; Codex keeps its own notifications, since its hooks can't tell Calm's sessions apart while its shared daemon runs (see Codex hooks). Transcript tails give every agent a recap and an interruption without any of that.
 
-Open questions: whether `AskUserQuestion`/`ExitPlanMode` fire `PermissionRequest` in Claude Code's interactive mode; which hook, if any, follows a rejected permission; whether Codex's `notify` blocks; how OpenCode v2's TUI attaches to its shared service.
+Open questions: whether `AskUserQuestion`/`ExitPlanMode` fire `PermissionRequest` in Claude Code's interactive mode; which hook, if any, follows a rejected permission; how OpenCode v2's TUI attaches to its shared service.
 
 Transcript formats are undocumented and change between versions. Each adapter ships fixture files from real sessions and tests against them; a parse failure degrades to "no transcript", never a crash.
 
 ## Attention
 
-**State reporting.** Every shell Calm starts gets `CALM_SESSION_ID`, `CALM_SOCKET` and `CALM_CLI` (the bundled `calm`) in its environment. Agent hooks call `"$CALM_CLI" status <state> [message]`, which sends `{session, state, message}` over the socket. States are `working`, `needs-you`, `done`, `failed` and `idle`, with a few synonyms (`waiting`, `error`, `stop`…) so hook scripts can use their agent's words. Hooks run on every turn and in every terminal, so `status` and `notify` are silent no-ops that exit 0 outside a Calm session or when Calm isn't running (they never launch it), and the socket gives up after 2 seconds (`scripts/cli-hook-check.sh` checks this). Setting up hooks for each agent is offered once, with the user's consent, and written to the agent's own config.
+**State reporting.** Every shell Calm starts gets `CALM_SESSION_ID`, `CALM_SOCKET` and `CALM_CLI` (the bundled `calm`) in its environment. A hook reports with `"$CALM_CLI" status <state> [message]` (pi's extension), or hands its payload to `"$CALM_CLI" hook <agent>` for the adapter to read (Claude Code's plugin); either sends a `status` request over the socket. States are `working`, `needs-you`, `done`, `failed` and `idle`, with a few synonyms (`waiting`, `error`, `stop`…) so hook scripts can use their agent's words. Hooks run on every turn and in every terminal, so `status`, `notify` and `hook` are silent no-ops that exit 0 outside a Calm session or when Calm isn't running (they never launch it), and give up on the socket after 1 second (`scripts/cli-hook-check.sh` checks this). What each agent needs is under Settings → Agents above.
 
 **Fallback signals** when no hook is installed come from libghostty's actions, translated in `Terminal` into `TerminalSignal` and read by one pure function (`TerminalSignal.outcome`), with source `terminal` so hooks still win:
 
@@ -233,15 +204,7 @@ Known limits:
 - **Prompt histories:** an adapter may name a prompt log that outlives its transcripts (`promptHistoryFile`, `historyPrompt(in:)`). Claude Code's `~/.claude/history.jsonl` has `{display, pastedContents, timestamp, project, sessionId}` per prompt. It is read incrementally (offset in `sources`); prompts of sessions with no transcript row become a `history` row (`path` = `<log>#<session id>`, user prompts only, not resumable). A transcript that turns up later for that session replaces it. On the author's history: 229 sessions and 2,643 prompts recovered, 0.1 s, idle update still 8 ms.
 - **Keeping the index:** since it now holds sessions that exist nowhere else, a schema change migrates (`1` → `2` adds `origin` and `gone`) instead of rebuilding; only an unknown schema starts over.
 - **Snippets:** built in Swift from the best matching message (by rowid) for the results shown, starting on a word up to 28 characters before the first term, so a one-line row always shows the match. FTS5's `snippet()` counted trigram tokens and often put the match past the visible line. As built (M4.3, M4.7): instead of FSEvents, the app refreshes the index when ⌘K opens and every few minutes, because an update with nothing new takes 8 ms on the author's 502 transcripts.
-- **Schema sketch:**
-
-```sql
-CREATE TABLE sessions (id TEXT PRIMARY KEY, agent TEXT, project TEXT,
-                       title TEXT, transcript TEXT, last_active INTEGER);
-CREATE VIRTUAL TABLE messages USING fts5(session_id UNINDEXED, role UNINDEXED,
-                       text, tokenize = 'trigram');
-CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER);
-```
+- **Tables** (`SearchIndex`): `files` has a row per transcript, or per session known only from a prompt history. It holds the agent, the read offset, size and modification time, the session's id, folder, title and first prompt, when it was last active, its `origin` and whether it is `gone`. `messages` is the FTS5 table of each message's text, with its file and role. `sources` keeps the read offsets of prompt histories, and `meta` the schema version.
 
 - **Ranking (M4.4):** per term, the best `bm25()` message in each session, normalized to 0…1 against the query's best; every term must appear somewhere in the session (not necessarily one message). Then boosts: title match +0.35, recency ×0.3 (1 today, 0.5 after a week), current project +0.2 ("slightly higher": it beats a few days, not months). Terms under three characters use `LIKE` and count as fully relevant.
 - **Welcome page:** with no session open, `WelcomePage` puts one `NSHostingView` over the whole window (sidebar included) and shows `WelcomeView`, so the search and the projects live on the page the sidebar would have. Each showing gets a `WelcomeModel`: it owns a `SearchPanelModel`, the very model ⌘K uses (an empty query lists the most recent sessions; opening refreshes the index; typing queries it, debounced), the projects the user made, and the selection, kept as *what a row stands for* (a transcript path or a project id) so it survives the lists changing under it. Projects are filtered by `ProjectSearch` (CalmModel): every word must be in the name or in the folder as shown, ignoring case and accents, and the same function gives the ranges the row marks. `WelcomeContent.choose` (CalmModel, pure) picks between the lists and the three-row welcome from three facts: first launch, whether the index knows any session (`SearchPanelModel.hasHistory`, nil until it answers, when sessions are assumed to be coming so the page doesn't rearrange), and whether a project exists. ⌘K on the page calls `WelcomePage.focusSearch()` instead of opening the panel over it; opening a result is `openSearchResult`, the panel's own. The rows are the panel's (54 pt, agent mark, snippet with marked words) and the sidebar's (`AgentLogo`, `IdenticonTile` at 30 pt, `KeyCaps`), not new drawings.
@@ -274,6 +237,10 @@ CREATE TABLE file_offsets (path TEXT PRIMARY KEY, offset INTEGER, mtime INTEGER)
 - **Copy Cell:** read the grid text around the click with libghostty's text API, scan left and right for the nearest vertical border characters and up and down for horizontal border rows, then join the cell's lines and trim padding. Pure function over a text grid, so it is unit-tested with fixtures of real agent tables.
   - As built (M5.2): `CopyCell` and `TextGrid` in CalmModel. The grid is built with display widths (`CellWidth`: CJK, fullwidth and emoji take two cells), so columns match the terminal's. Borders include box-drawing lines and junctions, `|` and `+`; a rule is a row of rule characters with at least one dash. Tables with a rule after every row are delimited by the rules; tables with only a header rule treat each line as a row, except that a line whose first column is empty continues the row above. Wrapped lines join with a space, or without one between two wide characters.
   - The view reads the grid one row at a time (a whole-viewport read joins soft-wrapped lines and shifts the rows) and maps the click to a cell from cell (0,0)'s origin and the cell size. `ghostty_text_s.tl_px_x` is the left padding, but `tl_px_y` is row 0's text baseline, not its top (`Surface.zig`: padding + cell height − the font's baseline, which the API doesn't expose). `ghostty_surface_ime_point` gives the bottom of the cursor's cell (padding + whole cells), so the top padding is the one value a whole number of cells from it and less than a cell above the baseline (`gridOrigin`). Before this, reading `tl_px_y` as the top put a click above a row's baseline (most of the row) on the row above. ⌥-double-click copies; the right-click menu (when the program isn't capturing the mouse) offers Copy Cell, Copy and Paste; a small "Cell copied" note fades by the pointer.
+
+## Paste
+
+- A terminal can't carry image data, but agents attach an image from its path. So `TerminalClipboard.plainText` pastes files as their shell-escaped paths, text as text, and an image with neither (a screenshot) as the path of a PNG it saves in `$TMPDIR/calm-pasted-images`, a temporary folder so macOS clears old pastes. A drop onto a pane goes through the same function.
 
 ## Window
 
@@ -321,17 +288,17 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 …
 ```
 
-- **As built (M6.1):** `CalmTheme` and `ThemeLibrary` (CalmModel, unit-tested) read the files with the same flat TOML reader as config.toml. A bad color is dropped and a variant without a background or foreground is left out, each with a logged problem; the rest of the theme still works. Built-in themes are bundled from `Calm/Resources/Themes`; user themes live in `~/.config/calm/themes/`, and one with a built-in's name replaces it. `theme = "Name"` in config.toml picks one until the picker lands.
+- **As built (M6.1):** `CalmTheme` and `ThemeLibrary` (CalmModel, unit-tested) read the files with the same flat TOML reader as config.toml. A bad color is dropped and a variant without a background or foreground is left out, each with a logged problem; the rest of the theme still works. Built-in themes are bundled from `Calm/Resources/Themes`; user themes live in `~/.config/calm/themes/`, and one with a built-in's name replaces it. `theme = "Name"` in config.toml picks one.
 - **The built-in set:** five themes (Calm, Ink, Dusk, Forest, Plum) in light and dark, written by `scripts/themes.py` from OKLCH values per theme and role, which also checks their contrast. Each is a direction of its own (a hue, a depth or both), not a tint of another: an earlier six came from one generator that changed only the background's tint, and read as one theme six times in the picker. Calm is Ink's neutral gray, hues and accent with a lifted background and softer text. Original palettes, not copied from other themes. Text is 6.4–8.3:1 against the background; the six ANSI hues stay below the text's contrast in dark and at least 4.3:1 in light; bright white stays within 1.2× the text's contrast, since agents draw emphasis in it (and Claude Code's ANSI themes their body text). A unit test holds the shipped files to these.
 - **Not the theme's to change:** colors an app sends as truecolor. Claude Code's `dark` theme draws its text in pure white, about 14:1 on Calm, whatever the theme; its ANSI themes, or a custom Claude Code theme with `"text": "ansi:whiteBright"` in `~/.claude/themes/`, follow the terminal's colors.
 - **How a theme reaches the terminal** (`TerminalTheme`). Ghostty ranks a theme file's colors below any color set directly in the config, wherever it's set, while `theme =` goes to the last file that sets it. So:
   - The **default** theme (Calm) is written as two Ghostty theme files and `theme = light:…,dark:…` in Calm's defaults. A theme or colors in the user's Ghostty config win, so an existing setup carries over, and Ghostty switches light and dark itself.
   - A theme **picked** in Calm is written as plain colors for the current appearance to `choices.ghostty` (with the other terminal-side choices from Calm's settings), loaded after the user's config, so it wins. When the system appearance changes, Calm rewrites it and reloads.
 - **Chrome (M6.2):** the sidebar, cards, panels, files column and viewer derive their colors from the terminal's background (`SidebarStyle.derived`). When that background is a Calm theme's, the theme's sidebar color, foreground (for text), accent and red are used instead. The accent colors chrome only (`SidebarStyle.accent`); *needs you* stays Calm's amber (`SidebarStyle.attention`), since a blue or green accent read as *working* or *done*. When the user's own Ghostty colors are in effect, everything stays derived. Glass or solid and card or edge-to-edge are window options (M6.4), not part of a theme.
-- **Picker (M6.3):** `ThemePickerModel` gives each theme's colors for the current appearance (background, text, sidebar, hues, cursor, accent); `AppearanceSection` draws them as chips and as `WindowPreview`, a miniature of the window with the picked layout and background. A pick saves `theme` with `CalmSettings.save` (`nil` removes the key) and reloads the Ghostty config. The **Ghostty** choice appears when `TerminalConfig.userColors` finds colors in the user's own config. A config only resolves `theme = light:…,dark:…` inside a surface, so the pair is read from the files (`CalmTheme.ghosttyThemePair`) and the probe loads one extra `theme =` line per appearance; colors set directly still win, as in the terminal.
+- **Picker (M6.3):** `ThemePickerModel` gives each theme's colors for the current appearance (background, text, sidebar, hues, cursor, accent); `AppearanceSection` draws them as chips and as `WindowPreview`, a miniature of the window with the picked layout and background. A pick saves `theme` with `CalmSettings.save` and reloads the Ghostty config. Picking Calm, the default, still writes `theme = "Calm"`, so it wins over colors in the user's Ghostty config; only the Ghostty choice removes the key. The **Ghostty** choice appears when `TerminalConfig.userColors` finds colors in the user's own config. A config only resolves `theme = light:…,dark:…` inside a surface, so the pair is read from the files (`CalmTheme.ghosttyThemePair`) and the probe loads one extra `theme =` line per appearance; colors set directly still win, as in the terminal.
 - **Window options (M6.4):** `WindowStyle` owns the terminal area's insets and an `NSVisualEffectView` under everything. Glass makes the window non-opaque, shows the effect view, and sets Ghostty's `background-opacity` (0.84) in `choices.ghostty`, so it wins over the user's Ghostty config. The sidebar and files column keep 55% of their color; the viewer and panels stay solid so nothing reads through them. This avoids Ghostty's private-API window blur. Card insets the terminal area by 8 points (sliding through `Motion.animateLayout`) and rounds it (10 points, continuous corners, a faint border) on a window painted in the sidebar's color; the viewer takes the same corners. Settings → Appearance saves each option (a default removes its key) and reloads the Ghostty config only when the terminal side changes (glass, or motion, which turns the cursor shader on and off).
 - **Adaptive background:** when an app paints the terminal's background (OSC 11, `COLOR_CHANGE`), the pane's override feeds `applyAppearance`. The chrome derives from the new color (the theme's tints drop, since its background is no longer on screen), and the sidebar eases into it over 0.35 s.
-- **Settings screen (M6.5):** `SettingsPage` puts one `NSHostingView` over the whole window, as `WelcomePage` does, drawn in the chrome's `SidebarStyle` (restyled when the theme changes); its list is `SidebarView.width` wide and uses the sidebar footer's row metrics, and a local key monitor takes esc while the page is on top. An extension of `MainWindowController` opens and closes it, hands focus back to the session, and pauses the sidebar peek meanwhile; `select` and the new-session paths close it, and a config reload refreshes its models. Each section has a small `@Observable` model (`ThemePickerModel`, `WindowOptionsModel`, `AgentsSettingsModel`, `GeneralSettingsModel`) that saves through `CalmSettings.save` (a default removes the key; comments and unknown keys stay). The controls in `SettingsComponents` (segmented, switch, buttons, menus) are drawn in SwiftUI because AppKit's only know the system accent. Ghostty's C API can't return `font-family` (a repeatable key has no C value), so `GhosttyConfigText.fontFamily` reads it from the config text; the size is the shared one (⌘+/⌘−) or the config's `font-size`. `SettingsMetrics` holds the page's sizes. Blocked notifications come from `UNUserNotificationCenter.getNotificationSettings` (never asked in self-tests; `CALM_NOTIFICATIONS_BLOCKED=1` shows the notice). The page's scroll view hides its indicators: with them, headless snapshots drew the page blank. Headless self-tests drive it with `settings`, `settings:<section>`, `set:<key>=<value>`, `pick_theme:<id>` and `report:<state>`, and log the files and System Settings pane it would open.
+- **Settings screen (M6.5):** `SettingsPage` puts one `NSHostingView` over the whole window, as `WelcomePage` does, drawn in the chrome's `SidebarStyle` (restyled when the theme changes); its list is `SidebarView.width` wide and drawn like the sidebar's footer rows, a size up (`SettingsMetrics`), and a local key monitor takes esc while the page is on top. An extension of `MainWindowController` opens and closes it, hands focus back to the session, and pauses the sidebar peek meanwhile; `select` and the new-session paths close it, and a config reload refreshes its models. Each section has a small `@Observable` model (`ThemePickerModel`, `WindowOptionsModel`, `AgentsSettingsModel`, `GeneralSettingsModel`) that saves through `CalmSettings.save` (a default removes the key; comments and unknown keys stay). The controls in `SettingsComponents` (segmented, switch, buttons, menus) are drawn in SwiftUI because AppKit's only know the system accent. Ghostty's C API can't return `font-family` (a repeatable key has no C value), so `GhosttyConfigText.fontFamily` reads it from the config text; the size is the shared one (⌘+/⌘−) or the config's `font-size`. `SettingsMetrics` holds the page's sizes. Blocked notifications come from `UNUserNotificationCenter.getNotificationSettings` (never asked in self-tests; `CALM_NOTIFICATIONS_BLOCKED=1` shows the notice). The page's scroll view hides its indicators: with them, headless snapshots drew the page blank. Headless self-tests drive it with `settings`, `settings:<section>`, `set:<key>=<value>`, `pick_theme:<id>` and `report:<state>`, and log the files and System Settings pane it would open.
 - **Accessibility (M6.6):** `AccessibilitySettings` reads Reduce Motion and Increase Contrast (self-tests force the latter with `--increase-contrast`) and reloads the config when either changes. With Increase Contrast, `SidebarStyle.contrasted()` strengthens the chrome, and `CalmTheme.Colors.contrasted()` (CalmModel, tested on every built-in theme) lifts each text color toward white or black until it reaches 4.5:1. Ghostty's `minimum-contrast` was tried first and dropped: it swaps short colors to white or black, which made dim text brighter than normal text.
 - **Interface size:** `InterfaceScale.shared.factor` (an `@Observable`, set from `CalmSettings.interfaceSize` whenever the settings change) multiplies the chrome's sizes: `.calmFont(size:)` for type and `.scaled` for lengths (frames, paddings, spacing, corners; 0 and 1 stay, so hairlines stay hairlines). Views read it in their bodies, so a change redraws them; `applyAppearance` resizes the sidebar's width constraint and its peek. SwiftUI's Dynamic Type doesn't reach fixed-size fonts on macOS, so the chrome scales itself. The window miniatures in Settings keep their own proportions, and the session switcher's live previews keep their size.
 - Self-tests leave the user's Ghostty config out unless asked (`--ghostty-config`), write Calm's generated files to their own folder (`CALM_SUPPORT_DIR`), and can force the appearance (`--appearance light|dark`, `calm.appearance:<mode>`).
@@ -340,7 +307,7 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 
 - The window's content view is layer-backed, so fades and slides run on Core Animation. Without layers AppKit falls back to timer-driven animation, which never ran when started outside event handling (for example from `calm open`), leaving a new session's workspace at alpha 0. The layout fade is a presentation-only `CABasicAnimation`: the view's own alpha stays 1, so a skipped animation can't leave a session invisible. Overlays (the switcher, the peeking sidebar) are removed on a timer rather than in an animation completion handler, so one can never linger invisibly over the terminal and take clicks.
 - `Motion` is the one switch: no animation when the system's Reduce Motion is on or `motion` is `reduced`/`off` in `config.toml`.
-- **Session switcher:** a local event monitor sees ⌃Tab before the terminal does and consumes it (and Esc, Return and the arrows while the switcher is open), so Ghostty's own ⌃Tab binding never fires. The switcher shows only after ~160 ms of holding ⌃, like ⌘Tab. Previews are `cacheDisplay` snapshots of each session's pane, refreshed every 250 ms; panes in hidden layouts are un-occluded while the switcher is open so their previews stay live, and occluded again when it closes. Recent order is kept in memory, not saved.
+- **Session switcher:** a local event monitor sees ⌃Tab before the terminal does and consumes it (and Esc, Return and the arrows while the switcher is open), so Ghostty's own ⌃Tab binding never fires. The switcher shows only after ~160 ms of holding ⌃, like ⌘Tab. Previews are `cacheDisplay` snapshots of each session's pane, refreshed every 250 ms; panes in hidden layouts are un-occluded while the switcher is open so their previews stay live, and occluded again when it closes. It cycles in sidebar order (`SessionManager.orderedSessions`, which ⌘1…9 use too).
 - **Sidebar peek:** a 6 pt sensor at the left edge (tracking area only, it never takes clicks) slides a second sidebar view in over the terminal; it slides away 350 ms after the pointer leaves it.
 
 ## Motion in the terminal
@@ -361,22 +328,24 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 
 ## Configuration
 
-- One file: `~/.config/calm/config.toml`. The settings screen reads and writes it. Until then it holds `auto-grouping` and `motion`; `CalmSettings` reads the flat subset of TOML Calm needs (`key = value`, comments, `[sections]` flattened to `section.key`) and reports malformed lines instead of failing.
-- Ghostty options continue to come from the user's Ghostty config, then `~/.config/calm/terminal.ghostty` for Calm-only overrides.
-- Unknown keys are preserved when the settings screen writes the file.
+- One file: `~/.config/calm/config.toml` (`CALM_CONFIG_FILE` overrides it), read and written by the settings screen. `CalmSettings` reads the flat subset of TOML Calm needs (`key = value`, comments, `[sections]` flattened to `section.key`) and reports malformed lines instead of failing. Keys: `auto-grouping`, `motion`, `theme`, `ui-size`, `editor`, `open-paths`; `background` and `layout` under `[window]`; `notify`, `sound` and `claude-code-hooks` under `[agents]`.
+- Settings are written one line at a time (`CalmSettings.save`), so comments and unknown keys stay. Choosing a default removes the key, except the theme (see Themes → Picker).
+- Ghostty options load in this order, each winning over the one before: Calm's `defaults.ghostty` (keybindings, padding color, motion, the default theme), the user's Ghostty config, Calm's `choices.ghostty` (a picked theme, glass), then `~/.config/calm/terminal.ghostty` for Calm-only overrides.
 
 ## Control protocol
 
-- Unix socket at `~/Library/Application Support/Calm/calm.sock`, newline-delimited JSON requests and responses.
-- Commands: `open`, `search`, `status`, `notify`, `list`. Versioned with a `v` field.
-- As built (M2.9): one request per connection, `{"v":1,"cmd":"open","path":…}` → `{"ok":true}` or `{"ok":false,"error":…}`; `list` returns `sessions` with id, title, project, folder and state. The socket is mode 600 and `CALM_SOCKET` overrides its path. `open` and `list` work; `status` and `notify` answer "not available yet" until M3.
-- The CLI is a small separate target installed into the app bundle and linkable onto `PATH`.
+- Unix socket at `~/Library/Application Support/Calm/calm.sock` (mode 600; `CALM_SOCKET` overrides it). One request per connection: a line of JSON with `v` and `cmd`, answered by `{"ok":true,…}` or `{"ok":false,"error":…}`. A request from a newer `calm` (a higher `v`) is refused with a note to update Calm. The types are in `CalmControl` (`ControlProtocol.swift`).
+- Commands: `open` (a folder becomes a project with a new session; a file, or `file:line`, opens in the viewer or the editor), `list` (sessions with id, title, project, folder, state and agent), `status` (a state report, with the agent, its session id, its transcript and the shells still running when the hook knows them), `notify`, and `search`, which is answered off the main thread since the index has its own queue.
+- `calm hook <agent>` exists only in the CLI: the adapter (`HookReporting`) turns the payload into a `status` request.
+- `open` and `list` start Calm when the socket is missing (`open -g -b`) and wait up to 5 s; `status`, `notify` and `hook` never do. `calm search` reads the index itself when Calm isn't running.
+- The CLI is a small separate target (module `CalmCLI`) installed into the app bundle at `Contents/Resources/bin/calm` and linkable onto `PATH`.
 
 ## Testing
 
-- **Unit:** Model, auto-grouping, attention state machine, Copy Cell parsing, search ranking, transcript parsers with fixtures.
+- **Unit:** CalmKit's packages (`swift test`), with fixtures from real transcripts; app-hosted tests in `CalmTests` for code that needs AppKit or the engine.
 - **Integration:** control socket round trips, indexer on fixture folders.
-- **UI:** a few smoke tests; no pixel tests.
+- **Self-tests** (Debug builds): `scripts/selftest.sh` launches the app, drives it through variables read in `Calm/App/SelfTest.swift` (typing, key events, `calm.<action>` hooks in `MainWindowController.performForTesting`, motion probes), saves a snapshot, the screen text and a log, and quits. `CALM_HEADLESS=1` keeps the window invisible, click-through and never key, so a run never takes the user's focus (`Headless`). Checks read the log and the snapshot; there are no reference images.
+- **Isolation:** each self-test gets its own `CALM_STATE_FILE`, `CALM_SUPPORT_DIR`, `CALM_CONFIG_FILE`, `CALM_SOCKET`, `CALM_ZMX_DIR`, `CALM_INDEX_FILE` and `CALM_SEARCH_HOME`, plus `CALM_GHOSTTY_CONFIG=none`, `CALM_NO_PERSISTENCE=1` (unless `--persist`) and `CALM_NO_NOTIFICATIONS=1`, so it never touches the installed Calm's state, shells or index. `UserDefaults` are the exception: they follow the bundle id (see Window).
 - Swift Testing throughout; `mise run test` runs everything.
 - **Trace (as built, 2026-09-29):** `Trace` writes a timeline of what decides a session's row to the unified log (category `trace`, notice level, so it is kept): `/usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'` (plain `log` is a zsh builtin). Each line is `+seconds since launch`, the event, and the session's first eight hex digits (the ids in `state.json` and the zmx names). It was added to find out why a Restart is slow to show *working*: launch milestones (engine, state restored, control socket listening, probe scheduled, window open), `restore` per session (the saved state and agent), `launch pass` (how many saved runs, how long, and whether it finished before the window or the rows showed as loading) and `settle` per session (what the pass found, and what the row showed before and after), `pane` attach, `probe` (an agent started or ended in the foreground), `agent named` (a hook, or the probe finding a transcript, told which agent and transcript), `report` (source, state, and what the row showed before and after), `transcript` (which fields the tail held, and any state change it made), and `control … waited` when a request waited 100 ms or more for the main thread (a hook waits that long too; `calm hook` gives up after a second). Every report and hook is written for the first minute after launch; later only those that changed something. Only states, sources, counts and agent names, never text a user or agent wrote. `SessionProbe`'s own polls aren't traced, so a slow transcript read shows as the gap before its `transcript` line.
 
@@ -384,11 +353,11 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 
 - Calm is licensed under **Apache-2.0** (`LICENSE`, `NOTICE`).
 - Ghostty (MIT) may be studied and small parts adapted, with attribution in the file header and in `NOTICE`. Ghostty's license notice ships with the app because Calm embeds libghostty.
-- Other projects are for ideas only; no code is copied from them.
+- Other projects are for ideas only; no code is copied from them, with one exception: the smooth-scrolling engine patches (0005 and 0006 in `scripts/ghostty-patches`) are taken unchanged from a Ghostty fork (MIT) and credited in `NOTICE` (see GhosttyKit source). Calm's own patches beside them are written here.
 - Agent marks are the agents' own logos, shown only to identify which agent a session runs; their sources and owners are listed in `NOTICE`. The motions are Calm's own code, written after watching each agent's.
 
 ## Distribution
 
-- Early: local builds only.
+- Now: built from source. `install.sh` builds a Release Calm into `/Applications` and links `calm` into `~/.local/bin`. It swaps the app in with two renames, so a failed copy never leaves no Calm, and leaves a running Calm alone: macOS keeps the running binary's pages, and the new one starts at the next launch or Restart Calm. CI (`.github/workflows/ci.yml`, a macOS 26 runner) builds GhosttyKit (cached by the pin and the patches), then lints, builds and tests every push to `main` and every pull request.
 - **Local builds are signed ad-hoc; a stable local certificate was tried and dropped (2026-09-29).** macOS keeps a privacy grant (Desktop, Documents, Downloads, Full Disk Access, …) against the app's *designated requirement*, and an ad-hoc signature's is `cdhash H"…"`, a hash of that one build, so each rebuild or `./install.sh` is a new app and gets asked again. (That is how macOS is documented to work; it wasn't observed here, since reading the TCC database needs Full Disk Access.) A self-signed certificate gives a requirement that survives rebuilds (`identifier "com.jinhuang.calm" and certificate leaf = H"…"`), but the setup cost too much trust: `codesign` refuses an untrusted identity, so trusting it takes a system password dialog; then every `codesign` run asks for the login keychain password (a build signs many binaries, and a run nobody answers fails with `errSecInternalComponent`) unless the key's partition list is set, which means typing the login password into a script. An app or its tooling that asks for a password over and over looks like malware, so Calm asks for none: the certificate, its script, and the `Config/Signing.xcconfig` hook were removed. (An xcconfig include also can't name a path under `$(HOME)`, so a per-checkout file would have needed copying into every worktree.) What keeps prompts few instead: guarded folders are read only when opened (Files and viewer, above), so macOS asks in context, about a folder the user chose.
 - Later: Developer ID signing, notarization, Sparkle updates, a Homebrew cask. A Developer ID identity has a requirement that stays the same across updates, so a user's grants survive them, and it asks the user for nothing beyond macOS's own folder prompts. It is the real answer to repeated prompts for users.

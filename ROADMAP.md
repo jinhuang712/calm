@@ -32,13 +32,13 @@ M4 and M5 can run in parallel with M3 once M2 is done.
 
 ## M0 — Foundations ✅
 
-An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty.
+An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty and Calm's patches.
 
-- [x] **M0.1 Decision:** minimum macOS version (proposed: macOS 26).
+- [x] **M0.1 Decision:** minimum macOS version. **Decided: macOS 26**, Apple silicon only.
 - [x] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
-- [x] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit and fetch it into `vendor/ghostty` (git-ignored).
-- [x] **M0.4 GhosttyKit build:** `scripts/build-ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit, cached by commit hash so rebuilds are skipped.
-- [x] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package for the UI-free modules (starting with `Model`), each with a test target.
+- [x] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit in `scripts/ghostty.env`; it is fetched into `~/Library/Caches/calm/ghostty`.
+- [x] **M0.4 GhosttyKit build:** `scripts/ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit with `scripts/ghostty-patches` applied, cached by commit and patch set so rebuilds (and other worktrees) reuse it.
+- [x] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package (`CalmKit`) for the UI-free modules, each with a test target.
 - [x] **M0.6 App skeleton:** an empty window that launches; bundle ID `com.jinhuang.calm`; placeholder icon.
 - [x] **M0.7 Engine smoke test:** the app initializes libghostty at launch, and a test proves GhosttyKit links.
 - [x] **M0.8 Quality tools:** swiftformat and swiftlint configs; `mise run build`, `test`, `lint` and `format`.
@@ -66,7 +66,6 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
 - [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
 - [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
-- [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Moved to Later: not needed for daily agent work.*
 - [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Skipped by the author (2026-09-29), so M1 stays 🟨 by the rule above. Automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
 
 **Exit criteria**
@@ -78,10 +77,10 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 
 The core model arrives: sessions grouped under projects, restored after quitting.
 
-- [x] **M2.1 Model:** `Project`, `Session`, `Pane` and layout tree in the `Model` module, fully unit-tested.
+- [x] **M2.1 Model:** `Project`, `Session` and the split layout tree in the `CalmModel` module, fully unit-tested.
 - [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The windowed frame uses AppKit's autosave; a window left filling the screen, or in full screen, is remembered in `state.json` (AppKit's autosave doesn't record a filled one).
 - [x] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
-- [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested.
+- [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested. *Revised after real use: projects you make, folder groups by git root or folder, and scratch sessions on top (FEATURES.md → F2).*
 - [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
 - [x] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
 - [x] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first). **Decided: zmx 0.8.1** (MIT), bundled; see DESIGNS.md → Persistence.
@@ -105,19 +104,19 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect; it names its conversation on every report (`calm status --agent pi --transcript …`), and Calm keeps the file current at launch. OpenCode: its own attention notifications, off until `attention.notifications` is true in its `cli.json` (Settings → Agents says so, then reads Connected); no plugin, since its shared service can't be tied to a terminal yet. **Codex hooks: decided 2026-09-29 not to build them.** Since Codex 0.157 every session runs in one shared daemon, which runs persistent hooks with its own environment, so a hook can't tell which Calm session it belongs to; its own notifications and Calm's transcript tails already give state, recap and interruption (DESIGNS.md → Codex hooks). Revisit if that daemon changes.*
 - [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
-- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code, including the agent's own title and Esc interruptions. The other four agents are M3.7b.*
+- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code, including the agent's own title and Esc interruptions. The other three agents are M3.7b.*
 - [x] **M3.7b Transcript tails for the other agents:** Codex, OpenCode and pi readers on the same `TranscriptReading` protocol. *Built, and read against the author's real history (184 Codex rollouts, 192 pi sessions, 60 OpenCode sessions: none unreadable). What each gives a card: a recap and Esc interruptions; a title for pi and OpenCode (Codex keeps none in its files); no step or progress (no todo record appears in these agents' recent history). Reading runs off the main thread and steps past megabytes of tool output. Finding an agent's transcript without a hook: the file the process has open, else `codex resume <id>`, else the one transcript for its folder written since it started, and none when that is ambiguous. Verified end to end headless with stand-in agents. *Fixed the day it landed, after the author's live Codex showed no recap and never worked:* a terminal `codex` under the shared daemon says `source: "vscode"` in its rollout, so the terminal is told from the desktop app by `originator` (the first rule counted only `cli`); and Codex and OpenCode, which never tell Calm they are working, get **working** and **done** from their transcripts' turn markers (DESIGNS.md → Transcript tails → Turn phase). Checked against the live process, not only history. OpenCode search indexing (M4) and OpenCode resume and fork (M7) are still open.*
-- [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
+- [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree name; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. A diff size on the card was dropped (2026-09-29): the files column's header already counts the project's lines.*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
-- [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent.
+- [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent. *Became Settings → Agents, opened from Calm → Agents….*
 - [x] **M3.12 Agents settings:** which states notify, sound on or off.
 
 **Exit criteria**
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.
 - No *needs you* is missed.
 
-*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: an OpenCode plugin (blocked on its shared service), diff size on cards (with the files column, M5), and the week of real use.*
+*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: an OpenCode plugin (blocked on its shared service), and the week of real use.*
 
 ---
 
@@ -127,7 +126,7 @@ Any past conversation, across every agent, is one search away.
 
 - [x] **M4.1 Transcript parsers:** one per agent, tested against fixture files from real sessions; failures degrade quietly.
 - [x] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
-- [x] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing with file watching and stored offsets; user and agent messages only.
+- [x] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing from stored offsets (at launch, every three minutes and when ⌘K opens); user and agent messages only.
 - [x] **M4.4 Ranking:** BM25 plus boosts for title matches, recency and the current project; unit-tested.
 - [x] **M4.5 CLI:** `calm search <text>`.
 - [x] **M4.6 Search panel:** ⌘K, live results, jump to an open session or resume a closed one.
@@ -155,7 +154,7 @@ Agent output is easy to act on.
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.
 
-*Status: every task is built and self-tested headless. Left: the author's real use to confirm the exit criterion, changed-file diffs in the viewer (FEATURES.md → Later) and diff size on session cards (M3.8).*
+*Status: every task is built and self-tested headless. Left: the author's real use to confirm the exit criterion, and changed-file diffs in the viewer (FEATURES.md → Later).*
 
 ---
 
@@ -184,7 +183,7 @@ Calm looks right out of the box, and making it yours takes a minute.
 
 **Exit criteria**
 - A new user can make Calm look right in under a minute without editing files.
-- The settings screen fits the budget in PHILOSOPHY.md.
+- The settings screen fits the budget in GOALS.md (F11's window options are over it; FEATURES.md → F11).
 
 *Status: every task is built and self-tested headless. Left: a real look at glass and the Settings page on screen (headless snapshots can't show the window server's blur, or SwiftUI's blur in the preview), a VoiceOver pass, and the exit criteria with a new user.*
 
@@ -215,11 +214,12 @@ Conversations can be renamed, resumed and forked.
 
 ## Later
 
-- Quick terminal (drop-down on a global hotkey), moved from M1.11.
 - Release: Developer ID signing, notarization, Sparkle updates, a Homebrew cask, public launch.
 - Changed-file diffs in the viewer.
+- Copy an attach command, to reach a session over SSH from another device.
 - Spotlight integration (semantic index on macOS 27+).
 - Scrollback search across open sessions; paste history.
+- Triggers on output patterns; a keyboard copy mode.
 
 ## Not planned
 

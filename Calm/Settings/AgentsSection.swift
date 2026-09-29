@@ -12,7 +12,7 @@ import UserNotifications
 final class AgentsSettingsModel {
     struct Row: Identifiable {
         let adapter: any AgentAdapter
-        /// How the agent connects now: its own config can settle it (OpenCode's notifications).
+        /// How the agent connects now: its own config can settle it (none does today).
         var setup: AgentSetup
         var state: AgentSetupFiles.State?
         var id: AgentKind {
@@ -204,7 +204,7 @@ struct AgentsSection: View {
 }
 
 /// One installed agent: its mark (moving while one of its sessions works), where it stands, and
-/// what it's doing in Calm now. Anything longer (OpenCode's step, what Connect adds) waits
+/// what it's doing in Calm now. Anything longer (what Connect adds) waits
 /// behind its pill or button.
 private struct AgentCard: View {
     struct Activity {

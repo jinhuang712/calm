@@ -259,7 +259,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Section | Contents |
 |---|---|
 | **Appearance** | a live miniature of the window, the themes, interface size, glass or solid, edge to edge or card, motion (full, reduced, off) |
-| **Agents** | a card per installed agent, two to a row: its mark (moving while one of its sessions works), where it stands in quiet text (✓ Connected), or the one thing it needs as a button (Connect; Set Up… for a step in the agent's own settings, which explains itself in a popover), what it's doing now ("2 sessions · 1 working", or "Not running"), and Connect, or Disconnect under ⋯, where Calm must add a file. Then which states notify, and sound. Calm → Agents… opens this section |
+| **Agents** | a card per installed agent, two to a row: its mark (moving while one of its sessions works), where it stands in quiet text (✓ Connected), or the one thing it needs as a button (Connect; Set Up… for a step in the agent's own settings, which explains itself in a popover, though no agent needs one today), what it's doing now ("2 sessions · 1 working", or "Not running"), and Connect, or Disconnect under ⋯, where Calm must add a file. Then which states notify, and sound. Calm → Agents… opens this section |
 | **General** | editor (automatic, an installed one, or Choose Application… for any app), where paths open, auto-grouping, and the config files (Calm's, Ghostty's with the font it sets, the themes folder) |
 | **Shortcuts** | Calm's shortcuts as key caps, read-only; keys are changed in the Ghostty config |
 

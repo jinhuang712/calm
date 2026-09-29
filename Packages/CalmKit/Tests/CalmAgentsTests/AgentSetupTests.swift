@@ -14,72 +14,48 @@ struct AgentSetupTests {
         let setups = Dictionary(uniqueKeysWithValues: Agents.adapters.map { ($0.kind, $0.setup) })
         #expect(setups[.claudeCode] == .automatic)
         #expect(setups[.codex] == .notifications)
-        guard case .hint = try #require(setups[.openCode]) else { Issue.record("OpenCode should be a hint"); return }
+        guard case let .files(opencode) = try #require(setups[.openCode]) else { Issue.record("OpenCode should install a plugin"); return }
+        // A folder with only a TUI entry: the shared service looks for `server` or `index`, so it never loads it.
+        #expect(opencode.keys.sorted() == [".config/opencode/plugins/calm/tui.ts"])
         guard case let .files(files) = try #require(setups[.pi]) else { Issue.record("pi should install a file"); return }
         #expect(files.keys.sorted() == [".pi/agent/extensions/calm.ts"])
         #expect(Agents.adapters.allSatisfy { $0.configFolder != nil })
     }
 
-    /// OpenCode 2.0.18's own `cli.json` on the author's machine (2026-09-29), trimmed to the
-    /// sections that matter here.
-    private let openCodeCLIJSON = """
-    {
-      "$schema": "https://opencode.ai/v2/cli.json",
-      "animations": true,
-      "session": { "sidebar": "hide", "permissions": "autoaccept" },
-      "attention": { "notifications": true, "sound": true, "volume": 0.20000000000000004 },
-      "diffs": { "view": "unified" }
-    }
-    """
-
-    private func writeOpenCodeCLI(_ text: String?, in home: URL) throws {
-        let folder = home.appending(path: ".config/opencode")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        if let text {
-            try text.write(to: folder.appending(path: "cli.json"), atomically: true, encoding: .utf8)
-        }
-    }
-
-    @Test func `opencode points at cli json until its notifications are on`() throws {
+    @Test func `agents keep their static setup`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
-        let opencode = OpenCodeAdapter()
-        guard case let .hint(text) = opencode.setup else { Issue.record("OpenCode's static setup is a hint"); return }
-        #expect(text.contains("cli.json"))
-        #expect(!text.contains("tui.json"))
-
-        // No settings file: notifications are off by default (checked in 2.0.18's code).
-        try writeOpenCodeCLI(nil, in: home)
-        #expect(opencode.currentSetup(home: home) == opencode.setup)
-
-        try writeOpenCodeCLI(openCodeCLIJSON, in: home)
-        #expect(opencode.currentSetup(home: home) == .notifications)
-    }
-
-    @Test func `opencode's notifications count as on only when they are true`() throws {
-        let home = try temporaryHome()
-        defer { try? FileManager.default.removeItem(at: home) }
-        let cases: [(String, Bool)] = [
-            (#"{ "attention": { "notifications": false, "sound": true } }"#, false),
-            (#"{ "attention": { "sound": true } }"#, false),
-            (#"{ "animations": true }"#, false),
-            (#"{ "attention": { "notifications": "yes" } }"#, false),
-            ("not json at all", false),
-            // Comments and a trailing comma, as OpenCode's own parser allows.
-            ("{\n  // loud\n  \"attention\": { \"notifications\": true, },\n}", true),
-        ]
-        for (text, expected) in cases {
-            try writeOpenCodeCLI(text, in: home)
-            #expect(OpenCodeAdapter.attentionNotificationsOn(home: home) == expected, "\(text)")
-        }
-    }
-
-    @Test func `agents without their own switch keep their static setup`() throws {
-        let home = try temporaryHome()
-        defer { try? FileManager.default.removeItem(at: home) }
-        for adapter in Agents.adapters where adapter.kind != .openCode {
+        for adapter in Agents.adapters {
             #expect(adapter.currentSetup(home: home) == adapter.setup, "\(adapter.kind)")
         }
+    }
+
+    @Test func `the opencode plugin is safe outside Calm and never waits`() {
+        let source = OpenCodeAdapter.pluginSource
+        #expect(source.contains(AgentSetup.marker))
+        // 2.0.19 loads only a module whose default export is `{ id, setup }`.
+        #expect(source.contains("export default {\n  id: \"calm\",\n  setup(context: any) {"))
+        #expect(source.contains("if (!cli || !process.env.CALM_SESSION_ID) return;"))
+        #expect(source.contains("detached: true"))
+        #expect(!source.contains("await "))
+        for event in [
+            "session.execution.started", "session.execution.succeeded", "session.execution.failed", "session.execution.interrupted",
+            "permission.asked", "permission.replied", "form.created", "form.replied", "form.cancelled",
+        ] {
+            #expect(source.contains("listen(\"\(event)\""), "\(event)")
+        }
+    }
+
+    @Test func `the opencode plugin names the session on its own screen`() {
+        let source = OpenCodeAdapter.pluginSource
+        // `openCode` is AgentKind's raw value, which `calm status --agent` takes.
+        #expect(source.contains(#"["status", "--agent", "\#(AgentKind.openCode.rawValue)", "--agent-session", session"#))
+        #expect(source.contains(#""--transcript", database"#))
+        #expect(source.contains("context.ui.router.current()"))
+        #expect(source.contains("context.data.session.root(route.sessionID)"))
+        // A turn counts only for the session itself; an ask counts anywhere under it.
+        #expect(source.contains("if (session && sessionID === session) report(session, state, message);"))
+        #expect(source.contains("if (context.data.session.root(sessionID) !== session) return;"))
     }
 
     @Test func `the pi extension is safe outside Calm and never waits`() {

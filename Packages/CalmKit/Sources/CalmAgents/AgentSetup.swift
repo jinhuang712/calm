@@ -54,29 +54,103 @@ public extension OpenCodeAdapter {
         ".config/opencode"
     }
 
-    /// OpenCode 2 runs the agent in a shared background service, so a plugin can't tell which
-    /// terminal it belongs to (DESIGNS.md → Agents, open questions). What it does send are its
-    /// own attention notifications, which stay off until `attention.notifications` is set.
     var setup: AgentSetup {
-        .hint("Calm sees when OpenCode runs. To see when it needs you, set attention.notifications to true in ~/.config/opencode/cli.json.")
+        .files([".config/opencode/plugins/calm/tui.ts": Self.pluginSource])
     }
 
-    /// Once the user has turned the notifications on there is nothing left to set up.
-    func currentSetup(home: URL) -> AgentSetup {
-        Self.attentionNotificationsOn(home: home) ? .notifications : setup
-    }
+    /// An OpenCode TUI plugin (API read from 2.0.19's source, `@opencode/plugin/tui`). OpenCode 2
+    /// runs the agent in one shared background service whose environment is whichever terminal
+    /// started it, so a server plugin can't tell which Calm session a report is for. A TUI plugin
+    /// runs in the terminal's own `opencode` process, with that terminal's `CALM_*` variables,
+    /// and the folder holds only `tui.ts`, so the service never loads it (it looks for `server`
+    /// or `index`).
+    ///
+    /// The TUI hears every session's events, so it reports only those of the session on its own
+    /// screen (`ui.router.current()`): a turn of that session itself (not a subagent's) for
+    /// working, done, failed and interrupted, and any ask under it (a permission or a question,
+    /// also a subagent's) for needs you, back to working once all are answered. Every report names
+    /// the session, so Calm follows `/new` and tells two OpenCodes in one folder apart. Handlers
+    /// run inside the TUI's event batch, so reports are spawned detached; anything unexpected is
+    /// skipped quietly.
+    internal static let pluginSource = """
+    // \(AgentSetup.marker): reports this OpenCode session's state to Calm, only inside Calm.
+    // Delete this folder (or use Calm → Agents… → Disconnect) to stop.
+    import { spawn } from "node:child_process";
 
-    /// Reads `attention.notifications` from `cli.json` (OpenCode 2's settings; it migrates the
-    /// old `tui.json` into it). Off is the default, so anything unreadable counts as off. JSON5
-    /// tolerates the comments and trailing commas OpenCode's own parser accepts.
-    internal static func attentionNotificationsOn(home: URL) -> Bool {
-        let url = home.appending(path: ".config/opencode/cli.json")
-        guard let data = try? Data(contentsOf: url),
-              let root = try? JSONSerialization.jsonObject(with: data, options: .json5Allowed) as? [String: Any],
-              let attention = root["attention"] as? [String: Any]
-        else { return false }
-        return attention["notifications"] as? Bool == true
-    }
+    export default {
+      id: "calm",
+      setup(context: any) {
+        const cli = process.env.CALM_CLI;
+        if (!cli || !process.env.CALM_SESSION_ID) return;
+        const database = `${process.env.HOME}/.local/share/opencode/opencode.db`;
+        // The root of the session on screen, or nothing on the home page.
+        const current = (): string | undefined => {
+          try {
+            const route = context.ui.router.current();
+            return route?.type === "session" ? context.data.session.root(route.sessionID) : undefined;
+          } catch {
+            return undefined;
+          }
+        };
+        const report = (session: string, state: string, message?: string) => {
+          try {
+            const args = ["status", "--agent", "openCode", "--agent-session", session, "--transcript", database, state];
+            if (message) args.push(String(message).slice(0, 300));
+            spawn(cli, args, { stdio: "ignore", detached: true }).unref();
+          } catch {}
+        };
+        // A turn of the session on screen itself, not of a subagent under it.
+        const turn = (sessionID: string | undefined, state: string, message?: string) => {
+          const session = current();
+          if (session && sessionID === session) report(session, state, message);
+        };
+        // An ask anywhere under the session on screen; answered once none is left.
+        const asks = new Set<string>();
+        const ask = (sessionID: string | undefined, id: string | undefined, message: string) => {
+          const session = current();
+          if (!session || !sessionID || !id) return;
+          try {
+            if (context.data.session.root(sessionID) !== session) return;
+          } catch {
+            return;
+          }
+          asks.add(id);
+          report(session, "needs-you", message);
+        };
+        const answered = (id: string | undefined) => {
+          const session = current();
+          if (!id || !asks.delete(id) || !session || asks.size > 0) return;
+          report(session, "working");
+        };
+        const listen = (type: string, handler: (data: any) => void) => {
+          try {
+            return context.data.on(type, (event: any) => {
+              try {
+                handler(event?.data ?? {});
+              } catch {}
+            });
+          } catch {
+            return () => {};
+          }
+        };
+        const dispose = [
+          listen("session.execution.started", (data) => turn(data.sessionID, "working")),
+          listen("session.execution.succeeded", (data) => turn(data.sessionID, "done")),
+          listen("session.execution.failed", (data) => turn(data.sessionID, "failed", data.error?.message)),
+          listen("session.execution.interrupted", (data) => turn(data.sessionID, "idle")),
+          listen("permission.asked", (data) =>
+            ask(data.sessionID, data.id, typeof data.action === "string" ? `Allow ${data.action}` : "Needs permission"),
+          ),
+          listen("permission.replied", (data) => answered(data.requestID)),
+          listen("form.created", (data) => ask(data.form?.sessionID, data.form?.id, data.form?.title ?? "Needs an answer")),
+          listen("form.replied", (data) => answered(data.id)),
+          listen("form.cancelled", (data) => answered(data.id)),
+        ];
+        return () => dispose.reverse().forEach((cleanup) => cleanup());
+      },
+    };
+
+    """
 }
 
 public extension PiAdapter {

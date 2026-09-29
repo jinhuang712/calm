@@ -87,6 +87,21 @@ public enum Editor: String, CaseIterable, Sendable {
         }
     }
 
+    /// The app bundles that ship this editor's command-line tool, with the tool's place inside
+    /// each. Chosen apps are matched by bundle name, wherever they are installed.
+    public var bundledTools: [(app: String, tool: String)] {
+        switch self {
+        case .vscode: [("Visual Studio Code.app", "Contents/Resources/app/bin/code")]
+        case .cursor: [("Cursor.app", "Contents/Resources/app/bin/cursor")]
+        case .trae: [("Trae.app", "Contents/Resources/app/bin/trae")]
+        case .windsurf: [("Windsurf.app", "Contents/Resources/app/bin/windsurf")]
+        case .zed: [("Zed.app", "Contents/MacOS/cli")]
+        case .sublime: [("Sublime Text.app", "Contents/SharedSupport/bin/subl")]
+        case .idea: [("IntelliJ IDEA.app", "Contents/MacOS/idea"), ("IntelliJ IDEA CE.app", "Contents/MacOS/idea")]
+        case .xcode: [("Xcode.app", "Contents/Developer/usr/bin/xed")]
+        }
+    }
+
     /// Command-line arguments that open `file` at the position.
     public func arguments(file: String, line: Int?, column: Int?) -> [String] {
         let position = [line.map(String.init), column.map(String.init)].compactMap(\.self).joined(separator: ":")
@@ -97,5 +112,42 @@ public enum Editor: String, CaseIterable, Sendable {
         case .xcode: return line.map { ["-l", String($0), file] } ?? [file]
         case .idea: return line.map { ["--line", String($0), file] } ?? [file]
         }
+    }
+}
+
+/// The `editor` setting: left to Calm, one of the known editors by name, or an application the
+/// user chose (its `.app` path). Anything else in config.toml (a path to a tool) reads as automatic.
+public enum EditorSetting: Hashable, Sendable {
+    case automatic
+    case editor(Editor)
+    case application(path: String)
+
+    public init(configured: String?) {
+        guard let configured, !configured.isEmpty else {
+            self = .automatic
+            return
+        }
+        if configured.hasSuffix(".app") {
+            self = .application(path: configured)
+        } else if let editor = Editor(rawValue: (configured as NSString).lastPathComponent) {
+            self = .editor(editor)
+        } else {
+            self = .automatic
+        }
+    }
+
+    /// What config.toml holds; nil (automatic) removes the key.
+    public var configured: String? {
+        switch self {
+        case .automatic: nil
+        case let .editor(editor): editor.rawValue
+        case let .application(path): path
+        }
+    }
+
+    /// An application's name as the user knows it: "Visual Studio Code" for the bundle
+    /// "Visual Studio Code.app".
+    public static func applicationName(path: String) -> String {
+        ((path as NSString).lastPathComponent as NSString).deletingPathExtension
     }
 }

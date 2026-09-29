@@ -120,7 +120,7 @@ A fast, correct terminal on libghostty.
 - **At rest**, every link on screen that opens (a URL, or a file or folder that's there) has a faint dotted line under it, including one the terminal wrapped onto the next row. Rows that change lose their marks at once and get them back when the text holds still, so marks never trail scrolling or streaming output. Programs that take the mouse (vim, htop) get none, since ⌘-click can't open links there.
 - **Holding ⌘** over a link shows a small tag just under it (above it at the pane's bottom): the file's name and line, its folder, and what a click does ("Open in viewer", "Open in Cursor", "Open in browser", "Open in Finder", or "Not found" before you click). An image's tag shows its thumbnail. The tag goes away when ⌘ or the pointer leaves the link, or on typing, clicking or scrolling.
 
-**Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; overridable with `editor = "…"` in config.toml); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
+**Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; or any application, chosen in Settings → General with Choose Application…, or `editor = "…"` in config.toml, a name or an `.app` path; an application that isn't one of those opens the file but not at the line); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
 
 ## F9 — Copy Cell ✅
 
@@ -207,7 +207,7 @@ A quick, read-only look at the repository without leaving Calm.
 - ⌘, turns the whole window into Settings (UIUX.md → Settings screen); ⌘, again or esc goes back to the session exactly as it was. A list of sections stands where the sidebar was: **Appearance, Agents, General, Shortcuts**.
   - **Appearance:** a live miniature of the window, the theme picker and the window options (F11).
   - **Agents:** a card per installed agent with how it connects and what it's doing in Calm now (its sessions, working or needing you), Connect/Disconnect where Calm must add a file; then which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
-  - **General:** the editor paths open in (automatic, or one of the editors installed), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
+  - **General:** the editor paths open in (automatic, one of the editors installed, or any application chosen with Choose Application…), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
   - **Shortcuts:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
 - Going to any session leaves Settings. After a hand edit, Calm → Reload Configuration updates the page.
 - Everything else lives in the config file, reachable through General → Calm settings → Open.

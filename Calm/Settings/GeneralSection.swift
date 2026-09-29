@@ -8,8 +8,8 @@ import SwiftUI
 @MainActor
 @Observable
 final class GeneralSettingsModel {
-    /// `nil` is automatic: the first installed editor (LinkOpener's order).
-    private(set) var editor: Editor?
+    /// Automatic is the first installed editor (LinkOpener's order).
+    private(set) var editor = EditorSetting.automatic
     private(set) var installed: [Editor] = []
     private(set) var opensInViewer = true
     private(set) var autoGrouping = true
@@ -21,16 +21,36 @@ final class GeneralSettingsModel {
     func refresh() {
         let settings = SessionManager.shared.settings
         installed = EditorLocator.installed
-        editor = settings.string("editor").flatMap { Editor(rawValue: ($0 as NSString).lastPathComponent) }
+        editor = EditorSetting(configured: settings.string("editor"))
         opensInViewer = LinkOpener.prefersViewer
         autoGrouping = settings.autoGrouping
         problems = settings.problems
         terminalFont = TerminalConfig.fontDescription
     }
 
-    func setEditor(_ value: Editor?) {
+    func setEditor(_ value: EditorSetting) {
         editor = value
-        save("editor", value?.rawValue)
+        save("editor", value.configured)
+    }
+
+    /// "Choose Application…": the system's file picker, on /Applications.
+    func chooseEditorApplication() {
+        SettingsActions.chooseApplication { [weak self] app in self?.setEditorApplication(app) }
+    }
+
+    func setEditorApplication(_ app: URL) {
+        // A known editor at its usual place is the plain choice, by name, so it isn't listed twice.
+        if let (editor, tool) = EditorLocator.tool(inApplication: app), EditorLocator.locations(for: editor).contains(tool) {
+            setEditor(.editor(editor))
+        } else {
+            setEditor(.application(path: app.path))
+        }
+    }
+
+    /// Said under the row only when the chosen app can't open a file at a line.
+    var editorNote: String? {
+        guard case let .application(path) = editor, EditorLocator.tool(inApplication: URL(filePath: path)) == nil else { return nil }
+        return "Opens the file, not at the line."
     }
 
     func setOpensInViewer(_ value: Bool) {
@@ -46,7 +66,8 @@ final class GeneralSettingsModel {
     /// `set:<key>=<value>` in self-tests goes through here, like a click.
     func set(_ key: String, _ value: String) {
         switch key {
-        case "editor": setEditor(value == "automatic" ? nil : Editor(rawValue: value))
+        case "editor": setEditor(value == "automatic" ? .automatic : EditorSetting(configured: value))
+        case "editor-app": setEditorApplication(URL(filePath: value)) // what the picker hands back
         case "open-paths": setOpensInViewer(value != "editor")
         case "auto-grouping": setAutoGrouping(value != "false")
         default: break
@@ -72,9 +93,10 @@ struct GeneralSection: View {
                 .padding(.bottom, 24.scaled)
             GroupHeading(title: "Opening files", style: style)
             SettingsGroup(style: style) {
-                SettingsRow(title: "Editor", symbol: "chevron.left.forwardslash.chevron.right", style: style) {
+                SettingsRow(title: "Editor", note: model.editorNote, symbol: "chevron.left.forwardslash.chevron.right", style: style) {
                     SettingsMenu(
                         title: "Editor", options: editorOptions, selection: model.editor, style: style,
+                        actions: [(title: "Choose Application…", run: { model.chooseEditorApplication() })],
                     ) { model.setEditor($0) }
                 }
                 RowDivider(style: style)
@@ -112,9 +134,15 @@ struct GeneralSection: View {
         }
     }
 
-    private var editorOptions: [(value: Editor?, label: String)] {
+    private var editorOptions: [(value: EditorSetting, label: String)] {
         let automatic = model.installed.first.map { "Automatic (\($0.displayName))" } ?? "Automatic"
-        return [(value: nil, label: automatic)] + model.installed.map { (value: Optional($0), label: $0.displayName) }
+        var options: [(value: EditorSetting, label: String)] = [(value: .automatic, label: automatic)]
+        options += model.installed.map { (value: EditorSetting.editor($0), label: $0.displayName) }
+        // An app chosen with "Choose Application…" stays listed (and ticked) beside the editors found.
+        if case let .application(path) = model.editor {
+            options.append((value: .application(path: path), label: EditorSetting.applicationName(path: path)))
+        }
+        return options
     }
 
     /// A file or folder, and any line of it Calm couldn't read.

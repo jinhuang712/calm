@@ -342,6 +342,31 @@ enum SettingsActions {
         open(url)
     }
 
+    /// Asks for an application, starting in /Applications. Headless self-tests log the ask.
+    static func chooseApplication(_ chosen: @escaping (URL) -> Void) {
+        if Headless.isOn {
+            FileHandle.standardError.write(Data("calm-selftest: would ask for an application\n".utf8))
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.prompt = "Choose"
+        panel.message = "Choose the application to open files in."
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.directoryURL = URL(filePath: "/Applications")
+        let finish = { (response: NSApplication.ModalResponse) in
+            if response == .OK, let url = panel.url {
+                chosen(url)
+            }
+        }
+        if let window = NSApp.keyWindow {
+            panel.beginSheetModal(for: window, completionHandler: finish)
+        } else {
+            panel.begin(completionHandler: finish)
+        }
+    }
+
     private static func open(_ url: URL) {
         if Headless.isOn {
             FileHandle.standardError.write(Data("calm-selftest: would open \(url.isFileURL ? url.path : url.absoluteString)\n".utf8))

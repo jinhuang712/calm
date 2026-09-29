@@ -61,8 +61,8 @@ enum LinkOpener {
             let kind = ViewableKind.of(path)
             let destination: LinkPreview.Destination = if prefersViewer, kind != nil {
                 .viewer
-            } else if let (editor, _) = EditorLocator.find() {
-                .editor(editor.displayName)
+            } else if let target = EditorLocator.find() {
+                .editor(target.name)
             } else {
                 .defaultApp
             }
@@ -87,16 +87,22 @@ enum LinkOpener {
 
     /// The user's editor at the position, or the file's default app when no editor is found.
     static func openInEditor(_ path: String, line: Int?, column: Int?) {
-        guard let (editor, executable) = EditorLocator.find() else {
+        switch EditorLocator.find() {
+        case nil:
             perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
-            return
-        }
-        let arguments = editor.arguments(file: path, line: line, column: column)
-        perform("\(editor.rawValue) \(arguments.joined(separator: " "))") {
-            let process = Process()
-            process.executableURL = executable
-            process.arguments = arguments
-            try? process.run()
+        case let .tool(editor, executable):
+            let arguments = editor.arguments(file: path, line: line, column: column)
+            perform("\(editor.rawValue) \(arguments.joined(separator: " "))") {
+                let process = Process()
+                process.executableURL = executable
+                process.arguments = arguments
+                try? process.run()
+            }
+        case let .application(app):
+            // An app Calm has no command line for: it gets the file, not the line.
+            perform("open -a \(app.lastPathComponent) \(path)") {
+                NSWorkspace.shared.open([URL(filePath: path)], withApplicationAt: app, configuration: .init())
+            }
         }
     }
 
@@ -111,25 +117,49 @@ enum LinkOpener {
     }
 }
 
-/// Finds the user's editor: the `editor` setting (a name such as `cursor`, or a path), else the
-/// first installed in `Editor`'s order (VS Code and its forks, Zed, Sublime Text, IntelliJ IDEA,
-/// then Xcode). A GUI app's PATH is minimal, so known install locations are checked directly.
+/// Where a file opens: an editor's command-line tool, which takes a line, or an application
+/// chosen in Settings that Calm knows no command line for.
+enum EditorTarget {
+    case tool(Editor, URL)
+    case application(URL)
+
+    var name: String {
+        switch self {
+        case let .tool(editor, _): editor.displayName
+        case let .application(app): EditorSetting.applicationName(path: app.path)
+        }
+    }
+}
+
+/// Finds the user's editor: the `editor` setting (a name such as `cursor`, a path, or an
+/// application chosen in Settings), else the first installed in `Editor`'s order (VS Code and its
+/// forks, Zed, Sublime Text, IntelliJ IDEA, then Xcode). A GUI app's PATH is minimal, so known
+/// install locations are checked directly.
 enum EditorLocator {
     @MainActor
-    static func find() -> (Editor, URL)? {
+    static func find() -> EditorTarget? {
         if let configured = SessionManager.shared.settings.string("editor"), !configured.isEmpty {
-            let name = (configured as NSString).lastPathComponent
-            let editor = Editor(rawValue: name) ?? .vscode
-            if configured.contains("/") {
-                return (editor, URL(filePath: (configured as NSString).expandingTildeInPath))
-            }
-            if let editor = Editor(rawValue: name), let url = locations(for: editor).first(where: isExecutable) {
-                return (editor, url)
+            let path = (configured as NSString).expandingTildeInPath
+            if configured.hasSuffix(".app") {
+                // An app that has since been deleted falls through to automatic.
+                if FileManager.default.fileExists(atPath: path) {
+                    let app = URL(filePath: path)
+                    return tool(inApplication: app).map { .tool($0.0, $0.1) } ?? .application(app)
+                }
+            } else {
+                let name = (configured as NSString).lastPathComponent
+                let editor = Editor(rawValue: name) ?? .vscode
+                if configured.contains("/") {
+                    return .tool(editor, URL(filePath: path))
+                }
+                if let editor = Editor(rawValue: name), let url = locations(for: editor).first(where: isExecutable) {
+                    return .tool(editor, url)
+                }
             }
         }
         for editor in Editor.allCases {
             if let url = locations(for: editor).first(where: isExecutable) {
-                return (editor, url)
+                return .tool(editor, url)
             }
         }
         return nil
@@ -140,20 +170,27 @@ enum EditorLocator {
         Editor.allCases.filter { locations(for: $0).contains(where: isExecutable) }
     }
 
+    /// The command-line tool inside an application bundle, when it is one of the known editors
+    /// (matched by the bundle's name, so a copy in ~/Applications counts).
+    static func tool(inApplication app: URL) -> (Editor, URL)? {
+        for editor in Editor.allCases {
+            for (name, tool) in editor.bundledTools where name == app.lastPathComponent {
+                let url = app.appending(path: tool)
+                if isExecutable(url) {
+                    return (editor, url)
+                }
+            }
+        }
+        return nil
+    }
+
     static func locations(for editor: Editor) -> [URL] {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let bins = ["/opt/homebrew/bin", "/usr/local/bin", "\(home)/.local/bin", "\(home)/bin"].map { "\($0)/\(editor.rawValue)" }
-        let bundled: [String] = switch editor {
-        case .vscode: ["/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"]
-        case .cursor: ["/Applications/Cursor.app/Contents/Resources/app/bin/cursor"]
-        case .trae: ["/Applications/Trae.app/Contents/Resources/app/bin/trae"]
-        case .windsurf: ["/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf"]
-        case .zed: ["/Applications/Zed.app/Contents/MacOS/cli"]
-        case .sublime: ["/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl"]
-        case .xcode: ["/usr/bin/xed"]
-        case .idea: ["/Applications/IntelliJ IDEA.app/Contents/MacOS/idea", "/Applications/IntelliJ IDEA CE.app/Contents/MacOS/idea"]
-        }
-        return (bins + bundled).map { URL(filePath: $0) }
+        let bundled = editor.bundledTools.map { "/Applications/\($0.app)/\($0.tool)" }
+        // xed is the shim in /usr/bin, which follows the selected Xcode: tried before the bundle.
+        let system = editor == .xcode ? ["/usr/bin/xed"] : []
+        return (bins + system + bundled).map { URL(filePath: $0) }
     }
 
     private static func isExecutable(_ url: URL) -> Bool {

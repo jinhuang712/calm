@@ -48,4 +48,36 @@ struct LinkTests {
         #expect(Editor.trae.arguments(file: "/a.swift", line: 3, column: 1) == ["-g", "/a.swift:3:1"])
         #expect(Editor.allCases.last == .xcode) // detected last
     }
+
+    @Test func `every editor names the app bundle its tool sits in`() {
+        for editor in Editor.allCases {
+            #expect(!editor.bundledTools.isEmpty)
+            for (app, tool) in editor.bundledTools {
+                #expect(app.hasSuffix(".app") && !tool.hasPrefix("/"))
+            }
+        }
+    }
+
+    @Test func `the editor setting reads a name, an application or nothing`() {
+        #expect(EditorSetting(configured: nil) == .automatic)
+        #expect(EditorSetting(configured: "") == .automatic)
+        #expect(EditorSetting(configured: "zed") == .editor(.zed))
+        #expect(EditorSetting(configured: "/opt/homebrew/bin/code") == .editor(.vscode))
+        #expect(EditorSetting(configured: "/Applications/Typora.app") == .application(path: "/Applications/Typora.app"))
+        #expect(EditorSetting(configured: "nvim") == .automatic)
+    }
+
+    @Test func `the editor setting is written as it was read`() {
+        #expect(EditorSetting.automatic.configured == nil)
+        #expect(EditorSetting.editor(.sublime).configured == "subl")
+        #expect(EditorSetting.application(path: "/Applications/Typora.app").configured == "/Applications/Typora.app")
+        for configured in ["subl", "/Users/me/Applications/Nova.app"] {
+            #expect(EditorSetting(configured: configured).configured == configured)
+        }
+    }
+
+    @Test func `an application is named without its bundle extension`() {
+        #expect(EditorSetting.applicationName(path: "/Applications/Visual Studio Code.app") == "Visual Studio Code")
+        #expect(EditorSetting.applicationName(path: "/Users/me/Applications/Nova.app") == "Nova")
+    }
 }

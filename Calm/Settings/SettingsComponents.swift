@@ -265,6 +265,8 @@ struct SettingsMenu<Value: Hashable>: View {
     let options: [(value: Value, label: String)]
     let selection: Value
     let style: SidebarStyle
+    /// Commands under the choices, after a divider ("Choose Application…").
+    var actions: [(title: String, run: () -> Void)] = []
     let onSelect: (Value) -> Void
 
     private var current: String {
@@ -280,6 +282,12 @@ struct SettingsMenu<Value: Hashable>: View {
             }
             .pickerStyle(.inline)
             .labelsHidden()
+            if !actions.isEmpty {
+                Divider()
+                ForEach(actions, id: \.title) { action in
+                    Button(action.title, action: action.run)
+                }
+            }
         } label: {
             HStack(spacing: 8.scaled) {
                 Text(current)

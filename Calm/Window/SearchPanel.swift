@@ -57,11 +57,7 @@ final class SearchPanelModel {
             guard !Task.isCancelled, let self else { return }
             let sessions = SessionManager.shared.workspace.sessions
             items = results.map { result in
-                let open = sessions.first { session in
-                    guard let agent = session.agent else { return false }
-                    return agent.transcriptPath == result.transcriptPath
-                        || result.agentSessionID != nil && agent.agentSessionID == result.agentSessionID
-                }
+                let open = sessions.first { $0.runs(transcriptPath: result.transcriptPath, agentSessionID: result.agentSessionID) }
                 return Item(result: result, openSession: open?.id)
             }
             selection = min(selection, max(items.count - 1, 0))

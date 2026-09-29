@@ -155,6 +155,15 @@ public struct AgentConversation: Codable, Hashable, Sendable {
 }
 
 public extension Session {
+    /// Whether the agent running here is that conversation (a search result's transcript, or the
+    /// agent's own id for it): opening the result goes to this session instead of resuming it anew.
+    /// A conversation whose agent has exited isn't running, even while its session stays open.
+    func runs(transcriptPath: String, agentSessionID: String?) -> Bool {
+        guard let agent else { return false }
+        return agent.transcriptPath == transcriptPath
+            || agentSessionID != nil && agent.agentSessionID == agentSessionID
+    }
+
     /// The recap a card and the arrival card show: what the agent asked while it waits for you;
     /// once you've read it (idle), the agent's own summary of where things stand, if it wrote one
     /// after its last message; otherwise the latest thing it said.

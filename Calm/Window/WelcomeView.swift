@@ -289,6 +289,8 @@ struct WelcomeView: View {
                 }
                 if searching, model.sessions.isEmpty {
                     noMatch("sessions")
+                } else if model.recentAllOpen {
+                    quietLine("Your recent sessions are all open")
                 }
             case .projects:
                 ForEach(model.shownProjects) { project in
@@ -311,7 +313,12 @@ struct WelcomeView: View {
     }
 
     private func noMatch(_ what: String) -> some View {
-        Text("No \(what) match")
+        quietLine("No \(what) match")
+    }
+
+    /// Where a list has no rows to show, what it would have held.
+    private func quietLine(_ text: String) -> some View {
+        Text(text)
             .calmFont(size: 12.5)
             .foregroundStyle(style.secondary)
             .padding(.horizontal, 12.scaled)

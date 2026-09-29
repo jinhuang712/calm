@@ -82,4 +82,24 @@ struct AgentRunTests {
         workspace.endAgentRun(id)
         #expect(workspace.session(id)?.agent == nil)
     }
+
+    @Test func `a search result is running in a session when its agent there is that conversation`() {
+        var session = Session(projectID: UUID(), workingDirectory: "/tmp/a")
+        #expect(!session.runs(transcriptPath: "/t/one.jsonl", agentSessionID: "one"))
+        var run = AgentRun(kind: .claudeCode, processID: 7)
+        run.transcriptPath = "/t/one.jsonl"
+        run.agentSessionID = "one"
+        session.agent = run
+        #expect(session.runs(transcriptPath: "/t/one.jsonl", agentSessionID: nil))
+        // The agent's own id matches before its transcript is known, as with hooks alone.
+        #expect(session.runs(transcriptPath: "/t/elsewhere.jsonl", agentSessionID: "one"))
+        #expect(!session.runs(transcriptPath: "/t/two.jsonl", agentSessionID: "two"))
+        #expect(!session.runs(transcriptPath: "/t/two.jsonl", agentSessionID: nil))
+    }
+
+    @Test func `a conversation whose agent exited isn't running, though its session is still open`() {
+        var session = Session(projectID: UUID(), workingDirectory: "/tmp/a")
+        session.lastConversation = AgentConversation(kind: .claudeCode, agentSessionID: "one", transcriptPath: "/t/one.jsonl")
+        #expect(!session.runs(transcriptPath: "/t/one.jsonl", agentSessionID: "one"))
+    }
 }

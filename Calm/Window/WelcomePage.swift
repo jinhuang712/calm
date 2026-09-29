@@ -145,9 +145,22 @@ final class WelcomeModel {
     }
 
     /// The few most recent sessions when nothing is typed (fewer in a small window, so the
-    /// projects stay in view); everything that matches when something is.
+    /// projects stay in view), leaving out the ones open in the sidebar, which already shows them;
+    /// everything that matches when something is typed, open or not, as in ⌘K.
     var sessions: [SearchPanelModel.Item] {
-        terms.isEmpty ? Array(search.items.prefix(stacked ? 3 : 6)) : search.items
+        guard terms.isEmpty else { return search.items }
+        // Read here, not taken from the items, so a session closed while the page is up comes back.
+        let open = SessionManager.shared.workspace.sessions
+        let closed = search.items.filter { item in
+            !open.contains { $0.runs(transcriptPath: item.result.transcriptPath, agentSessionID: item.result.agentSessionID) }
+        }
+        return Array(closed.prefix(stacked ? 3 : 6))
+    }
+
+    /// Nothing typed, and every recent session is open in the sidebar (only beside it: with the
+    /// welcome page up none is open).
+    var recentAllOpen: Bool {
+        terms.isEmpty && search.hasHistory == true && sessions.isEmpty
     }
 
     var shownProjects: [Project] {

@@ -133,6 +133,12 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
         return (max(a, b) + 0.05) / (min(a, b) + 0.05)
     }
 
+    /// `first` moved toward `second` by `amount` (0 to 1), as `#rrggbb`.
+    public static func mix(_ first: String, _ second: String, _ amount: Double) -> String {
+        let (a, b) = (channels(first), channels(second))
+        return "#" + zip(a, b).map { String(format: "%02x", Int((($0 + ($1 - $0) * amount) * 255).rounded())) }.joined()
+    }
+
     static func channels(_ hex: String) -> [Double] {
         let value = Int(hex.dropFirst(), radix: 16) ?? 0
         return [(value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF].map { Double($0) / 255 }

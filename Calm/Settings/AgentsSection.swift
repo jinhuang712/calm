@@ -80,6 +80,8 @@ final class AgentsSettingsModel {
         } catch {
             self.error = "Couldn't connect \(row.adapter.kind.displayName): \(error.localizedDescription)"
         }
+        // A connected OpenCode also takes Calm's theme.
+        AgentIntegrations.syncThemeFiles()
         refresh()
     }
 
@@ -91,6 +93,8 @@ final class AgentsSettingsModel {
         } catch {
             self.error = "Couldn't disconnect \(row.adapter.kind.displayName): \(error.localizedDescription)"
         }
+        // And gives it back.
+        AgentIntegrations.syncThemeFiles()
         refresh()
     }
 

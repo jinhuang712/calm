@@ -111,8 +111,13 @@ final class TerminalEngine {
         guard let app else { return }
         let scheme = colorScheme
         // A theme picked in Calm is plain colors for one appearance: write the other and reload.
-        if scheme != lastColorScheme, lastColorScheme != nil, TerminalTheme.active()?.picked == true {
-            reloadConfig(soft: false)
+        if scheme != lastColorScheme, lastColorScheme != nil {
+            if TerminalTheme.active()?.picked == true {
+                reloadConfig(soft: false)
+            } else {
+                // The default theme switches in Ghostty itself, but OpenCode's theme file holds one appearance.
+                AgentIntegrations.syncThemeFiles()
+            }
         }
         lastColorScheme = scheme
         ghostty_app_set_color_scheme(app, scheme)
@@ -136,6 +141,8 @@ final class TerminalEngine {
         ghostty_app_update_config(app, fresh.raw)
         config = fresh
         SessionManager.shared.settings = CalmSettings.load()
+        // A theme picked, the appearance, Increase Contrast or the user's Ghostty colors may have changed.
+        AgentIntegrations.syncThemeFiles()
     }
 
     private func reloadConfig(surface: ghostty_surface_t, soft: Bool) {

@@ -10,8 +10,9 @@
 # Runs are isolated from a Calm the user may be running: headless by default (no window, no
 # focus taken, see Calm/App/Headless.swift), and with their own state file, socket, config,
 # generated Ghostty files and zmx directory. The user's Ghostty config is left out unless
-# --ghostty-config is given, so runs don't depend on it. Only the instance this script starts is
-# ever stopped.
+# --ghostty-config is given, so runs don't depend on it. Nothing is written into agents' config
+# folders (a connected agent's files, OpenCode's theme) unless --agent-files is given. Only the
+# instance this script starts is ever stopped.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +37,7 @@ config=""
 headless=1
 search_home=""
 ghostty_config=none
+agent_files=none
 appearance=""
 snapshot_window=""
 contrast=""
@@ -60,6 +62,8 @@ while [[ $# -gt 0 ]]; do
     --visible) headless=0; shift ;;       # show the window and take focus (default: headless)
     --search-home) search_home="$2"; shift 2 ;; # transcripts to index for search (default: none, never the real home)
     --ghostty-config) ghostty_config=user; shift ;; # read the user's Ghostty config too (default: Calm's defaults only)
+    --agent-files) agent_files=""; shift ;; # let Calm write into agents' config folders (their files, OpenCode's theme);
+                                            # only with a scratch CFFIXED_USER_HOME, or it writes the user's own
     --appearance) appearance="$2"; shift 2 ;; # light or dark instead of the system's
     --window) snapshot_window="$2"; shift 2 ;; # snapshot the window with this title (e.g. Settings)
     --increase-contrast) contrast=1; shift ;; # as if Increase Contrast were on in System Settings
@@ -100,6 +104,7 @@ env \
   CALM_STATE_FILE="$state" \
   CALM_SUPPORT_DIR="$support_dir" \
   CALM_GHOSTTY_CONFIG="$ghostty_config" \
+  CALM_AGENT_FILES="$agent_files" \
   CALM_APPEARANCE="$appearance" \
   CALM_SNAPSHOT_WINDOW="$snapshot_window" \
   CALM_INCREASE_CONTRAST="$contrast" \

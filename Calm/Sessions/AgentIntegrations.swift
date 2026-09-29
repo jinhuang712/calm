@@ -12,10 +12,19 @@ import OSLog
 ///
 /// An agent the user connected through a file (pi's extension) keeps that file current: at each
 /// launch Calm rewrites its own file if this version's differs. It never adds one: connecting is
-/// the user's choice, in Settings → Agents.
+/// the user's choice, in Settings → Agents. A connected agent that reads a theme file (OpenCode)
+/// also gets Calm's theme, rewritten whenever the colors on screen change.
 @MainActor
 enum AgentIntegrations {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "agents")
+
+    /// Whether Calm writes into agents' own config folders. Unit tests never do, and self-tests
+    /// don't unless asked (`CALM_AGENT_FILES=none` otherwise): they run with the user's real home,
+    /// where a test theme would restyle the user's OpenCode.
+    private static var writesAgentFiles: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        return environment["XCTestConfigurationFilePath"] == nil && environment["CALM_AGENT_FILES"] != "none"
+    }
 
     static var claudeCodePluginDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -36,10 +45,31 @@ enum AgentIntegrations {
             }
         }
         refreshConnectedFiles()
+        syncThemeFiles()
+    }
+
+    /// Writes, rewrites or removes each connected agent's theme file for the colors on screen
+    /// (`AgentSetupFiles.syncTheme`). Called at launch, on every config reload and appearance
+    /// change, and after Connect or Disconnect; a file that's already right is left untouched.
+    static func syncThemeFiles() {
+        guard writesAgentFiles else { return }
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let colors = TerminalTheme.onScreen()
+        for adapter in Agents.adapters where adapter.themeFilePath != nil {
+            do {
+                if try AgentSetupFiles.syncTheme(for: adapter, colors: colors, home: home) {
+                    log.info("synced \(adapter.kind.rawValue, privacy: .public)'s theme")
+                }
+            } catch {
+                let reason = error.localizedDescription
+                log.error("couldn't sync \(adapter.kind.rawValue, privacy: .public)'s theme: \(reason, privacy: .public)")
+            }
+        }
     }
 
     /// Brings the files Calm wrote into agents' config folders up to date (see above).
     private static func refreshConnectedFiles() {
+        guard writesAgentFiles else { return }
         let home = FileManager.default.homeDirectoryForCurrentUser
         for adapter in Agents.adapters {
             guard case let .files(files) = adapter.setup else { continue }

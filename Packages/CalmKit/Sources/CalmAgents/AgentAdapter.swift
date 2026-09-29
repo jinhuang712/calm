@@ -72,6 +72,11 @@ public protocol AgentAdapter: Sendable {
     /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
     /// config. `inherited` is Calm's own environment, which also locates the agent's config.
     func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
+    /// A theme file the agent reads (relative to home), which Calm keeps in step with its own
+    /// theme while the agent is connected (`AgentSetupFiles.syncTheme`).
+    var themeFilePath: String? { get }
+    /// That file for the colors on screen, carrying `AgentSetup.marker`.
+    func themeFile(for colors: CalmTheme.Colors, mode: CalmTheme.Mode) -> String?
 }
 
 public extension AgentAdapter {
@@ -93,6 +98,14 @@ public extension AgentAdapter {
 
     func shellEnvironment(home _: URL, inherited _: [String: String]) -> [String: String] {
         [:]
+    }
+
+    var themeFilePath: String? {
+        nil
+    }
+
+    func themeFile(for _: CalmTheme.Colors, mode _: CalmTheme.Mode) -> String? {
+        nil
     }
 
     func matches(_ process: ProcessSnapshot) -> Bool {

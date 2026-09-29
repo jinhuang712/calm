@@ -72,10 +72,17 @@ public extension OpenCodeAdapter {
     /// the session, so Calm follows `/new` and tells two OpenCodes in one folder apart. Handlers
     /// run inside the TUI's event batch, so reports are spawned detached; anything unexpected is
     /// skipped quietly.
+    ///
+    /// It also keeps a running OpenCode in Calm's theme: Calm rewrites `themes/calm.json` (two
+    /// folders up) when its theme or the appearance changes (`AgentSetupFiles.syncTheme`), and
+    /// OpenCode re-reads its themes on SIGUSR2 (2.0.19's `subscribeRefresh`), so the plugin sends
+    /// its own process one, only while OpenCode listens for it: unhandled, SIGUSR2 ends a process.
     internal static let pluginSource = """
-    // \(AgentSetup.marker): reports this OpenCode session's state to Calm, only inside Calm.
+    // \(AgentSetup.marker): reports this OpenCode session's state to Calm and follows Calm's theme, only inside Calm.
     // Delete this folder (or use Calm → Agents… → Disconnect) to stop.
     import { spawn } from "node:child_process";
+    import { watch } from "node:fs";
+    import { fileURLToPath } from "node:url";
 
     export default {
       id: "calm",
@@ -133,7 +140,30 @@ public extension OpenCodeAdapter {
             return () => {};
           }
         };
+        // Calm's theme file changed: OpenCode reloads its themes on SIGUSR2, if it still listens.
+        const followTheme = () => {
+          try {
+            let timer: any;
+            const folder = fileURLToPath(new URL("../../themes/", import.meta.url));
+            const watcher = watch(folder, (_event: string, name: string | null) => {
+              if (name && name !== "calm.json") return;
+              clearTimeout(timer);
+              timer = setTimeout(() => {
+                try {
+                  if (process.listenerCount("SIGUSR2") > 0) process.kill(process.pid, "SIGUSR2");
+                } catch {}
+              }, 200);
+            });
+            return () => {
+              clearTimeout(timer);
+              watcher.close();
+            };
+          } catch {
+            return () => {};
+          }
+        };
         const dispose = [
+          followTheme(),
           listen("session.execution.started", (data) => turn(data.sessionID, "working")),
           listen("session.execution.succeeded", (data) => turn(data.sessionID, "done")),
           listen("session.execution.failed", (data) => turn(data.sessionID, "failed", data.error?.message)),
@@ -284,5 +314,36 @@ public enum AgentSetupFiles {
             guard let text = try? String(contentsOf: url, encoding: .utf8), text.contains(AgentSetup.marker) else { continue }
             try FileManager.default.removeItem(at: url)
         }
+    }
+
+    /// Keeps an adapter's theme file (`themeFilePath`) in step with the colors on screen: written
+    /// while the agent is connected (its setup files are all there) and a Calm theme is on screen,
+    /// removed otherwise, so Disconnect or the user's own Ghostty colors take it away. A file there
+    /// that Calm didn't write is never touched. Returns whether the file changed.
+    @discardableResult
+    public static func syncTheme(
+        for adapter: any AgentAdapter,
+        colors: (colors: CalmTheme.Colors, mode: CalmTheme.Mode)?,
+        home: URL,
+    ) throws -> Bool {
+        guard let path = adapter.themeFilePath else { return false }
+        let url = home.appending(path: path)
+        let current = try? String(contentsOf: url, encoding: .utf8)
+        if let current, !current.contains(AgentSetup.marker) {
+            return false
+        }
+        var connected = false
+        if case let .files(files) = adapter.setup {
+            connected = state(of: files, home: home) == .connected
+        }
+        guard connected, let colors, let contents = adapter.themeFile(for: colors.colors, mode: colors.mode) else {
+            guard current != nil else { return false }
+            try FileManager.default.removeItem(at: url)
+            return true
+        }
+        guard current != contents else { return false }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try contents.write(to: url, atomically: true, encoding: .utf8)
+        return true
     }
 }

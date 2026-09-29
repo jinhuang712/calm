@@ -90,6 +90,20 @@ enum TerminalTheme {
         AccessibilitySettings.increaseContrast ? colors.contrasted() : colors
     }
 
+    /// The Calm colors the terminal shows for the current appearance, as it gets them (Increase
+    /// Contrast included), for agents that take a theme file from Calm (OpenCode). A picked theme,
+    /// or the default unless the user's Ghostty config sets its own colors; `nil` when those are
+    /// on screen instead.
+    static func onScreen(settings: CalmSettings = SessionManager.shared.settings, dark: Bool = isDark)
+        -> (colors: CalmTheme.Colors, mode: CalmTheme.Mode)? {
+        guard let (theme, picked) = active(settings: settings) else { return nil }
+        if !picked, TerminalConfig.userColors(dark: dark) != nil {
+            return nil
+        }
+        let mode: CalmTheme.Mode = dark ? .dark : .light
+        return theme.colors(for: mode).map { (forDisplay($0), mode) }
+    }
+
     /// The theme's variant whose background the terminal actually shows, for the chrome's tints.
     /// `nil` when the user's own Ghostty colors are in effect instead.
     static func chromeColors(matching background: NSColor) -> CalmTheme.Colors? {

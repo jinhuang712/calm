@@ -149,6 +149,12 @@
                 focusedPane.map { requestCloseSession($0.id) }
             case "cmd_shift_t":
                 pressKeyEquivalentForTesting(keyCode: 17, characters: "t", modifiers: [.command, .shift])
+            case "cmd_z":
+                // ⌘Z: bound to Ctrl-_ in CalmDefaults, the line editor's undo
+                pressKeyEquivalentForTesting(keyCode: 6, characters: "z", modifiers: [.command])
+            case "cmd_delete":
+                // ⌘⌫: Ghostty's default sends Ctrl-U, which deletes the line
+                pressKeyEquivalentForTesting(keyCode: 51, characters: "\u{7F}", modifiers: [.command])
             case let arrow where arrow.hasPrefix("cmd_opt_"):
                 // cmd_opt_left (or right, up, down): ⌘⌥ and that arrow key, which splits that way
                 pressSplitArrowForTesting(String(arrow.dropFirst(8)))

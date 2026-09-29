@@ -13,7 +13,7 @@ Status: ✅ built and working as described · 🚧 built, with a known gap named
 A fast, correct terminal on libghostty.
 
 - Reads the user's Ghostty config (`~/.config/ghostty/config`) for fonts, keybindings and terminal behavior, so existing setups carry over. Settings for Calm alone go in `~/.config/calm/terminal.ghostty`, in the same format, read after it.
-- Calm's own defaults change a few of Ghostty's keys: **⌘K** searches sessions (clear screen moves to ⌘⇧K), **⌘,** opens Settings, **⌘⇧T** reopens a closed session, and **⌘⌥ + an arrow** splits instead of moving focus. They load before the Ghostty config, so a keybinding of your own for any of these keys still wins.
+- Calm's own defaults change a few of Ghostty's keys: **⌘K** searches sessions (clear screen moves to ⌘⇧K), **⌘,** opens Settings, **⌘⇧T** reopens a closed session, **⌘Z** undoes the last edit of the line you're typing (a paste, a ⌘⌫; it sends Ctrl-_ to the shell or agent, so what it undoes is theirs to decide, and there is no redo), and **⌘⌥ + an arrow** splits instead of moving focus. They load before the Ghostty config, so a keybinding of your own for any of these keys still wins.
 - No tab bar: each ⌘T opens a session in the sidebar (F2). Splits, with keyboard navigation: **⌘⌥ + an arrow key** splits toward that side (left, right, up or down; ⌘D and ⌘⇧D still split right and down), ⌘[ and ⌘] move focus between splits, and ⌘⌃ + an arrow resizes one.
 - Command palette (⌘P) listing every action with its shortcut.
 - One text size for every session: ⌘+ and ⌘− (or the user's own font-size keybindings) resize all sessions and splits together, new ones start at that size, and it's kept across relaunches. ⌘0 goes back to the config's `font-size`.

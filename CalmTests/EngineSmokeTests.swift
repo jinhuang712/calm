@@ -34,6 +34,7 @@ struct EngineSmokeTests {
         #expect(contents.contains("window-padding-color = extend"))
         #expect(contents.contains("smooth-scroll = true"))
         #expect(contents.contains("keybind = super+shift+t=unbind")) // Ghostty's undo, in the way of Reopen Closed Session
+        #expect(contents.contains(#"keybind = super+z=text:\x1f"#)) // Ctrl-_, the line editor's undo
         try contents.write(to: file, atomically: true, encoding: .utf8)
         let config = try #require(ghostty_config_new())
         defer { ghostty_config_free(config) }

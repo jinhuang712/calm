@@ -56,9 +56,14 @@ final class SessionManager {
     /// Prepares the saved workspace at launch, so Calm starts where the user left off.
     func restore() {
         removeOrphanedShells()
-        for session in workspace.sessions where session.agent != nil {
-            // Saved by an earlier launch; the probe finds agents that are still running.
-            workspace.endAgentRun(session.id)
+        Trace.note("orphaned shells checked")
+        for session in workspace.sessions {
+            let saved = Trace.describe(session)
+            if session.agent != nil {
+                // Saved by an earlier launch; the probe finds agents that are still running.
+                workspace.endAgentRun(session.id)
+            }
+            Trace.note("restore \(Trace.id(session.id)): \(saved) → \(Trace.describe(workspace.session(session.id)))")
         }
         // Sessions filed under older rules find their groups (FEATURES.md → F2).
         if autoGrouping {
@@ -115,6 +120,7 @@ final class SessionManager {
             return existing
         }
         guard let session = workspace.session(sessionID) else { return nil }
+        Trace.note("pane \(Trace.id(sessionID)): attaching")
         var options = TerminalSurfaceOptions.session
         options.workingDirectory = session.workingDirectory
         if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
@@ -315,6 +321,7 @@ final class SessionManager {
         Motion.animate(.easeInOut(duration: 0.25)) {
             effect = workspace.report(id, report, focusedSessionID: lookingAtSessionID)
         }
+        Trace.reported(id, report, before: previous, after: workspace.session(id)?.state)
         AttentionCenter.shared.apply(effect, for: id)
         // Opted in (Agents panel): a turn finishing or failing where you aren't looking notifies too.
         if settings.notifyStates == .all, let state = workspace.session(id)?.state, state != previous,
@@ -351,11 +358,14 @@ final class SessionManager {
         Motion.animate(.easeInOut(duration: 0.25)) {
             workspace.updateTranscriptTail(id, tail)
         }
+        Trace.transcriptRead(id, tail, before: session.state, after: workspace.session(id)?.state)
         scheduleSave()
     }
 
     func noteAgentSession(_ id: Session.ID, kind: AgentKind, agentSessionID: String?, transcriptPath: String?) {
+        let before = workspace.session(id)?.agent
         workspace.noteAgentSession(id, kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath)
+        Trace.hookNamed(id, kind, before: before, after: workspace.session(id)?.agent)
         scheduleSave()
     }
 
@@ -367,11 +377,13 @@ final class SessionManager {
             Motion.animate(.easeInOut(duration: 0.25)) {
                 workspace.startAgentRun(id, AgentRun(kind: kind, processID: process.processID))
             }
+            Trace.probed(id, "\(kind.rawValue) started (pid \(process.processID))", before: session, after: workspace.session(id))
         } else if let agent = session.agent {
             Self.log.info("agent \(agent.kind.rawValue, privacy: .public) ended in \(id, privacy: .public)")
             Motion.animate(.easeInOut(duration: 0.25)) {
                 workspace.endAgentRun(id)
             }
+            Trace.probed(id, "\(agent.kind.rawValue) ended", before: session, after: workspace.session(id))
         } else {
             return
         }

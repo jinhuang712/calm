@@ -3,6 +3,7 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_: Notification) {
+        Trace.begin()
         Headless.prepareApp()
         UserDefaults.standard.register(defaults: [
             // Holding a key should repeat it, not open the accent picker.
@@ -16,17 +17,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = MainMenu.make()
         TerminalEngine.shared.delegate = TerminalWindowManager.shared
         TerminalEngine.shared.start()
+        Trace.note("engine started")
         AccessibilitySettings.startObserving()
         // Unit tests host the app; they don't need a live shell.
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         if !isTesting {
             SessionManager.shared.restore()
+            Trace.note("state restored")
             ControlServer.shared.start()
+            Trace.note("control socket listening")
             SessionProbe.shared.start()
+            Trace.note("probe scheduled")
             AttentionCenter.shared.start()
             AgentIntegrations.prepare()
+            Trace.note("agent integrations ready")
             SearchService.start()
+            Trace.note("search started")
             TerminalWindowManager.shared.openMainWindow()
+            Trace.note("window open")
             // Headless self-tests run without a Dock icon.
             if !Headless.isOn {
                 DockIcon.shared.start()

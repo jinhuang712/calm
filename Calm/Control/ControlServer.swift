@@ -105,13 +105,17 @@ final class ControlServer {
         }
         let line = received.split(separator: 0x0A, maxSplits: 1).first ?? Data()
 
+        let arrived = Trace.now
         let response: ControlResponse = if let request = try? JSONDecoder().decode(ControlRequest.self, from: line) {
             if request.cmd == .search {
                 // The index has its own queue; searching needs nothing from the main thread.
                 SearchService.respond(to: request)
             } else {
                 DispatchQueue.main.sync {
-                    MainActor.assumeIsolated { ControlServer.shared.handle(request) }
+                    MainActor.assumeIsolated {
+                        Trace.stall(of: request.cmd.rawValue, since: arrived)
+                        return ControlServer.shared.handle(request)
+                    }
                 }
             }
         } else {

@@ -95,6 +95,8 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
         default: 0
         }
         guard mod != 0, !hasMarkedText() else { return }
+        defer { refreshJoinedLinkHover() } // ⌘ going down or up over a link a program cut across rows
+        links.isCommandDown = event.modifierFlags.contains(.command)
 
         var action = GHOSTTY_ACTION_RELEASE
         if TerminalInput.mods(event.modifierFlags).rawValue & mod != 0 {

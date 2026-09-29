@@ -10,6 +10,9 @@ struct LinkHover: Equatable {
     /// Its cells, one run per row; `anchor` is the run under the pointer.
     let runs: [CellRun]
     let anchor: CellRun
+    /// A link a program cut across rows (`HardWrap`). libghostty sees only pieces of it, so the pane
+    /// found it itself and draws its underline and cursor too.
+    var isJoined = false
 
     func overlaps(_ match: LinkMatch) -> Bool {
         runs.contains { match.overlaps(row: $0.row, columns: $0.columns) }
@@ -40,6 +43,12 @@ final class PaneLinks {
 
     /// Where the pointer is in the pane, while it's over it.
     var pointer: NSPoint?
+    /// Whether ⌘ is down, as the last pointer or modifier event said (`NSEvent.modifierFlags` doesn't
+    /// follow the events the self-tests send).
+    var isCommandDown = false
+    /// The cell last checked for a link a program cut across rows, so the pointer moving inside one
+    /// cell doesn't read the screen again.
+    fileprivate var joinedCheck: CellRun?
     fileprivate var rows: [String] = []
     /// The screen's rows when the hovered link was found, for a program that takes the mouse (its
     /// screen is redrawn while the pointer rests, and libghostty looks again only on the next move).
@@ -91,7 +100,7 @@ extension TerminalSurfaceView {
                         && links.hoverRows[run.row] == rows[run.row]
                 }
                 if !unchanged {
-                    setLinkHover(nil) // the text under it moved
+                    dropLinkHover() // the text under it moved
                 }
             }
             return
@@ -104,7 +113,7 @@ extension TerminalSurfaceView {
             }
             links.marks = links.marks.filter { $0.key.runs.allSatisfy(unchanged) }
             if let hovered = links.hovered, !hovered.runs.allSatisfy(unchanged) {
-                setLinkHover(nil) // the text under it moved
+                dropLinkHover() // the text under it moved
             }
             links.rows = rows
             links.isSettled = false
@@ -120,24 +129,95 @@ extension TerminalSurfaceView {
     private func openableLinks(in rows: [String]) -> [LinkMatch: [NSRect]] {
         guard let origin = gridOrigin() else { return [:] }
         let grid = TextGrid(lines: rows)
+        let lines = lines(of: grid)
         var opens: [String: Bool] = [:]
         var marks: [LinkMatch: [NSRect]] = [:]
-        for line in lines(of: grid) {
+        // A word a program cut across rows comes first: the pieces of it on each row aren't links.
+        var joined: [LinkMatch] = []
+        for group in joinedRows(in: grid, lines: lines) {
+            for match in LinkMatcher.matches(in: grid, rows: group.rows, continuations: group.continuations) where group.crosses(match) {
+                guard let mark = openable(match, opens: &opens), group.crosses(mark) else { continue }
+                joined.append(mark)
+                marks[mark] = mark.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
+            }
+        }
+        for line in lines {
             for match in LinkMatcher.matches(in: grid, rows: line) {
                 guard marks.count < Self.markLimit else { return marks }
-                // The longest text that opens, as ⌘-click tries it.
-                for candidate in Link.candidates(for: match.text) {
-                    let leads = opens[candidate] ?? (host?.surface(self, resolveLink: candidate) != nil)
-                    opens[candidate] = leads
-                    if leads {
-                        let mark = match.prefix(candidate.count)
-                        marks[mark] = mark.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
-                        break
-                    }
-                }
+                guard let mark = openable(match, opens: &opens),
+                      !joined.contains(where: { piece in mark.runs.contains { piece.overlaps(row: $0.row, columns: $0.columns) } })
+                else { continue }
+                marks[mark] = mark.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
             }
         }
         return marks
+    }
+
+    /// The longest text of `match` that opens, as ⌘-click tries it, cut to those cells; nil when none does.
+    private func openable(_ match: LinkMatch, opens: inout [String: Bool]) -> LinkMatch? {
+        for candidate in Link.candidates(for: match.text) {
+            let leads = opens[candidate] ?? (host?.surface(self, resolveLink: candidate) != nil)
+            opens[candidate] = leads
+            if leads {
+                return match.prefix(candidate.count)
+            }
+        }
+        return nil
+    }
+
+    /// The lines a program carried on into the next row by itself (`HardWrap`).
+    private func joinedRows(in grid: TextGrid, lines: [Range<Int>]) -> [HardWrap.Joined] {
+        guard let surface else { return [] }
+        return HardWrap.joined(grid, lines: lines, columns: Int(ghostty_surface_size(surface).columns))
+    }
+
+    /// The link under `cell` that a program cut across rows, and leads somewhere. libghostty joins only
+    /// what the terminal wrapped, so a click or hover there gets the piece on one row, or nothing.
+    private func joinedLink(at cell: (row: Int, column: Int), rows: [String]) -> LinkMatch? {
+        let grid = TextGrid(lines: rows)
+        var opens: [String: Bool] = [:]
+        for group in joinedRows(in: grid, lines: lines(of: grid)) where group.rows.contains(cell.row) {
+            for match in LinkMatcher.matches(in: grid, rows: group.rows, continuations: group.continuations) where group.crosses(match) {
+                if let mark = openable(match, opens: &opens), group.crosses(mark), mark.covers(row: cell.row, column: cell.column) {
+                    return mark
+                }
+            }
+        }
+        return nil
+    }
+
+    private func joinedHover(at cell: (row: Int, column: Int)) -> LinkHover? {
+        let rows = viewportRows()
+        guard let link = joinedLink(at: cell, rows: rows) else { return nil }
+        links.hoverRows = rows
+        let anchor = link.runs.first { $0.row == cell.row } ?? link.runs[0]
+        return LinkHover(text: link.text, runs: link.runs, anchor: anchor, isJoined: true)
+    }
+
+    /// ⌘-click on a link a program cut across rows opens the whole of it, before libghostty sees the
+    /// click. False when the click isn't on one.
+    func openJoinedLink(at point: NSPoint) -> Bool {
+        guard let cell = cell(at: point), let link = joinedLink(at: cell, rows: viewportRows()) else { return false }
+        setLinkHover(nil)
+        host?.surface(self, requestsOpenLink: link.text)
+        return true
+    }
+
+    /// Looks for a link a program cut across rows under ⌘ and the pointer, when either moved. Only
+    /// when the cell changes, since it reads the screen.
+    func refreshJoinedLinkHover() {
+        var pointed: (row: Int, column: Int)?
+        if links.isCommandDown, let pointer = links.pointer {
+            pointed = cell(at: pointer)
+        }
+        let checked = pointed.map { CellRun(row: $0.row, columns: $0.column ..< $0.column + 1) }
+        guard checked != links.joinedCheck else { return }
+        links.joinedCheck = checked
+        if let pointed, let hover = joinedHover(at: pointed) {
+            setLinkHover(hover)
+        } else if links.hovered?.isJoined == true {
+            setLinkHover(nil)
+        }
     }
 
     /// The screen's rows grouped into its lines: a line longer than the pane wraps onto the rows
@@ -184,7 +264,16 @@ extension TerminalSurfaceView {
     }
 
     private func updateLinkHover(_ text: String?) {
-        guard let text, !text.isEmpty, let pointer = links.pointer, let cell = cell(at: pointer) else {
+        guard let pointer = links.pointer, let cell = cell(at: pointer) else {
+            setLinkHover(nil)
+            return
+        }
+        // A link a program cut across rows is Calm's whole, wherever libghostty sees a piece of it.
+        if links.isCommandDown, let joined = joinedHover(at: cell) {
+            setLinkHover(joined)
+            return
+        }
+        guard let text, !text.isEmpty else {
             setLinkHover(nil)
             return
         }
@@ -199,9 +288,19 @@ extension TerminalSurfaceView {
         setLinkHover(LinkHover(text: text, runs: runs, anchor: runs.first { $0.row == cell.row } ?? under))
     }
 
+    /// The hovered link's text moved: forget it, and look again on the next pointer move.
+    private func dropLinkHover() {
+        links.joinedCheck = nil
+        setLinkHover(nil)
+    }
+
     private func setLinkHover(_ hover: LinkHover?) {
         guard hover != links.hovered else { return }
+        let hadHand = links.hovered?.isJoined == true
         links.hovered = hover
+        if hadHand != (hover?.isJoined == true) {
+            window?.invalidateCursorRects(for: self) // the hand is Calm's to show for a link libghostty doesn't know whole
+        }
         host?.surface(self, hoversLink: hover)
     }
 }

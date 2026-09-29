@@ -310,26 +310,18 @@ final class TerminalSurfaceView: NSView {
     }
 
     func setMouseShape(_ shape: ghostty_action_mouse_shape_e) {
-        let cursor: NSCursor? = switch shape {
-        case GHOSTTY_MOUSE_SHAPE_DEFAULT: .arrow
-        case GHOSTTY_MOUSE_SHAPE_TEXT: .iBeam
-        case GHOSTTY_MOUSE_SHAPE_VERTICAL_TEXT: .iBeamCursorForVerticalLayout
-        case GHOSTTY_MOUSE_SHAPE_POINTER: .pointingHand
-        case GHOSTTY_MOUSE_SHAPE_GRAB: .openHand
-        case GHOSTTY_MOUSE_SHAPE_GRABBING: .closedHand
-        case GHOSTTY_MOUSE_SHAPE_CROSSHAIR: .crosshair
-        case GHOSTTY_MOUSE_SHAPE_NOT_ALLOWED: .operationNotAllowed
-        case GHOSTTY_MOUSE_SHAPE_CONTEXT_MENU: .contextualMenu
-        case GHOSTTY_MOUSE_SHAPE_EW_RESIZE, GHOSTTY_MOUSE_SHAPE_COL_RESIZE: .resizeLeftRight
-        case GHOSTTY_MOUSE_SHAPE_NS_RESIZE, GHOSTTY_MOUSE_SHAPE_ROW_RESIZE: .resizeUpDown
-        default: nil
-        }
-        guard let cursor else { return }
-        currentCursor = cursor
+        guard let cursor = Self.cursor(for: shape) else { return }
+        shapeCursor = cursor
         window?.invalidateCursorRects(for: self)
     }
 
-    private var currentCursor: NSCursor = .iBeam
+    /// What libghostty last asked for.
+    private var shapeCursor: NSCursor = .iBeam
+
+    /// A hand over a link libghostty doesn't know whole (`LinkHover.isJoined`), else libghostty's shape.
+    private var currentCursor: NSCursor {
+        links.hovered?.isJoined == true ? .pointingHand : shapeCursor
+    }
 
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: currentCursor)
@@ -526,7 +518,9 @@ final class TerminalSurfaceView: NSView {
         guard let surface else { return }
         let point = convert(event.locationInWindow, from: nil)
         links.pointer = point
+        links.isCommandDown = event.modifierFlags.contains(.command)
         ghostty_surface_mouse_pos(surface, point.x, frame.height - point.y, TerminalInput.mods(event.modifierFlags))
+        refreshJoinedLinkHover()
     }
 
     private func sendMouseButton(_ state: ghostty_input_mouse_state_e, _ button: ghostty_input_mouse_button_e, _ event: NSEvent) -> Bool {
@@ -542,6 +536,11 @@ final class TerminalSurfaceView: NSView {
             return
         }
         sendMousePosition(event)
+        // ⌘-click on a link a program cut across rows: libghostty would open a piece of it.
+        if event.modifierFlags.contains(.command), openJoinedLink(at: convert(event.locationInWindow, from: nil)) {
+            suppressNextLeftMouseUp = true
+            return
+        }
         _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, event)
     }
 
@@ -602,6 +601,7 @@ final class TerminalSurfaceView: NSView {
             // The cursor left the viewport.
             links.pointer = nil
             ghostty_surface_mouse_pos(surface, -1, -1, TerminalInput.mods(event.modifierFlags))
+            refreshJoinedLinkHover()
         } else {
             sendMousePosition(event)
         }

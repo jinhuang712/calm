@@ -100,16 +100,23 @@ public enum LinkMatcher {
     }
 
     /// The links in one line of the screen: `rows`, which the terminal wrapped from one line (a
-    /// single row when it didn't wrap), with the cells each covers.
-    public static func matches(in grid: TextGrid, rows: Range<Int>) -> [LinkMatch] {
+    /// single row when it didn't wrap), with the cells each covers. `continuations` are rows a
+    /// program carried the line on in by itself (`HardWrap`): the indent in front of their text is
+    /// left out, so a word it cut reads whole.
+    public static func matches(in grid: TextGrid, rows: Range<Int>, continuations: Set<Int> = []) -> [LinkMatch] {
         var line = ""
         // Where each character is, by its UTF-16 offset (what NSRegularExpression counts).
         var cells: [Int: LinkMatch.Cell] = [:]
         var offsets: [Int] = []
         var offset = 0
         for row in rows where grid.cells.indices.contains(row) {
+            var indent = continuations.contains(row)
             for (column, cell) in grid.cells[row].enumerated() {
                 guard let cell else { continue } // the second half of a wide character
+                if indent, cell.isWhitespace {
+                    continue
+                }
+                indent = false
                 cells[offset] = LinkMatch.Cell(row: row, column: column, width: max(CellWidth.of(cell), 1))
                 offsets.append(offset)
                 line.append(cell)

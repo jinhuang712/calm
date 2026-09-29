@@ -9,6 +9,8 @@ import CalmModel
 final class LinkMarksView: NSView {
     /// Each pane's marks: a link's dotted lines, one per row it's on.
     private var marks: [UUID: [LinkMatch: [LinkMarkView]]] = [:]
+    /// Each pane's hovered-link underline, one line per row.
+    private var underlines: [UUID: [LinkMarkView]] = [:]
 
     /// How strong the dots are, against the terminal's text color.
     static let opacity = 0.45
@@ -48,11 +50,37 @@ final class LinkMarksView: NSView {
             views[match] = lines
         }
         marks[pane.id] = views
+        updateUnderline(pane, color: color)
+    }
+
+    /// The underline of a ⌘-hovered link that a program cut across rows: libghostty underlines only
+    /// the piece of it it sees, so Calm draws the whole (a solid line where the resting mark is).
+    private func updateUnderline(_ pane: TerminalSurfaceView, color: NSColor) {
+        let runs = pane.isHidden ? [] : pane.links.hovered.map { $0.isJoined ? $0.runs : [] } ?? []
+        let frames = runs.compactMap { pane.rect(row: $0.row, columns: $0.columns) }
+            .map { pane.convert(NSRect(x: $0.minX, y: $0.minY, width: $0.width, height: 3), to: self) }
+        var lines = underlines[pane.id] ?? []
+        if lines.count != frames.count {
+            lines.forEach { $0.removeFromSuperview() }
+            lines = frames.map { _ in
+                let line = LinkMarkView(frame: .zero)
+                line.isSolid = true
+                addSubview(line)
+                return line
+            }
+        }
+        for (line, frame) in zip(lines, frames) {
+            line.frame = frame
+            line.color = color.withAlphaComponent(1)
+        }
+        underlines[pane.id] = lines
     }
 
     func remove(_ paneID: UUID) {
         marks[paneID]?.values.joined().forEach { $0.removeFromSuperview() }
         marks[paneID] = nil
+        underlines[paneID]?.forEach { $0.removeFromSuperview() }
+        underlines[paneID] = nil
     }
 }
 
@@ -81,12 +109,17 @@ final class LinkMarkView: NSView {
         nil
     }
 
+    /// A solid line (the hovered link's underline) instead of the resting mark's dots.
+    var isSolid = false
+
     override func draw(_: NSRect) {
         let line = NSBezierPath()
         line.move(to: NSPoint(x: bounds.minX, y: 1.5))
         line.line(to: NSPoint(x: bounds.maxX, y: 1.5))
         line.lineWidth = 1
-        line.setLineDash([1, 2], count: 2, phase: 0)
+        if !isSolid {
+            line.setLineDash([1, 2], count: 2, phase: 0)
+        }
         color.setStroke()
         line.stroke()
     }

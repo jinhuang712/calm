@@ -12,7 +12,12 @@ final class DockIcon {
     static let shared = DockIcon()
 
     private var motion = AppIconMotion()
-    private let view = DockIconView()
+    private let view: DockIconView = {
+        let view = DockIconView()
+        view.cachesStillParts = true
+        return view
+    }()
+
     private var timer: Timer?
     private var drawn: (frame: AppIconFrame, dark: Bool)?
     private var appearanceObservation: NSKeyValueObservation?
@@ -156,35 +161,43 @@ final class DockIconView: NSView {
         return path
     }()
 
+    /// The parts that never move (the tile, its shadow, its edge), drawn once per appearance, size
+    /// and resolution, then stamped under each frame: the shadow's blur and the edge's stroke
+    /// were most of a frame's cost, about 17 frames a second while an agent works (2026-09-30).
+    /// Nothing that moves comes near the edge (the glow is gone 40 units of the 1024 grid inside
+    /// it), so drawing the edge under the cells changes no pixel.
+    private var still: (key: StillKey, layer: CGLayer)?
+    /// On for the Dock, drawn through `NSDockTile.display` as the pixel test draws it. The
+    /// welcome page's mark leaves it off: it redraws seldom, and through a layer-backed view,
+    /// which the test doesn't cover.
+    var cachesStillParts = false
+
+    private struct StillKey: Equatable {
+        var dark: Bool
+        var size: CGSize
+        var resolution: CGFloat
+    }
+
     override func draw(_: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
         let palette = dark ? Palette.dark : Palette.light
         let frame = iconFrame
         let places = frame.places
         let scale = bounds.width / 1024
+        if cachesStillParts, let layer = stillLayer(like: context, palette: palette, scale: scale) {
+            // The layer holds pixels as they land, flip and shadow included, so it goes on unflipped.
+            context.saveGState()
+            context.translateBy(x: 0, y: bounds.height)
+            context.scaleBy(x: 1, y: -1)
+            context.draw(layer, in: CGRect(origin: .zero, size: bounds.size))
+            context.restoreGState()
+        } else {
+            drawStillParts(in: context, palette: palette, scale: scale, shadowUnit: 1)
+        }
         context.saveGState()
         context.scaleBy(x: scale, y: scale)
-
-        // The tile and its shadow (shadows ignore the scale, so they take it themselves).
-        context.saveGState()
-        context.setShadow(
-            offset: CGSize(width: 0, height: -10 * scale),
-            blur: 24 * scale,
-            color: palette.shadow.cgColor(alpha: palette.shadowAlpha),
-        )
-        context.addPath(Self.tilePath)
-        context.setFillColor(palette.bottom.cgColor)
-        context.fillPath()
-        context.restoreGState()
-
-        context.saveGState()
         context.addPath(Self.tilePath)
         context.clip()
-        if let gradient = CGGradient(
-            colorsSpace: nil, colors: [palette.top.cgColor, palette.bottom.cgColor] as CFArray, locations: [0, 1],
-        ) {
-            context.drawLinearGradient(gradient, start: CGPoint(x: 512, y: 100), end: CGPoint(x: 512, y: 924), options: [])
-        }
 
         // The ring steps back while working, and loses its warmth to grey when something failed.
         let ringHue = palette.ring.mixed(with: palette.grey, frame.failed)
@@ -205,6 +218,57 @@ final class DockIconView: NSView {
         for (index, place) in places.enumerated() where place.cursor > 0 {
             let color = index == 0 ? palette.cursor.mixed(with: state, mark) : palette.cursor
             fillCell(Self.places[index], color, alpha: place.cursor, in: context)
+        }
+        context.restoreGState()
+    }
+
+    private func stillLayer(like context: CGContext, palette: Palette, scale: CGFloat) -> CGLayer? {
+        let device = context.convertToDeviceSpace(CGSize(width: 1, height: 1))
+        let key = StillKey(dark: dark, size: bounds.size, resolution: abs(device.width))
+        if let still, still.key == key {
+            return still.layer
+        }
+        // A layer's size is in its context's base units, pixels for a bitmap: sized in points it
+        // held half the pixels on a Retina Dock and blurred the tile's outline.
+        let pixels = CGSize(width: bounds.width * key.resolution, height: bounds.height * key.resolution)
+        guard let layer = CGLayer(context, size: pixels, auxiliaryInfo: nil), let layerContext = layer.context else {
+            return nil
+        }
+        // Drawn as the view draws, in points and flipped, so the shapes and the gradient land the
+        // same way. A shadow ignores the transform: the view's context measures it in points, the
+        // layer's in pixels. The pixel test (DockIconViewTests) holds the two to the same pixels.
+        layerContext.translateBy(x: 0, y: pixels.height)
+        layerContext.scaleBy(x: key.resolution, y: -key.resolution)
+        drawStillParts(in: layerContext, palette: palette, scale: scale, shadowUnit: key.resolution)
+        still = (key, layer)
+        return layer
+    }
+
+    /// The tile, its shadow and its edge. `shadowUnit` is how many of the context's base units
+    /// make a point.
+    private func drawStillParts(in context: CGContext, palette: Palette, scale: CGFloat, shadowUnit: CGFloat) {
+        context.saveGState()
+        context.scaleBy(x: scale, y: scale)
+
+        // The tile and its shadow (shadows ignore the scale, so they take it themselves).
+        context.saveGState()
+        context.setShadow(
+            offset: CGSize(width: 0, height: -10 * scale * shadowUnit),
+            blur: 24 * scale * shadowUnit,
+            color: palette.shadow.cgColor(alpha: palette.shadowAlpha),
+        )
+        context.addPath(Self.tilePath)
+        context.setFillColor(palette.bottom.cgColor)
+        context.fillPath()
+        context.restoreGState()
+
+        context.saveGState()
+        context.addPath(Self.tilePath)
+        context.clip()
+        if let gradient = CGGradient(
+            colorsSpace: nil, colors: [palette.top.cgColor, palette.bottom.cgColor] as CFArray, locations: [0, 1],
+        ) {
+            context.drawLinearGradient(gradient, start: CGPoint(x: 512, y: 100), end: CGPoint(x: 512, y: 924), options: [])
         }
         context.restoreGState()
 

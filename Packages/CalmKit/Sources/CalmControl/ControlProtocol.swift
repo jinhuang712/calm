@@ -34,6 +34,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var agent: String?
     public var agentSession: String?
     public var transcript: String?
+    /// From a hook that ended a turn: shells still running (nil for none; older callers omit it).
+    public var shells: Int?
     /// For `search`.
     public var query: String?
 
@@ -46,6 +48,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         agent: String? = nil,
         agentSession: String? = nil,
         transcript: String? = nil,
+        shells: Int? = nil,
         query: String? = nil,
     ) {
         v = ControlProtocol.version
@@ -57,6 +60,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.agent = agent
         self.agentSession = agentSession
         self.transcript = transcript
+        self.shells = shells
         self.query = query
     }
 }

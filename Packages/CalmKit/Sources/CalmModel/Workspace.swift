@@ -98,6 +98,13 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         scratchFolder != nil
     }
 
+    /// Shells the agent's turn left running, while the card says *done* ("Done · 2 shells
+    /// running"); none once it has moved on to another state or been settled by a visit.
+    public var shellsStillRunning: Int {
+        guard state == .done, lastReport?.source == .hook else { return 0 }
+        return lastReport?.backgroundShells ?? 0
+    }
+
     public init(
         id: UUID = UUID(),
         projectID: Project.ID,

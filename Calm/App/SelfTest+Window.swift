@@ -1,6 +1,7 @@
 #if DEBUG
     import AppKit
     import CalmAgents
+    import CalmControl
     import CalmModel
 
     extension MainWindowController {
@@ -266,6 +267,11 @@
                         manager.report(id, StatusReport(state: state, message: nil, source: .hook))
                     }
                 }
+            case let stop where stop.hasPrefix("hook_stop:"):
+                // hook_stop:<shells>[:<agents>]: a Claude Code Stop reaches the focused session the way a
+                // real one does, with that many background shells and agents still running.
+                let counts = stop.dropFirst(10).split(separator: ":").compactMap { Int($0) }
+                return sendStopForTesting(shells: counts.first ?? 0, agents: counts.dropFirst().first ?? 0)
             case let folder where folder.hasPrefix("agent_folder:"):
                 // agent_folder:<path>: the agent in the focused session says it works in this folder
                 // (run agent:<state> first), as Claude Code does after entering a git worktree while
@@ -291,6 +297,29 @@
                 return performLinkActionForTesting(action)
             }
             return true
+        }
+
+        /// A Claude Code Stop through the real path: payload, adapter, control handler (`calm hook` does
+        /// the same over the socket). False when there's no session or no adapter.
+        private func sendStopForTesting(shells: Int, agents: Int) -> Bool {
+            guard let id = focusedPane?.id, let reporter = Agents.hookReporter(named: "claude-code") else { return false }
+            func tasks(_ type: String, _ count: Int) -> [String] {
+                (0 ..< count).map { #"{"id":"\#(type)\#($0)","type":"\#(type)","status":"running"}"# }
+            }
+            let list = (tasks("shell", shells) + tasks("subagent", agents)).joined(separator: ",")
+            let message = "Fixes 1 and 2 are built. Want me to build the third?"
+            let payload = Data(
+                #"{"hook_event_name":"Stop","last_assistant_message":"\#(message)","background_tasks":[\#(list)]}"#.utf8,
+            )
+            guard let hook = reporter.hookReport(from: payload) else { return false }
+            let response = ControlServer.shared.handle(ControlRequest(
+                cmd: .status, session: id.uuidString, state: hook.state.reportName, message: hook.message,
+                agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
+                shells: hook.backgroundShells > 0 ? hook.backgroundShells : nil,
+            ))
+            let result = "\(hook.state.reportName), \(hook.backgroundShells) shells, ok \(response.ok)"
+            FileHandle.standardError.write(Data("calm-selftest: hook_stop → \(result)\n".utf8))
+            return response.ok
         }
 
         /// Smart links (F8): the marks at rest, and the tag under ⌘.

@@ -44,7 +44,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | Line | Content | Shown when |
 |---|---|---|
 | 1 | agent's mark · **session name** · time since last activity | always |
-| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m") | not idle |
+| 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m"). A done card whose turn left shells running adds "· 2 shells running" in the tertiary color: a footnote, gone once you move on | not idle |
 | 3 | thin progress bar · "3 of 5 todos" | not idle, and the agent keeps a todo list |
 | 4 | recap: the latest agent message as plain text (no Markdown marks: headings, code blocks and bold go, a list reads "a; b; c"), two lines at most (one when idle) | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |

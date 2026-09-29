@@ -100,6 +100,13 @@ struct SessionCard: View {
                     .calmFont(size: 13, weight: session.state == .done ? .medium : .regular)
                     .foregroundStyle(stateColor)
                     .lineLimit(1)
+                if let shells = Self.shellsLine(session.shellsStillRunning) {
+                    // Not part of the state's own color: the turn is done, this is a footnote.
+                    Text("· \(shells)")
+                        .calmFont(size: 13)
+                        .foregroundStyle(style.tertiary)
+                        .lineLimit(1)
+                }
             }
         }
     }
@@ -122,6 +129,15 @@ struct SessionCard: View {
             return SessionState.working.label
         }
         return "\(SessionState.working.label) · \(elapsed)"
+    }
+
+    /// "2 shells running" for what a finished turn left behind; nothing when there are none.
+    static func shellsLine(_ count: Int) -> String? {
+        switch count {
+        case ..<1: nil
+        case 1: "1 shell running"
+        default: "\(count) shells running"
+        }
     }
 
     /// "4m", "2h"; nothing in the first minute.
@@ -177,7 +193,7 @@ struct SessionCard: View {
 
     private var accessibilityText: String {
         let state = session.state == .working ? workingLine(at: .now) : session.state.label
-        return [agent.displayName, title, state, recap]
+        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), recap]
             .compactMap(\.self)
             .joined(separator: ", ")
     }

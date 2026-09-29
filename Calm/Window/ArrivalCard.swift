@@ -112,6 +112,12 @@ struct ArrivalCardView: View {
                 Text(session.state.label)
                     .calmFont(size: 12)
                     .foregroundStyle(style.secondary)
+                if let shells = SessionCard.shellsLine(session.shellsStillRunning) {
+                    Text("· \(shells)")
+                        .calmFont(size: 12)
+                        .foregroundStyle(style.tertiary)
+                        .lineLimit(1)
+                }
                 Text("·").foregroundStyle(style.tertiary)
                 RelativeTimeText(date: session.lastReport?.date ?? agent.startedAt)
                     .calmFont(size: 12)

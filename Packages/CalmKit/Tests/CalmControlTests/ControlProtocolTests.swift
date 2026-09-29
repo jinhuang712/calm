@@ -11,6 +11,14 @@ struct ControlProtocolTests {
         #expect(try JSONDecoder().decode(ControlRequest.self, from: Data(json.utf8)) == request)
     }
 
+    @Test func `a hook's shell count travels, and a caller that omits it means none`() throws {
+        let request = ControlRequest(cmd: .status, state: "done", shells: 2)
+        let data = try JSONEncoder().encode(request)
+        #expect(try JSONDecoder().decode(ControlRequest.self, from: data).shells == 2)
+        let older = Data(#"{"v":1,"cmd":"status","state":"done"}"#.utf8)
+        #expect(try JSONDecoder().decode(ControlRequest.self, from: older).shells == nil)
+    }
+
     @Test func `responses round-trip`() throws {
         let response = ControlResponse.success(sessions: [
             .init(id: "1", title: "zsh", project: "calm", directory: "/dev/apps/calm", state: "idle"),

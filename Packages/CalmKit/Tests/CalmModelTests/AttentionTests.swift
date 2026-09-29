@@ -138,6 +138,56 @@ struct AttentionTests {
         }
     }
 
+    @Test func `shells a turn leaves running show while it is done, and no longer`() {
+        let fixture = Fixture()
+        var workspace = fixture.workspace
+        let (watched, other) = (fixture.watched, fixture.other)
+        let start = Date(timeIntervalSince1970: 1000)
+        func done(_ shells: Int, at date: Date) -> StatusReport {
+            StatusReport(state: .done, message: "Built.", source: .hook, date: date, backgroundShells: shells)
+        }
+        workspace.report(other, done(2, at: start), focusedSessionID: watched)
+        #expect(workspace.session(other)?.shellsStillRunning == 2)
+
+        // The same words with fewer shells is news; the state keeps the time it began.
+        workspace.report(other, done(1, at: start + 60), focusedSessionID: watched)
+        #expect(workspace.session(other)?.shellsStillRunning == 1)
+        #expect(workspace.session(other)?.stateSince == start)
+
+        // Leaving the card settles it to idle, and the footnote goes with the state.
+        workspace.select(other)
+        workspace.select(watched)
+        #expect(workspace.session(other)?.state == .idle)
+        #expect(workspace.session(other)?.shellsStillRunning == 0)
+    }
+
+    @Test func `only a done hook report carries shells, and a new report clears them`() {
+        let fixture = Fixture()
+        var workspace = fixture.workspace
+        let (watched, other) = (fixture.watched, fixture.other)
+        workspace.report(other, StatusReport(state: .done, source: .hook, backgroundShells: 2), focusedSessionID: watched)
+        workspace.report(other, hook(.working), focusedSessionID: watched)
+        #expect(workspace.session(other)?.shellsStillRunning == 0)
+
+        // A terminal guess isn't the agent speaking, so its count isn't shown.
+        workspace.endAgentRun(other)
+        workspace.report(other, StatusReport(state: .done, source: .terminal, backgroundShells: 3), focusedSessionID: watched)
+        #expect(workspace.session(other)?.shellsStillRunning == 0)
+        #expect(StatusReport(state: .done, source: .hook, backgroundShells: -4).backgroundShells == 0)
+    }
+
+    @Test func `the shell count is a snapshot and isn't saved`() throws {
+        let fixture = Fixture()
+        var workspace = fixture.workspace
+        let (watched, other) = (fixture.watched, fixture.other)
+        let report = StatusReport(state: .done, message: "Built.", source: .hook, backgroundShells: 2)
+        workspace.report(other, report, focusedSessionID: watched)
+        let decoded = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(workspace))
+        #expect(decoded.session(other)?.state == .done)
+        #expect(decoded.session(other)?.lastReport?.message == "Built.")
+        #expect(decoded.session(other)?.shellsStillRunning == 0)
+    }
+
     @Test func `blank messages are dropped and reports survive saving`() throws {
         #expect(StatusReport(state: .done, message: "  \n", source: .hook).message == nil)
         let fixture = Fixture()

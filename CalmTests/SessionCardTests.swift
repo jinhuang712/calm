@@ -21,6 +21,13 @@ struct SessionCardTests {
         #expect(card.workingLine(at: start + 2 * 3600) == "Working · 2h")
     }
 
+    @Test func `a finished turn says how many shells it left running`() {
+        #expect(SessionCard.shellsLine(0) == nil)
+        #expect(SessionCard.shellsLine(-1) == nil)
+        #expect(SessionCard.shellsLine(1) == "1 shell running")
+        #expect(SessionCard.shellsLine(2) == "2 shells running")
+    }
+
     @Test func `a long title glides at reading pace, never in a jolt`() {
         #expect(ScrollingTitle.scrollDuration(overflow: 4) == 0.6)
         #expect(ScrollingTitle.scrollDuration(overflow: 80) == 2)

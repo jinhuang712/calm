@@ -8,12 +8,22 @@ public struct HookReport: Equatable, Sendable {
     public var message: String?
     public var agentSessionID: String?
     public var transcriptPath: String?
+    /// Shells still running when the turn ended (monitors and kinds Calm doesn't know count
+    /// too). They don't make the session *working*: nothing wakes the agent if one never ends.
+    public var backgroundShells: Int
 
-    public init(state: SessionState, message: String? = nil, agentSessionID: String? = nil, transcriptPath: String? = nil) {
+    public init(
+        state: SessionState,
+        message: String? = nil,
+        agentSessionID: String? = nil,
+        transcriptPath: String? = nil,
+        backgroundShells: Int = 0,
+    ) {
         self.state = state
         self.message = message
         self.agentSessionID = agentSessionID
         self.transcriptPath = transcriptPath
+        self.backgroundShells = backgroundShells
     }
 
     /// Long agent messages are cut for a one- or two-line recap.

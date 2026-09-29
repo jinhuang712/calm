@@ -58,15 +58,61 @@ struct ClaudeCodeHookTests {
         #expect(report.message == "Allow Bash: find . -name '*.py' -o -name '*.js' # then echo `date` | sort **/dist")
     }
 
-    @Test func `a stop that leaves background work running is still working`() throws {
+    /// A Stop whose `background_tasks` holds the given tasks (each a JSON object).
+    private func stop(tasks: [String]) -> Data {
+        Data(#"{"hook_event_name":"Stop","last_assistant_message":"Done.","background_tasks":[\#(tasks.joined(separator: ","))]}"#.utf8)
+    }
+
+    private let shell = #"{"id":"b1","type":"shell","status":"running","description":"Dev server"}"#
+    private let agent = #"{"id":"a1","type":"subagent","status":"running","description":"Review the diff"}"#
+
+    @Test func `a stop that leaves a shell running is done, and counts it`() throws {
         let report = try #require(adapter.hookReport(from: fixture("Stop-background")))
-        #expect(report.state == .working)
+        #expect(report.state == .done)
+        #expect(report.backgroundShells == 1)
         #expect(report.message == "The install is running. I'll tell you when it's done.")
     }
 
-    @Test func `a stop without the background list is done`() {
+    @Test func `a stop that leaves a background agent running is still working`() throws {
+        let report = try #require(adapter.hookReport(from: stop(tasks: [agent])))
+        #expect(report.state == .working)
+        #expect(report.backgroundShells == 0)
+    }
+
+    @Test func `an agent keeps it working, shells beside it or not`() throws {
+        let report = try #require(adapter.hookReport(from: stop(tasks: [shell, agent, shell])))
+        #expect(report.state == .working)
+    }
+
+    @Test func `shells are counted, a monitor and a kind nobody knows too`() throws {
+        let monitor = #"{"id":"m1","type":"shell","status":"running"}"#
+        let other = #"{"id":"w1","type":"something-new","status":"running"}"#
+        let report = try #require(adapter.hookReport(from: stop(tasks: [shell, monitor, other])))
+        #expect(report.state == .done)
+        #expect(report.backgroundShells == 3)
+    }
+
+    @Test func `tasks that already ended are not running`() throws {
+        let ended = ["completed", "failed", "stopped"].map { #"{"id":"x","type":"shell","status":"\#($0)"}"# }
+        let endedAgent = #"{"id":"a2","type":"subagent","status":"completed"}"#
+        let report = try #require(adapter.hookReport(from: stop(tasks: ended + [endedAgent])))
+        #expect(report.state == .done)
+        #expect(report.backgroundShells == 0)
+    }
+
+    @Test func `pending and status-less tasks are in flight`() throws {
+        let pending = #"{"id":"p","type":"shell","status":"pending"}"#
+        let bare = #"{"id":"n","type":"shell"}"#
+        #expect(try #require(adapter.hookReport(from: stop(tasks: [pending, bare]))).backgroundShells == 2)
+        let bareAgent = #"{"id":"a3","type":"subagent"}"#
+        #expect(try #require(adapter.hookReport(from: stop(tasks: [bareAgent]))).state == .working)
+    }
+
+    @Test func `a stop without the background list is done`() throws {
         let payload = #"{"hook_event_name":"Stop","last_assistant_message":"Done."}"#
-        #expect(adapter.hookReport(from: Data(payload.utf8))?.state == .done)
+        let report = try #require(adapter.hookReport(from: Data(payload.utf8)))
+        #expect(report.state == .done)
+        #expect(report.backgroundShells == 0)
     }
 
     @Test func `stop failure is failed`() throws {

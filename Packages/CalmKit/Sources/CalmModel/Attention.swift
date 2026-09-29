@@ -14,13 +14,21 @@ public struct StatusReport: Codable, Hashable, Sendable {
     public var message: String?
     public var source: Source
     public var date: Date
+    /// Shells the agent's turn left running (a *done* report only). A snapshot from one report,
+    /// so it isn't saved: after a restart it may no longer be true, and *done* alone still is.
+    public var backgroundShells = 0
 
-    public init(state: SessionState, message: String? = nil, source: Source, date: Date = Date()) {
+    private enum CodingKeys: String, CodingKey {
+        case state, message, source, date
+    }
+
+    public init(state: SessionState, message: String? = nil, source: Source, date: Date = Date(), backgroundShells: Int = 0) {
         self.state = state
         let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.message = trimmed?.isEmpty == false ? trimmed : nil
         self.source = source
         self.date = date
+        self.backgroundShells = max(backgroundShells, 0)
     }
 }
 
@@ -79,7 +87,8 @@ public extension Workspace {
         let isFocused = id == focusedSessionID
         let newState = report.state
         if previous.state == newState, previous.lastReport?.message == report.message,
-           previous.lastReport?.source == report.source {
+           previous.lastReport?.source == report.source,
+           (previous.lastReport?.backgroundShells ?? 0) == report.backgroundShells {
             return .none
         }
         if previous.state != newState {

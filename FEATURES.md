@@ -60,7 +60,8 @@ A fast, correct terminal on libghostty.
 
 - Each agent session has a state: **working**, **needs you**, **done**, **failed**, or **idle**.
 - State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback. The fallback alone already works for Claude Code, Codex and omp, with no setup.
-- A Claude Code turn that ends with background work still running (a shell, subagent or monitor) stays **working**: Claude picks up again on its own when that work finishes.
+- A Claude Code turn that ends with one of Claude's own background agents still running stays **working**: Claude picks up again on its own when the agent finishes.
+- Background *shells* don't hold it: a dev server or a monitor never ends and nothing would wake Claude, so the turn is **done** (the next move is yours), and the card adds "· 2 shells running" until you move on from it (2026-09-29, the author's call). Only tasks still running or pending count; a kind of task Calm doesn't know counts as a shell.
 - Plain shells get a quiet mark too: a command that ran for 10 seconds or more shows **done** or **failed** until the session is visited.
 - State appears in the sidebar as a quiet indicator. Only **needs you** escalates:
   1. The session's row gets a soft highlight.

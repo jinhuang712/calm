@@ -52,8 +52,26 @@ extension ClaudeCodeAdapter: HookReporting {
             var description: String?
         }
 
-        /// Only its presence matters; `id`, `type`, `status`, `command`… are not read.
-        struct BackgroundTask: Decodable {}
+        /// `id`, `description` and `command` are not read. Seen in captured payloads:
+        /// `type` "shell" (a Monitor arrives as one too) and "subagent".
+        struct BackgroundTask: Decodable {
+            var type: String?
+            var status: String?
+
+            /// Ended tasks can stay in the list; a missing status reads as in flight, since
+            /// the list is for work that will wake Claude.
+            var isInFlight: Bool {
+                guard let status = status?.lowercased() else { return true }
+                return status == "running" || status == "pending"
+            }
+
+            /// Claude's own work, which ends and wakes it. Any other kind, including one Calm
+            /// hasn't seen, counts as a shell: if that's wrong, the card says done, never
+            /// a blue card that never clears.
+            var isAgent: Bool {
+                type?.lowercased() == "subagent"
+            }
+        }
     }
 
     public func hookReport(from payload: Data) -> HookReport? {
@@ -62,12 +80,13 @@ extension ClaudeCodeAdapter: HookReporting {
         guard let hook = try? decoder.decode(Payload.self, from: payload), let event = hook.hookEventName else { return nil }
         // `prose`: what Claude said (Markdown, made plain). The rest is Calm's own text or text
         // that quotes a command someone is asked to allow, and stays as it is.
-        func report(_ state: SessionState, _ message: String? = nil, prose: Bool = false) -> HookReport {
+        func report(_ state: SessionState, _ message: String? = nil, prose: Bool = false, shells: Int = 0) -> HookReport {
             HookReport(
                 state: state,
                 message: prose ? MessageText.recap(message) : HookReport.recap(message),
                 agentSessionID: hook.sessionId,
                 transcriptPath: hook.transcriptPath,
+                backgroundShells: shells,
             )
         }
         switch event {
@@ -83,10 +102,15 @@ extension ClaudeCodeAdapter: HookReporting {
             guard ["permission_prompt", "elicitation_dialog"].contains(hook.notificationType ?? "") else { return nil }
             return report(.needsYou, hook.message)
         case "Stop":
-            // A turn that leaves background work running isn't over: Claude picks up again
-            // without you when it finishes, and its next Stop reports done.
-            let waiting = !(hook.backgroundTasks ?? []).isEmpty
-            return report(waiting ? .working : .done, hook.lastAssistantMessage, prose: true)
+            // A turn that leaves one of Claude's own agents running isn't over: Claude picks up
+            // again without you when it finishes, and its next Stop reports done. Shells are
+            // different: a dev server or a monitor never ends, so the turn is over (the next
+            // move is yours) and the card only says how many are still running.
+            let running = (hook.backgroundTasks ?? []).filter(\.isInFlight)
+            if running.contains(where: \.isAgent) {
+                return report(.working, hook.lastAssistantMessage, prose: true)
+            }
+            return report(.done, hook.lastAssistantMessage, prose: true, shells: running.count)
         case "StopFailure":
             return report(.failed, hook.errorDetails ?? hook.error)
         default:

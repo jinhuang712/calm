@@ -65,6 +65,13 @@ public extension CalmSettings {
         values["session-cards"].flatMap { SessionCardSize(rawValue: $0.lowercased()) } ?? .full
     }
 
+    /// Whether the sidebar's footer (New Session, New Scratch Session, New Project… and their
+    /// shortcuts) shows. The footer's own hover handle writes it (UIUX.md → Layout); the
+    /// shortcuts and menu items work either way.
+    var sidebarFooter: Bool {
+        bool("sidebar.footer", default: true)
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {

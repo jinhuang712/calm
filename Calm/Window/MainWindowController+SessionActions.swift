@@ -26,6 +26,20 @@ extension MainWindowController {
             .forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
     }
 
+    func makeSidebar(style: SidebarStyle) -> SidebarView {
+        SidebarView(
+            manager: manager,
+            style: style,
+            showsFooter: manager.settings.sidebarFooter,
+            onSelect: { [weak self] id in self?.select(id) },
+            onClose: { [weak self] id in self?.requestCloseSession(id) },
+            onNewSession: { [weak self] in self?.newSession() },
+            onNewProject: { [weak self] in self?.chooseNewProject() },
+            editing: sidebarEditing,
+            actions: sessionActions,
+        )
+    }
+
     /// What the sidebar's cards and the title's ⋯ button both do.
     var sessionActions: SidebarActions {
         SidebarActions(
@@ -33,6 +47,7 @@ extension MainWindowController {
             resume: { [weak self] id in self?.resumeConversation(in: id) },
             fork: { [weak self] id, destination in self?.forkConversation(of: id, into: destination) },
             newScratchSession: { [weak self] in self?.newScratchSession() },
+            showFooter: { [weak self] shown in self?.setSidebarFooter(shown) },
             search: { [weak self] in self?.toggleSearch() },
             newSessionIn: { [weak self] project in self?.newSession(in: project) },
             addProjects: { [weak self] urls in self?.addProjects(urls) },
@@ -44,6 +59,18 @@ extension MainWindowController {
             copy: { [weak self] id, copy in self?.copy(copy, of: id) },
             reveal: { [weak self] id in self?.revealFolder(of: id) },
         )
+    }
+
+    /// Hides or shows the sidebar's footer from its hover handle. Saved in config.toml (showing it
+    /// removes the key) and applied in every window; Settings has no row for it.
+    func setSidebarFooter(_ shown: Bool) {
+        do {
+            manager.settings = try CalmSettings.save("sidebar.footer", shown ? nil : "false")
+        } catch {
+            FileHandle.standardError.write(Data("calm: could not save sidebar.footer: \(error)\n".utf8))
+            return
+        }
+        TerminalWindowManager.shared.controllers.forEach { $0.applyAppearance() }
     }
 
     /// Starts renaming `id` in place on its card. A hidden sidebar comes back first, since the

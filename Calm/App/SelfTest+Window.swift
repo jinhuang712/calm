@@ -159,6 +159,9 @@
             case let add where add.hasPrefix("add_project:"):
                 // add_project:<path>: what + New Project does once a folder is picked
                 addProjects([URL(filePath: String(add.dropFirst(12)), directoryHint: .isDirectory)])
+            case let footer where footer.hasPrefix("footer:"):
+                // footer:hide|show: what a click on the sidebar footer's handle does
+                setSidebarFooter(footer == "footer:show")
             case "make_project":
                 focusedPane.flatMap { manager.workspace.session($0.id) }.map { manager.makeProject($0.projectID) }
             case "fold_group":

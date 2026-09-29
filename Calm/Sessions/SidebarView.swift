@@ -119,6 +119,9 @@ struct SidebarView: View {
 
     let manager: SessionManager
     let style: SidebarStyle
+    /// The footer's setting, passed in like `style`: `manager.settings` isn't observed, so a read
+    /// in the body would go stale when the setting changes.
+    let showsFooter: Bool
     let onSelect: (Session.ID) -> Void
     let onClose: (Session.ID) -> Void
     let onNewSession: () -> Void
@@ -129,6 +132,14 @@ struct SidebarView: View {
     @FocusState private var nameFieldFocused: Bool
     @State private var hoveredSessionID: Session.ID?
     @State private var hoveredGroupID: Project.ID?
+    @State private var hoveringFooter = false
+    /// What the footer's handle chose, until the saved setting catches up (or forever in a peek,
+    /// which isn't rebuilt when the setting is saved).
+    @State private var footerChoice: Bool?
+
+    private var footerShown: Bool {
+        footerChoice ?? showsFooter
+    }
 
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
@@ -164,15 +175,21 @@ struct SidebarView: View {
                     }
                 }
                 .padding(.horizontal, 12.scaled)
-                .padding(.bottom, 16.scaled)
+                // No room of its own at the foot: the footer's handle strip, or the strip along the
+                // bottom edge when it's hidden, is the gap.
                 // A new card size eases every card to its height; the settings aren't observed,
                 // so this redraw comes from the sidebar being rebuilt when they're saved.
                 .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: manager.settings.sessionCardSize)
             }
             .scrollIndicators(.never)
 
-            footer
+            if footerShown {
+                footer
+            } else {
+                hiddenFooter
+            }
         }
+        .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: footerShown)
         .frame(width: Self.width)
         .frame(maxHeight: .infinity)
         .ignoresSafeArea(.container, edges: .top)
@@ -429,15 +446,45 @@ struct SidebarView: View {
     /// The three ways to start something, one row each with its shortcut, so the corner reads at
     /// a glance and every target is a full row.
     private var footer: some View {
-        VStack(spacing: 2.scaled) {
-            footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
-            footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
-            footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
+        VStack(spacing: 0) {
+            // Above the line, so the handle never covers a row. Empty until the pointer is over the
+            // footer, so nothing moves when it shows.
+            footerHandle(symbol: "chevron.down", help: "Hide shortcuts", shows: false)
+            Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1)
+            VStack(spacing: 2.scaled) {
+                footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
+                footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
+                footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
+            }
+            .padding(.horizontal, 12.scaled)
+            .padding(.top, 10.scaled)
+            .padding(.bottom, 14.scaled)
         }
-        .padding(.horizontal, 12.scaled)
-        .padding(.top, 10.scaled)
-        .padding(.bottom, 14.scaled)
-        .overlay(alignment: .top) { Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1) }
+        .onHover { hoveringFooter = $0 }
+        .transition(.opacity)
+    }
+
+    /// With the footer hidden, the same corner brings it back: a strip along the bottom edge that
+    /// shows the handle under the pointer. The shortcuts still work; the menus have the actions.
+    private var hiddenFooter: some View {
+        footerHandle(symbol: "chevron.up", help: "Show shortcuts", shows: true)
+            .padding(.bottom, 6.scaled)
+            .onHover { hoveringFooter = $0 }
+            .transition(.opacity)
+    }
+
+    /// A strip the width of the sidebar, holding one quiet glyph that appears under the pointer.
+    private func footerHandle(symbol: String, help: String, shows: Bool) -> some View {
+        FooterHandle(style: style, symbol: symbol, help: help) {
+            footerChoice = shows
+            hoveringFooter = false
+            actions.showFooter(shows)
+        }
+        .opacity(hoveringFooter ? 1 : 0)
+        .allowsHitTesting(hoveringFooter)
+        .animation(Motion.isReduced ? nil : .easeOut(duration: 0.15), value: hoveringFooter)
+        .frame(maxWidth: .infinity)
+        .frame(height: 16.scaled)
     }
 
     private func footerRow(_ title: String, symbol: String, keys: [String], action: @escaping () -> Void) -> some View {
@@ -455,61 +502,6 @@ struct SidebarView: View {
             .padding(.horizontal, 8.scaled)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-/// A sidebar control: a full-height target with a quiet hover background.
-private struct FooterButton<Label: View>: View {
-    let style: SidebarStyle
-    let help: String
-    let action: () -> Void
-    @ViewBuilder let label: Label
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            label
-                .frame(minHeight: 40.scaled)
-                .foregroundStyle(hovering ? style.primary : style.secondary)
-                .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(hovering ? style.selection : .clear))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .help(help)
-    }
-}
-
-/// One of a group header's hover controls: a small glyph that lights up under the pointer.
-private struct GroupControl: View {
-    let style: SidebarStyle
-    let systemImage: String
-    let help: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            GroupControlLabel(style: style, systemImage: systemImage)
-        }
-        .buttonStyle(.plain)
-        .help(help)
-        .accessibilityLabel(help)
-    }
-}
-
-private struct GroupControlLabel: View {
-    let style: SidebarStyle
-    let systemImage: String
-    @State private var hovering = false
-
-    var body: some View {
-        Image(systemName: systemImage)
-            .calmFont(size: 11, weight: .semibold)
-            .foregroundStyle(hovering ? style.primary : style.tertiary)
-            .frame(width: 22.scaled, height: 22.scaled)
-            .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(hovering ? style.selection : .clear))
-            .contentShape(Rectangle())
-            .onHover { hovering = $0 }
     }
 }
 
@@ -544,6 +536,8 @@ struct SidebarActions {
     let resume: (Session.ID) -> Void
     let fork: (Session.ID, MainWindowController.ForkDestination) -> Void
     let newScratchSession: () -> Void
+    /// Shows or hides the sidebar's footer (saved in config.toml, applied in every window).
+    let showFooter: (Bool) -> Void
     let search: () -> Void
     let newSessionIn: (Project) -> Void
     let addProjects: ([URL]) -> Void

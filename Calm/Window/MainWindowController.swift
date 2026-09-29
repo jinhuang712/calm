@@ -120,19 +120,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
     }
 
-    private func makeSidebar(style: SidebarStyle) -> SidebarView {
-        SidebarView(
-            manager: manager,
-            style: style,
-            onSelect: { [weak self] id in self?.select(id) },
-            onClose: { [weak self] id in self?.requestCloseSession(id) },
-            onNewSession: { [weak self] in self?.newSession() },
-            onNewProject: { [weak self] in self?.chooseNewProject() },
-            editing: sidebarEditing,
-            actions: sessionActions,
-        )
-    }
-
     func toggleSidebar() {
         guard let sidebarWidth else { return }
         let hidden = sidebarWidth.constant == 0

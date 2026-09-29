@@ -95,6 +95,18 @@ struct CalmSettingsWritingTests {
         #expect(CalmSettings(text: "session-cards = \"tiny\"\n").sessionCardSize == .full)
     }
 
+    @Test func `the sidebar footer shows unless hidden, and showing it again removes the key`() throws {
+        #expect(CalmSettings(text: "").sidebarFooter)
+        #expect(CalmSettings(text: "[sidebar]\nfooter = false\n").sidebarFooter == false)
+        #expect(CalmSettings(text: "[sidebar]\nfooter = \"maybe\"\n").sidebarFooter)
+
+        let url = FileManager.default.temporaryDirectory.appending(path: "calm-\(UUID().uuidString)/config.toml")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        #expect(try CalmSettings.save("sidebar.footer", "false", to: url).sidebarFooter == false)
+        #expect(try CalmSettings.save("sidebar.footer", nil, to: url).sidebarFooter)
+        #expect(try String(contentsOf: url, encoding: .utf8).contains("footer") == false)
+    }
+
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {
         let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
         #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")

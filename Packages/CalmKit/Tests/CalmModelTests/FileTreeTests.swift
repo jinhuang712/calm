@@ -79,4 +79,18 @@ struct FileTreeTests {
         #expect(FileNode.rows(tree, expanded: ["Calm/Window"]).map(\.id) == ["Calm", ".gitignore", "README.md"])
         #expect(open.first { $0.id == ".gitignore" }?.node.isHidden == true)
     }
+
+    @Test func `an unread folder is an empty folder, until a listing reads it`() {
+        let tree = FileNode.tree(paths: ["a.txt", "code/main.swift"], changes: [:], unread: ["Documents", "code/sub"])
+        #expect(tree.map(\.name) == ["code", "Documents", "a.txt"])
+        #expect(tree[1].isFolder)
+        #expect(tree[1].children?.isEmpty == true)
+        #expect(tree[0].children?.map(\.name) == ["sub", "main.swift"]) // nested, beside what was read
+        #expect(FileNode.tree(paths: ["Documents/x.md"], changes: [:], unread: []).first?.children?.map(\.name) == ["x.md"])
+    }
+
+    @Test func `the guarded folders are Desktop, Documents and Downloads under home`() {
+        #expect(GuardedFolders.paths(home: "/Users/me") == ["/Users/me/Desktop", "/Users/me/Documents", "/Users/me/Downloads"])
+        #expect(GuardedFolders.paths(home: "/Users/me/") == GuardedFolders.paths(home: "/Users/me"))
+    }
 }

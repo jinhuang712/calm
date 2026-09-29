@@ -156,23 +156,31 @@ public struct FileNode: Identifiable, Sendable, Equatable {
     }
 
     /// A tree from relative paths (as `git ls-files` lists them): folders first, then files, each
-    /// in a case-insensitive order. Folders holding changes are marked.
-    public static func tree(paths: [String], changes: [String: GitChange]) -> [FileNode] {
+    /// in a case-insensitive order. Folders holding changes are marked. `unread` are folders the
+    /// listing left unread on purpose (`GuardedFolders`): they appear as empty folders, to be
+    /// read when opened.
+    public static func tree(paths: [String], changes: [String: GitChange], unread: [String] = []) -> [FileNode] {
         final class Folder {
             var folders: [String: Folder] = [:]
             var files: [String] = []
         }
         let root = Folder()
-        for path in paths where !path.isEmpty {
-            let parts = path.split(separator: "/").map(String.init)
+        func folder(at parts: [String]) -> Folder {
             var folder = root
-            for part in parts.dropLast() {
+            for part in parts {
                 if folder.folders[part] == nil {
                     folder.folders[part] = Folder()
                 }
                 folder = folder.folders[part]!
             }
-            folder.files.append(parts.last!)
+            return folder
+        }
+        for path in paths where !path.isEmpty {
+            let parts = path.split(separator: "/").map(String.init)
+            folder(at: Array(parts.dropLast())).files.append(parts.last!)
+        }
+        for path in unread where !path.isEmpty {
+            _ = folder(at: path.split(separator: "/").map(String.init))
         }
         func nodes(_ folder: Folder, prefix: String) -> [FileNode] {
             let sorted: (String, String) -> Bool = { $0.localizedStandardCompare($1) == .orderedAscending }

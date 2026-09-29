@@ -53,6 +53,41 @@ struct FilesListingTests {
         #expect(paths.contains("zzz/last.txt"))
     }
 
+    @Test func `a walk leaves the folders macOS guards unread until they're opened`() throws {
+        let home = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: home) }
+        for path in ["Documents/report.md", "Documents/deep/notes.md", "Downloads/x.zip", "projects/app/main.swift", "top.txt"] {
+            try touch(path, in: home)
+        }
+        let guarded: Set = [home + "/Documents", home + "/Downloads"]
+
+        let closed = FilesListing.walk(home, guarded: guarded)
+        #expect(closed.paths.sorted() == ["projects/app/main.swift", "top.txt"])
+        #expect(closed.unread.sorted() == ["Documents", "Downloads"])
+
+        // Opening one reads it, and only it.
+        let opened = FilesListing.walk(home, guarded: guarded, opened: ["Documents"])
+        #expect(opened.paths.sorted() == ["Documents/deep/notes.md", "Documents/report.md", "projects/app/main.swift", "top.txt"])
+        #expect(opened.unread == ["Downloads"])
+    }
+
+    @Test func `a walk that starts in a guarded folder reads it, and the folders below`() throws {
+        let home = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: home) }
+        try touch("Documents/report.md", in: home)
+        try touch("Documents/Downloads/x.zip", in: home) // only ~/Downloads is guarded
+        let guarded: Set = [home + "/Documents", home + "/Downloads"]
+
+        let listing = FilesListing.walk(home + "/Documents", guarded: guarded)
+        #expect(listing.paths.sorted() == ["Downloads/x.zip", "report.md"])
+        #expect(listing.unread.isEmpty)
+        // From the folder above, only the top-level Documents is guarded (not Documents/Downloads),
+        // and a trailing slash on the root doesn't hide it from the check.
+        let above = FilesListing.walk(home + "/", guarded: guarded)
+        #expect(above.unread == ["Documents"])
+        #expect(above.paths.isEmpty)
+    }
+
     @Test func `a repository subfolder: ignored files hidden, changes relative to the folder`() throws {
         let repo = try scratch()
         defer { try? FileManager.default.removeItem(atPath: repo) }

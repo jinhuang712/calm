@@ -16,6 +16,10 @@ final class FilesModel {
     var changes: [ChangedFile] = []
     /// Folders open in the tree, relative to `root`; all close again for another folder.
     var expanded: Set<String> = []
+    /// Guarded folders (`GuardedFolders`) the listing left unread; opening one reads it.
+    private(set) var unread: Set<String> = []
+    /// The guarded folders the user has opened, which every later listing reads.
+    private var opened: Set<String> = []
     var style = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
     var viewedFile: String?
     var onOpen: (String) -> Void = { _ in }
@@ -31,10 +35,15 @@ final class FilesModel {
         root.map { ($0 as NSString).appendingPathComponent(path) } == viewedFile
     }
 
-    /// Opens or closes a folder of the tree.
+    /// Opens or closes a folder of the tree. Opening a guarded one is asking to read it (and
+    /// for macOS to ask), so that's when it's listed.
     func toggle(_ folder: String) {
         if expanded.remove(folder) == nil {
             expanded.insert(folder)
+            if unread.contains(folder) {
+                opened.insert(folder)
+                follow(root, isScratch: isScratch, force: true)
+            }
         }
     }
 
@@ -63,15 +72,19 @@ final class FilesModel {
             branch = nil
             changes = []
             expanded = []
+            unread = []
+            opened = []
         }
         self.root = root
         self.isScratch = isScratch
         guard let root else { return }
         loading?.cancel()
+        let opened = opened
         loading = Task { [weak self] in
-            let listing = await Task.detached(priority: .utility) { FilesListing.read(root) }.value
+            let listing = await Task.detached(priority: .utility) { FilesListing.read(root, opened: opened) }.value
             guard !Task.isCancelled, let self, self.root == root else { return }
-            nodes = FileNode.tree(paths: listing.paths, changes: listing.changes)
+            unread = Set(listing.unread)
+            nodes = FileNode.tree(paths: listing.paths, changes: listing.changes, unread: listing.unread)
             branch = listing.branch
             changes = ChangedFile.list(changes: listing.changes, lines: listing.lines)
         }
@@ -87,10 +100,14 @@ enum FilesListing {
         /// The lines each change adds and removes, against the last commit.
         var lines: [String: LineCounts] = [:]
         var branch: String?
+        /// Folders the walk left unread because macOS guards them (`GuardedFolders`), relative
+        /// to the folder; the user reads one by opening it.
+        var unread: [String] = []
     }
 
-    static func read(_ root: String) -> Result {
-        guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return walk(root) }
+    /// `opened` are the guarded folders the user has opened; only those are read.
+    static func read(_ root: String, opened: Set<String> = []) -> Result {
+        guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return walk(root, opened: opened) }
         var result = Result()
         let prefixPath = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
         result.paths = (git(["ls-files", "-co", "--exclude-standard", "-z"], in: root) ?? "")
@@ -147,10 +164,18 @@ enum FilesListing {
     /// Breadth first, so a big first folder can't use up the limit before its siblings are seen
     /// (a home folder's `go` or `Library`). Paths are built relative to `root` as the walk goes
     /// down, which also survives symlinked folders (`/tmp` is `/private/tmp`).
-    static func walk(_ root: String, limit: Int = 5000) -> Result {
+    ///
+    /// A `guarded` folder below `root` is not entered until it's in `opened`: reading one is what
+    /// makes macOS ask, and the walk would ask for Desktop, Documents and Downloads on the first
+    /// look at the home folder. `root` itself, or a folder inside it, is the user's choice already
+    /// and is always read.
+    static func walk(
+        _ root: String, limit: Int = 5000, guarded: Set<String> = GuardedFolders.paths(), opened: Set<String> = [],
+    ) -> Result {
         var result = Result()
         let skipped: Set = ["node_modules", "build", "DerivedData", "Pods", "target", "dist"]
         let base = URL(filePath: root, directoryHint: .isDirectory)
+        let basePath = root.count > 1 && root.hasSuffix("/") ? String(root.dropLast()) : root
         var folders = [""]
         while !folders.isEmpty, result.paths.count < limit {
             let folder = folders.removeFirst()
@@ -163,7 +188,12 @@ enum FilesListing {
                 let name = entry.lastPathComponent
                 let path = folder.isEmpty ? name : "\(folder)/\(name)"
                 if (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
-                    if !skipped.contains(name), !name.hasSuffix(".app") {
+                    if skipped.contains(name) || name.hasSuffix(".app") {
+                        continue
+                    }
+                    if guarded.contains(basePath + "/" + path), !opened.contains(path) {
+                        result.unread.append(path)
+                    } else {
                         folders.append(path)
                     }
                 } else if result.paths.count < limit {

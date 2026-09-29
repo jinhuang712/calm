@@ -1,0 +1,177 @@
+Subject: padding extension skips a lone edge cell, such as a program's cursor
+
+With window-padding-color = extend, the padding beside a row takes the color
+of that row's first or last cell. A program that draws its own cursor as a
+reverse-video cell (pi's editor does, as a space at column 0 on an empty
+prompt) therefore had it grow out in to the padding: a block twice the size
+of a cell that ran to the edge of the pane. The cell over a wide character
+did the same, and so did a one-cell selection.
+
+A row's padding is now extended only when the first (or last) three cells
+share a background, so a background painted out to the edge still extends,
+and a cursor, which is at most two cells, does not. The neighbors are looked
+up the way the edge cell is (through smooth scrolling's shift and region
+animations), so a row that is animating decides the same as one at rest.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005.
+
+diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.metal
+--- a/src/renderer/shaders/shaders.metal
++++ b/src/renderer/shaders/shaders.metal
+@@ -476,6 +476,21 @@
+ //-------------------------------------------------------------------
+ #pragma mark - Cell BG Shader
+ 
++// How many cells in a row, counting the edge one, must share a background
++// for it to be extended in to the padding. A shorter run is something drawn
++// in the row, not a background painted out to the edge: a program's own
++// cursor (a reverse-video cell, two over a wide character) would otherwise
++// grow in to the padding beside it. Three is the widest cursor plus one.
++constant int EXTEND_MIN_RUN = 3;
++
++// The background of the cell drawn at `rel`, a position in pixels from the
++// grid's top left with the padding already decided (see below).
++static float4 cell_bg_at(
++  constant Uniforms& uniforms,
++  constant uchar4 *cells,
++  float2 rel
++);
++
+ fragment float4 cell_bg_fragment(
+   FullScreenVertexOut in [[stage_in]],
+   constant Uniforms& uniforms [[buffer(1)]],
+@@ -500,16 +515,22 @@
+ 
+   float4 bg = float4(0.0);
+ 
++  // Which side's padding this is when it takes an edge cell's color: 1 on
++  // the left, -1 on the right, 0 elsewhere.
++  int side = 0;
++
+   // Clamp x position, extends edge bg colors in to padding on sides.
+   if (rel.x < 0.0) {
+     if (uniforms.padding_extend & EXTEND_LEFT) {
+       rel.x = 0.0;
++      side = 1;
+     } else {
+       return bg;
+     }
+   } else if (rel.x >= visible.x) {
+     if (uniforms.padding_extend & EXTEND_RIGHT) {
+       rel.x = visible.x - 0.5;
++      side = -1;
+     } else {
+       return bg;
+     }
+@@ -527,8 +548,33 @@
+       rel.y = visible.y - 0.5;
+     } else {
+       return bg;
++    }
++  }
++
++  float4 color = cell_bg_at(uniforms, cells, rel);
++
++  // Extend only a background that runs in from the edge: the cells next to
++  // the edge one, looked up where they are drawn, must have its color.
++  if (side != 0) {
++    for (int i = 1; i < EXTEND_MIN_RUN; i++) {
++      float x = side > 0
++          ? (float(i) + 0.5) * uniforms.cell_size.x
++          : visible.x - (float(i) + 0.5) * uniforms.cell_size.x;
++      if (any(cell_bg_at(uniforms, cells, float2(x, rel.y)) != color)) {
++        return bg;
++      }
+     }
+   }
++
++  return color;
++}
++
++static float4 cell_bg_at(
++  constant Uniforms& uniforms,
++  constant uchar4 *cells,
++  float2 rel
++) {
++  float4 bg = float4(0.0);
+ 
+   float shift_y = uniforms.scroll_offset.x -
+       uniforms.scroll_offset.y * uniforms.cell_size.y;
+diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/glsl/cell_bg.f.glsl
+--- a/src/renderer/shaders/glsl/cell_bg.f.glsl
++++ b/src/renderer/shaders/glsl/cell_bg.f.glsl
+@@ -10,9 +10,19 @@
+     uint cells[];
+ };
+ 
++// How many cells in a row, counting the edge one, must share a background
++// for it to be extended in to the padding. A shorter run is something drawn
++// in the row, not a background painted out to the edge: a program's own
++// cursor (a reverse-video cell, two over a wide character) would otherwise
++// grow in to the padding beside it. Three is the widest cursor plus one.
++const int EXTEND_MIN_RUN = 3;
++
++// The background of the cell drawn at `rel`, a position in pixels from the
++// grid's top left with the padding already decided (see below).
++vec4 cell_bg_at(vec2 rel);
++
+ vec4 cell_bg() {
+     uvec2 grid_size = unpack2u16(grid_size_packed_2u16);
+-    bool use_linear_blending = (bools & USE_LINEAR_BLENDING) != 0;
+ 
+     // Position relative to the visible grid. Its extent comes from the
+     // grid itself, not from grid_padding's bottom/right, which hold the
+@@ -30,16 +40,22 @@
+ 
+     vec4 bg = vec4(0.0);
+ 
++    // Which side's padding this is when it takes an edge cell's color: 1 on
++    // the left, -1 on the right, 0 elsewhere.
++    int side = 0;
++
+     // Clamp x position, extends edge bg colors in to padding on sides.
+     if (rel.x < 0.0) {
+         if ((padding_extend & EXTEND_LEFT) != 0) {
+             rel.x = 0.0;
++            side = 1;
+         } else {
+             return bg;
+         }
+     } else if (rel.x >= visible.x) {
+         if ((padding_extend & EXTEND_RIGHT) != 0) {
+             rel.x = visible.x - 0.5;
++            side = -1;
+         } else {
+             return bg;
+         }
+@@ -60,6 +76,30 @@
+         }
+     }
+ 
++    vec4 color = cell_bg_at(rel);
++
++    // Extend only a background that runs in from the edge: the cells next to
++    // the edge one, looked up where they are drawn, must have its color.
++    if (side != 0) {
++        for (int i = 1; i < EXTEND_MIN_RUN; i++) {
++            float x = side > 0
++                ? (float(i) + 0.5) * cell_size.x
++                : visible.x - (float(i) + 0.5) * cell_size.x;
++            if (cell_bg_at(vec2(x, rel.y)) != color) {
++                return bg;
++            }
++        }
++    }
++
++    return color;
++}
++
++vec4 cell_bg_at(vec2 rel) {
++    uvec2 grid_size = unpack2u16(grid_size_packed_2u16);
++    bool use_linear_blending = (bools & USE_LINEAR_BLENDING) != 0;
++
++    vec4 bg = vec4(0.0);
++
+     float shift_y = scroll_offset.x - scroll_offset.y * cell_size.y;
+     vec2 grid_px = rel - vec2(0.0, shift_y);
+ 

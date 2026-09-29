@@ -197,17 +197,9 @@
             return true
         }
 
-        /// Settings (F14), session states, the Dock icon and the welcome page for self-tests.
+        /// Settings (F14), session states and the Dock icon for self-tests.
         private func performSettingsActionForTesting(_ action: String) -> Bool {
             switch action {
-            case let name where name.hasPrefix("welcome_project:"):
-                // welcome_project:<name>: what a click on a project's chip on the welcome page does
-                // (false while the page isn't up)
-                let name = String(name.dropFirst(16))
-                guard welcomePage.isShowing,
-                      let project = manager.workspace.projects.first(where: { $0.kind == .project && $0.name == name })
-                else { return false }
-                welcomeActions.newSessionIn(project)
             case let folder where folder.hasPrefix("dock_icon:"):
                 // dock_icon:<folder>: the Dock icon's states as PNGs (headless runs have no Dock)
                 return DockIcon.shared.renderForTesting(to: URL(filePath: String(folder.dropFirst(10))))
@@ -294,7 +286,51 @@
                     beginRename(id)
                 }
             default:
-                return performLinkActionForTesting(action)
+                return performWelcomeActionForTesting(action)
+            }
+            return true
+        }
+
+        /// The welcome page. A headless window is never key, so neither clicks nor keys reach it:
+        /// these drive its model the way they would. `welcome_type:<text>` types into the search;
+        /// `welcome_key:down|up|left|right|enter|escape` presses that key; `welcome_project:<name>`
+        /// and `welcome_session:<n>` click that row; `welcome_state` logs what the page holds.
+        /// False while the page isn't up.
+        private func performWelcomeActionForTesting(_ action: String) -> Bool {
+            guard action.hasPrefix("welcome_") else { return performLinkActionForTesting(action) }
+            guard welcomePage.isShowing, let model = welcomePage.model else { return false }
+            let argument = String(action.drop { $0 != ":" }.dropFirst())
+            switch String(action.prefix { $0 != ":" }) {
+            case "welcome_type":
+                model.query = argument
+            case "welcome_key":
+                switch argument {
+                case "down": model.step(1)
+                case "up": model.step(-1)
+                case "left": model.switchColumn(to: .sessions)
+                case "right": model.switchColumn(to: .projects)
+                case "enter": model.activate(welcomeActions)
+                case "escape": model.query = ""
+                default: return false
+                }
+            case "welcome_project":
+                guard let project = model.projects.first(where: { $0.name == argument }) else { return false }
+                welcomeActions.newSessionIn(project)
+            case "welcome_session":
+                guard let index = Int(argument), model.sessions.indices.contains(index) else { return false }
+                welcomeActions.open(model.sessions[index])
+            case "welcome_state":
+                let rows = model.walk.map { target -> String in
+                    switch target {
+                    case let .session(id): "session \((id as NSString).lastPathComponent)"
+                    case let .project(id): "project \(model.projects.first { $0.id == id }?.name ?? "?")"
+                    }
+                }
+                let selected = model.selected.flatMap { model.walk.firstIndex(of: $0) }.map(String.init) ?? "none"
+                let line = "welcome: content \(model.content), query \"\(model.query)\", selected \(selected), rows \(rows)"
+                FileHandle.standardError.write(Data("calm-selftest: \(line)\n".utf8))
+            default:
+                return false
             }
             return true
         }

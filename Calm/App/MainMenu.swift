@@ -216,7 +216,7 @@ final class TerminalMenuTarget: NSObject {
 
     /// ⌘K: search every session.
     @objc func searchSessions(_: Any?) {
-        TerminalWindowManager.shared.openMainWindow().toggleSearch()
+        TerminalWindowManager.shared.openMainWindow().searchSessions()
     }
 
     /// ⌘,: Settings takes the window; ⌘, again goes back.

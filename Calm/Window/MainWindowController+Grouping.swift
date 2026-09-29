@@ -132,13 +132,21 @@ extension MainWindowController {
         )
     }
 
+    /// ⌘K. The welcome page has a search field of its own, so there the caret goes to it instead of
+    /// a second search opening over it.
+    func searchSessions() {
+        if !welcomePage.focusSearch() {
+            toggleSearch()
+        }
+    }
+
     var welcomeActions: WelcomeView.Actions {
         WelcomeView.Actions(
             newSession: { [weak self] in self?.newSession() },
             newScratchSession: { [weak self] in self?.newScratchSession() },
             newProject: { [weak self] in self?.chooseNewProject() },
             newSessionIn: { [weak self] project in self?.newSession(in: project) },
-            setUpAgents: { [weak self] in self?.showSettings(.agents) },
+            open: { [weak self] item in self?.openSearchResult(item) },
         )
     }
 }

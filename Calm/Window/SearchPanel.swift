@@ -27,6 +27,10 @@ final class SearchPanelModel {
     }
 
     private(set) var items: [Item] = []
+    /// Whether the index knows any session at all: nil until it has answered, then false only while
+    /// every answer, including the first (an empty query lists the most recent), came back empty.
+    /// The welcome page uses it to decide whether to show a list of sessions.
+    private(set) var hasHistory: Bool?
     var selection = 0
     private let currentProject: String?
     private var task: Task<Void, Never>?
@@ -61,6 +65,11 @@ final class SearchPanelModel {
                 return Item(result: result, openSession: open?.id)
             }
             selection = min(selection, max(items.count - 1, 0))
+            if !items.isEmpty {
+                hasHistory = true
+            } else if hasHistory == nil {
+                hasHistory = false
+            }
         }
     }
 

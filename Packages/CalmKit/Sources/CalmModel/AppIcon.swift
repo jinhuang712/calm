@@ -37,15 +37,57 @@ public struct AppIconFrame: Sendable, Equatable {
     public var done: Double
     /// How far the icon has turned into *failed* (0 to 1).
     public var failed: Double
+    /// Seconds since the mark began to draw itself (the welcome page, `WelcomeMarkMotion`): the
+    /// ring's cells appear in typing order, then the center, then the cursor. Infinity is the
+    /// finished mark, which is what every other frame is.
+    public var arrival: Double
+    /// How much of the cursor cell shows (0 to 1) while the mark waits; the welcome page lets it
+    /// breathe. 1 everywhere else.
+    public var cursorLevel: Double
 
-    public init(busy: Double, head: Double, done: Double, failed: Double) {
+    public init(
+        busy: Double, head: Double, done: Double, failed: Double,
+        arrival: Double = .infinity, cursorLevel: Double = 1,
+    ) {
         self.busy = busy
         self.head = head
         self.done = done
         self.failed = failed
+        self.arrival = arrival
+        self.cursorLevel = cursorLevel
     }
 
     public static let still = AppIconFrame(busy: 0, head: 0, done: 0, failed: 0)
+
+    // MARK: Arrival
+
+    /// The mark draws itself in this many seconds (`WelcomeMarkMotion.arrivalLength`).
+    static let arrivalLength: TimeInterval = 2.15
+    /// Each ring cell fades in over `ringFade`, one `ringStagger` after the one before.
+    static let ringStagger: TimeInterval = 0.055
+    static let ringFade: TimeInterval = 0.55
+    static let centerStart: TimeInterval = 0.62
+    static let centerFade: TimeInterval = 0.6
+    /// The cursor appears on the ring's last cell, waits a moment, then takes the last step to its
+    /// resting place slowly.
+    static let cursorStart: TimeInterval = 0.95
+    static let cursorFade: TimeInterval = 0.3
+    static let stepStart: TimeInterval = 1.15
+    static let stepLength: TimeInterval = 1
+
+    private static func reveal(_ arrival: Double, start: TimeInterval, length: TimeInterval) -> Double {
+        AppIconMotion.easeOut((arrival - start) / length)
+    }
+
+    /// How much of the center cell has appeared (1 unless the mark is still arriving).
+    public var centerLevel: Double {
+        Self.reveal(arrival, start: Self.centerStart, length: Self.centerFade)
+    }
+
+    /// How much of the cursor cell, and its glow, shows: its arrival times its breathing.
+    public var cursorVisibility: Double {
+        cursorLevel * Self.reveal(arrival, start: Self.cursorStart, length: Self.cursorFade)
+    }
 
     /// The ring's places, counterclockwise (the way it types) from the cursor cell's resting
     /// place; at rest, place 1 is the ring's opening.
@@ -90,14 +132,19 @@ public struct AppIconFrame: Sendable, Equatable {
             if index == 1 {
                 ring = max(ring, done)
             }
-            return Place(ring: min(1, ring), cursor: min(1, cursor))
+            if arrival.isFinite {
+                // Arriving: the ring's ten cells (places 2 to 11) draw themselves in typing order;
+                // the cursor's resting place and the opening stay empty.
+                ring = index >= 2 ? ring * Self.reveal(arrival, start: Double(index - 2) * Self.ringStagger, length: Self.ringFade) : 0
+            }
+            return Place(ring: min(1, ring), cursor: min(1, cursor * cursorVisibility))
         }
     }
 
     /// Looks exactly like the still mark: nothing lit or turned, the cursor at its resting place
     /// (after a run that's a whole number of laps, not zero).
     public var isAtRest: Bool {
-        busy == 0 && done == 0 && failed == 0
+        busy == 0 && done == 0 && failed == 0 && arrival.isInfinite && cursorLevel == 1
             && head.truncatingRemainder(dividingBy: Double(Self.placeCount)) == 0
     }
 
@@ -106,7 +153,9 @@ public struct AppIconFrame: Sendable, Equatable {
         func r(_ value: Double) -> Double {
             (value * 1000).rounded() / 1000
         }
-        return AppIconFrame(busy: r(busy), head: r(head), done: r(done), failed: r(failed))
+        return AppIconFrame(
+            busy: r(busy), head: r(head), done: r(done), failed: r(failed), arrival: r(arrival), cursorLevel: r(cursorLevel),
+        )
     }
 
     static func trailStrength(_ d: Double) -> Double {

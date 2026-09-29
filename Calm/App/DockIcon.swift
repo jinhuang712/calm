@@ -192,13 +192,15 @@ final class DockIconView: NSView {
         for (index, place) in places.enumerated() where place.ring > 0 {
             fillCell(Self.places[index], ring, alpha: place.ring, in: context)
         }
-        fillCell((2, 2), palette.center, alpha: 1, in: context)
+        // The center (the welcome page draws it in after the ring).
+        fillCell((2, 2), palette.center, alpha: frame.centerLevel, in: context)
 
         // The home cell (where the cursor rests) takes the state: sage for done, red for failed.
         let mark = max(frame.done, frame.failed)
         let state = frame.done >= frame.failed ? palette.done : palette.failed
         let glowState = frame.done >= frame.failed ? palette.glowDone : palette.glowFailed
-        let glowAlpha = dark ? 0.35 * frame.busy + 0.25 * mark : 0.4 + 0.15 * frame.busy
+        // The glow goes with the cursor, so it arrives and breathes with it (both are 1 in the Dock).
+        let glowAlpha = (dark ? 0.35 * frame.busy + 0.25 * mark : 0.4 + 0.15 * frame.busy) * frame.cursorVisibility
         drawGlow(at: glowCenter(frame.head), color: palette.glow.mixed(with: glowState, mark), alpha: glowAlpha, in: context)
         for (index, place) in places.enumerated() where place.cursor > 0 {
             let color = index == 0 ? palette.cursor.mixed(with: state, mark) : palette.cursor

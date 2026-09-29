@@ -175,6 +175,12 @@ Calm looks right out of the box, and making it yours takes a minute.
   - *the Dock states: drawn by Calm only while not idle, redrawn only when a frame changes, still under Reduce Motion.*
 
   *Checked as rendered PNGs (`ictool` for the icon file, `calm.dock_icon:` for the Dock states), not yet in a real Dock: headless self-tests have none.*
+- [x] **M6.8 Welcome page:** with no session open, the window shows the real mark, search over past sessions and projects together, a list of each, and the three ways to start; a plain welcome while there is nothing to list. *Built:*
+  - *the mark: the Dock icon's own view, with an arrival and a breathing cursor (`WelcomeMarkMotion`); it comes to rest after eight breaths;*
+  - *search: the ⌘K model for sessions, `ProjectSearch` for projects; ↑ ↓ ← → ↵ Esc; ⌘K focuses the page's field;*
+  - *layouts: two columns, one column when one side is empty, stacked in a narrow window, the welcome rows when there is nothing (or a new user with no project).*
+
+  *Checked as rendered PNGs in every layout, light and dark, and with the mark frozen at moments of its arrival (`CALM_WELCOME_MARK_AT`); driven through `calm.welcome_*` actions; unfrozen snapshots a half breath apart differ as they should. Not seen: how the motion feels on screen, which headless can't show.*
 
 **Exit criteria**
 - A new user can make Calm look right in under a minute without editing files.

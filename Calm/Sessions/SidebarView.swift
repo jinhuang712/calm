@@ -573,6 +573,8 @@ struct GroupMark: View {
 struct IdenticonTile: View {
     let identicon: Identicon
     let style: SidebarStyle
+    /// The tile's side at the standard interface size: 20 in the sidebar, larger on the welcome page.
+    var side: CGFloat = 20
 
     var body: some View {
         let hue = identicon.hue
@@ -595,7 +597,7 @@ struct IdenticonTile: View {
             )
             context.fill(cells, with: .color(pixels))
         }
-        .frame(width: 20.scaled, height: 20.scaled)
+        .frame(width: side.scaled, height: side.scaled)
     }
 }
 

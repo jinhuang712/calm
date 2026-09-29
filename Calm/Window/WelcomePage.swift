@@ -2,15 +2,16 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// What the window shows with no session open (FEATURES.md → F2): a welcome on Calm's very
-/// first launch, and the same quiet page whenever the last session is closed. It covers the whole
-/// window, sidebar included, so the projects the user made are offered on the page itself: closing
-/// a project's last session must not leave the project out of reach. Calm never opens a session
-/// nobody asked for.
+/// What the window shows with no session open (FEATURES.md → F2). It covers the whole window,
+/// sidebar included, so it carries what the sidebar would: search over past sessions and over the
+/// projects the user made, a list of each, and the three ways to start. On Calm's very first
+/// launch there is nothing to list, so it welcomes instead. Calm never opens a session nobody
+/// asked for.
 @MainActor
 final class WelcomePage {
     private weak var container: NSView?
     private var host: NSHostingView<WelcomeView>?
+    private(set) var model: WelcomeModel?
 
     init(container: NSView) {
         self.container = container
@@ -21,9 +22,11 @@ final class WelcomePage {
     }
 
     func show(firstUse: Bool, projects: [Project], style: SidebarStyle, background: NSColor, actions: WelcomeView.Actions) {
-        let view = WelcomeView(
-            firstUse: firstUse, projects: projects, style: style, background: Color(nsColor: background), actions: actions,
-        )
+        // One model per showing: the search starts fresh, and refreshes the index, each time.
+        let model = self.model ?? WelcomeModel(firstUse: firstUse)
+        self.model = model
+        model.projects = projects
+        let view = WelcomeView(model: model, style: style, background: Color(nsColor: background), actions: actions)
         if let host {
             host.rootView = view
             return
@@ -35,399 +38,183 @@ final class WelcomePage {
         container.addSubview(host, positioned: .above, relativeTo: nil)
         self.host = host
         Motion.fadeIn(host, duration: 0.2)
+        // So typing goes to the search field at once.
+        host.window?.makeFirstResponder(host)
     }
 
     func hide() {
         guard let host else { return }
         self.host = nil
+        model = nil
         Motion.fadeOutAndRemove(host, duration: 0.14)
+    }
+
+    /// ⌘K on this page: its own search field is right there, so it takes the focus. False when
+    /// the page has none (the first launch, or nothing to search yet).
+    func focusSearch() -> Bool {
+        guard let host, let model, model.showsSearch else { return false }
+        model.focusRequests += 1
+        host.window?.makeFirstResponder(host)
+        return true
     }
 }
 
-struct WelcomeView: View {
-    struct Actions {
-        let newSession: () -> Void
-        let newScratchSession: () -> Void
-        let newProject: () -> Void
-        let newSessionIn: (Project) -> Void
-        let setUpAgents: () -> Void
+/// What the page is showing and which row the keys are on (UIUX.md → Welcome page).
+@MainActor
+@Observable
+final class WelcomeModel {
+    enum Column {
+        case sessions
+        case projects
+    }
+
+    /// A row, by what it stands for, so a selection survives the lists changing under it.
+    enum Target: Hashable {
+        case session(String)
+        case project(Project.ID)
+
+        var column: Column {
+            switch self {
+            case .session: .sessions
+            case .project: .projects
+            }
+        }
     }
 
     let firstUse: Bool
-    /// The projects the user made, in the sidebar's order: each a way to start a session there.
-    let projects: [Project]
-    let style: SidebarStyle
-    /// The terminal's background: the page stands where the sessions would.
-    let background: Color
-    let actions: Actions
+    /// The search over past sessions; the page adds the projects.
+    let search: SearchPanelModel
+    let clock = WelcomeMarkClock()
+    var projects: [Project] = []
+    var selected: Target?
+    /// The user has started moving through the rows with the arrow keys: ← and → then change
+    /// column even inside the field, until they type again.
+    var navigated = false
+    /// Set by the page: the lists stack in a window too narrow for two columns.
+    var stacked = false
+    /// Bumped for ⌘K, which puts the caret back in the field.
+    var focusRequests = 0
 
-    private struct Choice: Identifiable {
-        let title: String
-        let detail: String
-        let symbol: String
-        let keys: [String]
-        let action: () -> Void
-        var id: String {
-            title
+    init(firstUse: Bool) {
+        self.firstUse = firstUse
+        search = SearchPanelModel(currentProject: nil)
+    }
+
+    var query: String {
+        get { search.query }
+        set {
+            search.query = newValue
+            navigated = false
         }
     }
 
-    private var choices: [Choice] {
-        [
-            Choice(
-                title: "New Session", detail: "A shell in your home folder",
-                symbol: "square.and.pencil", keys: ["⌘", "T"], action: actions.newSession,
-            ),
-            Choice(
-                title: "New Scratch Session", detail: "Try things, gone when you close it",
-                symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession,
-            ),
-            Choice(
-                title: "New Project…", detail: "A folder whose sessions stay together",
-                symbol: "plus", keys: ["⌘", "O"], action: actions.newProject,
-            ),
-        ]
+    var terms: [String] {
+        ProjectSearch.terms(in: query)
     }
 
-    private var title: String {
-        firstUse ? "Welcome to Calm" : "No sessions open"
+    var content: WelcomeContent {
+        .choose(firstUse: firstUse, hasSessions: search.hasHistory, hasProjects: !projects.isEmpty)
     }
 
-    private var subtitle: String {
-        firstUse ? "A terminal that keeps you calm while your agents work." : "Start one when you're ready."
-    }
-
-    var body: some View {
-        // The roomy page when the window has room for it; a short list in a small window.
-        ViewThatFits {
-            roomy
-            compact
-            ScrollView { compact.padding(.vertical, 24.scaled) }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Under the title bar too, so only the traffic lights show above it.
-        .background(background.ignoresSafeArea())
-        .environment(\.colorScheme, style.isDark ? .dark : .light)
-    }
-
-    private var roomy: some View {
-        VStack(spacing: 40.scaled) {
-            VStack(spacing: 18.scaled) {
-                CalmMark(color: style.accent)
-                VStack(spacing: 8.scaled) {
-                    Text(title)
-                        .calmFont(size: 34, weight: .medium)
-                        .tracking(-0.3)
-                        .foregroundStyle(style.primary)
-                    Text(subtitle)
-                        .calmFont(size: 15)
-                        .foregroundStyle(style.secondary)
-                }
-            }
-            HStack(spacing: 16.scaled) {
-                ForEach(Array(choices.enumerated()), id: \.element.id) { index, choice in
-                    WelcomeCard(
-                        title: choice.title, detail: choice.detail, symbol: choice.symbol, keys: choice.keys,
-                        isFirst: index == 0, style: style, action: choice.action,
-                    )
-                }
-            }
-            .frame(width: 700.scaled)
-            VStack(spacing: 16.scaled) {
-                if !projects.isEmpty {
-                    WelcomeProjects(projects: projects, style: style, action: actions.newSessionIn)
-                }
-                WelcomeAgents(style: style, action: actions.setUpAgents)
-            }
-        }
-        .padding(.horizontal, 24.scaled)
-        // As tall as the title bar, so the block sits centered in the window, not under it.
-        .padding(.bottom, 44.scaled)
-    }
-
-    private var compact: some View {
-        VStack(alignment: .leading, spacing: 22.scaled) {
-            VStack(alignment: .leading, spacing: 6.scaled) {
-                Text(title)
-                    .calmFont(size: 22, weight: .medium)
-                    .foregroundStyle(style.primary)
-                Text(subtitle)
-                    .calmFont(size: 13)
-                    .foregroundStyle(style.secondary)
-            }
-            VStack(alignment: .leading, spacing: 4.scaled) {
-                ForEach(choices) { row($0) }
-            }
-            if !projects.isEmpty {
-                VStack(alignment: .leading, spacing: 4.scaled) {
-                    Text("New session in")
-                        .calmFont(size: 12)
-                        .foregroundStyle(style.tertiary)
-                        .padding(.horizontal, 12.scaled)
-                        .padding(.bottom, 2.scaled)
-                    ForEach(projects) { projectRow($0) }
-                }
-            }
-            Button(action: actions.setUpAgents) {
-                Text("Works with \(AgentKind.allCases.map(\.displayName).formatted(.list(type: .and))). Set up agents…")
-                    .calmFont(size: 12)
-                    .foregroundStyle(style.tertiary)
-                    .multilineTextAlignment(.leading)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(width: 420.scaled, alignment: .leading)
-        .padding(.horizontal, 24.scaled)
-    }
-
-    private func row(_ choice: Choice) -> some View {
-        Button(action: choice.action) {
-            HStack(alignment: .firstTextBaseline, spacing: 12.scaled) {
-                VStack(alignment: .leading, spacing: 2.scaled) {
-                    Text(choice.title)
-                        .calmFont(size: 13, weight: .medium)
-                        .foregroundStyle(style.primary)
-                    Text(choice.detail)
-                        .calmFont(size: 12)
-                        .foregroundStyle(style.secondary)
-                }
-                Spacer(minLength: 8)
-                Text(choice.keys.joined())
-                    .calmFont(size: 12)
-                    .foregroundStyle(style.tertiary)
-            }
-            .padding(.horizontal, 12.scaled)
-            .padding(.vertical, 9.scaled)
-            .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.selection))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func projectRow(_ project: Project) -> some View {
-        Button { actions.newSessionIn(project) } label: {
-            HStack(spacing: 10.scaled) {
-                IdenticonTile(identicon: Identicon(name: project.name, seed: project.markSeed), style: style)
-                Text(project.name)
-                    .calmFont(size: 13, weight: .medium)
-                    .foregroundStyle(style.primary)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(WorkspacePath.abbreviated(project.path))
-                    .calmFont(size: 12)
-                    .foregroundStyle(style.tertiary)
-                    .lineLimit(1)
-                    .truncationMode(.head)
-            }
-            .padding(.horizontal, 12.scaled)
-            .padding(.vertical, 8.scaled)
-            .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.selection))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-/// Calm's mark: nested rounded squares settling toward a still center.
-private struct CalmMark: View {
-    let color: Color
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 17.scaled, style: .continuous)
-                .stroke(color.opacity(0.22), lineWidth: 1.5)
-                .frame(width: 52.scaled, height: 52.scaled)
-            RoundedRectangle(cornerRadius: 11.scaled, style: .continuous)
-                .stroke(color.opacity(0.45), lineWidth: 1.5)
-                .frame(width: 34.scaled, height: 34.scaled)
-            RoundedRectangle(cornerRadius: 5.5.scaled, style: .continuous)
-                .fill(color.opacity(0.85))
-                .frame(width: 16.scaled, height: 16.scaled)
-        }
-        .frame(width: 60.scaled, height: 60.scaled)
-        .accessibilityHidden(true)
-    }
-}
-
-/// One way to start, as a card; the first one carries the accent.
-private struct WelcomeCard: View {
-    let title: String
-    let detail: String
-    let symbol: String
-    let keys: [String]
-    let isFirst: Bool
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 0) {
-                Image(systemName: symbol)
-                    .calmFont(size: 15)
-                    .foregroundStyle(isFirst ? style.accent : style.secondary)
-                    .frame(width: 36.scaled, height: 36.scaled)
-                    .background(Circle().fill(isFirst ? style.accent.opacity(0.16) : style.primary.opacity(0.08)))
-                    .padding(.bottom, 14.scaled)
-                Text(title)
-                    .calmFont(size: 15, weight: .medium)
-                    .foregroundStyle(style.primary)
-                    .padding(.bottom, 4.scaled)
-                // Room for two lines on every card, so the key caps line up across them.
-                Text(detail)
-                    .calmFont(size: 12.5)
-                    .foregroundStyle(style.secondary)
-                    .lineLimit(2, reservesSpace: true)
-                Spacer(minLength: 12)
-                KeyCaps(keys: keys, style: style, large: true)
-            }
-            .padding(20.scaled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 180.scaled)
-            .background(
-                RoundedRectangle(cornerRadius: 16.scaled, style: .continuous)
-                    .fill(style.primary.opacity(hovering ? 0.085 : 0.055)),
-            )
-            .overlay(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).strokeBorder(style.primary.opacity(0.08)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
-    }
-}
-
-/// The projects the user made, each a chip with its pixel mark that starts a session there: with
-/// no session open there is no sidebar to hover a project's + in.
-private struct WelcomeProjects: View {
-    let projects: [Project]
-    let style: SidebarStyle
-    let action: (Project) -> Void
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14.scaled) {
-            Text("New session in")
-                .calmFont(size: 12.5)
-                .foregroundStyle(style.tertiary)
-            WrappingRow(spacing: 8.scaled) {
-                ForEach(projects) { project in
-                    WelcomeProjectChip(project: project, style: style) { action(project) }
-                }
-            }
-        }
-        .frame(maxWidth: 700.scaled)
-    }
-}
-
-private struct WelcomeProjectChip: View {
-    let project: Project
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8.scaled) {
-                IdenticonTile(identicon: Identicon(name: project.name, seed: project.markSeed), style: style)
-                Text(project.name)
-                    .calmFont(size: 12.5)
-                    .foregroundStyle(hovering ? style.primary : style.secondary)
-                    .lineLimit(1)
-            }
-            .padding(.leading, 8.scaled)
-            .padding(.trailing, 14.scaled)
-            .frame(height: 36.scaled)
-            .background(Capsule().fill(style.primary.opacity(hovering ? 0.05 : 0)))
-            .overlay(Capsule().strokeBorder(style.primary.opacity(0.08)))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .help(project.path)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
-    }
-}
-
-/// Subviews side by side, wrapping onto further rows when they don't fit, each row centered.
-private struct WrappingRow: Layout {
-    var spacing: CGFloat
-
-    private func rows(_ subviews: Subviews, width: CGFloat) -> [[Int]] {
-        var rows: [[Int]] = [[]]
-        var used: CGFloat = 0
-        for (index, subview) in subviews.enumerated() {
-            let size = subview.sizeThatFits(.unspecified)
-            if !rows[rows.count - 1].isEmpty, used + spacing + size.width > width {
-                rows.append([])
-                used = 0
-            }
-            used += (rows[rows.count - 1].isEmpty ? 0 : spacing) + size.width
-            rows[rows.count - 1].append(index)
-        }
-        return rows
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
-        let rows = rows(subviews, width: width)
-        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
-        let widest = rows.map { row in row.reduce(0) { $0 + sizes[$1].width } + spacing * CGFloat(max(row.count - 1, 0)) }.max() ?? 0
-        let heights = rows.map { row in row.map { sizes[$0].height }.max() ?? 0 }
-        return CGSize(width: widest, height: heights.reduce(0, +) + spacing * CGFloat(max(rows.count - 1, 0)))
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
-        var y = bounds.minY
-        for row in rows(subviews, width: bounds.width) {
-            let sizes = row.map { subviews[$0].sizeThatFits(.unspecified) }
-            let rowWidth = sizes.reduce(0) { $0 + $1.width } + spacing * CGFloat(max(row.count - 1, 0))
-            var x = bounds.minX + (bounds.width - rowWidth) / 2
-            for (index, size) in zip(row, sizes) {
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-                x += size.width + spacing
-            }
-            y += (sizes.map(\.height).max() ?? 0) + spacing
+    var showsSearch: Bool {
+        if case .lists = content {
+            true
+        } else {
+            false
         }
     }
-}
 
-/// The agents Calm watches, each with its own mark, and the way to set them up.
-private struct WelcomeAgents: View {
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14.scaled) {
-                Text("Works with")
-                    .foregroundStyle(style.tertiary)
-                ForEach(AgentKind.allCases, id: \.self) { agent in
-                    HStack(spacing: 6.scaled) {
-                        AgentLogo(agent: agent, size: 20, style: style)
-                        Text(agent.displayName)
-                            .foregroundStyle(style.secondary)
-                    }
-                }
-                Rectangle()
-                    .fill(style.primary.opacity(0.1))
-                    .frame(width: 1, height: 14)
-                HStack(spacing: 4.scaled) {
-                    Text("Set up agents")
-                    Image(systemName: "chevron.right")
-                        .calmFont(size: 9, weight: .semibold)
-                }
-                .foregroundStyle(hovering ? style.primary : style.secondary)
-            }
-            .calmFont(size: 12.5)
-            .padding(.horizontal, 16.scaled)
-            .frame(height: 36.scaled)
-            .background(Capsule().fill(style.primary.opacity(hovering ? 0.05 : 0)))
-            .overlay(Capsule().strokeBorder(style.primary.opacity(0.08)))
-            .contentShape(Capsule())
+    var showsSessions: Bool {
+        if case .lists(sessions: true, projects: _) = content {
+            true
+        } else {
+            false
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+
+    var showsProjects: Bool {
+        if case .lists(sessions: _, projects: true) = content {
+            true
+        } else {
+            false
+        }
+    }
+
+    var showsBothColumns: Bool {
+        showsSessions && showsProjects
+    }
+
+    /// The few most recent sessions when nothing is typed (fewer in a small window, so the
+    /// projects stay in view); everything that matches when something is.
+    var sessions: [SearchPanelModel.Item] {
+        terms.isEmpty ? Array(search.items.prefix(stacked ? 3 : 6)) : search.items
+    }
+
+    var shownProjects: [Project] {
+        terms.isEmpty ? projects : projects.filter { ProjectSearch.matches($0, terms: terms) }
+    }
+
+    // MARK: Moving through the rows
+
+    func targets(in column: Column) -> [Target] {
+        switch column {
+        case .sessions: showsSessions ? sessions.map { .session($0.id) } : []
+        case .projects: showsProjects ? shownProjects.map { .project($0.id) } : []
+        }
+    }
+
+    /// Every row, in the order the keys walk them.
+    var walk: [Target] {
+        targets(in: .sessions) + targets(in: .projects)
+    }
+
+    func selectFirst() {
+        selected = walk.first
+    }
+
+    /// After the rows changed: while the user hasn't moved, the selection is the top hit;
+    /// afterwards it stays on its row for as long as that is there.
+    func sync() {
+        if !navigated || selected.map({ !walk.contains($0) }) ?? true {
+            selectFirst()
+        }
+    }
+
+    func step(_ delta: Int) {
+        navigated = true
+        guard let current = selected else {
+            selectFirst()
+            return
+        }
+        // Two columns are walked one at a time; stacked ones as one list.
+        let rows = stacked ? walk : targets(in: current.column)
+        guard let index = rows.firstIndex(of: current) else {
+            selectFirst()
+            return
+        }
+        selected = rows[max(0, min(rows.count - 1, index + delta))]
+    }
+
+    func switchColumn(to column: Column) {
+        navigated = true
+        let rows = targets(in: column)
+        guard !rows.isEmpty else { return }
+        let index = selected.flatMap { targets(in: $0.column).firstIndex(of: $0) } ?? 0
+        selected = rows[min(index, rows.count - 1)]
+    }
+
+    func activate(_ actions: WelcomeView.Actions) {
+        switch selected {
+        case let .session(id)?:
+            if let item = sessions.first(where: { $0.id == id }) {
+                actions.open(item)
+            }
+        case let .project(id)?:
+            if let project = projects.first(where: { $0.id == id }) {
+                actions.newSessionIn(project)
+            }
+        case nil:
+            break
+        }
     }
 }

@@ -27,6 +27,20 @@ struct WorkspaceStoreTests {
         #expect(store.load() == workspace)
     }
 
+    @Test func `saving what the file already says leaves the file alone`() throws {
+        var workspace = Workspace()
+        let session = workspace.newSession(in: "/dev/apps/calm")
+        #expect(try store.save(workspace))
+        let file = directory.appending(path: "state.json")
+        let written = try FileManager.default.attributesOfItem(atPath: file.path)[.systemFileNumber] as? Int
+        #expect(try !store.save(workspace))
+        // An atomic write replaces the file, so an untouched one keeps its file number.
+        #expect(try FileManager.default.attributesOfItem(atPath: file.path)[.systemFileNumber] as? Int == written)
+        workspace.setTitle(session.id, "design docs")
+        #expect(try store.save(workspace))
+        #expect(store.load() == workspace)
+    }
+
     @Test func `a project's clicked-for mark survives a relaunch`() throws {
         var workspace = Workspace()
         let session = workspace.newSession(in: "/dev/apps/calm")

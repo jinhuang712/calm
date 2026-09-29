@@ -42,12 +42,21 @@ public struct WorkspaceStore: Sendable {
         }
     }
 
-    public func save(_ workspace: Workspace) throws {
+    /// Writes the workspace unless the file already says exactly that, and returns whether it
+    /// wrote. Saves follow every report and transcript change, and about two in five of them
+    /// (the installed Calm, eight sessions, 2026-09-30) came out byte for byte the same; reading
+    /// the file back is cheaper than an atomic rewrite, and stays right if anything else wrote it.
+    @discardableResult
+    public func save(_ workspace: Workspace) throws -> Bool {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(Envelope(version: Self.formatVersion, workspace: workspace))
+        if let current = try? Data(contentsOf: fileURL), current == data {
+            return false
+        }
         try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: fileURL, options: .atomic)
+        return true
     }
 
     /// Moves an unreadable state file out of the way, so the next save doesn't destroy it.

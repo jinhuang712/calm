@@ -121,4 +121,18 @@ struct MarkMotionTests {
         #expect(ShimmerText.phase(at: 0.78) != nil)
         #expect(ShimmerText.phase(at: 2.0) == nil)
     }
+
+    /// The shimmer's timeline runs only while the light crosses; these are its wake-ups.
+    @Test func `the light's next start or stop is timed from the cycle`() {
+        // A whole number of cycles; 2.6 isn't exact in binary, so the times sit inside the spans
+        // rather than on their edges, where rounding picks a side.
+        let cycle = 2.6 * 1000
+        #expect(abs(ShimmerText.untilChange(at: cycle + 0.01) - 1.55) < 1e-6) // just started crossing
+        #expect(abs(ShimmerText.untilChange(at: cycle + 1.3) - 0.26) < 1e-6) // mid-crossing
+        #expect(abs(ShimmerText.untilChange(at: cycle + 1.57) - 1.03) < 1e-6) // just started resting
+        #expect(abs(ShimmerText.untilChange(at: cycle + 2.34) - 0.26) < 1e-6) // resting
+        // Waking 5 ms after a change finds the light where the wait said it would be.
+        #expect(ShimmerText.phase(at: cycle + 1.56 + 0.005) == nil)
+        #expect(ShimmerText.phase(at: cycle + 2.6 + 0.005) != nil)
+    }
 }

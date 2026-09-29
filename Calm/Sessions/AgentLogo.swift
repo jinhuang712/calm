@@ -67,7 +67,8 @@ struct AgentLogo: View {
     @ViewBuilder
     private var mark: some View {
         if let art, let paths = MarkPaths.paths(for: agent, art: art) {
-            if !Motion.isReduced, state == .working || finishedAt != nil {
+            // Still while nobody can see the window (WindowPresence).
+            if !Motion.isReduced, WindowPresence.shared.isVisible, state == .working || finishedAt != nil {
                 // 30 frames a second is plenty for marks this small, and costs half as much.
                 TimelineView(.animation(minimumInterval: 1 / 30)) { context in
                     MarkDrawing(
@@ -243,32 +244,65 @@ struct ShimmerText: View {
     /// The light itself: white on a dark background; on a light one a white band would read as
     /// the letters fading, so a deeper version of the color crosses instead.
     let highlight: Color
+    @State private var isCrossing = Self.phase(at: Date.now.timeIntervalSinceReferenceDate) != nil
+
+    private static let period = 2.6
+    /// The share of each period the light takes to cross; it rests for the rest.
+    private static let crossing = 0.6
 
     var body: some View {
-        if Motion.isReduced {
+        if Motion.isReduced || !WindowPresence.shared.isVisible {
             Text(text).foregroundStyle(color)
         } else {
-            TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-                Text(text)
-                    .foregroundStyle(color)
-                    .overlay {
-                        if let phase = Self.phase(at: context.date.timeIntervalSinceReferenceDate) {
-                            GeometryReader { geometry in
-                                LinearGradient(colors: [.clear, highlight, .clear], startPoint: .leading, endPoint: .trailing)
-                                    .frame(width: geometry.size.width * 0.5)
-                                    .offset(x: (phase * 1.5 - 0.5) * geometry.size.width)
+            Group {
+                if isCrossing {
+                    TimelineView(.animation(minimumInterval: 1 / 30)) { context in
+                        Text(text)
+                            .foregroundStyle(color)
+                            .overlay {
+                                if let phase = Self.phase(at: context.date.timeIntervalSinceReferenceDate) {
+                                    GeometryReader { geometry in
+                                        LinearGradient(colors: [.clear, highlight, .clear], startPoint: .leading, endPoint: .trailing)
+                                            .frame(width: geometry.size.width * 0.5)
+                                            .offset(x: (phase * 1.5 - 0.5) * geometry.size.width)
+                                    }
+                                    .mask(Text(text))
+                                }
                             }
-                            .mask(Text(text))
-                        }
                     }
+                } else {
+                    // While the light rests the line is still, so nothing redraws it.
+                    Text(text).foregroundStyle(color)
+                }
             }
+            .task { await followCrossings() }
+        }
+    }
+
+    /// Runs the timeline only while the light crosses: a timeline ticking through the rest
+    /// redrew an unchanged line (40% of the time). At both ends of a crossing the band is outside
+    /// the text, so the switch can't be seen; waking just after the change keeps it so.
+    private func followCrossings() async {
+        while !Task.isCancelled {
+            let now = Date.now.timeIntervalSinceReferenceDate
+            let crossing = Self.phase(at: now) != nil
+            if crossing != isCrossing {
+                isCrossing = crossing
+            }
+            try? await Task.sleep(for: .seconds(Self.untilChange(at: now) + 0.005), tolerance: .milliseconds(5))
         }
     }
 
     /// 0…1 while the light crosses (the first 60% of every 2.6 s), nil while it rests.
     static func phase(at time: TimeInterval) -> Double? {
-        let cycle = MarkMotion.fraction(time, of: 2.6)
-        return cycle < 0.6 ? cycle / 0.6 : nil
+        let cycle = MarkMotion.fraction(time, of: period)
+        return cycle < crossing ? cycle / crossing : nil
+    }
+
+    /// Seconds from `time` until the light next starts or stops crossing.
+    static func untilChange(at time: TimeInterval) -> TimeInterval {
+        let cycle = MarkMotion.fraction(time, of: period)
+        return (cycle < crossing ? crossing - cycle : 1 - cycle) * period
     }
 }
 

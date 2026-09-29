@@ -108,7 +108,7 @@ When the work ends, the mark settles once, in about a second, before it rests.
 
 ## Agent marks
 
-Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened where Calm poses them; they run at 30 frames a second, and not at all with Reduce Motion.
+Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened where Calm poses them; they run at 30 frames a second, and not at all with Reduce Motion, or while nobody can see the window (minimized, covered, on another Space, the display asleep). Calm in the background with its window in view keeps them moving: a still mark would read as a stuck agent.
 
 | Agent | Mark | Working | Finishing up |
 |---|---|---|---|

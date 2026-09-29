@@ -10,6 +10,9 @@ import AppKit
 ///   treat the main window as if it were in front.
 /// - A transparent window counts as occluded, which would pause rendering; panes keep
 ///   rendering so snapshots show real content, and App Nap is held off so timers stay on time.
+/// - The Mac may still sleep, and the run quits by itself after `lifetime`: one that no script
+///   was waiting for (its script killed, or a relaunch) once ran for three hours, at 5% of a
+///   core, holding off the Mac's idle sleep on battery.
 enum Headless {
     #if DEBUG
         static let isOn = ProcessInfo.processInfo.environment["CALM_HEADLESS"] == "1"
@@ -19,14 +22,29 @@ enum Headless {
 
     @MainActor private static var activity: NSObjectProtocol?
 
+    /// How long a headless run may live: the snapshot's delay plus ten minutes, well past
+    /// selftest.sh's own watchdog (the delay plus a minute) and any motion probe.
+    static func lifetime(snapshotDelay: TimeInterval?) -> TimeInterval {
+        max(snapshotDelay ?? 0, 0) + 600
+    }
+
     /// Before any window exists (the activation policy is set in main.swift, before launch).
     @MainActor
     static func prepareApp() {
         guard isOn else { return }
         activity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiated, .latencyCritical],
+            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
             reason: "Headless self-test",
         )
+        let delay = ProcessInfo.processInfo.environment["CALM_SNAPSHOT_DELAY"].flatMap(Double.init)
+        let lifetime = lifetime(snapshotDelay: delay)
+        DispatchQueue.main.asyncAfter(deadline: .now() + lifetime) {
+            MainActor.assumeIsolated {
+                FileHandle.standardError.write(Data("calm-selftest: headless run quit after \(Int(lifetime))s\n".utf8))
+                SessionManager.shared.prepareForQuit()
+                exit(0)
+            }
+        }
     }
 
     /// Shows the window without showing it: in the window list (so it renders and can be

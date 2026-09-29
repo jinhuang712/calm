@@ -148,6 +148,9 @@
                 focusedPane.map { requestCloseSession($0.id) }
             case "cmd_shift_t":
                 pressKeyEquivalentForTesting(keyCode: 17, characters: "t", modifiers: [.command, .shift])
+            case let arrow where arrow.hasPrefix("cmd_opt_"):
+                // cmd_opt_left (or right, up, down): ⌘⌥ and that arrow key, which splits that way
+                pressSplitArrowForTesting(String(arrow.dropFirst(8)))
             case let add where add.hasPrefix("add_project:"):
                 // add_project:<path>: what + New Project does once a folder is picked
                 addProjects([URL(filePath: String(add.dropFirst(12)), directoryHint: .isDirectory)])
@@ -304,6 +307,19 @@
             }
             FileHandle.standardError
                 .write(Data("calm-selftest: ⌘\(characters): terminal \(terminalTookIt), menu item \(menuItem ?? "none")\n".utf8))
+        }
+
+        private func pressSplitArrowForTesting(_ direction: String) {
+            let keys: [String: (code: UInt16, function: Int)] = [
+                "left": (123, NSLeftArrowFunctionKey), "right": (124, NSRightArrowFunctionKey),
+                "up": (126, NSUpArrowFunctionKey), "down": (125, NSDownArrowFunctionKey),
+            ]
+            guard let key = keys[direction] else { return }
+            pressKeyEquivalentForTesting(
+                keyCode: key.code,
+                characters: String(utf16CodeUnits: [unichar(key.function)], count: 1),
+                modifiers: [.command, .option],
+            )
         }
 
         private func doubleClickForTesting(at topLeft: NSPoint) {

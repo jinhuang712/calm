@@ -251,6 +251,7 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | ⌘K | Search sessions |
 | ⌘P | Command palette |
 | ⌘T / ⌘D / ⌘⇧D | New tab / split right / split down |
+| ⌘⌥← → ↑ ↓ | Split left / right / up / down |
 | ⌘⇧N | New scratch session |
 | ⌘O | New project |
 | ⌘⇧T | Reopen the session closed last |
@@ -269,6 +270,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 - **⌃Tab** is Ghostty's *next tab* on some platforms and a key a few TUIs read; in Calm it always opens the session switcher, since sessions are Calm's tabs.
 - **⌘,** is Ghostty's *open config*, which Calm doesn't support; Calm's defaults unbind it so it opens Settings, the Mac convention.
 - **⌘⇧T** is Ghostty's *undo* (of a closed tab or split), which Calm doesn't do. Calm's defaults unbind it and give it to Reopen Closed Session, the browser convention. Left bound, Ghostty would take the key first and send it on to the shell, and the menu would never see it. ⌘Z, Ghostty's other undo key, stays unused.
+- **⌘⌥ + arrow** is Ghostty's *move focus to the split in that direction*. Calm's defaults rebind the four keys to *split toward that side* (2026-09-29, the author's call: moving focus by direction isn't worth the best chord, and ⌘[ / ⌘] still move it). The File menu lists these four; ⌘D and ⌘⇧D keep working for right and down, unlisted, since a menu item shows one key. Resize stays on ⌘⌃ + arrow. Calm's defaults load before the user's Ghostty config, so a user who has their own `goto_split` lines on ⌘⌥ + arrow (the author did) keeps focus movement there and gets no splits until those lines go. Self-tests press the keys with `calm.cmd_opt_left` (or `right`, `up`, `down`).
 - **Restart Calm** (Calm menu) has no shortcut on purpose: it's rare, and next to ⌘Q it would be easy to hit by mistake.
 - **⌘\\** toggles the files column. It was ⌘⇧E until the author's own Ghostty config turned out to bind that to *equalize splits*, so the column never opened; nothing in Ghostty's defaults uses backslash. 1Password's autofill is ⌘\\ by default, a global shortcut that takes the key first while 1Password runs; View → Toggle Files still works then.
 - ⌘P, ⌘\\, ⌘⇧I, ⌘⇧N, ⌘O are free in Ghostty's defaults (Ghostty's ⌘N, new window, becomes a new session in Calm's one window). ⌘1…9, ⌘[ / ⌘], ⌘⇧[ / ⌘⇧] keep Ghostty's meaning (tab/session by position, previous/next split, previous/next tab).

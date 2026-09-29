@@ -70,8 +70,16 @@ enum MainMenu {
             mods: [.command, .shift],
         ))
         menu.addItem(.separator())
-        menu.addItem(terminalItem("Split Right", "new_split:right", key: "d"))
-        menu.addItem(terminalItem("Split Down", "new_split:down", key: "d", mods: [.command, .shift]))
+        // ⌘D and ⌘⇧D (Ghostty's) still split right and down, unlisted: a menu item shows one key.
+        for (title, direction, arrow) in [
+            ("Split Left", "left", NSLeftArrowFunctionKey),
+            ("Split Right", "right", NSRightArrowFunctionKey),
+            ("Split Up", "up", NSUpArrowFunctionKey),
+            ("Split Down", "down", NSDownArrowFunctionKey),
+        ] {
+            let key = String(utf16CodeUnits: [unichar(arrow)], count: 1)
+            menu.addItem(terminalItem(title, "new_split:\(direction)", key: key, mods: [.command, .option]))
+        }
         menu.addItem(.separator())
         menu.addItem(terminalItem("Close Session", "close_surface", key: "w"))
         return menu

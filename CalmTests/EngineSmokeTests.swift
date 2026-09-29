@@ -56,6 +56,15 @@ struct EngineSmokeTests {
         #expect(!CalmDefaults.contents(reduceMotion: false, cursorShader: nil, smoothScroll: false).contains(line))
     }
 
+    /// Ghostty binds these to moving focus; the engine takes the later `keybind` for a key, so
+    /// this line decides. (The test above loads the same text and expects no diagnostics.)
+    @Test func `command-option arrows split toward their side`() {
+        let contents = CalmDefaults.contents(reduceMotion: false, cursorShader: nil)
+        for direction in ["left", "right", "up", "down"] {
+            #expect(contents.contains("keybind = super+alt+\(direction)=new_split:\(direction)"))
+        }
+    }
+
     /// The test host is a real Calm; it must never write the running Calm's support files.
     @Test func `unit tests keep out of the real support folder`() {
         let real = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "Calm")

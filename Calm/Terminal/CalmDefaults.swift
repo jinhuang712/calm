@@ -50,6 +50,12 @@ enum CalmDefaults {
         // ⌘⇧T reopens the last closed session. Ghostty binds it to undo, which Calm doesn't do; that
         // binding would take the key first and pass it on to the shell.
         lines.append("keybind = super+shift+t=unbind")
+        // ⌘⌥ + arrow splits toward that side (⌘D and ⌘⇧D stay for right and down). Ghostty binds the
+        // same keys to move focus between splits; Calm leaves focus to ⌘[ and ⌘], so the keys are
+        // rebound here. A `goto_split` line in the user's own config still wins over this.
+        for direction in ["left", "right", "up", "down"] {
+            lines.append("keybind = super+alt+\(direction)=new_split:\(direction)")
+        }
         if !reduceMotion, let cursorShader {
             // A soft cursor glide (UIUX.md → Motion). The animation loop only runs in the focused pane.
             lines.append("custom-shader = \(cursorShader.path)")

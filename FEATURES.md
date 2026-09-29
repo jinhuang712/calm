@@ -13,7 +13,7 @@ Status: 📝 planned · 🚧 in progress · ✅ shipped
 A fast, correct terminal on libghostty.
 
 - Reads the user's Ghostty config (`~/.config/ghostty/config`) for fonts, keybindings and terminal behavior, so existing setups carry over.
-- Tabs and splits (horizontal and vertical), with keyboard navigation.
+- Tabs and splits, with keyboard navigation. **⌘⌥ + an arrow key** splits toward that side (left, right, up or down; ⌘D and ⌘⇧D still split right and down), ⌘[ and ⌘] move focus between splits, and ⌘⌃ + an arrow resizes one. Ghostty binds ⌘⌥ + arrow to *move focus*; Calm takes those keys for splitting, and a `goto_split` line for them in your own Ghostty config still wins.
 - Command palette (⌘P) listing every action with its shortcut.
 - One text size for every session: ⌘+ and ⌘− (or the user's own font-size keybindings) resize all sessions and splits together, new ones start at that size, and it's kept across relaunches. ⌘0 goes back to the config's `font-size`.
 - The window comes back the way you left it: its size and place, and also a window left filling the screen (Zoom or Fill from a double-click on the title strip, or a window manager's maximize). Filled again, it still goes back to its earlier size on the next double-click. A window left in full screen opens in full screen, and leaving it goes back to the window it was.

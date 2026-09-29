@@ -242,7 +242,7 @@ public struct ThemeLibrary: Sendable {
 }
 
 public extension CalmSettings {
-    /// The theme picked in Calm (`theme = "Sage"`), or `nil` for the default, which gives way to a
+    /// The theme picked in Calm (`theme = "Ink"`), or `nil` for the default, which gives way to a
     /// theme or colors set in the user's Ghostty config (DESIGNS.md → Themes).
     var themeName: String? {
         values["theme"].flatMap { $0.isEmpty ? nil : $0 }

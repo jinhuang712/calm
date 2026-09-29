@@ -120,10 +120,10 @@ struct ThemeTests {
         .deletingLastPathComponent().deletingLastPathComponent() // the repository
         .appending(path: "Calm/Resources/Themes")
 
-    @Test func `the built-in themes: six soft pairs within the contrast range`() throws {
+    @Test func `the built-in themes: five soft pairs within the contrast range`() throws {
         let library = ThemeLibrary(folders: [Self.builtInFolder])
         #expect(library.problems.isEmpty)
-        #expect(library.themes.map(\.name).sorted() == ["Calm", "Dune", "Harbor", "Heather", "Ink", "Sage"])
+        #expect(library.themes.map(\.name).sorted() == ["Calm", "Dusk", "Forest", "Ink", "Plum"])
         #expect(library.theme(named: ThemeLibrary.defaultName) != nil)
         for theme in library.themes {
             for mode in CalmTheme.Mode.allCases {
@@ -137,6 +137,12 @@ struct ThemeTests {
                 for index in [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14] {
                     let ratio = Self.contrast(colors.palette[index], colors.background)
                     #expect(ratio >= 3.8, "\(theme.name) \(mode): color \(index) contrast \(ratio)")
+                }
+                // Bright white stays a small step above the text, never a jump toward white:
+                // agents draw emphasis, and some their body text, in it.
+                if mode == .dark {
+                    let brightWhite = Self.contrast(colors.palette[15], colors.background)
+                    #expect(brightWhite <= text * 1.2, "\(theme.name): bright white \(brightWhite), text \(text)")
                 }
             }
         }

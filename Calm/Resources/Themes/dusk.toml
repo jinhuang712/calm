@@ -1,0 +1,20 @@
+# Dusk: a soft theme for Calm Terminal, in light and dark.
+name = "Dusk"
+
+[dark]
+background = "#19212d"
+foreground = "#bbb5a8"
+cursor = "#bab098"
+selection = "#2c3648"
+palette = "#2c3444, #bd8e8b, #82a689, #aa9a72, #809fbf, #a493b9, #70a6ac, #aba698, #687284, #ce9a98, #8eb595, #baa87c, #8cadcf, #b2a0c9, #7ab5bc, #c3bdb0"
+sidebar = "#131a26"
+accent = "#85b2cb"
+
+[light]
+background = "#edf3fb"
+foreground = "#475061"
+cursor = "#405870"
+selection = "#ced9e6"
+palette = "#3f4858, #925a58, #4b7854, #7e6935, #496f96, #76618f, #2b7880, #ccd1d9, #7a818d, #824846, #376742, #6e581e, #365e86, #654f7f, #016770, #e3e8f0"
+sidebar = "#e5ecf5"
+accent = "#4b769b"

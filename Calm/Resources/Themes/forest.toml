@@ -1,0 +1,20 @@
+# Forest: a soft theme for Calm Terminal, in light and dark.
+name = "Forest"
+
+[dark]
+background = "#1f2e28"
+foreground = "#c8c3af"
+cursor = "#b4bc9f"
+selection = "#33463f"
+palette = "#34443e, #c59892, #96ad8a, #b1a47d, #7eadbd, #bf97ac, #80b0a3, #b8b3a1, #727e74, #d4a49d, #a2ba95, #beb187, #88bacb, #cda3ba, #8abeaf, #d1ccbb"
+sidebar = "#182621"
+accent = "#97bc9d"
+
+[light]
+background = "#ebf4ec"
+foreground = "#485349"
+cursor = "#415d47"
+selection = "#ccdace"
+palette = "#404b42, #8f5851, #567346, #786833, #2e7387, #885773, #327766, #ccd3cd, #79837b, #7f463e, #446233, #68561b, #0d6277, #774562, #146655, #e3eae4"
+sidebar = "#e2ede4"
+accent = "#507a59"

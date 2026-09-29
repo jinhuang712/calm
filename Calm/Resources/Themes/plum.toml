@@ -1,0 +1,20 @@
+# Plum: a soft theme for Calm Terminal, in light and dark.
+name = "Plum"
+
+[dark]
+background = "#251d27"
+foreground = "#c0b2b1"
+cursor = "#c0a8bd"
+selection = "#3d3240"
+palette = "#3b323e, #c09093, #85a98c, #b29b76, #909dc3, #b492b0, #73aaad, #b0a2a2, #796f7c, #d19da0, #91b898, #c1a980, #9dabd5, #c49fbf, #7db9bc, #c8bab9"
+sidebar = "#1e1721"
+accent = "#b3a6cf"
+
+[light]
+background = "#f6f0f8"
+foreground = "#564b59"
+cursor = "#614d67"
+selection = "#ded3e0"
+palette = "#4d4450, #92595e, #4b7854, #836736, #5b6a98, #855c81, #2a797d, #d5cfd6, #857d87, #82474c, #376742, #72551f, #495888, #744a70, #00686c, #ece5ed"
+sidebar = "#efe8f1"
+accent = "#7c6695"

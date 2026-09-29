@@ -148,8 +148,8 @@ A quick, read-only look at the repository without leaving Calm.
 ## F11 — Themes 🚧
 
 - A theme styles the **whole window**: terminal colors, sidebar, cards, panels, files column, viewer and accent. Glass or solid and the layout are window options beside it (Settings → Appearance).
-- A curated set of twelve themes, six light and dark pairs, all soft (low contrast and low saturation): **Calm** (the default), **Sage**, **Dune**, **Harbor**, **Heather** and **Ink**.
-- A picker in Settings → Appearance (⌘,) shows a small preview of each theme in the current appearance, under a live miniature of the whole window; one click applies it and writes `theme = "Sage"` to `config.toml`. When the user's Ghostty config sets its own colors, a **Your Ghostty** choice comes last, set apart; picking it removes Calm's choice so those colors apply again.
+- A curated set of five themes, each in light and dark, all soft (low contrast and low saturation), and each its own direction rather than a tint of another: **Calm** (the default: a neutral charcoal, neither black nor white), **Ink** (the same neutral, near-black), **Dusk** (deep blue with cream text), **Forest** (a lifted green-gray) and **Plum** (a dim violet-gray).
+- A picker in Settings → Appearance (⌘,) shows a small preview of each theme in the current appearance, under a live miniature of the whole window; one click applies it and writes `theme = "Ink"` to `config.toml`. When the user's Ghostty config sets its own colors, a **Your Ghostty** choice comes last, set apart; picking it removes Calm's choice so those colors apply again.
 - Themes follow the system light/dark appearance.
 - The default gives way to a theme or colors in the user's Ghostty config, so any Ghostty theme can still be used; the chrome then derives its colors from it. A theme picked in Calm wins over the Ghostty config.
 - Your own themes go in `~/.config/calm/themes/` as small TOML files (DESIGNS.md → Themes).

@@ -130,7 +130,7 @@ Rules:
 
 ## Color
 
-- Soft palettes only in the default set: low contrast between text and background (roughly 6:1 to 11:1), low accent saturation, neutral backgrounds.
+- Soft palettes only in the built-in set: low contrast between text and background (roughly 6:1 to 11:1), low saturation, and bright white only a step above the text. The default, Calm, is neutral and neither black nor white; each other theme is a direction of its own (a hue, a depth), never a tint of another.
 - The accent color is used sparingly: a switch that's on and the picked theme. It never colors a state.
 - A project's pixel mark is the one other tint in the sidebar: its own soft hue, pale and small, so it names the project without reading as a state.
 - Each state keeps one color on every theme: amber for *needs you* (whatever the theme's accent), a soft blue for *working*, sage for *done* (until you move on), muted red for *failed*. Every state also has its own mark and words, so color never carries it alone.

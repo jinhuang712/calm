@@ -10,10 +10,16 @@ The region now animates whole, edge rows included, and the overlay's own cells (
 `repaintedInPlace` finds, no longer its row) are a hole in it: drawn where they are while the
 content slides past and under them. The shaders take two holes per region (`region_hole`, one
 for each edge row); a cell in a hole belongs to no region, content that would be drawn in one is
-cut off there, and the hole's own cells are never drawn as part of the content, so the old copy
-of a hint sliding out and the new one sliding in stay out of sight. The hit test leaves the
-cells unshifted too (`RegionHole`), so a click on the hint lands on it while the text beside it
-still slides.
+cut off there, and the hole's own cells are never drawn as part of the content. The hit test
+leaves the cells unshifted too (`RegionHole`), so a click on the hint lands on it while the text
+beside it still slides.
+
+The rows that scroll out of the region become ghosts, and an edge row's ghost is made without the
+overlay's columns (`ghostCells`). The hole only hides a ghost while it is in the hole's place: the
+renderer often takes several of Claude Code's scrolls in one frame (they come about 5 ms apart
+under a trackpad flick), and each makes its ghosts from the frame before, so the second scroll's
+copy of the old bottom row, hint included, started a row above the hole and slid down the region
+as a second hint.
 
 Calm's own patch (not from thdxg/ghostty); applies on top of 0011, replacing the pinned rows
 (`PinnedEdges`) 0008 added with holes.
@@ -21,7 +27,7 @@ Calm's own patch (not from thdxg/ghostty); applies on top of 0011, replacing the
 diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 --- a/src/renderer/generic.zig
 +++ b/src/renderer/generic.zig
-@@ -65,75 +65,81 @@
+@@ -65,75 +65,89 @@
  /// one is taken last everywhere (inside `draw_mutex` by drawFrame, inside
  /// the state mutex by updateFrame and the surface) and nothing is taken
  /// while it is held, so it can't be part of a deadlock.
@@ -71,13 +77,21 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +        right: terminal.size.CellCountInt,
 +    };
 +
++    /// The overlay's columns on `row`, when it is an edge row of `scroll`'s
++    /// region that has one.
++    fn columnsOn(self: Overlays, scroll: terminal.Screen.RegionScroll, row: usize) ?Columns {
++        if (row == scroll.bottom) return self.bottom;
++        if (row == scroll.top) return self.top;
++        return null;
+     }
++
 +    /// The overlays as the cells `scroll`'s animation leaves where they are.
 +    fn holes(self: Overlays, scroll: terminal.Screen.RegionScroll) terminal.RenderState.RegionHoles {
 +        return .{
 +            if (self.top) |o| .{ .row = scroll.top, .left = o.left, .right = o.right } else null,
 +            if (self.bottom) |o| .{ .row = scroll.bottom, .left = o.left, .right = o.right } else null,
 +        };
-     }
++    }
  };
  
 -/// A region scroll drained from the terminal, with the edge rows the
@@ -145,7 +159,45 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  }
  
  /// The shortest run that counts as a pinned overlay, and the text it must
-@@ -153,7 +159,7 @@
+@@ -148,12 +162,45 @@
+     if (a.raw.codepoint() != b.raw.codepoint()) return false;
+     if (a.raw.hasStyling() != b.raw.hasStyling()) return false;
+     return !a.raw.hasStyling() or a.style.eql(b.style);
++}
++
++/// A row that scrolled out of a region, as a ghost draws it: the previous
++/// frame's cells `bg` and `fg` less the overlay's `columns`. What the program
++/// repaints in place is not content that scrolled away; a ghost of it slides
++/// around the region as a second copy of the hint, wherever the ghost is by
++/// the time a later scroll (the renderer often takes several in a frame, all
++/// making their ghosts from the frame before) has moved it.
++fn ghostCells(
++    comptime Bg: type,
++    comptime Text: type,
++    alloc: Allocator,
++    bg: []const Bg,
++    fg: []const Text,
++    columns: ?Overlays.Columns,
++) Allocator.Error!struct { bg: []Bg, fg: []Text } {
++    const bg_copy = try alloc.dupe(Bg, bg);
++    errdefer alloc.free(bg_copy);
++    const overlay = columns orelse return .{
++        .bg = bg_copy,
++        .fg = try alloc.dupe(Text, fg),
++    };
++
++    const from = @min(overlay.left, bg_copy.len);
++    const to = @min(@as(usize, overlay.right) + 1, bg_copy.len);
++    @memset(bg_copy[from..to], std.mem.zeroes(Bg));
++    var kept = try std.ArrayListUnmanaged(Text).initCapacity(alloc, fg.len);
++    errdefer kept.deinit(alloc);
++    for (fg) |cell| {
++        if (cell.grid_pos[0] >= overlay.left and cell.grid_pos[0] <= overlay.right) continue;
++        kept.appendAssumeCapacity(cell);
++    }
++    return .{ .bg = bg_copy, .fg = try kept.toOwnedSlice(alloc) };
+ }
+ 
  /// The previous frame's rows that decide whether a region scroll left an
  /// edge row repainted in place: `slots` rows of `cols` cells per scroll,
  /// taken before the render state takes the new frame (`snapshot`) and
@@ -154,7 +206,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  const EdgeRows = struct {
      cells: std.ArrayListUnmanaged(terminal.RenderState.Cell) = .empty,
      /// One row of the new frame, to compare.
-@@ -241,15 +247,16 @@
+@@ -241,15 +288,16 @@
          };
      }
  
@@ -175,7 +227,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
          const cols = self.cols;
          // A new grid size has nothing to compare against.
          if (cols == 0 or cols != new.cols) return .{};
-@@ -262,7 +269,7 @@
+@@ -262,7 +310,7 @@
              .{ .y = scroll.top, .old = 0, .source = 2 },
              .{ .y = scroll.bottom, .old = 1, .source = 3 },
          };
@@ -184,7 +236,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
          for (edges, 0..) |edge, i| {
              self.new.clearRetainingCapacity();
              copyRow(alloc, new, edge.y, cols, &self.new) catch return .{};
-@@ -433,18 +440,20 @@
+@@ -433,18 +481,20 @@
          }
  
          /// The terminal scrolled these regions after every frame drawn so
@@ -210,7 +262,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
              }
          }
  
-@@ -1560,9 +1569,10 @@
+@@ -1560,9 +1610,10 @@
          /// that left: they need no terminal access, only the frame before.
          const RegionAnim = struct {
              region: terminal.Screen.RegionScroll,
@@ -224,7 +276,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
              /// Pixels the content is drawn below its final place (negative:
              /// above).
              shift: f64,
-@@ -1587,15 +1597,9 @@
+@@ -1587,15 +1638,9 @@
                  self.ghosts.deinit(alloc);
              }
  
@@ -242,7 +294,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                  return .{
                      @as(f32, @floatFromInt(r.left)) * cell_w,
                      @as(f32, @floatFromInt(r.top)) * cell_h,
-@@ -1603,6 +1607,19 @@
+@@ -1603,6 +1648,19 @@
                      @as(f32, @floatFromInt(@as(u32, r.bottom) + 1)) * cell_h,
                  };
              }
@@ -262,7 +314,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
          };
  
          comptime {
-@@ -1779,23 +1796,21 @@
+@@ -1779,23 +1837,21 @@
              const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
              const cols: usize = self.cells.size.columns;
              for (self.pending_region_scrolls.items) |pending| {
@@ -292,7 +344,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  
                  // The new content is drawn where the old was: `lines` rows
                  // away. Beyond the region's height nothing of the old
-@@ -1808,11 +1823,11 @@
+@@ -1808,11 +1864,11 @@
                  );
                  for (anim.ghosts.items) |*ghost| ghost.final_row -= scroll.lines;
  
@@ -304,12 +356,46 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +                // The rows that left the region, as the previous frame drew
 +                // them. A scroll up loses rows at the top, a scroll down at
 +                // the bottom; each ends up `lines` rows from where it was.
-+                // An overlay in one of them (the old copy of a hint) is
-+                // hidden by the hole it leaves on the way out.
++                // An overlay in one of them (the old copy of a hint) is left
++                // out of the ghost (see `ghostCells`).
                  const count: usize = @intCast(@abs(scroll.lines));
                  const first: usize = if (scroll.lines > 0)
                      scroll.top
-@@ -1867,9 +1882,8 @@
+@@ -1820,24 +1876,21 @@
+                     @as(usize, scroll.bottom) + 1 - count;
+                 for (first..first + count) |row| {
+                     if (row >= self.cells.size.rows) break;
+-                    const bg = self.alloc.dupe(
++                    const cells = ghostCells(
+                         shaderpkg.CellBg,
+-                        self.cells.bg_cells[row * cols ..][0..cols],
+-                    ) catch break;
+-                    const fg = self.alloc.dupe(
+                         shaderpkg.CellText,
++                        self.alloc,
++                        self.cells.bg_cells[row * cols ..][0..cols],
+                         self.cells.fg_rows[row + 1].items,
+-                    ) catch {
+-                        self.alloc.free(bg);
+-                        break;
+-                    };
++                        pending.overlays.columnsOn(scroll, row),
++                    ) catch break;
+                     anim.ghosts.append(self.alloc, .{
+                         .final_row = @as(i32, @intCast(row)) - scroll.lines,
+-                        .bg = bg,
+-                        .fg = fg,
++                        .bg = cells.bg,
++                        .fg = cells.fg,
+                     }) catch {
+-                        self.alloc.free(bg);
+-                        self.alloc.free(fg);
++                        self.alloc.free(cells.bg);
++                        self.alloc.free(cells.fg);
+                         break;
+                     };
+                 }
+@@ -1867,9 +1920,8 @@
              const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
              var total: usize = 0;
              for (self.region_anims.items) |*anim| {
@@ -321,7 +407,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                  var i: usize = 0;
                  while (i < anim.ghosts.items.len) {
                      const ghost = &anim.ghosts.items[i];
-@@ -1936,6 +1950,7 @@
+@@ -1936,6 +1988,7 @@
              const cols: usize = self.cells.size.columns;
  
              self.uniforms.region_rect = @splat(@splat(0));
@@ -329,7 +415,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
              self.uniforms.region_shift = @splat(@splat(0));
              self.uniforms.ghost_rows = @splat(@splat(-1));
              self.ghost_bg_upload.clearRetainingCapacity();
-@@ -1944,6 +1959,7 @@
+@@ -1944,6 +1997,7 @@
              var ghost_count: usize = 0;
              for (self.region_anims.items, 0..) |*anim, i| {
                  self.uniforms.region_rect[i] = anim.rect(cell_w, cell_h);
@@ -337,7 +423,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                  self.uniforms.region_shift[i] = .{ @floatCast(anim.shift), 0, 0, 0 };
                  for (anim.ghosts.items) |ghost| {
                      if (ghost_count >= shaderpkg.Uniforms.max_ghost_rows) break;
-@@ -1980,16 +1996,16 @@
+@@ -1980,16 +2034,16 @@
                  .cols = self.cells.size.columns,
                  .rows = self.cells.size.rows,
              };
@@ -361,7 +447,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                  });
              }
              return shifts;
-@@ -2007,7 +2023,7 @@
+@@ -2007,7 +2061,7 @@
          /// the screen.
          fn regionsScrolled(
              self: *Self,
@@ -370,7 +456,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
          ) void {
              if (scrolls.len == 0) return;
              self.presented_regions.scrolled(
-@@ -2360,29 +2376,22 @@
+@@ -2360,29 +2414,22 @@
                              self.terminal_state.endUpdate();
                          }
  
@@ -405,7 +491,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                      }
                      scrolls.clear();
                  }
-@@ -4778,7 +4787,9 @@
+@@ -4778,7 +4825,9 @@
  
      // The program scrolls two more 20px rows: every frame drawn so far
      // shows the content 40px further from the terminal's rows.
@@ -416,19 +502,17 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
      try testing.expectEqual(70, offset(&regions, 100));
      try testing.expectEqual(60, offset(&regions, 101));
      try testing.expectEqual(60, offset(&regions, 0));
-@@ -4829,28 +4840,33 @@
-         cell.* = .{ .raw = raw, .grapheme = &.{}, .style = style };
-     }
+@@ -4831,26 +4880,31 @@
      return row;
-+}
-+
+ }
+ 
 +/// The overlay a hint drawn by `testPinnedRow` is: its cells and no others.
 +fn expectHint(overlay: ?Overlays.Columns) !void {
 +    const found = overlay orelse return error.TestExpectedEqual;
 +    try std.testing.expectEqual(test_hint_x, found.left);
 +    try std.testing.expectEqual(test_hint_x + test_hint.len - 1, found.right);
- }
- 
++}
++
  test "repaintedInPlace: a hint drawn again on a scrolled row stays in place" {
 -    const testing = std.testing;
      // Claude Code scrolling back: the region moved down a row, so its last
@@ -455,7 +539,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  }
  
  test "repaintedInPlace: scrolled and new content are not in place" {
-@@ -4860,36 +4876,39 @@
+@@ -4860,36 +4914,90 @@
      // Streaming: the top row now holds what the row below it had.
      const top_old = testPinnedRow("first line of the answer", false);
      const top_new = testPinnedRow("second line of the answer", false);
@@ -480,8 +564,50 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  }
  
 -test "PinnedEdges: the rows that move leave the pinned ones out" {
-+test "Overlays: the cells an animation leaves in place are on the region's edge rows" {
++test "ghostCells: a ghost keeps the row but not the overlay on it" {
      const testing = std.testing;
++    const alloc = testing.allocator;
++
++    // Ten columns of a row: a colored cell and a glyph in each. (The
++    // renderer's cell types are the API's; these hold what the ghost reads.)
++    const Bg = [4]u8;
++    const Text = struct { grid_pos: [2]u16 };
++    var bg: [10]Bg = undefined;
++    var fg: [10]Text = undefined;
++    for (&bg, &fg, 0..) |*b, *f, x| {
++        b.* = .{ 9, 9, 9, 255 };
++        f.* = .{ .grid_pos = .{ @intCast(x), 4 } };
++    }
++
++    // Columns 3 to 6 are the overlay.
++    const ghost = try ghostCells(Bg, Text, alloc, &bg, &fg, .{ .left = 3, .right = 6 });
++    defer alloc.free(ghost.bg);
++    defer alloc.free(ghost.fg);
++    try testing.expectEqual(10, ghost.bg.len);
++    for (ghost.bg, 0..) |cell, x| {
++        const gone = x >= 3 and x <= 6;
++        try testing.expectEqual(@as(u8, if (gone) 0 else 9), cell[0]);
++    }
++    try testing.expectEqual(6, ghost.fg.len);
++    for (ghost.fg) |cell| try testing.expect(cell.grid_pos[0] < 3 or cell.grid_pos[0] > 6);
++
++    // No overlay: the row as it was.
++    const whole = try ghostCells(Bg, Text, alloc, &bg, &fg, null);
++    defer alloc.free(whole.bg);
++    defer alloc.free(whole.fg);
++    try testing.expectEqualSlices(Bg, &bg, whole.bg);
++    try testing.expectEqual(10, whole.fg.len);
++
++    // An overlay running past the grid's edge is cut to it.
++    const cut = try ghostCells(Bg, Text, alloc, &bg, &fg, .{ .left = 8, .right = 40 });
++    defer alloc.free(cut.bg);
++    defer alloc.free(cut.fg);
++    try testing.expectEqual(0, cut.bg[9][0]);
++    try testing.expectEqual(8, cut.fg.len);
++}
++
++test "Overlays: the overlay's columns are on the edge rows only" {
++    const testing = std.testing;
      const scroll: terminal.Screen.RegionScroll = .{ .top = 1, .bottom = 29, .left = 0, .right = 99, .lines = -1 };
 -    const bottom = (PinnedEdges{ .bottom = true }).moving(scroll).?;
 -    try testing.expectEqual(1, bottom.top);
@@ -490,10 +616,19 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 -    try testing.expectEqual(2, both.top);
 -    try testing.expectEqual(28, both.bottom);
 -    try testing.expectEqual(scroll, (PinnedEdges{}).moving(scroll).?);
++    const overlays: Overlays = .{ .bottom = .{ .left = 40, .right = 64 } };
++    try testing.expectEqual(40, overlays.columnsOn(scroll, 29).?.left);
++    try testing.expectEqual(null, overlays.columnsOn(scroll, 28));
++    try testing.expectEqual(null, overlays.columnsOn(scroll, 1));
++}
  
 -    // Nothing left that keeps content across the scroll is no motion.
 -    const small: terminal.Screen.RegionScroll = .{ .top = 3, .bottom = 4, .left = 0, .right = 9, .lines = 1 };
 -    try testing.expectEqual(null, (PinnedEdges{ .bottom = true }).moving(small));
++test "Overlays: the cells an animation leaves in place are on the region's edge rows" {
++    const testing = std.testing;
++    const scroll: terminal.Screen.RegionScroll = .{ .top = 1, .bottom = 29, .left = 0, .right = 99, .lines = -1 };
++
 +    const none = (Overlays{}).holes(scroll);
 +    try testing.expectEqual(null, none[0]);
 +    try testing.expectEqual(null, none[1]);
@@ -510,7 +645,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  }
  
  /// Feeds `steps` scrolls of the region rows 2–8 (of 12) to a terminal the way
-@@ -4897,7 +4916,7 @@
+@@ -4897,7 +5005,7 @@
  /// drawing the hint again on the region's last row after each when `hint`,
  /// and checks what `EdgeRows` makes of every step. Every line's bar runs on
  /// under the hint, the case that once kept the hint from counting.
@@ -519,7 +654,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
      const testing = std.testing;
      const alloc = testing.allocator;
      var t = try terminal.Terminal.init(testing.io, alloc, .{ .cols = 60, .rows = 12 });
-@@ -4946,25 +4965,33 @@
+@@ -4946,25 +5054,33 @@
          try testing.expectEqual(1, scrolls.len);
          edges.snapshot(alloc, &state, scrolls);
          try state.update(alloc, &t);

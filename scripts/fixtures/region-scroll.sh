@@ -3,7 +3,7 @@
 # views stream an answer or scroll back, inside one synchronized update per step. The rows below
 # the region stand for the prompt and never move.
 #
-#   bash scripts/fixtures/region-scroll.sh [rows per step] [steps] [hint] [repaint]
+#   bash scripts/fixtures/region-scroll.sh [rows per step] [steps] [hint] [repaint] [burst]
 #
 # A positive step moves the content up, as an answer streams in; a negative one moves it down, as
 # when scrolling back. By default each step scrolls the region (DECSTBM with SU or SD) and paints
@@ -11,16 +11,20 @@
 # each step instead rewrites every row of the region in place with the content moved, as pi's
 # full-screen view does, so the terminal sees no scroll at all. With `hint`, a hint is drawn again
 # on the region's last row after every step, as Claude Code draws its "Jump to bottom" hint while
-# scrolled back, in a magenta box (#ff00ff) the motion probe can count (`--motion-color`).
+# scrolled back, in a magenta box (#ff00ff) the motion probe can count (`--motion-color`). With
+# `burst`, steps come in pairs a few milliseconds apart, as Claude Code's do under a trackpad flick
+# (a wheel step and its follow-up, 5 ms apart, in a capture), so the renderer takes both scrolls in
+# one frame.
 #
 # Used by the smooth-scroll self-tests (DESIGNS.md → Motion in the terminal). Rows get bars of
 # different lengths so no two look alike, which lets the motion probe tell shifts apart.
 set -eu
-step=3 steps=20 hint="" repaint="" numbers=0
+step=3 steps=20 hint="" repaint="" burst="" numbers=0
 for arg in "$@"; do
   case "$arg" in
     hint) hint=1 ;;
     repaint) repaint=1 ;;
+    burst) burst=1 ;;
     "") ;;
     *) if ((numbers == 0)); then step=$arg; else steps=$arg; fi; numbers=$((numbers + 1)) ;;
   esac
@@ -65,7 +69,8 @@ for ((index = 0; index < steps; index++)); do
   fi
   [[ -n "$hint" ]] && draw_hint
   printf '\033[?2026l'
-  sleep 0.1
+  # A burst sends every other step right behind the one before.
+  if [[ -n "$burst" ]] && ((index % 2 == 0)); then sleep 0.004; else sleep 0.1; fi
 done
 
 sleep 2

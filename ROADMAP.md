@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4 and M7 (2026-09-30). What is left: the author's use of Copy Cell's new ⌥-click, reworked after the old gesture failed in Claude Code's full-screen view (M5); a VoiceOver pass and a new user's first minute (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
+**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a VoiceOver pass and a new user's first minute (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
 
 ## How to read this
 
@@ -22,7 +22,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ (grouping revised after real use: projects, folders, scratch) |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ✅ |
 | **M4** Recall | search across every agent's history | F7 | M2 | ✅ |
-| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |
+| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ✅ |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
 
@@ -139,7 +139,7 @@ Any past conversation, across every agent, is one search away.
 
 ---
 
-## M5 — Reading (F8, F9, F10) 🟨
+## M5 — Reading (F8, F9, F10) ✅
 
 Agent output is easy to act on.
 
@@ -154,7 +154,7 @@ Agent output is easy to act on.
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.
 
-*Status: every task is built and self-tested headless. Copy Cell failed in Claude Code's full-screen view in the author's real use (2026-09-30: ⌥-double-click copied a whole row, and right-click offers no Copy Cell while a program takes the mouse), and its gesture was reworked the same day (M5.2). Left: the author's use of the new ⌥-click, and a report on opening paths and the viewer. Right-click → Copy Cell while a program takes the mouse is to be discussed. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
+*Status: every task is built and self-tested headless. Copy Cell failed in Claude Code's full-screen view in the author's real use (2026-09-30: ⌥-double-click copied a whole row, and right-click offers no Copy Cell while a program takes the mouse), and its gesture was reworked the same day (M5.2). Exit criterion met in the author's real use (2026-09-30): ⌥-click and the in-cell ⌥-drag copy the right text in Claude Code's full-screen view, ⌘-click opens a path at its line, and the viewer shows a file. Right-click → Copy Cell while a program takes the mouse is to be discussed. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
 
 ---
 

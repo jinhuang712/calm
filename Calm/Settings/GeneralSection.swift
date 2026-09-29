@@ -187,7 +187,7 @@ struct ShortcutsSection: View {
         [
             Group(title: "Sessions", rows: [
                 (["⌘", "K"], "Search sessions"),
-                (["⌃", "Tab"], "Cycle, most recent first"),
+                (["⌃", "Tab"], "Cycle, top to bottom"),
                 (["⌘", "1…9"], "Jump by position"),
                 (["⌘", "⇧", "A"], "Next one that needs you"),
                 (["⌘", "⇧", "I"], "Show the arrival card"),

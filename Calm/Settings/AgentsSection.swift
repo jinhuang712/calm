@@ -94,17 +94,18 @@ final class AgentsSettingsModel {
         refresh()
     }
 
+    /// Choosing a default removes the key, as the other sections do (FEATURES.md → F14).
     func setNotifyStates(_ value: CalmSettings.NotifyStates) {
         notifyStates = value
-        save("agents.notify", value.rawValue)
+        save("agents.notify", value == .needsYou ? nil : value.rawValue)
     }
 
     func setSound(_ value: Bool) {
         sound = value
-        save("agents.sound", value ? "true" : "false")
+        save("agents.sound", value ? "true" : nil)
     }
 
-    private func save(_ key: String, _ value: String) {
+    private func save(_ key: String, _ value: String?) {
         do {
             SessionManager.shared.settings = try CalmSettings.save(key, value)
         } catch {

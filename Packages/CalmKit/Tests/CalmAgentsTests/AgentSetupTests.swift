@@ -147,6 +147,39 @@ struct AgentSetupTests {
         #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex fork '019a'")
         #expect(CodexAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
         #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a b.jsonl") == "pi --fork '/s/a b.jsonl'")
-        #expect(OpenCodeAdapter().forkCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
+        #expect(OpenCodeAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/db") == nil)
+    }
+
+    /// OpenCode forks through its API and opens the new session: run in a real shell, with a
+    /// stand-in `opencode` that answers the way 2.0.19's `opencode api` does (one line of JSON).
+    @Test func `the opencode fork opens the session the api made`() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "calm-opencode-fork-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let stub = folder.appending(path: "opencode")
+        try """
+        #!/bin/sh
+        if [ "$1" = api ]; then
+          printf '%s\\n' "$*" > "$STUB_LOG.api"
+          printf '{"data":{"id":"ses_fork","location":{"directory":"/x","id":"loc_1"},"title":"t"}}\\n'
+        else
+          printf '%s\\n' "$*" > "$STUB_LOG.tui"
+        fi
+        """.write(to: stub, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: stub.path)
+        let command = try #require(OpenCodeAdapter().forkCommand(agentSessionID: "ses_it's", transcriptPath: "/db"))
+
+        for shell in ["/bin/zsh", "/bin/bash"] {
+            let process = Process()
+            process.executableURL = URL(filePath: shell)
+            process.arguments = ["-c", command]
+            let log = folder.appending(path: "log").path
+            process.environment = ["PATH": "\(folder.path):/usr/bin:/bin", "STUB_LOG": log]
+            try process.run()
+            process.waitUntilExit()
+            #expect(process.terminationStatus == 0, "\(shell)")
+            #expect(try String(contentsOfFile: log + ".api", encoding: .utf8) == "api session.fork --param sessionID=ses_it's -d {}\n")
+            #expect(try String(contentsOfFile: log + ".tui", encoding: .utf8) == "--session ses_fork\n", "\(shell)")
+        }
     }
 }

@@ -34,10 +34,22 @@ public extension CodexAdapter {
 public extension OpenCodeAdapter {
     /// `--session` continues a session by id (2.0.19's own TUI). An id OpenCode no longer has
     /// would start a new, empty session under it, so this is only for a conversation still there
-    /// (search offers no resume for one that's gone). No fork: 2.0.19's TUI has no `--fork`
-    /// (only `opencode mini` and `opencode run` do), so the menu offers none.
+    /// (search offers no resume for one that's gone).
     func resumeCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
         agentSessionID.map { "opencode --session \(shellQuoted($0))" }
+    }
+
+    /// 2.0.19's TUI has no `--fork` flag (only `opencode mini` and `opencode run` do, and those
+    /// aren't the interface the user works in), so the fork is made through OpenCode's own API,
+    /// `session.fork`, which its `/fork` uses too, and the new session is opened in the TUI.
+    /// `opencode api` prints `{"data":{"id":"ses_…",…}}` on one line (checked on 2.0.19 with the
+    /// read-only `session.get`); awk takes the first `id` that is a session's, since macOS has
+    /// no `jq` by default.
+    func forkCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
+        agentSessionID.map { id in
+            let firstSessionID = #"awk -F'"' '{for (i = 1; i < NF; i++) if ($i == "id" && $(i+2) ~ /^ses_/) {print $(i+2); exit}}'"#
+            return "opencode --session \"$(opencode api session.fork --param sessionID=\(shellQuoted(id)) -d '{}' | \(firstSessionID))\""
+        }
     }
 }
 

@@ -201,7 +201,7 @@ A quick, read-only look at the repository without leaving Calm.
   | Claude Code | `claude --resume <id>` | `claude --resume <id> --fork-session` |
   | Codex | `codex resume <id>` | `codex fork <id>` |
   | pi | `pi --session <file>` | `pi --fork <file>` |
-  | OpenCode | `opencode --session <id>` | none: its own interface has no `--fork` (2.0.19) |
+  | OpenCode | `opencode --session <id>` | forked through its own API (`opencode api session.fork`), then opened with `--session`: 2.0.19's interface has no `--fork` |
 
   An action shows only where the agent has the command. A conversation the agent no longer has isn't offered for resuming (OpenCode would start a new, empty one under its id).
 

@@ -35,6 +35,29 @@ struct CopyCellTests {
         #expect(try copy("Warp", in: "claude-code") == "Warp")
     }
 
+    /// Claude Code's full-screen view (`"tui": "fullscreen"`, 2.1.284), 60 columns wide, as its
+    /// own bytes drew it: indented two columns, a rule between every row.
+    @Test func `claude code full-screen tables`() throws {
+        #expect(try copy("Blocks and AI", in: "claude-code-fullscreen") == "Blocks and AI")
+        #expect(try copy("Shipped", in: "claude-code-fullscreen") == "Shipped")
+        #expect(try copy("calm attention", in: "claude-code-fullscreen") == "Sessions grouped by project, calm attention")
+        #expect(try copy("未处理", in: "claude-code-fullscreen") == "未处理的问题需要复核和跟进")
+    }
+
+    @Test func `a cell knows the lines and columns it covers`() throws {
+        let grid = try grid("claude-code-fullscreen")
+        let (row, column) = try position(of: "calm attention", in: grid)
+        let cell = try #require(CopyCell.cell(in: grid, row: row, column: column))
+        // Both lines of the wrapped cell, and the columns between its two vertical lines.
+        #expect(cell.rows == row - 1 ... row)
+        let line = String(grid.cells[row].compactMap(\.self))
+        let borders = line.indices.filter { line[$0] == "│" }.map { line.distance(from: line.startIndex, to: $0) }
+        #expect(cell.columns == borders[1] + 1 ..< borders[2])
+        // The same cell from its first line.
+        let first = try position(of: "Sessions grouped", in: grid)
+        #expect(CopyCell.cell(in: grid, row: first.row, column: first.column) == cell)
+    }
+
     @Test func `chinese cells join without spaces`() throws {
         #expect(try copy("审核记录", in: "claude-code") == "审核记录")
         #expect(try copy("未处理", in: "claude-code") == "未处理的问题需要复核和跟进")

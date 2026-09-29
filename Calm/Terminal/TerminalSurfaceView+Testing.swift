@@ -86,23 +86,10 @@
                 default: mouseUp(with: event)
                 }
             }
-            // Don't clobber the user's clipboard: put back whatever was there.
-            let pasteboard = NSPasteboard.general
-            let saved = pasteboard.pasteboardItems?.map { item in
-                item.types.reduce(into: [NSPasteboard.PasteboardType: Data]()) { $0[$1] = item.data(forType: $1) }
-            } ?? []
-            pasteboard.clearContents()
+            // The self-test pasteboard (NSPasteboard.calm), never the user's clipboard.
+            NSPasteboard.calm.clearContents()
             perform("copy_to_clipboard")
-            let copied = pasteboard.string(forType: .string)
-            pasteboard.clearContents()
-            pasteboard.writeObjects(saved.map { types in
-                let item = NSPasteboardItem()
-                for (type, data) in types {
-                    item.setData(data, forType: type)
-                }
-                return item
-            })
-            return copied
+            return NSPasteboard.calm.string(forType: .string)
         }
     }
 
@@ -114,8 +101,6 @@
     }
 
     extension TerminalSurfaceView {
-        /// ⌥-double-clicks the first cell showing `text`, through the real mouse path, and returns
-        /// what was copied. The user's clipboard is put back afterwards.
         /// Rests the pointer, with ⌘ held, on the first cell of `text` on screen, as the mouse would.
         func hoverLinkForTesting(_ text: String) -> Bool {
             guard let surface else { return false }
@@ -205,8 +190,11 @@
                 .map { $0.0.runs.count > 1 ? "\($0.0.text) (\($0.0.runs.count) rows)" : $0.0.text }
         }
 
-        func copyCellForTesting(_ text: String) -> String? {
-            guard let window else { return nil }
+        /// Holds ⌥ over `text`, then clicks there (or drags `dragCells` cells to the right), through
+        /// the real handlers. Says what the cell outline covered while hovering, what landed on the
+        /// self-test pasteboard, and whether the terminal now has a selection of its own.
+        func optionClickForTesting(_ text: String, dragCells: Int = 0) -> String? {
+            guard let window, let surface else { return nil }
             let grid = TextGrid(lines: viewportRows())
             var target: (row: Int, column: Int)?
             for (row, cells) in grid.cells.enumerated() {
@@ -218,29 +206,31 @@
             }
             guard let target, let cell = rect(row: target.row, columns: target.column ..< target.column + 1) else { return nil }
             let point = NSPoint(x: cell.midX, y: cell.midY)
-
-            let saved = NSPasteboard.general.string(forType: .string)
-            NSPasteboard.general.clearContents()
-            for clicks in [1, 2] {
-                for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                    guard let event = NSEvent.mouseEvent(
-                        with: type, location: convert(point, to: nil), modifierFlags: .option,
-                        timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
-                        context: nil, eventNumber: 0, clickCount: clicks, pressure: 1,
-                    ) else { continue }
-                    if type == .leftMouseDown {
-                        mouseDown(with: event)
-                    } else {
-                        mouseUp(with: event)
-                    }
+            let end = NSPoint(x: point.x + CGFloat(dragCells) * cellSize.width, y: point.y)
+            func send(_ type: NSEvent.EventType, at location: NSPoint) {
+                guard let event = NSEvent.mouseEvent(
+                    with: type, location: convert(location, to: nil), modifierFlags: .option,
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 0, clickCount: 1, pressure: type == .mouseMoved ? 0 : 1,
+                ) else { return }
+                switch type {
+                case .mouseMoved: mouseMoved(with: event)
+                case .leftMouseDown: mouseDown(with: event)
+                case .leftMouseDragged: mouseDragged(with: event)
+                default: mouseUp(with: event)
                 }
             }
-            let copied = NSPasteboard.general.string(forType: .string)
-            NSPasteboard.general.clearContents()
-            if let saved {
-                NSPasteboard.general.setString(saved, forType: .string)
+
+            send(.mouseMoved, at: point)
+            let outline = links.cellOutline.map { "\($0.integral)" } ?? "none"
+            NSPasteboard.calm.clearContents()
+            send(.leftMouseDown, at: point)
+            if dragCells > 0 {
+                send(.leftMouseDragged, at: end)
             }
-            return copied
+            send(.leftMouseUp, at: end)
+            let copied = NSPasteboard.calm.string(forType: .string)
+            return "outline \(outline), copied \(copied.debugDescription), selection \(ghostty_surface_has_selection(surface))"
         }
     }
 #endif

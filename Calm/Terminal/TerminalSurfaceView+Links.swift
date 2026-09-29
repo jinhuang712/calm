@@ -41,6 +41,19 @@ final class PaneLinks {
         }
     }
 
+    /// The table cell under the pointer while ⌥ is held (Copy Cell, FEATURES.md → F9), in the
+    /// pane's coordinates; the same overlay draws it.
+    var cellOutline: NSRect? {
+        didSet {
+            if cellOutline != oldValue {
+                onChange?()
+            }
+        }
+    }
+
+    /// The grid cell the outline was last looked up for, so moving within a cell reads nothing.
+    var cellOutlineProbe: CellRun?
+
     /// Where the pointer is in the pane, while it's over it.
     var pointer: NSPoint?
     /// Whether ⌘ is down, as the last pointer or modifier event said (`NSEvent.modifierFlags` doesn't

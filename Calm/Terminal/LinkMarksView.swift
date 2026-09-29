@@ -4,13 +4,16 @@ import CalmModel
 /// The resting marks (FEATURES.md → F8, UIUX.md → Links): a faint dotted line under each link in
 /// the visible text that opens, over one workspace's panes. libghostty draws nothing for links
 /// until ⌘ is held, so Calm draws these; they take no clicks. The link under ⌘ loses its mark
-/// while libghostty underlines it.
+/// while libghostty underlines it. The same dots outline the table cell under the pointer while
+/// ⌥ is held (Copy Cell, F9).
 @MainActor
 final class LinkMarksView: NSView {
     /// Each pane's marks: a link's dotted lines, one per row it's on.
     private var marks: [UUID: [LinkMatch: [LinkMarkView]]] = [:]
     /// Each pane's hovered-link underline, one line per row.
     private var underlines: [UUID: [LinkMarkView]] = [:]
+    /// Each pane's cell outline, while ⌥ is held over a table.
+    private var outlines: [UUID: CellOutlineView] = [:]
 
     /// How strong the dots are, against the terminal's text color.
     static let opacity = 0.45
@@ -51,6 +54,7 @@ final class LinkMarksView: NSView {
         }
         marks[pane.id] = views
         updateUnderline(pane, color: color)
+        updateOutline(pane, color: color)
     }
 
     /// The underline of a ⌘-hovered link that a program cut across rows: libghostty underlines only
@@ -76,11 +80,68 @@ final class LinkMarksView: NSView {
         underlines[pane.id] = lines
     }
 
+    /// The cell under ⌥: it appears at once where the pointer is and goes quickly, so it follows
+    /// the pointer from cell to cell without trailing it.
+    private func updateOutline(_ pane: TerminalSurfaceView, color: NSColor) {
+        guard let rect = pane.isHidden ? nil : pane.links.cellOutline else {
+            if let outline = outlines.removeValue(forKey: pane.id) {
+                Motion.fadeOutAndRemove(outline, duration: 0.1)
+            }
+            return
+        }
+        let outline = outlines[pane.id] ?? {
+            let view = CellOutlineView(frame: .zero)
+            addSubview(view)
+            Motion.fadeIn(view, duration: 0.1)
+            outlines[pane.id] = view
+            return view
+        }()
+        outline.frame = pane.convert(rect, to: self)
+        outline.color = color
+    }
+
     func remove(_ paneID: UUID) {
         marks[paneID]?.values.joined().forEach { $0.removeFromSuperview() }
         marks[paneID] = nil
         underlines[paneID]?.forEach { $0.removeFromSuperview() }
         underlines[paneID] = nil
+        outlines.removeValue(forKey: paneID)?.removeFromSuperview()
+    }
+}
+
+/// A table cell's outline: the link marks' dots, around the cell's text between its lines.
+@MainActor
+final class CellOutlineView: NSView {
+    var color: NSColor = .clear {
+        didSet {
+            if color != oldValue {
+                needsDisplay = true
+            }
+        }
+    }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true // for the fade
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("not supported")
+    }
+
+    override func hitTest(_: NSPoint) -> NSView? {
+        nil
+    }
+
+    override func draw(_: NSRect) {
+        // Half a cell's room lies between the cell's text and the table's own lines, so the
+        // outline sits in it without touching either.
+        let outline = NSBezierPath(roundedRect: bounds.insetBy(dx: 1.5, dy: 1.5), xRadius: 3, yRadius: 3)
+        outline.lineWidth = 1
+        outline.setLineDash([1, 2], count: 2, phase: 0)
+        color.setStroke()
+        outline.stroke()
     }
 }
 

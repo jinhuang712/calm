@@ -76,10 +76,13 @@
                 if let pane = focusedPane {
                     surface(pane, requestsOpenLink: String(link.dropFirst(10)))
                 }
-            case let copy where copy.hasPrefix("copy_cell:"):
+            case let copy where copy.hasPrefix("copy_cell:") || copy.hasPrefix("cell_drag:"):
+                // copy_cell:<text>: hold ⌥ over the text and click it; cell_drag:<text>: ⌥-drag from
+                // it six cells to the right instead. Logs the outline, what was copied and whether
+                // the terminal made a selection of its own.
                 let text = String(copy.dropFirst(10))
-                let copied = focusedPane?.copyCellForTesting(text)
-                FileHandle.standardError.write(Data("calm-selftest: copy cell at \(text) → \(copied.debugDescription)\n".utf8))
+                let result = focusedPane?.optionClickForTesting(text, dragCells: copy.hasPrefix("cell_drag:") ? 6 : 0)
+                FileHandle.standardError.write(Data("calm-selftest: \(copy.prefix(9)) at \(text): \(result ?? "not found")\n".utf8))
             case let search where search.hasPrefix("search:"):
                 toggleSearch(query: String(search.dropFirst(7)))
             case let search where search.hasPrefix("search_open:"):
@@ -294,7 +297,7 @@
                 let names: [String: SessionCopy] = ["sessionID": .sessionID, "resumeCommand": .resumeCommand, "folderPath": .folderPath]
                 guard let kind = names[String(text.dropFirst(5))], let id = focusedPane?.id else { return false }
                 copy(kind, of: id)
-                let copied = NSPasteboard(name: .init("calm-selftest")).string(forType: .string)
+                let copied = NSPasteboard.calm.string(forType: .string)
                 FileHandle.standardError.write(Data("calm-selftest: copied \(copied ?? "nothing")\n".utf8))
             case "rename":
                 // What the title's ⋯ → Rename… does.

@@ -106,6 +106,8 @@ final class TerminalSurfaceView: NSView {
     private var titleTimer: Timer?
     private var trackingArea: NSTrackingArea?
     private var suppressNextLeftMouseUp = false
+    /// An ⌥-press over a table cell, held back until it's a click (Copy Cell) or a drag.
+    var heldCellPress: NSEvent?
     private var eventMonitor: Any?
     private var windowObservers: [NSObjectProtocol] = []
     private var frameObservation: NSKeyValueObservation?
@@ -447,6 +449,7 @@ final class TerminalSurfaceView: NSView {
         let accepted = super.resignFirstResponder()
         if accepted {
             suppressNextLeftMouseUp = false
+            heldCellPress = nil
             syncFocus()
         }
         return accepted
@@ -514,7 +517,7 @@ final class TerminalSurfaceView: NSView {
         super.updateTrackingAreas()
     }
 
-    private func sendMousePosition(_ event: NSEvent) {
+    func sendMousePosition(_ event: NSEvent) {
         guard let surface else { return }
         let point = convert(event.locationInWindow, from: nil)
         links.pointer = point
@@ -523,18 +526,14 @@ final class TerminalSurfaceView: NSView {
         refreshJoinedLinkHover()
     }
 
-    private func sendMouseButton(_ state: ghostty_input_mouse_state_e, _ button: ghostty_input_mouse_button_e, _ event: NSEvent) -> Bool {
+    func sendMouseButton(_ state: ghostty_input_mouse_state_e, _ button: ghostty_input_mouse_button_e, _ event: NSEvent) -> Bool {
         guard let surface else { return false }
         return ghostty_surface_mouse_button(surface, state, button, TerminalInput.mods(event.modifierFlags))
     }
 
     override func mouseDown(with event: NSEvent) {
-        // ⌥-double-click copies a table cell; outside a table it falls through as usual.
-        if event.clickCount == 2, event.modifierFlags.contains(.option),
-           copyTableCell(at: convert(event.locationInWindow, from: nil)) {
-            suppressNextLeftMouseUp = true
-            return
-        }
+        // ⌥ over a table cell: held back until it's a click (Copy Cell) or a drag.
+        guard !holdsCellPress(event) else { return }
         sendMousePosition(event)
         // ⌘-click on a link a program cut across rows: libghostty would open a piece of it.
         if event.modifierFlags.contains(.command), openJoinedLink(at: convert(event.locationInWindow, from: nil)) {
@@ -549,6 +548,7 @@ final class TerminalSurfaceView: NSView {
             suppressNextLeftMouseUp = false
             return
         }
+        guard !releasesCellPress(event) else { return }
         _ = sendMouseButton(GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, event)
         if let surface {
             ghostty_surface_mouse_pressure(surface, 0, 0)
@@ -577,9 +577,11 @@ final class TerminalSurfaceView: NSView {
 
     override func mouseMoved(with event: NSEvent) {
         sendMousePosition(event)
+        updateCellOutline(event.modifierFlags)
     }
 
     override func mouseDragged(with event: NSEvent) {
+        dragsCellPress(event)
         sendMousePosition(event)
     }
 
@@ -600,6 +602,7 @@ final class TerminalSurfaceView: NSView {
         if NSEvent.pressedMouseButtons == 0 {
             // The cursor left the viewport.
             links.pointer = nil
+            updateCellOutline([])
             ghostty_surface_mouse_pos(surface, -1, -1, TerminalInput.mods(event.modifierFlags))
             refreshJoinedLinkHover()
         } else {
@@ -609,6 +612,7 @@ final class TerminalSurfaceView: NSView {
 
     override func scrollWheel(with event: NSEvent) {
         guard let surface else { return }
+        updateCellOutline([]) // the text moves out from under it
         var deltaX = event.scrollingDeltaX
         var deltaY = event.scrollingDeltaY
         let precise = event.hasPreciseScrollingDeltas

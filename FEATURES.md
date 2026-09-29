@@ -137,12 +137,14 @@ A fast, correct terminal on libghostty.
 
 **Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; or any application, chosen in Settings → General with Choose Application…, or `editor = "…"` in config.toml, a name or an `.app` path; an application that isn't one of those opens the file but not at the line); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
 
-## F9 — Copy Cell 🚧
+## F9 — Copy Cell ✅
 
 - Copies the text of one cell of a table drawn with box characters (`│ ─ ┼` and similar), instead of whole rows.
-- Triggered by **⌥-double-click** or right-click → **Copy Cell** (the menu shows only where the program doesn't take the mouse). Known gap: in Claude Code's full-screen view, ⌥-double-click copies the wrong text (found in real use, 2026-09-30; cause not yet known), and there is no right-click menu there, since Claude Code takes the mouse.
+- **Hold ⌥** over a table: a faint dotted outline marks the cell under the pointer. **⌥-click** copies that cell, and a small "Cell copied" note shows by the pointer. It works in programs that take the mouse too (Claude Code's full-screen view): Calm keeps that click, so the program never sees it.
+- **⌥-drag** still selects, as it always has: a rectangle selection, or that program's own selection where a program takes the mouse. Only a press that doesn't move copies a cell.
+- Right-click → **Copy Cell** does the same where the program doesn't take the mouse.
 - Wrapped lines inside the cell are joined, and padding is trimmed, giving one clean string.
-- Falls back to normal word selection when the click is not inside a drawn table.
+- Outside a drawn table, an ⌥-click is an ordinary click. Claude Code prints a table too wide for the pane as `Name: value` lines instead of a box, and those aren't a table to copy from.
 - Works with box-drawn tables (with or without rules between rows), markdown pipe tables, and Chinese text.
 
 **Settings:** none.

@@ -13,7 +13,7 @@ enum TerminalClipboard {
 
     static func pasteboard(_ location: ghostty_clipboard_e) -> NSPasteboard? {
         switch location {
-        case GHOSTTY_CLIPBOARD_STANDARD: .general
+        case GHOSTTY_CLIPBOARD_STANDARD: .calm
         case GHOSTTY_CLIPBOARD_SELECTION: selectionPasteboard
         default: nil // macOS has no primary selection.
         }

@@ -95,31 +95,109 @@ extension TerminalSurfaceView {
     }
 }
 
-/// Copy Cell (FEATURES.md → F9): ⌥-double-click or right-click → Copy Cell copies one cell of a
-/// table an agent drew, instead of whole rows. The table logic is `CopyCell` (CalmModel); this
-/// reads the grid and maps the click to a cell.
+/// Copy Cell (FEATURES.md → F9): holding ⌥ over a table an agent drew outlines the cell under the
+/// pointer, and an ⌥-click copies it, instead of whole rows; right-click → Copy Cell does the same
+/// where the program leaves the mouse to the terminal. The table logic is `CopyCell` (CalmModel);
+/// this reads the grid and maps the pointer to a cell.
+///
+/// The ⌥-press over a cell is held back from libghostty, so a program that takes the mouse
+/// (Claude Code's full-screen view) never sees the click; if it moves on as a drag, the press is
+/// sent after all and the drag selects as ⌥-drag always did (a rectangle, or the program's own
+/// selection where it takes the mouse).
 extension TerminalSurfaceView {
-    /// The table cell's text under a point, or nil outside a drawn table.
-    func tableCellText(at point: NSPoint) -> String? {
+    /// How far an ⌥-press over a cell may move and still be a click, in points.
+    private static let clickSlop: CGFloat = 3
+
+    /// The table cell under a point, or nil outside a drawn table.
+    func tableCell(at point: NSPoint) -> CopyCell.Cell? {
         guard let cell = cell(at: point) else { return nil }
-        return CopyCell.text(in: TextGrid(lines: viewportRows()), row: cell.row, column: cell.column)
+        return CopyCell.cell(in: TextGrid(lines: viewportRows()), row: cell.row, column: cell.column)
     }
 
     /// Copies the table cell under the point; false (and nothing copied) outside a table.
     @discardableResult
     func copyTableCell(at point: NSPoint) -> Bool {
-        guard let text = tableCellText(at: point) else { return false }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        guard let text = tableCell(at: point)?.text else { return false }
+        NSPasteboard.calm.clearContents()
+        NSPasteboard.calm.setString(text, forType: .string)
         host?.surfaceDidCopyCell(self, at: point)
         return true
+    }
+
+    /// ⌥ alone, not with ⌘ (links), ⇧ or ⌃.
+    private static func isOptionOnly(_ flags: NSEvent.ModifierFlags) -> Bool {
+        flags.intersection([.option, .command, .shift, .control]) == .option
+    }
+
+    /// An ⌥-press over a table cell is kept back until it's a click or a drag.
+    func holdsCellPress(_ event: NSEvent) -> Bool {
+        guard Self.isOptionOnly(event.modifierFlags), tableCell(at: convert(event.locationInWindow, from: nil)) != nil else {
+            return false
+        }
+        heldCellPress = event
+        return true
+    }
+
+    /// A held press that moves becomes a drag: libghostty gets the press where it happened.
+    func dragsCellPress(_ event: NSEvent) {
+        guard let press = heldCellPress else { return }
+        let start = convert(press.locationInWindow, from: nil)
+        let now = convert(event.locationInWindow, from: nil)
+        guard hypot(now.x - start.x, now.y - start.y) > Self.clickSlop else { return }
+        heldCellPress = nil
+        updateCellOutline([])
+        sendMousePosition(press)
+        _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, press)
+    }
+
+    /// A held press released without moving is an ⌥-click: the cell is copied, and neither half
+    /// of the click reaches a program that takes the mouse.
+    func releasesCellPress(_ event: NSEvent) -> Bool {
+        guard let press = heldCellPress else { return false }
+        heldCellPress = nil
+        copyTableCell(at: convert(press.locationInWindow, from: nil))
+        // An older selection would stay highlighted, as if it were what was copied; a plain click
+        // is how the terminal lets go of one (libghostty has no action for it). Only where no
+        // program takes the mouse, which would take the click for its own.
+        if let surface, ghostty_surface_has_selection(surface), !ghostty_surface_mouse_captured(surface),
+           let plain = NSEvent.mouseEvent(
+               with: .leftMouseDown, location: press.locationInWindow, modifierFlags: [], timestamp: event.timestamp,
+               windowNumber: event.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1,
+           ) {
+            sendMousePosition(plain)
+            _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, plain)
+            _ = sendMouseButton(GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, plain)
+        }
+        return true
+    }
+
+    /// Outlines the cell under the pointer while ⌥ alone is held, and nothing otherwise.
+    func updateCellOutline(_ flags: NSEvent.ModifierFlags) {
+        guard Self.isOptionOnly(flags), let pointer = links.pointer, let under = cell(at: pointer)
+        else {
+            links.cellOutlineProbe = nil
+            links.cellOutline = nil
+            return
+        }
+        let probe = CellRun(row: under.row, columns: under.column ..< under.column + 1)
+        guard probe != links.cellOutlineProbe else { return }
+        links.cellOutlineProbe = probe
+        guard let cell = CopyCell.cell(in: TextGrid(lines: viewportRows()), row: under.row, column: under.column),
+              let origin = gridOrigin(),
+              let top = rect(row: cell.rows.lowerBound, columns: cell.columns, origin: origin),
+              let bottom = rect(row: cell.rows.upperBound, columns: cell.columns, origin: origin)
+        else {
+            links.cellOutline = nil
+            return
+        }
+        links.cellOutline = top.union(bottom)
     }
 
     /// The right-click menu, when the program running doesn't take the mouse itself.
     override func menu(for event: NSEvent) -> NSMenu? {
         let point = convert(event.locationInWindow, from: nil)
         let menu = NSMenu()
-        if tableCellText(at: point) != nil {
+        if tableCell(at: point) != nil {
             let item = NSMenuItem(title: "Copy Cell", action: #selector(copyCellFromMenu(_:)), keyEquivalent: "")
             item.representedObject = NSValue(point: point)
             item.target = self

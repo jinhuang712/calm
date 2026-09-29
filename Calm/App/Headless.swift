@@ -40,3 +40,12 @@ enum Headless {
         window.orderFrontRegardless()
     }
 }
+
+extension NSPasteboard {
+    /// The pasteboard Calm copies to and pastes from: the general one, or a private one in a
+    /// headless self-test, so a run never reads or replaces the user's clipboard (a test that
+    /// saved and put back only text once lost an image the user had copied).
+    static var calm: NSPasteboard {
+        Headless.isOn ? NSPasteboard(name: .init("calm-selftest")) : .general
+    }
+}

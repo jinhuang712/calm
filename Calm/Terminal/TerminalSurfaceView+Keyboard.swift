@@ -8,6 +8,7 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     // MARK: Key events
 
     override func keyDown(with event: NSEvent) {
+        updateCellOutline([]) // typing puts it away, as it does a link's tag
         guard let surface else {
             interpretKeyEvents([event])
             return
@@ -86,6 +87,7 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     }
 
     override func flagsChanged(with event: NSEvent) {
+        updateCellOutline(event.modifierFlags)
         let mod: UInt32 = switch event.keyCode {
         case 0x39: GHOSTTY_MODS_CAPS.rawValue
         case 0x38, 0x3C: GHOSTTY_MODS_SHIFT.rawValue

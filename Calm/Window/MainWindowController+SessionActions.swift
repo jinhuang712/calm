@@ -58,8 +58,7 @@ extension MainWindowController {
     /// Puts what `copy` names for `id` on the pasteboard, with a quiet note by the pointer.
     func copy(_ copy: SessionCopy, of id: Session.ID) {
         guard let session = manager.workspace.session(id), let text = copy.text(for: session) else { return }
-        // Headless self-tests copy to a pasteboard of their own, so a run never replaces the user's clipboard.
-        let pasteboard = Headless.isOn ? NSPasteboard(name: .init("calm-selftest")) : .general
+        let pasteboard = NSPasteboard.calm
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         let pointer = window.map { container.convert($0.mouseLocationOutsideOfEventStream, from: nil) }

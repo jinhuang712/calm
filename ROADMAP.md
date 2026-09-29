@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4 and M7 (2026-09-30). What is left: Copy Cell in Claude Code's full-screen view, which failed in that use (M5); a VoiceOver pass and a new user's first minute (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
+**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4 and M7 (2026-09-30). What is left: the author's use of Copy Cell's new ⌥-click, reworked after the old gesture failed in Claude Code's full-screen view (M5); a VoiceOver pass and a new user's first minute (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
 
 ## How to read this
 
@@ -144,7 +144,7 @@ Any past conversation, across every agent, is one search away.
 Agent output is easy to act on.
 
 - [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
-- [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu.
+- [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu. *Reworked after real use (2026-09-30): hold ⌥ to outline the cell under the pointer, ⌥-click to copy it, also in Claude Code's full-screen view; ⌥-drag still selects. Tested against Claude Code's own full-screen bytes.*
 - [x] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘\\ (first ⌘⇧E), follows the focused session. *Built: git listing off the main thread (or a bounded walk outside git), M/A/D/R/U markers and dots on changed folders, branch and change count in the header, 5 s refresh while shown, click opens the viewer with the viewed file highlighted. The sidebar and the column now slide without resizing the terminal on every frame. Redesigned after real use: a Changes section on top with each file's line counts (and the project's in the header), then the tree, drawn in the sidebar's metrics and aligned with it.*
 - [x] **M5.4 Decision:** viewer rendering — native or a web view.
 - [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
@@ -154,7 +154,7 @@ Agent output is easy to act on.
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.
 
-*Status: every task is built and self-tested headless. Left: **Copy Cell in Claude Code's full-screen view**, which failed in the author's real use (2026-09-30): ⌥-double-click copied the wrong text, and right-click offers no Copy Cell while a program takes the mouse. Opening paths and the viewer weren't reported either way. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
+*Status: every task is built and self-tested headless. Copy Cell failed in Claude Code's full-screen view in the author's real use (2026-09-30: ⌥-double-click copied a whole row, and right-click offers no Copy Cell while a program takes the mouse), and its gesture was reworked the same day (M5.2). Left: the author's use of the new ⌥-click, and a report on opening paths and the viewer. Right-click → Copy Cell while a program takes the mouse is to be discussed. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
 
 ---
 

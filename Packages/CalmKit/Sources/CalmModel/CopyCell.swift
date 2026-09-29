@@ -95,9 +95,22 @@ public enum CopyCell {
         "╔", "╗", "╚", "╝", "╦", "╩", "╠", "╣", "╬", "┝", "┥", "┿", "┠", "┨", "╂", "╋", "+", "|", "│", "║", "┃",
     ]
 
-    /// The cell's text at `row`/`column`, or nil when the click isn't inside a drawn table
+    /// One cell of a drawn table: its text, and where it is, for the outline drawn while ⌥ is held.
+    public struct Cell: Equatable, Sendable {
+        public let text: String
+        /// The lines it spans, and the columns between its two vertical lines.
+        public let rows: ClosedRange<Int>
+        public let columns: Range<Int>
+    }
+
+    /// The cell's text at `row`/`column`, or nil when the point isn't inside a drawn table
     /// (callers fall back to normal selection).
     public static func text(in grid: TextGrid, row: Int, column: Int) -> String? {
+        cell(in: grid, row: row, column: column)?.text
+    }
+
+    /// The cell at `row`/`column`, or nil outside a drawn table.
+    public static func cell(in grid: TextGrid, row: Int, column: Int) -> Cell? {
         guard grid.cells.indices.contains(row), !isRule(grid, row: row, from: 0, to: grid.cells[row].count),
               let (left, right) = borders(in: grid, row: row, column: column)
         else { return nil }
@@ -126,7 +139,7 @@ public enum CopyCell {
         let lines = (top ... bottom)
             .map { grid.text(row: $0, from: left + 1, to: right).trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        return lines.isEmpty ? nil : join(lines)
+        return lines.isEmpty ? nil : Cell(text: join(lines), rows: top ... bottom, columns: left + 1 ..< right)
     }
 
     /// The nearest vertical lines left and right of the column on its row.

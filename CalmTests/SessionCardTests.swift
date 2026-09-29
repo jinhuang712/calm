@@ -41,6 +41,24 @@ struct SessionCardTests {
         #expect(contrasted > ring)
     }
 
+    @MainActor @Test func `a state's own edge stays far fainter than the selection ring`() {
+        let style = SidebarStyle.derived(from: .black)
+        let ring = NSColor(style.selectionEdge).alphaComponent
+        for state in [SessionState.needsYou, .working, .done] {
+            let session = Session(projectID: UUID(), workingDirectory: "/tmp", state: state)
+            let card = SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style)
+            #expect(NSColor(card.border).alphaComponent < ring / 3)
+        }
+    }
+
+    @Test func `the selected surface is lifted lighter in both themes`() {
+        for background in [NSColor.black, NSColor.white] {
+            let lift = NSColor(SidebarStyle.derived(from: background).selectionLift).usingColorSpace(.sRGB)
+            #expect(lift?.brightnessComponent == 1)
+            #expect((lift?.alphaComponent ?? 0) > 0)
+        }
+    }
+
     @Test func `a finished turn says how many shells it left running`() {
         #expect(SessionCard.shellsLine(0) == nil)
         #expect(SessionCard.shellsLine(-1) == nil)

@@ -64,14 +64,21 @@ struct SessionCard: View {
         .padding(.horizontal, 12.scaled)
         .padding(.vertical, isCompact ? 8 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).fill(background))
-        .overlay(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).strokeBorder(border))
+        .background(Self.shape.fill(background))
+        // Under the card's own fill, so the selected card comes out lighter than the rest.
+        .background(Self.shape.fill(isSelected ? style.selectionLift : .clear))
+        .overlay(Self.shape.strokeBorder(border, lineWidth: SidebarStyle.selectionRingWidth))
         .contentShape(Rectangle())
         .animation(.easeInOut(duration: 0.25), value: session.state)
         .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.45), value: isConfirming)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    @MainActor
+    private static var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 12.scaled, style: .continuous)
     }
 
     /// The agent's own title (from its transcript) is steadier than the terminal title.
@@ -174,16 +181,20 @@ struct SessionCard: View {
         let color: Color
         let fill: Double
         let selectedFill: Double
-        let edge: Double
     }
+
+    /// How much of its color a state's card keeps at its edge. Faint on purpose: at 0.24 a row of
+    /// tinted cards each drew an edge nearly as bright as the selection ring, so the selected one
+    /// didn't stand out.
+    private static let stateEdge = 0.08
 
     private var tint: Tint? {
         // While the state is being checked the card doesn't wear it.
         guard !isConfirming else { return nil }
         switch session.state {
-        case .needsYou: return Tint(color: style.attention, fill: 0.14, selectedFill: 0.2, edge: 0.22)
-        case .working: return Tint(color: style.working, fill: 0.1, selectedFill: 0.15, edge: 0.24)
-        case .done: return Tint(color: style.done, fill: 0.1, selectedFill: 0.15, edge: 0.24)
+        case .needsYou: return Tint(color: style.attention, fill: 0.14, selectedFill: 0.2)
+        case .working: return Tint(color: style.working, fill: 0.1, selectedFill: 0.15)
+        case .done: return Tint(color: style.done, fill: 0.1, selectedFill: 0.15)
         case .idle, .failed: return nil
         }
     }
@@ -193,14 +204,14 @@ struct SessionCard: View {
         return tint.color.opacity(isSelected ? tint.selectedFill : tint.fill)
     }
 
-    /// A hairline that gives a highlighted card its edge. The selected card's is the same ring in
+    /// A faint edge for a card that wears a state; the selected card's is the ring, the same in
     /// every state, so which card you're in never depends on telling two tints apart.
     var border: Color {
         if isSelected {
             return style.selectionEdge
         }
         guard let tint else { return .clear }
-        return tint.color.opacity(tint.edge)
+        return tint.color.opacity(Self.stateEdge)
     }
 
     private var accessibilityText: String {

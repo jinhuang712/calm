@@ -31,7 +31,11 @@ struct SessionRow: View {
             RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
         )
-        .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(isSelected ? style.selectionEdge : .clear))
+        .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(isSelected ? style.selectionLift : .clear))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
+                .strokeBorder(isSelected ? style.selectionEdge : .clear, lineWidth: SidebarStyle.selectionRingWidth),
+        )
         .contentShape(Rectangle())
         // A scratch session's folder stays hidden.
         .help(session.lastReport?.message ?? (session.isScratch ? "" : session.workingDirectory))

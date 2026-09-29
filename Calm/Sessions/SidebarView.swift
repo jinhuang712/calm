@@ -7,9 +7,15 @@ import SwiftUI
 struct SidebarStyle: Equatable {
     var background: Color
     var selection: Color
-    /// The hairline around the selected row. A state is a color and the selection is a ring, so
-    /// the two never blur: a done card's slightly lighter sage read as "more done", not "selected".
+    /// The ring around the selected row. A state is a color and the selection is a ring and a
+    /// lighter surface, so the two never blur: a done card's slightly stronger sage alone read as
+    /// "more done", not "selected".
     var selectionEdge: Color
+    /// Laid under the selected card's own fill, so it comes out lighter than the cards around it
+    /// in either theme (a darker card in light mode turned the tints muddy).
+    var selectionLift: Color
+    /// The ring's width in points, inside the row's edge so choosing a row moves nothing.
+    static let selectionRingWidth: CGFloat = 1.5
     var primary: Color
     var secondary: Color
     var tertiary: Color
@@ -73,9 +79,10 @@ struct SidebarStyle: Equatable {
         style.secondary = Color(nsColor: ink.withAlphaComponent(0.82))
         style.tertiary = Color(nsColor: ink.withAlphaComponent(0.66))
         style.selection = Color(nsColor: ink.withAlphaComponent(isDark ? 0.16 : 0.14))
-        // Higher than the plain ring's 0.3 because `ink` is the theme's text color, a step dimmer
-        // than the white or black the plain ring uses.
-        style.selectionEdge = Color(nsColor: ink.withAlphaComponent(isDark ? 0.75 : 0.7))
+        // Pure white or black, not the theme's text color: that is a step dimmer, and the ring
+        // would come out no stronger than the plain one.
+        style.selectionEdge = Color(nsColor: (isDark ? NSColor.white : NSColor.black).withAlphaComponent(0.85))
+        style.selectionLift = Color(nsColor: NSColor.white.withAlphaComponent(isDark ? 0.16 : 0.5))
         return style
     }
 
@@ -89,7 +96,8 @@ struct SidebarStyle: Equatable {
         return SidebarStyle(
             background: Color(nsColor: background),
             selection: Color(nsColor: ink.withAlphaComponent(isDark ? 0.08 : 0.07)),
-            selectionEdge: Color(nsColor: ink.withAlphaComponent(isDark ? 0.3 : 0.28)),
+            selectionEdge: Color(nsColor: ink.withAlphaComponent(isDark ? 0.6 : 0.55)),
+            selectionLift: Color(nsColor: NSColor.white.withAlphaComponent(isDark ? 0.1 : 0.35)),
             primary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.86 : 0.85)),
             secondary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.55 : 0.55)),
             tertiary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.38 : 0.4)),

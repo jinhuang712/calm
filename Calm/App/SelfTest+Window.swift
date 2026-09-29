@@ -281,6 +281,13 @@
                     tail.directory = String(folder.dropFirst(13))
                     manager.transcriptChanged(id, tail, modified: .now)
                 }
+            case let title where title.hasPrefix("agent_title:"):
+                // agent_title:<text>: the agent in the focused session has this title (run agent:<state>
+                // first), as its transcript gives: the name the title strip shows above the folder.
+                if let id = focusedPane?.id, var tail = manager.workspace.session(id)?.agent?.tail {
+                    tail.title = String(title.dropFirst(12))
+                    manager.transcriptChanged(id, tail, modified: .now)
+                }
             case let text where text.hasPrefix("copy:"):
                 // copy:<sessionID|resumeCommand|folderPath>: what the title's ⋯ menu copies, read back from
                 // the self-test pasteboard.

@@ -30,19 +30,16 @@ struct SessionTitleView: View {
         let worktree = session?.worktreeName
         HStack(spacing: 8.scaled) {
             Group {
-                // The worktree's pill sits beside the title and shows whole or not at all, like
-                // the files column's branch: the title comes first, so a long one never trades
-                // for it. (Two explicit children: ViewThatFits mustn't get an empty one.)
+                // The worktree joins the folder line and shows whole or not at all: the name and
+                // the folder come first, so a long one never trades for it. (Two explicit
+                // children: ViewThatFits mustn't get an empty one.)
                 if let worktree {
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 10.scaled) {
-                            titleBlock(strip: strip, title: title)
-                            GitPill(text: worktree, kind: "worktree", style: style)
-                        }
-                        titleBlock(strip: strip, title: title)
+                        titleBlock(strip: strip, title: title, worktree: worktree)
+                        titleBlock(strip: strip, title: title, worktree: nil)
                     }
                 } else {
-                    titleBlock(strip: strip, title: title)
+                    titleBlock(strip: strip, title: title, worktree: nil)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,32 +59,56 @@ struct SessionTitleView: View {
         .onChange(of: title, initial: true) { _, title in onChange(title) }
     }
 
-    /// The group's mark and the two lines of text.
-    private func titleBlock(strip: (folder: String?, title: String?), title: String) -> some View {
-        HStack(spacing: 10.scaled) {
+    /// The group's mark and the two lines of text: the name, then the folder with the worktree
+    /// after it. A plain shell has its folder as the name, so the worktree takes the second line
+    /// alone.
+    private func titleBlock(strip: (folder: String?, title: String?), title: String, worktree: String?) -> some View {
+        let folder = strip.title == nil ? nil : strip.folder
+        return HStack(spacing: 10.scaled) {
             // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
             // folder or scratch glyph, so the text starts in the same place for every session.
             if let project {
                 GroupMark(project: project, style: style)
                     .foregroundStyle(style.tertiary)
                     .frame(width: 20.scaled, height: 20.scaled)
+                    // The window's title carries the name for VoiceOver, the Window menu and
+                    // Mission Control, so the name, the folder and the mark stay out of it.
+                    .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .calmFont(size: 13.5, weight: .medium)
                     .foregroundStyle(style.primary)
                     .truncationMode(.tail)
-                if strip.title != nil, let folder = strip.folder {
-                    Text(folder)
-                        .calmFont(size: 11)
-                        .foregroundStyle(style.tertiary)
-                        .truncationMode(.head)
+                    .accessibilityHidden(true)
+                if folder != nil || worktree != nil {
+                    HStack(spacing: 6.scaled) {
+                        if let folder {
+                            Text(folder)
+                                .truncationMode(.head)
+                                .accessibilityHidden(true)
+                        }
+                        if let worktree {
+                            if folder != nil {
+                                Text("·")
+                                    .accessibilityHidden(true)
+                            }
+                            // The card's worktree line, at this line's size.
+                            HStack(spacing: 4.scaled) {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .calmFont(size: 10, weight: .medium)
+                                Text(worktree)
+                            }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("worktree \(worktree)")
+                        }
+                    }
+                    .calmFont(size: 11)
+                    .foregroundStyle(style.tertiary)
                 }
             }
             .lineLimit(1)
         }
-        // The window's title carries it for VoiceOver, the Window menu and Mission Control.
-        .accessibilityHidden(true)
     }
 
     /// Quiet until the pointer is on it: the row is a title first.

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A quiet pill with the git mark and a name: the files column's branch, the title strip's
-/// worktree. One view, so the two read as the same kind of thing.
+/// A quiet pill with the git mark and a name: the files column's branch. (The title strip's
+/// worktree is plain text on the folder line, like the session card's.)
 struct GitPill: View {
     let text: String
     /// What the name is, for VoiceOver ("branch", "worktree").

@@ -24,11 +24,32 @@ final class SessionProbe {
     private var foregroundJobs: [Session.ID: Int32] = [:]
     /// Size and modification time of each agent transcript when last read.
     private var transcriptStamps: [Session.ID: TranscriptStamp] = [:]
+    /// Sessions whose transcript is being read right now, off the main thread.
+    private var readingTranscripts: Set<Session.ID> = []
+    /// When Calm last looked for each session's transcript.
+    private var lastDiscoveries: [Session.ID: Date] = [:]
 
-    private struct TranscriptStamp: Equatable {
+    /// Size and modification time of the files that show a transcript changed (a database's
+    /// write-ahead log grows while the database file stays put).
+    private struct TranscriptStamp: Equatable, Sendable {
+        struct Mark: Equatable, Sendable {
+            var size: Int
+            var modified: Date
+        }
+
         var path: String
-        var size: Int
-        var modified: Date
+        var marks: [Mark]
+
+        var modified: Date {
+            marks.map(\.modified).max() ?? .distantPast
+        }
+    }
+
+    /// What one background read of an agent's transcript found.
+    private struct TranscriptRead: Sendable {
+        var located: (agentSessionID: String, path: String)?
+        var stamp: TranscriptStamp?
+        var tail: TranscriptTail?
     }
 
     func start() {
@@ -70,35 +91,83 @@ final class SessionProbe {
         let live = Set(manager.workspace.sessions.map(\.id))
         foregroundJobs = foregroundJobs.filter { live.contains($0.key) }
         transcriptStamps = transcriptStamps.filter { live.contains($0.key) }
+        lastDiscoveries = lastDiscoveries.filter { live.contains($0.key) }
     }
 
-    /// Re-reads an agent's transcript when it changed (found from its process if no hook said
-    /// where it is).
+    /// Re-reads an agent's transcript when it changed. The reading is file work (a Codex or pi
+    /// transcript can hold megabytes of tool output to step past), so it runs off the main
+    /// thread and the result comes back to it.
+    ///
+    /// Where the transcript is: what a hook said, else what the adapter finds from the agent's
+    /// process. Finding is tried every few seconds until it works, then every so often again,
+    /// because an agent's own `/new` starts another transcript.
     private func readTranscriptIfChanged(_ id: Session.ID, _ agent: AgentRun) {
-        guard let reader = Agents.transcriptReader(for: agent.kind) else { return }
+        guard !readingTranscripts.contains(id), let reader = Agents.transcriptReader(for: agent.kind) else { return }
+        let known = (path: agent.transcriptPath, agentSessionID: agent.agentSessionID)
+        let interval: TimeInterval = known.path == nil ? 4 : 20
+        let discover = agent.processID > 0 && Date().timeIntervalSince(lastDiscoveries[id] ?? .distantPast) > interval
+        guard discover || known.path != nil else { return }
+        if discover {
+            lastDiscoveries[id] = Date()
+        }
+        readingTranscripts.insert(id)
+        let previous = transcriptStamps[id]
+        let processID = agent.processID
+        let kind = agent.kind
         let home = FileManager.default.homeDirectoryForCurrentUser
-        var path = agent.transcriptPath
-        var agentSessionID = agent.agentSessionID
-        if path == nil, agent.processID > 0, let found = reader.transcript(forProcess: agent.processID, home: home) {
+        Task.detached(priority: .utility) { [weak self] in
+            let read = Self.readTranscript(
+                reader, home: home, processID: processID, known: known, discover: discover, previous: previous,
+            )
+            await self?.finishReading(id, kind: kind, read)
+        }
+    }
+
+    private nonisolated static func readTranscript(
+        _ reader: any TranscriptReading,
+        home: URL,
+        processID: Int32,
+        known: (path: String?, agentSessionID: String?),
+        discover: Bool,
+        previous: TranscriptStamp?,
+    ) -> TranscriptRead {
+        var path = known.path
+        var agentSessionID = known.agentSessionID
+        var located: (agentSessionID: String, path: String)?
+        if discover, let found = reader.transcript(forProcess: processID, home: home), found.url.path != path {
             path = found.url.path
             agentSessionID = found.agentSessionID
-            SessionManager.shared.noteAgentSession(
-                id,
-                kind: agent.kind,
-                agentSessionID: found.agentSessionID,
-                transcriptPath: found.url.path,
+            located = (found.agentSessionID, found.url.path)
+        }
+        guard let path else { return TranscriptRead(located: located) }
+        let url = URL(filePath: path)
+        let marks = reader.changeMarkers(of: url).compactMap { file -> TranscriptStamp.Mark? in
+            guard let attributes = try? FileManager.default.attributesOfItem(atPath: file.path) else { return nil }
+            return TranscriptStamp.Mark(
+                size: (attributes[.size] as? NSNumber)?.intValue ?? 0,
+                modified: attributes[.modificationDate] as? Date ?? .distantPast,
             )
         }
-        guard let path, let attributes = try? FileManager.default.attributesOfItem(atPath: path) else { return }
-        let stamp = TranscriptStamp(
-            path: path,
-            size: (attributes[.size] as? NSNumber)?.intValue ?? 0,
-            modified: attributes[.modificationDate] as? Date ?? .distantPast,
+        let stamp = TranscriptStamp(path: path, marks: marks)
+        guard !marks.isEmpty, stamp != previous else { return TranscriptRead(located: located) }
+        return TranscriptRead(
+            located: located, stamp: stamp, tail: reader.readTail(of: url, agentSessionID: agentSessionID, home: home),
         )
-        guard transcriptStamps[id] != stamp else { return }
-        transcriptStamps[id] = stamp
-        if let tail = reader.readTail(of: URL(filePath: path), agentSessionID: agentSessionID, home: home) {
-            SessionManager.shared.transcriptChanged(id, tail, modified: stamp.modified)
+    }
+
+    private func finishReading(_ id: Session.ID, kind: AgentKind, _ read: TranscriptRead) {
+        readingTranscripts.remove(id)
+        let manager = SessionManager.shared
+        // The agent may have exited, or another started, while the file was being read.
+        guard manager.workspace.session(id)?.agent?.kind == kind else { return }
+        if let located = read.located {
+            manager.noteAgentSession(id, kind: kind, agentSessionID: located.agentSessionID, transcriptPath: located.path)
+        }
+        if let stamp = read.stamp {
+            transcriptStamps[id] = stamp
+            if let tail = read.tail {
+                manager.transcriptChanged(id, tail, modified: stamp.modified)
+            }
         }
     }
 

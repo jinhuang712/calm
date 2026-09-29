@@ -42,13 +42,3 @@ public extension PiAdapter {
         "pi --fork \(shellQuoted(transcriptPath))"
     }
 }
-
-public extension OmpAdapter {
-    func resumeCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
-        agentSessionID.map { "omp --resume \(shellQuoted($0))" }
-    }
-
-    func forkCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
-        agentSessionID.map { "omp --fork \(shellQuoted($0))" }
-    }
-}

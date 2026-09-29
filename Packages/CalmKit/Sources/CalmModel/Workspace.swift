@@ -219,6 +219,34 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+extension Session {
+    private enum CodingKeys: String, CodingKey {
+        case id, projectID, title, workingDirectory, isPinned, state, stateSince, lastReport, agent, createdAt
+        case customName, lastConversation, scratchFolder
+    }
+
+    /// Decodes as the compiler would, except for the agent fields: a state file that names an
+    /// agent Calm no longer supports (omp, removed 2026-09-29) reads as no agent there, instead
+    /// of failing the whole workspace, which would start the user over with none of their
+    /// projects and sessions. Every other field decodes exactly as before.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        projectID = try container.decode(Project.ID.self, forKey: .projectID)
+        title = try container.decode(String.self, forKey: .title)
+        workingDirectory = try container.decode(String.self, forKey: .workingDirectory)
+        isPinned = try container.decode(Bool.self, forKey: .isPinned)
+        state = try container.decode(SessionState.self, forKey: .state)
+        stateSince = try container.decodeIfPresent(Date.self, forKey: .stateSince)
+        lastReport = try container.decodeIfPresent(StatusReport.self, forKey: .lastReport)
+        agent = try? container.decodeIfPresent(AgentRun.self, forKey: .agent)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        customName = try container.decodeIfPresent(String.self, forKey: .customName)
+        lastConversation = try? container.decodeIfPresent(AgentConversation.self, forKey: .lastConversation)
+        scratchFolder = try container.decodeIfPresent(String.self, forKey: .scratchFolder)
+    }
+}
+
 /// How sessions are arranged on screen: one split tree per "stack". The main area shows
 /// one layout at a time; picking a session in the sidebar shows the layout it lives in.
 public struct PaneLayout: Identifiable, Codable, Hashable, Sendable {

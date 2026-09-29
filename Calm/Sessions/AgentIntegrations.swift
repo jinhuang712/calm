@@ -9,6 +9,10 @@ import OSLog
 /// (rewritten at each launch) and are loaded through `CLAUDE_CODE_PLUGIN_DIRS` in the shells Calm
 /// starts: nothing is written to the user's Claude settings, and Claude sessions outside Calm
 /// never see it. `claude-code-hooks = false` under `[agents]` in config.toml turns it off.
+///
+/// An agent the user connected through a file (pi's extension) keeps that file current: at each
+/// launch Calm rewrites its own file if this version's differs. It never adds one: connecting is
+/// the user's choice, in Settings → Agents.
 @MainActor
 enum AgentIntegrations {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "agents")
@@ -29,6 +33,23 @@ enum AgentIntegrations {
                 try contents.write(to: url, atomically: true, encoding: .utf8)
             } catch {
                 log.error("couldn't write \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        refreshConnectedFiles()
+    }
+
+    /// Brings the files Calm wrote into agents' config folders up to date (see above).
+    private static func refreshConnectedFiles() {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        for adapter in Agents.adapters {
+            guard case let .files(files) = adapter.setup else { continue }
+            do {
+                for path in try AgentSetupFiles.refresh(files, home: home) {
+                    log.info("updated \(path, privacy: .public)")
+                }
+            } catch {
+                let reason = error.localizedDescription
+                log.error("couldn't update \(adapter.kind.rawValue, privacy: .public)'s file: \(reason, privacy: .public)")
             }
         }
     }

@@ -15,7 +15,7 @@ Make supervising many CLI coding agents on a Mac feel calm: the user always know
 | G5 | **Organized automatically** | Sessions group under their project folder with no manual arranging |
 | G6 | **Comfortable reading** | Copying a table cell, opening a path at a line and previewing a file each take one action |
 | G7 | **Calm by default** | Soft themes, gentle motion and quiet status out of the box; very few settings |
-| G8 | **Every major agent** | Claude Code, Codex, OpenCode, pi and omp are all detected and tracked |
+| G8 | **Every major agent** | Claude Code, Codex, OpenCode and pi are all detected and tracked |
 | G9 | **Native and fast** | Launches quickly, feels like a Mac app, renders through libghostty |
 
 ## Non-goals

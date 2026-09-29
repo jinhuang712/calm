@@ -14,7 +14,6 @@ struct AgentSetupTests {
         let setups = Dictionary(uniqueKeysWithValues: Agents.adapters.map { ($0.kind, $0.setup) })
         #expect(setups[.claudeCode] == .automatic)
         #expect(setups[.codex] == .notifications)
-        #expect(setups[.omp] == .notifications)
         guard case .hint = try #require(setups[.openCode]) else { Issue.record("OpenCode should be a hint"); return }
         guard case let .files(files) = try #require(setups[.pi]) else { Issue.record("pi should install a file"); return }
         #expect(files.keys.sorted() == [".pi/agent/extensions/calm.ts"])
@@ -93,6 +92,45 @@ struct AgentSetupTests {
         }
     }
 
+    @Test func `the pi extension says which conversation it is, without ever failing on it`() {
+        let source = PiAdapter.extensionSource
+        // Every report names the agent and, when pi knows it, the session file and id.
+        #expect(source.contains(#"["status", "--agent", "pi", ...conversation(ctx), state]"#))
+        #expect(source.contains("ctx?.sessionManager?.getSessionFile?.()"))
+        #expect(source.contains("ctx?.sessionManager?.getSessionId?.()"))
+        #expect(source.contains(#""--transcript", file"#))
+        #expect(source.contains(#""--agent-session", id"#))
+        // A missing or throwing accessor gives no flags rather than no report.
+        #expect(source.contains("} catch {\n      return [];"))
+    }
+
+    @Test func `refresh brings Calm's own file up to date and touches nothing else`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let old = ["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n// old\n"]
+        let new = ["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n// new\n", "tool/extensions/other.ts": "// \(AgentSetup.marker)\n"]
+        // Not connected: nothing is added.
+        #expect(try AgentSetupFiles.refresh(new, home: home).isEmpty)
+        #expect(AgentSetupFiles.state(of: new, home: home) == .notInstalled)
+        // Connected with an older version: rewritten; the file the user never installed stays absent.
+        try AgentSetupFiles.install(old, home: home)
+        #expect(try AgentSetupFiles.refresh(new, home: home) == ["tool/extensions/calm.ts"])
+        #expect(try String(contentsOf: home.appending(path: "tool/extensions/calm.ts"), encoding: .utf8).contains("// new"))
+        #expect(!FileManager.default.fileExists(atPath: home.appending(path: "tool/extensions/other.ts").path))
+        // Up to date: nothing to do.
+        #expect(try AgentSetupFiles.refresh(new, home: home).isEmpty)
+    }
+
+    @Test func `refresh leaves a file Calm didn't write alone`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let url = home.appending(path: "tool/extensions/calm.ts")
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "// the user's own file\n".write(to: url, atomically: true, encoding: .utf8)
+        #expect(try AgentSetupFiles.refresh(["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n"], home: home).isEmpty)
+        #expect(try String(contentsOf: url, encoding: .utf8) == "// the user's own file\n")
+    }
+
     @Test func `install, notice, and remove only Calm's own files`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -132,7 +170,6 @@ struct AgentSetupTests {
         #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex fork '019a'")
         #expect(CodexAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
         #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a b.jsonl") == "pi --fork '/s/a b.jsonl'")
-        #expect(OmpAdapter().forkCommand(agentSessionID: "s1", transcriptPath: "/x") == "omp --fork 's1'")
         #expect(OpenCodeAdapter().forkCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
     }
 }

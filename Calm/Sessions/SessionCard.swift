@@ -297,7 +297,6 @@ extension AgentKind {
         case .codex: "X"
         case .openCode: "O"
         case .pi: "π"
-        case .omp: "ω"
         }
     }
 }

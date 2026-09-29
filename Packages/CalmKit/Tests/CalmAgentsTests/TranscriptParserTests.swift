@@ -78,7 +78,7 @@ struct TranscriptParserTests {
     }
 
     @Test func `every searchable agent has folders`() {
-        #expect(Set(Agents.indexers.map(\.kind)) == [.claudeCode, .codex, .pi, .omp])
+        #expect(Set(Agents.indexers.map(\.kind)) == [.claudeCode, .codex, .pi])
         #expect(Agents.indexers.allSatisfy { !$0.transcriptFolders.isEmpty })
     }
 

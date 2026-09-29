@@ -125,7 +125,7 @@ struct AgentsSection: View {
             GroupHeading(title: "Installed", style: style)
             if model.rows.isEmpty {
                 SettingsGroup(style: style) {
-                    Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode, pi and omp once they're installed.")
+                    Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode and pi once they're installed.")
                         .calmFont(size: SettingsMetrics.note)
                         .foregroundStyle(style.secondary)
                         .padding(SettingsMetrics.rowInset)

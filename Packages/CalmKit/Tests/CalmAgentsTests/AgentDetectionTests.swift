@@ -12,7 +12,6 @@ struct AgentDetectionTests {
         #expect(Agents.detect(process("/Users/me/.local/bin/claude", ["claude"])) == .claudeCode)
         #expect(Agents.detect(process("/opt/homebrew/bin/codex", ["codex", "--full-auto"])) == .codex)
         #expect(Agents.detect(process("/Users/me/.opencode/bin/opencode", ["opencode"])) == .openCode)
-        #expect(Agents.detect(process("/Users/me/.bun/bin/omp", ["omp"])) == .omp)
     }
 
     @Test func `claude code's versioned binary and its helpers`() {
@@ -48,7 +47,12 @@ struct AgentDetectionTests {
         #expect(Agents.detect(process("/opt/homebrew/bin/node", ["node", piScript])) == .pi)
         // pi renames itself through process.title, which rewrites argv[0].
         #expect(Agents.detect(process("/opt/homebrew/bin/node", ["pi"])) == .pi)
-        #expect(Agents.detect(process("/Users/me/.bun/bin/bun", ["bun", "/Users/me/src/oh-my-pi/packages/cli/src/index.ts"])) == .omp)
+    }
+
+    @Test func `omp is no longer an agent`() {
+        // Support was removed (2026-09-29): a running omp reads as a plain program.
+        #expect(Agents.detect(process("/Users/me/.bun/bin/omp", ["omp"])) == nil)
+        #expect(Agents.detect(process("/Users/me/.bun/bin/bun", ["bun", "/Users/me/src/oh-my-pi/packages/cli/src/index.ts"])) == nil)
     }
 
     @Test func `other programs are not agents`() {

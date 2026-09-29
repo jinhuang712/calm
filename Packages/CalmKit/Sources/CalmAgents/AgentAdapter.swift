@@ -110,7 +110,6 @@ public enum Agents {
         CodexAdapter(),
         OpenCodeAdapter(),
         PiAdapter(),
-        OmpAdapter(),
     ]
 
     /// The agent a foreground process is, if any.

@@ -16,13 +16,16 @@ let package = Package(
     targets: [
         .target(name: "CalmModel"),
         .target(name: "CalmControl"),
+        // The system SQLite behind a small wrapper (FTS5 with the trigram tokenizer for search),
+        // shared by the search index and the readers of an agent's own database: no dependency
+        // to add. Package-internal.
+        .target(name: "CalmSQLite"),
         // Marks: an agent's own animation frames, where it has them (AgentMarkArt.Frames).
-        .target(name: "CalmAgents", dependencies: ["CalmModel"], resources: [.copy("Marks")]),
-        // Uses the system SQLite (FTS5 with the trigram tokenizer): no dependency to add.
-        .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel"]),
+        .target(name: "CalmAgents", dependencies: ["CalmModel", "CalmSQLite"], resources: [.copy("Marks")]),
+        .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel", "CalmSQLite"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
-        .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents"], resources: [.copy("Fixtures")]),
-        .testTarget(name: "CalmSearchTests", dependencies: ["CalmSearch"]),
+        .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents", "CalmSQLite"], resources: [.copy("Fixtures")]),
+        .testTarget(name: "CalmSearchTests", dependencies: ["CalmSearch", "CalmSQLite"]),
     ],
 )

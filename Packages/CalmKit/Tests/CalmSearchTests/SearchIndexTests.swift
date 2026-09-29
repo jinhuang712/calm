@@ -1,6 +1,7 @@
 import CalmAgents
 import CalmModel
 @testable import CalmSearch
+import CalmSQLite
 import Foundation
 import Testing
 

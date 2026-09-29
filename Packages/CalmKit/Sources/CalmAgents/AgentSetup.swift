@@ -49,12 +49,6 @@ public extension CodexAdapter {
     }
 }
 
-public extension OmpAdapter {
-    var configFolder: String? {
-        ".omp"
-    }
-}
-
 public extension OpenCodeAdapter {
     var configFolder: String? {
         ".config/opencode"
@@ -96,8 +90,11 @@ public extension PiAdapter {
 
     /// A pi extension (API checked against pi 0.87.1's `extensions/types.d.ts`): `agent_start`
     /// → working; `agent_settled` → done, failed or idle by the outcome `agent_before_settle`
-    /// saw; `ui_prompt_start`/`ui_prompt_end` → needs you and back. pi awaits handlers, so
-    /// reports are spawned detached and never waited for; nothing starts in the factory itself.
+    /// saw; `ui_prompt_start`/`ui_prompt_end` → needs you and back. Every report also says which
+    /// conversation this is (`ctx.sessionManager.getSessionFile()`/`getSessionId()`, read each
+    /// time because `/new` and `/resume` change it), so Calm reads that transcript exactly
+    /// instead of looking for it. pi awaits handlers, so reports are spawned detached and never
+    /// waited for; nothing starts in the factory itself.
     internal static let extensionSource = """
     // \(AgentSetup.marker): reports this pi session's state to Calm, only inside Calm.
     // Delete this file (or use Calm → Agents… → Disconnect) to stop.
@@ -106,20 +103,32 @@ public extension PiAdapter {
     export default function (pi: any) {
       const cli = process.env.CALM_CLI;
       if (!cli || !process.env.CALM_SESSION_ID) return;
-      const report = (state: string, message?: string) => {
+      const conversation = (ctx: any): string[] => {
         try {
-          const args = message ? ["status", state, message] : ["status", state];
+          const file = ctx?.sessionManager?.getSessionFile?.();
+          const id = ctx?.sessionManager?.getSessionId?.();
+          return [...(file ? ["--transcript", file] : []), ...(id ? ["--agent-session", id] : [])];
+        } catch {
+          return [];
+        }
+      };
+      const report = (ctx: any, state: string, message?: string) => {
+        try {
+          const args = ["status", "--agent", "pi", ...conversation(ctx), state];
+          if (message) args.push(message);
           spawn(cli, args, { stdio: "ignore", detached: true }).unref();
         } catch {}
       };
       let outcome = "completed";
-      pi.on("agent_start", () => report("working"));
+      pi.on("agent_start", (_event: any, ctx: any) => report(ctx, "working"));
       pi.on("agent_before_settle", (event: any) => {
         outcome = event?.outcome ?? "completed";
       });
-      pi.on("agent_settled", () => report(outcome === "error" ? "failed" : outcome === "aborted" ? "idle" : "done"));
-      pi.on("ui_prompt_start", (event: any) => report("needs-you", event?.title));
-      pi.on("ui_prompt_end", () => report("working"));
+      pi.on("agent_settled", (_event: any, ctx: any) =>
+        report(ctx, outcome === "error" ? "failed" : outcome === "aborted" ? "idle" : "done"),
+      );
+      pi.on("ui_prompt_start", (event: any, ctx: any) => report(ctx, "needs-you", event?.title));
+      pi.on("ui_prompt_end", (_event: any, ctx: any) => report(ctx, "working"));
     }
 
     """
@@ -154,6 +163,23 @@ public enum AgentSetupFiles {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try contents.write(to: url, atomically: true, encoding: .utf8)
         }
+    }
+
+    /// Brings files Calm wrote earlier (the user connected the agent) up to date with this
+    /// version's contents. Only a file that carries the marker and differs is rewritten; one
+    /// that isn't there, or that the user made, is left alone. Returns the paths rewritten.
+    @discardableResult
+    public static func refresh(_ files: [String: String], home: URL) throws -> [String] {
+        var rewritten: [String] = []
+        for (path, contents) in files.sorted(by: { $0.key < $1.key }) {
+            let url = home.appending(path: path)
+            guard let current = try? String(contentsOf: url, encoding: .utf8), current.contains(AgentSetup.marker),
+                  current != contents
+            else { continue }
+            try contents.write(to: url, atomically: true, encoding: .utf8)
+            rewritten.append(path)
+        }
+        return rewritten
     }
 
     public static func remove(_ files: [String: String], home: URL) throws {

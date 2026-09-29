@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** none open. M0 to M7 are all built and self-tested headless. What is left is the author's real use (M3's week of work with agents; the "Left" notes under M4 to M7), the other agents' gaps (M3.4, M3.7b, M4 and M7 for OpenCode) and the *Later* list. The dogfooding day (M1.12) was skipped by the author on 2026-09-29.
+**Current milestone:** none open. M0 to M7 are all built and self-tested headless. What is left is the author's real use (M3's week of work with agents; the "Left" notes under M4 to M7), the other agents' gaps (OpenCode search indexing in M4 and OpenCode resume and fork in M7) and the *Later* list. The dogfooding day (M1.12) was skipped by the author on 2026-09-29.
 
 ## How to read this
 
@@ -99,14 +99,14 @@ The core model arrives: sessions grouped under projects, restored after quitting
 
 Calm knows what every agent is doing and interrupts only when one needs you.
 
-- [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
-- [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
+- [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode and pi. *omp was supported too, until 2026-09-29: it was removed (little use, and not installed to check against). Saved sessions that mention it still load (DESIGNS.md → Supported agents).*
+- [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events and pi's extension API, and where each agent stores transcripts. Record findings in DESIGNS.md.
 - [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
-- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect. Codex and omp: their own notifications (hooks would need Codex's /hooks approval; later). OpenCode: its own attention notifications, off until `attention.notifications` is true in its `cli.json` (Settings → Agents says so, then reads Connected); no plugin, since its shared service can't be tied to a terminal yet.*
+- [x] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect; it names its conversation on every report (`calm status --agent pi --transcript …`), and Calm keeps the file current at launch. OpenCode: its own attention notifications, off until `attention.notifications` is true in its `cli.json` (Settings → Agents says so, then reads Connected); no plugin, since its shared service can't be tied to a terminal yet. **Codex hooks: decided 2026-09-29 not to build them.** Since Codex 0.157 every session runs in one shared daemon, which runs persistent hooks with its own environment, so a hook can't tell which Calm session it belongs to; its own notifications and Calm's transcript tails already give state, recap and interruption (DESIGNS.md → Codex hooks). Revisit if that daemon changes.*
 - [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
-- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code only, including the agent's own title and Esc interruptions (the only `TranscriptReading` adapter). The other four agents are M3.7b.*
-- [ ] **M3.7b Transcript tails for the other agents:** Codex, OpenCode, pi and omp readers on the same `TranscriptReading` protocol. *Until then their cards show state and whatever the agent reports, with no title, step or todo progress read from a transcript. Transcript formats are in DESIGNS.md → Research (M3.2).*
+- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code, including the agent's own title and Esc interruptions. The other four agents are M3.7b.*
+- [x] **M3.7b Transcript tails for the other agents:** Codex, OpenCode and pi readers on the same `TranscriptReading` protocol. *Built, and read against the author's real history (184 Codex rollouts, 192 pi sessions, 60 OpenCode sessions: none unreadable). What each gives a card: a recap and Esc interruptions; a title for pi and OpenCode (Codex keeps none in its files); no step or progress (no todo record appears in these agents' recent history). Reading runs off the main thread and steps past megabytes of tool output. Finding an agent's transcript without a hook: the file the process has open, else `codex resume <id>`, else the one transcript for its folder written since it started, and none when that is ambiguous. Verified end to end headless with stand-in agents. OpenCode search indexing (M4) and OpenCode resume and fork (M7) are still open.*
 - [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
@@ -117,7 +117,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.
 - No *needs you* is missed.
 
-*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: Codex hooks (need Codex's /hooks approval; its own notifications already work), transcript tails for Codex, OpenCode, pi and omp (M3.7b), diff size on cards (with the files column, M5), and the week of real use.*
+*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: an OpenCode plugin (blocked on its shared service), diff size on cards (with the files column, M5), and the week of real use.*
 
 ---
 
@@ -136,7 +136,7 @@ Any past conversation, across every agent, is one search away.
 **Exit criteria**
 - "Which session talked about X?" is answered with one search, most of the time.
 
-*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Left: the author's real use to confirm the exit criterion, and OpenCode's SQLite history (not indexed yet).*
+*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Left: the author's real use to confirm the exit criterion, and OpenCode's SQLite history (not indexed yet: OpenCode 2 keeps it in `session_v2` and `session_message`, and the database wrapper now lives in `CalmSQLite` where `CalmAgents` can use it).*
 
 ---
 
@@ -190,7 +190,7 @@ Conversations can be renamed, resumed and forked.
 
 - [x] **M7.1 Rename:** rename any session. *Inline, from the card's menu; saved with the workspace.*
 - [x] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command. *In place after the agent exits (the session remembers its conversation); closed sessions from ⌘K.*
-- [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi, omp.*
+- [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi.*
 - [x] **M7.4 Menus:** right-click actions on session cards.
 - [x] **M7.5 Reopen closed session:** ⌘⇧T opens the session closed last again (up to ten, in memory), resuming the agent conversation that was running in it. *Ghostty's `undo` binding on ⌘⇧T is unbound in Calm's defaults.*
 

@@ -37,13 +37,13 @@ extension ClaudeCodeAdapter: TranscriptReading {
     }
 
     public func readTail(of transcript: URL, agentSessionID: String?, home: URL) -> TranscriptTail? {
-        let records = JSONLTail.records(at: transcript)
-        guard !records.isEmpty else { return nil }
         var tail = TranscriptTail()
         var customTitle: String?
         var aiTitle: String?
         var sawConversation = false
-        for record in records { // newest first
+        var sawRecord = false
+        for record in JSONLTail(transcript) { // newest first
+            sawRecord = true
             // Every conversation record says where Claude was when it wrote it; the newest one
             // is where it is now (`~/.claude/sessions/<pid>.json` keeps the launch folder).
             if tail.directory == nil, let cwd = record["cwd"] as? String, !cwd.isEmpty {
@@ -73,6 +73,7 @@ extension ClaudeCodeAdapter: TranscriptReading {
                 break
             }
         }
+        guard sawRecord else { return nil }
         tail.title = [customTitle, aiTitle].compactMap(\.self).first { !$0.isEmpty }
         let sessionID = agentSessionID ?? transcript.deletingPathExtension().lastPathComponent
         let (step, progress) = Self.todos(in: home.appending(path: ".claude/tasks/\(sessionID)"))

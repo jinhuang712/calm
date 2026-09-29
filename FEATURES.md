@@ -29,9 +29,19 @@ A fast, correct terminal on libghostty.
   - **Scratch**, on top: sessions started with **⌘⇧N** (or the dashed button at the bottom of the sidebar), each in a new empty folder of its own that Calm keeps out of sight (under `~/.local/share/calm/scratch`, left out of Time Machine backups). They're short-lived: a row's **×** closes one when you're done. Closing one whose folder is empty removes the folder; one that made files asks: **Move to Trash**, **Keep as Project…** (the folder moves where you pick and becomes a project), or Cancel. Only ⌘⇧N makes scratch sessions: ⌘T or a split from one opens a normal session in your home folder.
   - **Projects** you made (+ New Project or **⌘O**, dropping a folder on the sidebar, or `calm open <folder>`): each opens with a session in it. Each gets a small pixel mark made from its name (renaming a project changes its mark); clicking the mark, a small easter egg, swaps it for another at random, which it keeps. A session started in a project stays in it, even when its shell `cd`s elsewhere; ⌘T and splits from it stay there too. Right-click a session: **Move to Project** (any session), **Let It Follow Its Folder** (a project session goes back to grouping by folder). A project's **⋯** (on hover) or right-click: **Remove Project** undoes it: its sessions stay open and group by their folders again, and nothing on disk changes.
   - **Folders**, for every other session: grouped by the git repository's root, or by the folder outside a repository, and moving when the shell `cd`s. A folder group holds only its own repository or folder, so one for your home folder doesn't swallow everything under it; groups appear and disappear on their own. A session whose folder is inside a project you made joins that project while it's there. A group's **⋯** (on hover) or right-click: **Make Project** keeps it and its sessions; its **+** starts a session there.
-- **At launch**, Calm starts where you left off. The very first launch shows a welcome page (New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O, and the agents Calm works with: Claude Code, Codex, OpenCode, pi and omp, with a way to set them up); with nothing open later, the same quiet page says so. It fills the whole window, with no sidebar until a session opens, so once you've made a project it also lists your projects (**New session in** …): closing a project's last session leaves it one click away, not behind a sidebar that isn't there. **⌘T** still opens a shell in your home folder. Calm never opens a session nobody asked for.
+- **At launch**, Calm starts where you left off. The very first launch shows a welcome page (New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O, and the agents Calm works with: Claude Code, Codex, OpenCode and pi, with a way to set them up); with nothing open later, the same quiet page says so. It fills the whole window, with no sidebar until a session opens, so once you've made a project it also lists your projects (**New session in** …): closing a project's last session leaves it one click away, not behind a sidebar that isn't there. **⌘T** still opens a shell in your home folder. Calm never opens a session nobody asked for.
 - The sidebar's footer starts things, one row each: **New Session ⌘T**, **New Scratch Session ⌘⇧N**, **New Project… ⌘O**.
-- Each agent session is a **session card** (Claude Code today; other agents' transcripts follow) showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message (plain text: its Markdown headings, code blocks and bold are taken out), and the worktree name with its diff size when the session runs in a git worktree (the one its agent is in: Claude Code can move into a worktree while the shell that started it stays in the main checkout; the header above the terminal shows the same name in a small pill beside the session's name). The card shows the agent's own logo, which moves while the agent works; working, needs you and done each tint the card (soft blue, amber, sage until you move on from it), and an idle card recedes into a shorter card (name and a one-line recap). Plain shells are one compact line.
+- Each agent session is a **session card** showing: the session name, its state and current step, progress when the agent keeps a todo list, a two-line recap of the latest agent message (plain text: its Markdown headings, code blocks and bold are taken out), and the worktree name with its diff size when the session runs in a git worktree (the one its agent is in: Claude Code can move into a worktree while the shell that started it stays in the main checkout; the header above the terminal shows the same name in a small pill beside the session's name). The card shows the agent's own logo, which moves while the agent works; working, needs you and done each tint the card (soft blue, amber, sage until you move on from it), and an idle card recedes into a shorter card (name and a one-line recap). Plain shells are one compact line.
+- The card's content is read from the agent's own conversation file. What each agent gives it:
+
+  | Agent | Recap | Title | Step and progress | Esc noticed |
+  |---|---|---|---|---|
+  | Claude Code | yes | its own | from its todos | yes |
+  | Codex | yes | none (Codex keeps none in its files) | none | yes |
+  | OpenCode | yes | its session title, once named | none | yes |
+  | pi | yes | its session name | none | yes |
+
+  Calm finds the conversation from the agent's process (from its hooks or extension where it has them). When two conversations of one agent could be the one in a folder and Calm can't tell which, the card shows no recap rather than another conversation's.
 - Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
 - The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
 
@@ -49,7 +59,7 @@ A fast, correct terminal on libghostty.
 
 ## F4 — Agent detection 🚧
 
-- Detects when a session is running **Claude Code, Codex, OpenCode, pi or omp** in the foreground, within a couple of seconds of it starting or exiting, including sessions that aren't on screen.
+- Detects when a session is running **Claude Code, Codex, OpenCode or pi** in the foreground, within a couple of seconds of it starting or exiting, including sessions that aren't on screen.
 - Shows the agent's icon on the session and uses the agent's own session title when it sets one.
 - Drops the status glyph an agent puts at the start of the terminal title (Claude Code's ✳ and turning ◐◓◑◒, braille spinner dots): the card already shows the state, and a turning glyph would make the title flicker.
 - Links the session to the agent's transcript on disk when possible (used by F6, F7 and F12).
@@ -59,7 +69,7 @@ A fast, correct terminal on libghostty.
 ## F5 — Agent status and attention 🚧
 
 - Each agent session has a state: **working**, **needs you**, **done**, **failed**, or **idle**.
-- State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback. The fallback alone already works for Claude Code, Codex and omp, with no setup.
+- State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback. The fallback alone already works for Claude Code and Codex, with no setup.
 - A Claude Code turn that ends with one of Claude's own background agents still running stays **working**: Claude picks up again on its own when the agent finishes.
 - Background *shells* don't hold it: a dev server or a monitor never ends and nothing would wake Claude, so the turn is **done** (the next move is yours), and the card adds "· 2 shells running" until you move on from it (2026-09-29, the author's call). Only tasks still running or pending count; a kind of task Calm doesn't know counts as a shell.
 - Plain shells get a quiet mark too: a command that ran for 10 seconds or more shows **done** or **failed** until the session is visited.
@@ -79,7 +89,7 @@ A fast, correct terminal on libghostty.
 
 - With Claude Code, Calm's hooks are on by default inside Calm (a plugin Claude loads only in Calm's shells; nothing is written to Claude's settings), so *needs you* arrives the moment Claude asks, with what it asks.
 
-- **Calm → Agents…** (Settings → Agents; the welcome page links to it) lists the installed agents and how each connects: Claude Code inside Calm; Codex and omp through their own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**); OpenCode through its own attention notifications, which are off until `attention.notifications` is true in `~/.config/opencode/cli.json`: its card offers **Set Up…**, which says so, until it is on, and then reads Connected (there is no plugin, since its background service can't be tied to a terminal yet).
+- **Calm → Agents…** (Settings → Agents; the welcome page links to it) lists the installed agents and how each connects: Claude Code inside Calm; Codex through its own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**; it also tells Calm which conversation it is, and Calm keeps its own file current when it updates); OpenCode through its own attention notifications, which are off until `attention.notifications` is true in `~/.config/opencode/cli.json`: its card offers **Set Up…**, which says so, until it is on, and then reads Connected (there is no plugin, since its background service can't be tied to a terminal yet).
 
 **Settings:** 2, in Settings → Agents — which states notify (default: only *needs you*; or also *done* and *failed*); notification sound on/off (default off). They're stored in config.toml as `notify` and `sound` under `[agents]`. In the config file only: `claude-code-hooks = false` under `[agents]`.
 
@@ -187,7 +197,6 @@ A quick, read-only look at the repository without leaving Calm.
   | Claude Code | `claude --resume <id>` | `claude --resume <id> --fork-session` |
   | Codex | `codex resume <id>` | `codex fork <id>` |
   | pi | `pi --session <file>` | `pi --fork <file>` |
-  | omp | `omp --resume <id>` | `omp --fork <id>` |
   | OpenCode | not yet | not yet |
 
   An action shows only where the agent has the command.
@@ -199,7 +208,7 @@ A quick, read-only look at the repository without leaving Calm.
 - `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line). Starts Calm if it isn't running.
 - `calm list` — list sessions: project, title, state and folder.
 - `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.
-- `calm status <state> [message]` — report agent state; this is the contract agents' hooks call. Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
+- `calm status <state> [message]` — report agent state; this is the contract agents' hooks call. `--agent <name>`, `--transcript <file>` and `--agent-session <id>` say which agent and which of its conversations this is, for agents that can't send a hook payload (pi's extension does). Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm notify <message>` — show a notification for the current session.
 - Talks to the running app over a local socket.
 

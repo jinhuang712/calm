@@ -1,5 +1,6 @@
 import CalmAgents
 import CalmModel
+import CalmSQLite
 import Foundation
 
 /// One session found by a search (FEATURES.md → F7): sessions, not lines.

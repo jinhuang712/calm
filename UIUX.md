@@ -98,7 +98,6 @@ Each agent shows its own logo, which moves only while the agent works. The motio
 | Codex | OpenAI's Blossom, one color | one eased turn, then a short rest (1.6 s + 0.6 s) | slows to a stop |
 | OpenCode | its block frame | twelve small squares breathing on their own rhythms, as OpenCode's app spinner does | the squares fade into the mark |
 | pi | the pixel π in coral, blue and gold | the pieces drop into place, hold and fall away (3.2 s), after pi.dev's logo | the last piece lands and the π brightens twice, softly |
-| omp | the block π in its pink-violet-cyan gradient | the gradient turns inside the π while a shine crosses it | the turn slows, one last shine |
 
 The marks belong to their owners (see NOTICE) and are shown only to say which agent a session runs.
 

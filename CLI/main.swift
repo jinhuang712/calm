@@ -17,6 +17,8 @@ Usage:
   calm search <text>                Search every agent's past sessions
   calm status <state> [message]     Report this session's state (for agents' hooks):
                                     working, needs-you, done, failed or idle
+                                    [--agent <name> --transcript <file> --agent-session <id>
+                                    say which agent and conversation, for its transcript]
   calm notify <message>             Notify about this session at the next pause
   calm hook <agent>                 Read an agent's hook payload on stdin and report it
                                     (used by the hooks Calm installs; agent: claude-code)
@@ -64,19 +66,14 @@ func report(_ request: ControlRequest) -> Never {
     exit(0)
 }
 
-/// Splits `--session <id>` out of the arguments; the default is the session Calm started this shell in.
+/// Splits the options out of the arguments; the session defaults to the one Calm started this shell in.
+func statusArguments(_ words: [String]) -> StatusArguments {
+    StatusArguments.parse(words, defaultSession: ProcessInfo.processInfo.environment["CALM_SESSION_ID"])
+}
+
 func sessionAndWords(_ words: [String]) -> (session: String?, words: [String]) {
-    var session = ProcessInfo.processInfo.environment["CALM_SESSION_ID"].flatMap { $0.isEmpty ? nil : $0 }
-    var rest: [String] = []
-    var iterator = words.makeIterator()
-    while let word = iterator.next() {
-        if word == "--session" {
-            session = iterator.next()
-        } else {
-            rest.append(word)
-        }
-    }
-    return (session, rest)
+    let parsed = statusArguments(words)
+    return (parsed.session, parsed.words)
 }
 
 /// One session per result: when, which agent, project, title, then the matching text.
@@ -120,10 +117,13 @@ case "open":
     let response = send(ControlRequest(cmd: .open, path: absolute))
     guard response.ok else { fail(response.error ?? "failed") }
 case "status":
-    let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
-    guard let state = words.first else { fail("give a state: working, needs-you, done, failed or idle", code: 64) }
-    let message = words.dropFirst().joined(separator: " ")
-    report(ControlRequest(cmd: .status, session: session, state: state, message: message.isEmpty ? nil : message))
+    let parsed = statusArguments(Array(arguments.dropFirst()))
+    guard let state = parsed.words.first else { fail("give a state: working, needs-you, done, failed or idle", code: 64) }
+    let message = parsed.words.dropFirst().joined(separator: " ")
+    report(ControlRequest(
+        cmd: .status, session: parsed.session, state: state, message: message.isEmpty ? nil : message,
+        agent: parsed.agent, agentSession: parsed.agentSession, transcript: parsed.transcript,
+    ))
 case "hook":
     // Called by agents' hooks on every event: read the payload, report, never fail the agent.
     guard arguments.count > 1, let reporter = Agents.hookReporter(named: arguments[1]) else { exit(0) }

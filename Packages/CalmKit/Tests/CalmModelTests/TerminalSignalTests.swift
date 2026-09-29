@@ -7,7 +7,7 @@ struct TerminalSignalTests {
     }
 
     @Test func `agents' notifications are read by their words`() {
-        // Messages seen from Claude Code, Codex and omp (DESIGNS.md → Agents).
+        // Messages agents send (DESIGNS.md → Agents).
         #expect(agentNotification("Claude needs your permission to use Bash") == .report(
             .needsYou,
             message: "Claude needs your permission to use Bash",

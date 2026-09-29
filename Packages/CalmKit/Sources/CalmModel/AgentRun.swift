@@ -7,7 +7,6 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
     case codex
     case openCode
     case pi
-    case omp
 
     public var displayName: String {
         switch self {
@@ -15,7 +14,6 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
         case .codex: "Codex"
         case .openCode: "OpenCode"
         case .pi: "pi"
-        case .omp: "omp"
         }
     }
 }

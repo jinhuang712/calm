@@ -1,22 +1,23 @@
 import Foundation
 import SQLite3
 
-/// A small wrapper over the system SQLite: enough for the search index, nothing more.
-/// Not thread-safe; `SearchIndex` confines it to one queue.
-final class SQLiteDatabase {
-    enum Failure: Error, CustomStringConvertible {
+/// A small wrapper over the system SQLite: enough for the search index and for reading an
+/// agent's own database (OpenCode's), nothing more. Not thread-safe; callers confine it to one
+/// queue.
+package final class SQLiteDatabase {
+    package enum Failure: Error, CustomStringConvertible {
         case open(String)
         case statement(String, sql: String)
 
-        var description: String {
+        package var description: String {
             switch self {
-            case let .open(message): "Couldn't open the search index: \(message)"
-            case let .statement(message, sql): "Search index query failed: \(message) (\(sql.prefix(80)))"
+            case let .open(message): "Couldn't open the database: \(message)"
+            case let .statement(message, sql): "Database query failed: \(message) (\(sql.prefix(80)))"
             }
         }
     }
 
-    enum Value {
+    package enum Value {
         case text(String)
         case integer(Int64)
         case real(Double)
@@ -25,8 +26,12 @@ final class SQLiteDatabase {
 
     private var handle: OpaquePointer?
 
-    init(path: String) throws {
-        let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
+    /// `readOnly` never creates or changes the file: for databases that belong to another
+    /// program. A write-ahead log next to it is still read, so recent writes are seen.
+    package init(path: String, readOnly: Bool = false) throws {
+        let flags = readOnly
+            ? SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX
+            : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
         guard sqlite3_open_v2(path, &handle, flags, nil) == SQLITE_OK else {
             let message = handle.map { String(cString: sqlite3_errmsg($0)) } ?? "unknown error"
             sqlite3_close(handle)
@@ -39,7 +44,7 @@ final class SQLiteDatabase {
         sqlite3_close(handle)
     }
 
-    func execute(_ sql: String) throws {
+    package func execute(_ sql: String) throws {
         var error: UnsafeMutablePointer<CChar>?
         guard sqlite3_exec(handle, sql, nil, nil, &error) == SQLITE_OK else {
             let message = error.map { String(cString: $0) } ?? "unknown error"
@@ -49,7 +54,7 @@ final class SQLiteDatabase {
     }
 
     /// Runs a statement with bound values, calling `row` for each result row.
-    func query(_ sql: String, _ values: [Value] = [], row: ((Row) -> Void)? = nil) throws {
+    package func query(_ sql: String, _ values: [Value] = [], row: ((Row) -> Void)? = nil) throws {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else {
             throw Failure.statement(String(cString: sqlite3_errmsg(handle)), sql: sql)
@@ -76,11 +81,11 @@ final class SQLiteDatabase {
         }
     }
 
-    var lastInsertedRowID: Int64 {
+    package var lastInsertedRowID: Int64 {
         sqlite3_last_insert_rowid(handle)
     }
 
-    func transaction(_ body: () throws -> Void) throws {
+    package func transaction(_ body: () throws -> Void) throws {
         try execute("BEGIN IMMEDIATE")
         do {
             try body()
@@ -91,18 +96,18 @@ final class SQLiteDatabase {
         }
     }
 
-    struct Row {
+    package struct Row {
         let statement: OpaquePointer?
 
-        func text(_ column: Int32) -> String? {
+        package func text(_ column: Int32) -> String? {
             sqlite3_column_text(statement, column).map { String(cString: $0) }
         }
 
-        func integer(_ column: Int32) -> Int64 {
+        package func integer(_ column: Int32) -> Int64 {
             sqlite3_column_int64(statement, column)
         }
 
-        func real(_ column: Int32) -> Double {
+        package func real(_ column: Int32) -> Double {
             sqlite3_column_double(statement, column)
         }
     }

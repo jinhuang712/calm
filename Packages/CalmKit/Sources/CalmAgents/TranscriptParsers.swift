@@ -136,18 +136,6 @@ extension PiAdapter: TranscriptIndexing {
     }
 }
 
-extension OmpAdapter: TranscriptIndexing {
-    public var transcriptFolders: [String] {
-        [".omp/agent/sessions"]
-    }
-
-    /// omp is a pi fork with the same records, plus `title_change` (from its docs; omp isn't
-    /// installed on the machine these parsers were checked on).
-    public func messages(in records: [[String: Any]], info: inout TranscriptInfo) -> [TranscriptMessage] {
-        PiTranscript.messages(in: records, info: &info)
-    }
-}
-
 enum PiTranscript {
     static func messages(in records: [[String: Any]], info: inout TranscriptInfo) -> [TranscriptMessage] {
         var messages: [TranscriptMessage] = []
@@ -158,8 +146,6 @@ enum PiTranscript {
                 info.directory = info.directory ?? record["cwd"] as? String
             case "session_info":
                 info.title = (record["name"] as? String) ?? info.title
-            case "title_change":
-                info.title = (record["title"] as? String) ?? info.title
             case "message":
                 guard let message = record["message"] as? [String: Any] else { continue }
                 let role: TranscriptMessage.Role

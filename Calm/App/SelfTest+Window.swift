@@ -266,6 +266,14 @@
                         manager.report(id, StatusReport(state: state, message: nil, source: .hook))
                     }
                 }
+            case let folder where folder.hasPrefix("agent_folder:"):
+                // agent_folder:<path>: the agent in the focused session says it works in this folder
+                // (run agent:<state> first), as Claude Code does after entering a git worktree while
+                // its shell stays where it was.
+                if let id = focusedPane?.id, var tail = manager.workspace.session(id)?.agent?.tail {
+                    tail.directory = String(folder.dropFirst(13))
+                    manager.transcriptChanged(id, tail, modified: .now)
+                }
             case let text where text.hasPrefix("copy:"):
                 // copy:<sessionID|resumeCommand|folderPath>: what the title's ⋯ menu copies, read back from
                 // the self-test pasteboard.

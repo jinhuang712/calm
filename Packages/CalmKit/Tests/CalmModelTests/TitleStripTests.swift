@@ -32,6 +32,24 @@ struct TitleStripTests {
         #expect(session("…/other/calm", in: "/Users/ada/dev/calm").titleStrip(agentTitle: nil, home: home).title == "…/other/calm")
     }
 
+    @Test func `the work is in the agent's folder while one runs, else in the shell's`() {
+        var shell = session("zsh", in: "/Users/ada/dev/calm")
+        #expect(shell.activeDirectory == "/Users/ada/dev/calm")
+
+        shell.agent = AgentRun(kind: .claudeCode, processID: 1)
+        // Before its transcript is read there's nothing to go on but the shell.
+        #expect(shell.activeDirectory == "/Users/ada/dev/calm")
+
+        shell.agent?.tail = TranscriptTail(directory: "/Users/ada/dev/calm/.claude/worktrees/dark-mode/")
+        #expect(shell.activeDirectory == "/Users/ada/dev/calm/.claude/worktrees/dark-mode")
+        // Everything else about the session stays where its shell is.
+        #expect(shell.workingDirectory == "/Users/ada/dev/calm")
+        #expect(shell.titleStrip(agentTitle: nil, home: home).folder == "~/dev/calm")
+
+        shell.agent = nil
+        #expect(shell.activeDirectory == "/Users/ada/dev/calm")
+    }
+
     @Test func `a scratch session shows no folder`() {
         var scratch = session("zsh", in: "/Users/ada/Library/Calm/Scratch/1")
         scratch.scratchFolder = "/Users/ada/Library/Calm/Scratch/1"

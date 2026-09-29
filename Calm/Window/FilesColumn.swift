@@ -319,20 +319,7 @@ struct FilesColumnView: View {
                 .foregroundStyle(style.primary)
                 .lineLimit(1)
             if let branch, !branch.isEmpty {
-                HStack(spacing: 4.scaled) {
-                    Image(systemName: "arrow.triangle.branch")
-                        .calmFont(size: 10, weight: .medium)
-                    Text(branch)
-                        .calmFont(size: 12)
-                        .lineLimit(1)
-                }
-                .foregroundStyle(style.secondary)
-                .padding(.horizontal, 7.scaled)
-                .frame(height: 20.scaled)
-                .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(style.primary.opacity(0.055)))
-                .overlay(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).strokeBorder(style.primary.opacity(0.06)))
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("branch \(branch)")
+                GitPill(text: branch, kind: "branch", style: style)
             }
             Spacer(minLength: 4.scaled)
             if let totals = model.totals {

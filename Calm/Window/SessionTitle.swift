@@ -27,34 +27,28 @@ struct SessionTitleView: View {
         let strip = strip
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
+        let worktree = session?.worktreeName
         HStack(spacing: 8.scaled) {
-            HStack(spacing: 10.scaled) {
-                // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
-                // folder or scratch glyph, so the text starts in the same place for every session.
-                if let project {
-                    GroupMark(project: project, style: style)
-                        .foregroundStyle(style.tertiary)
-                        .frame(width: 20.scaled, height: 20.scaled)
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .calmFont(size: 13.5, weight: .medium)
-                        .foregroundStyle(style.primary)
-                        .truncationMode(.tail)
-                    if strip.title != nil, let folder = strip.folder {
-                        Text(folder)
-                            .calmFont(size: 11)
-                            .foregroundStyle(style.tertiary)
-                            .truncationMode(.head)
+            Group {
+                // The worktree's pill sits beside the title and shows whole or not at all, like
+                // the files column's branch: the title comes first, so a long one never trades
+                // for it. (Two explicit children: ViewThatFits mustn't get an empty one.)
+                if let worktree {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10.scaled) {
+                            titleBlock(strip: strip, title: title)
+                            GitPill(text: worktree, kind: "worktree", style: style)
+                        }
+                        titleBlock(strip: strip, title: title)
                     }
+                } else {
+                    titleBlock(strip: strip, title: title)
                 }
-                .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .animation(nil, value: strip.folder)
             .animation(nil, value: strip.title)
-            // The window's title carries it for VoiceOver, the Window menu and Mission Control.
-            .accessibilityHidden(true)
+            .animation(nil, value: worktree)
             if let session {
                 menu(for: session)
             }
@@ -66,6 +60,34 @@ struct SessionTitleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .coordinateSpace(.named("titleStrip"))
         .onChange(of: title, initial: true) { _, title in onChange(title) }
+    }
+
+    /// The group's mark and the two lines of text.
+    private func titleBlock(strip: (folder: String?, title: String?), title: String) -> some View {
+        HStack(spacing: 10.scaled) {
+            // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
+            // folder or scratch glyph, so the text starts in the same place for every session.
+            if let project {
+                GroupMark(project: project, style: style)
+                    .foregroundStyle(style.tertiary)
+                    .frame(width: 20.scaled, height: 20.scaled)
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .calmFont(size: 13.5, weight: .medium)
+                    .foregroundStyle(style.primary)
+                    .truncationMode(.tail)
+                if strip.title != nil, let folder = strip.folder {
+                    Text(folder)
+                        .calmFont(size: 11)
+                        .foregroundStyle(style.tertiary)
+                        .truncationMode(.head)
+                }
+            }
+            .lineLimit(1)
+        }
+        // The window's title carries it for VoiceOver, the Window menu and Mission Control.
+        .accessibilityHidden(true)
     }
 
     /// Quiet until the pointer is on it: the row is a title first.

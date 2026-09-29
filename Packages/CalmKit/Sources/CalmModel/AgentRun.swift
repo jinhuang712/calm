@@ -42,6 +42,9 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     public var progress: TodoProgress?
     /// The user interrupted the turn (no hook reports that).
     public var interrupted: Bool
+    /// The folder the agent works in now, by its own account. It can move into a git worktree
+    /// and out again while the shell that started it stays where it was.
+    public var directory: String?
 
     public init(
         title: String? = nil,
@@ -49,12 +52,14 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         step: String? = nil,
         progress: TodoProgress? = nil,
         interrupted: Bool = false,
+        directory: String? = nil,
     ) {
         self.title = title
         self.lastMessage = lastMessage
         self.step = step
         self.progress = progress
         self.interrupted = interrupted
+        self.directory = directory
     }
 }
 

@@ -47,6 +47,35 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.step == "Fixing the token mock")
         #expect(tail.progress == TodoProgress(done: 1, total: 3))
         #expect(tail.interrupted == false)
+        #expect(tail.directory == "/Users/me/src/app")
+    }
+
+    @Test func `the folder is where Claude is now, not where it started`() throws {
+        let url = try #require(Bundle.module.url(
+            forResource: "transcript-worktree",
+            withExtension: "jsonl",
+            subdirectory: "Fixtures/claude-code",
+        ))
+        let tail = try #require(adapter.readTail(of: url, agentSessionID: nil, home: FileManager.default.temporaryDirectory))
+        // The records after the move say so; the ones after them (last-prompt, ai-title) have no folder.
+        #expect(tail.directory == "/Users/me/src/app/.claude/worktrees/dark-mode")
+        #expect(tail.lastMessage == "Added the toggle in the worktree.")
+        #expect(tail.title == "Add dark mode toggle")
+    }
+
+    @Test func `a transcript that never names a folder has none`() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "calm-claude-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let records: [[String: Any]] = [
+            ["type": "assistant", "message": ["role": "assistant", "content": [["type": "text", "text": "Hello."]]]],
+            ["type": "user", "cwd": "", "message": ["role": "user", "content": "hi"]],
+        ]
+        let transcript = folder.appending(path: "t.jsonl")
+        let lines = try records.map { try JSONSerialization.data(withJSONObject: $0) + Data("\n".utf8) }
+        try lines.reduce(Data(), +).write(to: transcript)
+        let tail = try #require(adapter.readTail(of: transcript, agentSessionID: sessionID, home: folder))
+        #expect(tail.directory == nil)
     }
 
     @Test func `the recap is what Claude said, without its Markdown`() throws {
@@ -114,7 +143,9 @@ struct ClaudeCodeTranscriptTests {
         let progress = tail.progress.map { "\($0.done)/\($0.total)" } ?? "none"
         print("real transcript: title \(tail.title?.count ?? -1) chars, recap \(tail.lastMessage?.count ?? -1) chars")
         print("real transcript: step \(tail.step != nil), progress \(progress), interrupted \(tail.interrupted)")
+        print("real transcript: folder \(tail.directory?.count ?? -1) chars")
         #expect(tail.title != nil)
         #expect(tail.lastMessage != nil)
+        #expect(tail.directory != nil)
     }
 }

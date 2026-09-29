@@ -1,3 +1,4 @@
+import CalmModel
 import Foundation
 
 /// Keeps shells alive while Calm is closed, using the bundled zmx (https://zmx.sh, MIT).
@@ -134,13 +135,22 @@ enum GitRoot {
     }
 
     /// The worktree's name when the folder is inside a linked git worktree (its `.git` is a
-    /// file pointing at the main repository), for session cards.
+    /// file pointing into the main repository's `worktrees/`), for session cards and the title strip.
     static func worktreeName(_ directory: String) -> String? {
         guard let root = find(directory) else { return nil }
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: (root as NSString).appendingPathComponent(".git"), isDirectory: &isDirectory),
-              !isDirectory.boolValue
+        let git = (root as NSString).appendingPathComponent(".git")
+        guard FileManager.default.fileExists(atPath: git, isDirectory: &isDirectory), !isDirectory.boolValue,
+              // A submodule's `.git` is a file too, but points into `modules/`: not a worktree.
+              let pointer = try? String(contentsOfFile: git, encoding: .utf8), pointer.contains("/worktrees/")
         else { return nil }
         return (root as NSString).lastPathComponent
+    }
+}
+
+extension Session {
+    /// The linked git worktree the session's work is in, if any (see `activeDirectory`).
+    var worktreeName: String? {
+        GitRoot.worktreeName(activeDirectory)
     }
 }

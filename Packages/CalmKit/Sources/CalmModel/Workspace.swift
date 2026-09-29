@@ -166,6 +166,13 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         customName ?? agentTitle.flatMap { $0.isEmpty ? nil : $0 } ?? displayTitle
     }
 
+    /// Where the work happens: the running agent's own folder when its transcript says (Claude Code
+    /// can move into a git worktree while its shell stays in the main checkout), else the shell's.
+    /// Only what depends on the checkout uses it; the session's folder, project and title stay the shell's.
+    public var activeDirectory: String {
+        agent?.tail?.directory.map(WorkspacePath.standardize) ?? workingDirectory
+    }
+
     /// What the title strip above the terminal shows (UIUX.md → Title bar): the session's title
     /// and the folder it's in. The title is left out when it only repeats the folder (a
     /// plain shell titled "~" or "calm"); a scratch session shows no folder, as everywhere else.

@@ -44,6 +44,11 @@ extension ClaudeCodeAdapter: TranscriptReading {
         var aiTitle: String?
         var sawConversation = false
         for record in records { // newest first
+            // Every conversation record says where Claude was when it wrote it; the newest one
+            // is where it is now (`~/.claude/sessions/<pid>.json` keeps the launch folder).
+            if tail.directory == nil, let cwd = record["cwd"] as? String, !cwd.isEmpty {
+                tail.directory = cwd
+            }
             switch record["type"] as? String {
             case "custom-title" where customTitle == nil:
                 customTitle = record["customTitle"] as? String
@@ -64,7 +69,7 @@ extension ClaudeCodeAdapter: TranscriptReading {
             default:
                 break
             }
-            if customTitle != nil, tail.lastMessage != nil {
+            if customTitle != nil, tail.lastMessage != nil, tail.directory != nil {
                 break
             }
         }

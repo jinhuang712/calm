@@ -48,7 +48,7 @@ struct SessionCard: View {
                     .padding(.leading, Self.indent)
                     .transition(.opacity)
             }
-            if let worktree = GitRoot.worktreeName(session.workingDirectory) {
+            if let worktree = session.worktreeName {
                 Label(worktree, systemImage: "arrow.triangle.branch")
                     .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)

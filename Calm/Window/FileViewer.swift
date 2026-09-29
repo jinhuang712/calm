@@ -1,4 +1,5 @@
 import AppKit
+import CalmModel
 import PDFKit
 import SwiftUI
 import WebKit
@@ -60,6 +61,8 @@ final class FileViewer: NSObject {
     private var pendingRender: String?
     private weak var webView: WKWebView?
     private(set) var file: String?
+    /// The session the file was opened over; going to another one leaves the file.
+    private(set) var session: Session.ID?
     /// Matches the terminal area's corners (a card window rounds them).
     var cornerRadius: CGFloat = 0
 
@@ -71,12 +74,14 @@ final class FileViewer: NSObject {
         root != nil
     }
 
-    /// Shows `path` over `frame` (the terminal area). Returns false if Calm can't show it.
+    /// Shows `path` over `area` (the terminal area), and keeps it there while the sidebar or the
+    /// files column slides. Returns false if Calm can't show it.
     @discardableResult
     func show(
         _ path: String,
         line: Int?,
-        over frame: NSRect,
+        over area: NSView,
+        session: Session.ID?,
         sessionTitle: String,
         style: SidebarStyle,
         onClose: @escaping () -> Void,
@@ -87,8 +92,12 @@ final class FileViewer: NSObject {
         hide(animated: false)
         self.onClose = onClose
         file = path
+        self.session = session
+        // The header and content follow the root's size by autoresizing; the root itself is pinned
+        // below to the area's sides and to the window's top and bottom, over the title strip.
+        let frame = NSRect(x: area.frame.minX, y: 0, width: area.frame.width, height: container.bounds.height)
         let root = NSView(frame: frame)
-        root.autoresizingMask = [.width, .height]
+        root.translatesAutoresizingMaskIntoConstraints = false
         root.wantsLayer = true
         root.layer?.backgroundColor = NSColor(style.background).cgColor
         root.layer?.cornerRadius = cornerRadius
@@ -108,6 +117,12 @@ final class FileViewer: NSObject {
         root.addSubview(content)
         root.addSubview(header)
         container.addSubview(root, positioned: .above, relativeTo: nil)
+        NSLayoutConstraint.activate([
+            root.leadingAnchor.constraint(equalTo: area.leadingAnchor),
+            root.trailingAnchor.constraint(equalTo: area.trailingAnchor),
+            root.topAnchor.constraint(equalTo: container.topAnchor),
+            root.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
         self.root = root
         Motion.fadeIn(root, duration: 0.16)
 
@@ -131,6 +146,7 @@ final class FileViewer: NSObject {
         }
         keyMonitor = nil
         file = nil
+        session = nil
         guard let root else { return }
         self.root = nil
         if animated {

@@ -146,7 +146,7 @@ A quick, read-only look at the repository without leaving Calm.
   - A folder that isn't a git repository is listed directly, skipping hidden folders and build output (`node_modules`, `build`, `DerivedData`, `Pods`, `target`, `dist`), up to 5,000 files. It has no branch and no Changes.
   - Clicking a file opens it in the viewer; the file being viewed is highlighted in Changes and in the tree.
   - A ⌘\\ keybinding in the user's own Ghostty config wins over Calm's, and so does a global shortcut such as 1Password's autofill (⌘\\ by default; see UIUX.md → Keyboard); Toggle Files stays in the View menu.
-- **Viewer:** opening a viewable file (Markdown, HTML, PDF, images; code with syntax highlighting) **covers the main area** where the session was. **Esc** returns to the session exactly as it was; the session keeps running underneath.
+- **Viewer:** opening a viewable file (Markdown, HTML, PDF, images; code with syntax highlighting) **covers the main area** where the session was. **Esc** returns to the session exactly as it was; the session keeps running underneath. The viewer stays on the main area as the sidebar and files column open and close, and going to another session (a click, ⌘1…9, ⌃Tab, search, a new session) closes it.
 - Files open from the tree, from ⌘-click (F8), or from `calm open <file>` (also `file:line`, which highlights that line).
 - One action opens the file in the editor at the current line.
 - No editing, creating, renaming or diffing.

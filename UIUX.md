@@ -70,10 +70,11 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 ## Viewing files
 
-- Opening a viewable file (Markdown, HTML, PDF, images, code) **covers the main area**. The sidebar and files column stay.
+- Opening a viewable file (Markdown, HTML, PDF, images, code) **covers the main area**. The sidebar and files column stay, and the viewer keeps to the main area as they slide in and out.
 - The header shows the file name and path, **Open in editor**, and **esc · Back to <session>**.
 - Content is centered at a comfortable reading width.
 - **Esc** returns to the session exactly as it was. The session keeps running while the file is open; if it needs you, its card tints as usual.
+- Going to another session leaves the file, as it leaves Settings, so "Back to <session>" always names the session behind the file.
 
 ## Session states
 

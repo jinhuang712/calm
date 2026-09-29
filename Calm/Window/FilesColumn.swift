@@ -451,7 +451,9 @@ private struct FilesTreeRow: View {
         let node = row.node
         Button(action: action) {
             HStack(spacing: 6.scaled) {
-                Group {
+                // A ZStack rather than a Group: a file's gutter is empty, and a frame on an empty
+                // Group has nothing to apply to, so a file's name sat left of its sibling folders'.
+                ZStack {
                     if node.isFolder {
                         Image(systemName: "chevron.down")
                             .calmFont(size: 9, weight: .medium)

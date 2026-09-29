@@ -145,6 +145,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
         updateWelcomePage()
+        // A new, reopened or closed-into session isn't the one a file was opened over.
+        closeViewer(unlessOver: manager.workspace.selectedLayout?.focusedSessionID)
         guard let layout = manager.workspace.selectedLayout else {
             showNoSession()
             return
@@ -217,8 +219,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     // MARK: Sessions
 
     func select(_ id: Session.ID) {
-        // Going to a session leaves Settings (a click on its "needs you", ⌃Tab, ⌘1…9, search).
+        // Going to a session leaves Settings (a click on its "needs you", ⌃Tab, ⌘1…9, search),
+        // and a file open over the one you were in.
         hideSettings()
+        closeViewer()
         let previous = manager.workspace.selectedLayoutID
         let previousSession = manager.workspace.selectedLayout?.focusedSessionID
         if let previousSession, previousSession != id {

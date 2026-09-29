@@ -96,9 +96,11 @@ extension MainWindowController {
     /// Returns false for files Calm can't show.
     @discardableResult
     func showFile(_ path: String, line: Int? = nil) -> Bool {
-        let title = manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID)?.displayTitle } ?? "session"
-        let frame = NSRect(x: mainArea.frame.minX, y: 0, width: mainArea.frame.width, height: container.bounds.height)
-        let shown = fileViewer.show(path, line: line, over: frame, sessionTitle: title, style: sidebarStyle) { [weak self] in
+        let session = focusedSession
+        let title = session?.displayTitle ?? "session"
+        let shown = fileViewer.show(
+            path, line: line, over: mainArea, session: session?.id, sessionTitle: title, style: sidebarStyle,
+        ) { [weak self] in
             guard let self else { return }
             filesColumn.model.viewedFile = nil
             if let pane = focusedPane {
@@ -109,6 +111,14 @@ extension MainWindowController {
             filesColumn.model.viewedFile = path
         }
         return shown
+    }
+
+    /// Going to a session leaves the file open over the one you were in, as it leaves Settings;
+    /// otherwise the viewer would keep covering the new session under "Back to" the old one's name.
+    /// A file open over `session`, the one now on screen, stays.
+    func closeViewer(unlessOver session: Session.ID? = nil) {
+        guard fileViewer.isShowing, session == nil || fileViewer.session != session else { return }
+        fileViewer.close()
     }
 
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint) {

@@ -1,0 +1,174 @@
+Subject: custom-shader-animation = cursor: animate only after the cursor or the focus changes
+
+A cursor shader (a trail, a glide) draws something only for a moment after the cursor moves,
+yet `custom-shader-animation = true` keeps the focused terminal's animation loop running for as
+long as it is focused: a redraw every 8 ms, and on macOS a display link kept running, while the
+terminal sits still.
+
+`cursor` runs the loop like `true` (focused terminal only), but only for a second after the
+cursor the shaders see (`iCurrentCursor`, position or color) or the focus changes; the rest of
+the time a still terminal draws nothing, as with `false`. The decision is `shaderAnimates`, a
+pure function with tests; `last_cursor_change` is stamped where `iTimeCursorChange` is set, and
+in `setFocus`, before the display link is synced, so a focus change starts the loop too. When
+the second is up, the next draw finds nothing to redraw and the display link stops, as it does
+for `false`.
+
+Measured in Calm with an idle focused terminal (M5 Pro, 2026-09-30): 5.9% of a core and 940
+wakeups a second with `true`; 0.3% and 21 with `cursor`, the same as `false`. Each long cursor
+jump still draws the whole glide: about 18 frames over 145 ms, as with `true`.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005 and 0006.
+Zig tests: `zig build test -Dtest-filter=shaderAnimates`.
+
+diff --git a/src/config/Config.zig b/src/config/Config.zig
+--- a/src/config/Config.zig
++++ b/src/config/Config.zig
+@@ -3230,6 +3230,13 @@
+ /// loop will still only run when custom shaders are used. Note that this
+ /// will use more CPU per terminal surface and can become quite expensive
+ /// depending on the shader and your terminal usage.
++///
++/// This can also be set to `cursor`, for shaders that animate only the
++/// cursor moving or the focus changing (a cursor trail, say): the focused
++/// terminal runs the animation loop for a second after the cursor or the
++/// focus changes (`iTimeCursorChange`, `iTimeFocus`), and a terminal at rest
++/// draws nothing, as with `false`. A shader that animates on `iTime` alone
++/// would stop moving a second after the last change.
+ ///
+ /// This can be changed at runtime and will affect all open terminals.
+ @"custom-shader-animation": CustomShaderAnimation = .true,
+@@ -5484,6 +5491,7 @@
+     false,
+     true,
+     always,
++    cursor,
+ };
+ 
+ /// Valid values for macos-non-native-fullscreen
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -44,6 +44,28 @@
+ };
+ 
+ const log = std.log.scoped(.generic_renderer);
++
++/// How long `custom-shader-animation = cursor` animates after the cursor or
++/// the focus last changed. A cursor effect (a trail, a glide) is over well
++/// within it; after it a still terminal draws nothing.
++const cursor_animation_ms: u64 = 1000;
++
++/// Whether a custom shader animates now under `custom-shader-animation` =
++/// `mode`: `ms_since_cursor_change` is how long ago the cursor or the focus
++/// last changed, null before either has.
++fn shaderAnimates(
++    mode: configpkg.CustomShaderAnimation,
++    focused: bool,
++    ms_since_cursor_change: ?u64,
++) bool {
++    return switch (mode) {
++        .false => false,
++        .always => true,
++        .true => focused,
++        .cursor => focused and
++            (if (ms_since_cursor_change) |ms| ms < cursor_animation_ms else false),
++    };
++}
+ 
+ /// Where the frame on screen draws each animating region, for the surface
+ /// to undo when it turns a pointer into a row: the offsets each frame in
+@@ -769,6 +791,11 @@
+         /// This is used when updating custom shader uniforms.
+         last_frame_time: ?std.Io.Timestamp = null,
+ 
++        /// When the cursor the custom shaders see (`iCurrentCursor`) or the
++        /// focus last changed: `custom-shader-animation = cursor` animates
++        /// for `cursor_animation_ms` after it.
++        last_cursor_change: ?std.Io.Timestamp = null,
++
+         /// The font structures.
+         font_grid: *font.SharedGrid,
+         font_shaper: font.Shaper,
+@@ -1764,14 +1791,16 @@
+         /// Must be called on the render thread.
+         pub fn animationWake(self: *const Self) ?AnimationWake {
+             // Custom shaders animate by redrawing on a fixed cadence,
+-            // gated by configuration and focus.
++            // gated by configuration, focus and (for `cursor`) how
++            // recently the cursor or the focus changed.
+             const shader_delay: ?u64 = shader: {
+                 if (!self.has_custom_shaders) break :shader null;
+-                break :shader switch (self.config.custom_shader_animation) {
+-                    .false => null,
+-                    .always => draw_interval_ms,
+-                    .true => if (self.focused) draw_interval_ms else null,
+-                };
++                const mode = self.config.custom_shader_animation;
++                const since: ?u64 = if (mode == .cursor) self.msSinceCursorChange() else null;
++                break :shader if (shaderAnimates(mode, self.focused, since))
++                    draw_interval_ms
++                else
++                    null;
+             };
+ 
+             // Kitty animations tick during updateFrame; between
+@@ -1809,6 +1838,15 @@
+             if (draw_delay) |s| return .{ .delay_ms = s, .kind = .draw };
+ 
+             return null;
++        }
++
++        /// How long ago the cursor or the focus last changed, in
++        /// milliseconds, or null if neither has yet.
++        fn msSinceCursorChange(self: *const Self) ?u64 {
++            const changed = self.last_cursor_change orelse return null;
++            const now: std.Io.Timestamp = .now(global.io(), .awake);
++            const ns = @max(changed.durationTo(now).nanoseconds, 0);
++            return @intCast(@divTrunc(ns, std.time.ns_per_ms));
+         }
+ 
+         /// Drop every region scroll animation and its ghost rows.
+@@ -2219,6 +2257,11 @@
+ 
+             // Flag that we need to update our custom shaders
+             self.custom_shader_focused_changed = true;
++
++            // A `cursor` shader animates the focus change too. Stamped
++            // here rather than at the next frame, so the display link
++            // synced below starts for it.
++            self.last_cursor_change = .now(global.io(), .awake);
+ 
+             self.syncDisplayLink(null, null);
+         }
+@@ -3647,6 +3690,7 @@
+                     uniforms.current_cursor = new_cursor;
+                     uniforms.current_cursor_color = cursor_color;
+                     uniforms.cursor_change_time = uniforms.time;
++                    self.last_cursor_change = now;
+                 }
+ 
+                 // Whether a cursor glyph was drawn is the whole answer for
+@@ -5364,3 +5408,23 @@
+     testRowHashes(&state, &same);
+     try testing.expectEqual(null, inferScroll(&new, &same, 50));
+ }
++
++test "shaderAnimates: cursor animates for a second after the cursor or the focus changes" {
++    const testing = std.testing;
++    try testing.expect(shaderAnimates(.cursor, true, 0));
++    try testing.expect(shaderAnimates(.cursor, true, cursor_animation_ms - 1));
++    try testing.expect(!shaderAnimates(.cursor, true, cursor_animation_ms));
++    try testing.expect(!shaderAnimates(.cursor, true, 60_000));
++    // Nothing has changed yet, or the terminal isn't focused.
++    try testing.expect(!shaderAnimates(.cursor, true, null));
++    try testing.expect(!shaderAnimates(.cursor, false, 0));
++}
++
++test "shaderAnimates: the other modes don't look at the cursor" {
++    const testing = std.testing;
++    try testing.expect(shaderAnimates(.true, true, null));
++    try testing.expect(shaderAnimates(.true, true, 60_000));
++    try testing.expect(!shaderAnimates(.true, false, 0));
++    try testing.expect(shaderAnimates(.always, false, null));
++    try testing.expect(!shaderAnimates(.false, true, 0));
++}

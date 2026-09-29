@@ -28,19 +28,33 @@ struct EngineSmokeTests {
     /// A misspelled key or value in Calm's defaults would only show up as a diagnostic.
     @Test func `the defaults Calm writes load without diagnostics`() throws {
         GhosttyRuntime.initializeProcess()
-        let file = FileManager.default.temporaryDirectory.appending(path: "calm-defaults-\(UUID().uuidString).ghostty")
-        defer { try? FileManager.default.removeItem(at: file) }
         let contents = CalmDefaults.contents(reduceMotion: false, cursorShader: nil, smoothScroll: true)
         #expect(contents.contains("window-padding-color = extend"))
         #expect(contents.contains("smooth-scroll = true"))
         #expect(contents.contains("keybind = super+shift+t=unbind")) // Ghostty's undo, in the way of Reopen Closed Session
         #expect(contents.contains(#"keybind = super+z=text:\x1f"#)) // Ctrl-_, the line editor's undo
+        #expect(try diagnostics(loading: contents) == 0)
+    }
+
+    /// `cursor` comes with engine patch 0014; an engine without it reports the value as invalid,
+    /// and the glide's animation loop would run all day again.
+    @Test func `the cursor glide animates only after the cursor moves`() throws {
+        GhosttyRuntime.initializeProcess()
+        let shader = try #require(Bundle.main.url(forResource: "cursor_glide", withExtension: "glsl"))
+        let contents = CalmDefaults.contents(reduceMotion: false, cursorShader: shader, smoothScroll: true)
+        #expect(contents.contains("custom-shader-animation = cursor"))
+        #expect(try diagnostics(loading: contents) == 0)
+    }
+
+    private func diagnostics(loading contents: String) throws -> UInt32 {
+        let file = FileManager.default.temporaryDirectory.appending(path: "calm-defaults-\(UUID().uuidString).ghostty")
+        defer { try? FileManager.default.removeItem(at: file) }
         try contents.write(to: file, atomically: true, encoding: .utf8)
         let config = try #require(ghostty_config_new())
         defer { ghostty_config_free(config) }
         file.path.withCString { ghostty_config_load_file(config, $0) }
         ghostty_config_finalize(config)
-        #expect(ghostty_config_diagnostics_count(config) == 0)
+        return ghostty_config_diagnostics_count(config)
     }
 
     /// Fails when GhosttyKit was built without scripts/ghostty-patches: the scrolling would

@@ -61,9 +61,12 @@ enum CalmDefaults {
             lines.append("keybind = super+alt+\(direction)=new_split:\(direction)")
         }
         if !reduceMotion, let cursorShader {
-            // A soft cursor glide (UIUX.md → Motion). The animation loop only runs in the focused pane.
+            // A soft cursor glide (UIUX.md → Motion). The animation loop runs in the focused pane
+            // only, and only for a second after its cursor moves (engine patch 0014); with `true`
+            // it redrew every 8 ms all day. An engine without the patch reports `cursor` as an
+            // invalid value and keeps `true`.
             lines.append("custom-shader = \(cursorShader.path)")
-            lines.append("custom-shader-animation = true")
+            lines.append("custom-shader-animation = cursor")
         }
         if !reduceMotion, smoothScroll {
             // Scrolling moves by pixels (UIUX.md → Motion): trackpad scrollback, and a program

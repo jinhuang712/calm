@@ -202,10 +202,21 @@ public extension PiAdapter {
     /// time because `/new` and `/resume` change it), so Calm reads that transcript exactly
     /// instead of looking for it. pi awaits handlers, so reports are spawned detached and never
     /// waited for; nothing starts in the factory itself.
+    ///
+    /// It also dresses pi in Calm's theme (`themes/calm.json`, which Calm keeps to the colors on
+    /// screen, see `PiTheme`), when pi's own is one of its built-ins (`system`, `dark`, `light`):
+    /// a theme the user made stays. Read against 0.99.1's source: `ctx.ui.setTheme` with a name
+    /// also saves it to `settings.json`, which would carry Calm's theme outside Calm, so the
+    /// extension builds pi's theme object from the file with the class of the theme in use and
+    /// sets that, which isn't saved, and which pi leaves alone when the terminal's colors or
+    /// appearance change (`reapplyForTerminal`). pi doesn't watch an object's file, so the
+    /// extension watches `themes/` and sets the theme again when Calm rewrites it.
     internal static let extensionSource = """
-    // \(AgentSetup.marker): reports this pi session's state to Calm, only inside Calm.
+    // \(AgentSetup.marker): reports this pi session's state to Calm and dresses it in Calm's theme, only inside Calm.
     // Delete this file (or use Calm → Agents… → Disconnect) to stop.
     import { spawn } from "node:child_process";
+    import { readFileSync, watch } from "node:fs";
+    import { join } from "node:path";
 
     export default function (pi: any) {
       const cli = process.env.CALM_CLI;
@@ -226,6 +237,42 @@ public extension PiAdapter {
           spawn(cli, args, { stdio: "ignore", detached: true }).unref();
         } catch {}
       };
+      // Calm's theme, set as a theme object (by name pi would save it to settings.json), and
+      // again whenever Calm rewrites its file. pi's built-ins give way; a theme of the user's stays.
+      const themes = join(process.env.PI_CODING_AGENT_DIR || join(process.env.HOME ?? "", ".pi", "agent"), "themes");
+      // pi's background roles (0.99.1's BACKGROUND_TOKENS); every other color is a foreground.
+      const backgrounds = new Set([
+        "selectedBg", "searchMatchBg", "userMessageBg", "customMessageBg", "toolPendingBg", "toolSuccessBg", "toolErrorBg",
+      ]);
+      const builtIn = new Set(["system", "dark", "light", "calm"]);
+      let ui: any;
+      const wearCalm = () => {
+        try {
+          const current = ui?.theme;
+          if (!current || typeof ui.setTheme !== "function" || !builtIn.has(current.name)) return;
+          const file = JSON.parse(readFileSync(join(themes, "calm.json"), "utf8"));
+          const fg: any = {};
+          const bg: any = {};
+          for (const [key, value] of Object.entries(file.colors ?? {})) (backgrounds.has(key) ? bg : fg)[key] = value;
+          ui.setTheme(new current.constructor(fg, bg, current.mode, { name: "calm", appearance: file.appearance }));
+        } catch {}
+      };
+      let watching = false;
+      let timer: any;
+      pi.on("session_start", (_event: any, ctx: any) => {
+        if (!ctx?.hasUI) return;
+        ui = ctx.ui;
+        wearCalm();
+        if (watching) return;
+        watching = true;
+        try {
+          watch(themes, (_type: string, name: string | null) => {
+            if (name && name !== "calm.json") return;
+            clearTimeout(timer);
+            timer = setTimeout(wearCalm, 150);
+          }).unref();
+        } catch {}
+      });
       let outcome = "completed";
       // A prompt holds the agent up only during a run. Outside one it is the user's own doing
       // (a slash command's picker) or an extension's passive overlay, which pi also reports as

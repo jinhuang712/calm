@@ -183,10 +183,11 @@ struct OpenCodeCalmThemeTests {
         #expect(adapter.shellEnvironment(home: home, inherited: [:]).isEmpty)
     }
 
-    @Test func `other agents have no theme file`() throws {
+    @Test func `only OpenCode and pi take a theme file`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
-        for adapter in Agents.adapters where adapter.kind != .openCode {
+        #expect(Set(Agents.adapters.filter { $0.themeFilePath != nil }.map(\.kind)) == [.openCode, .pi])
+        for adapter in Agents.adapters where adapter.themeFilePath == nil {
             #expect(adapter.themeFilePath == nil)
             #expect(try AgentSetupFiles.syncTheme(for: adapter, colors: (dark, .dark), home: home) == false)
         }

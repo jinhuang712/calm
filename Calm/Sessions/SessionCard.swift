@@ -193,9 +193,13 @@ struct SessionCard: View {
         return tint.color.opacity(isSelected ? tint.selectedFill : tint.fill)
     }
 
-    /// A hairline that gives a highlighted card its edge.
-    private var border: Color {
-        guard let tint else { return isSelected ? style.primary.opacity(0.07) : .clear }
+    /// A hairline that gives a highlighted card its edge. The selected card's is the same ring in
+    /// every state, so which card you're in never depends on telling two tints apart.
+    var border: Color {
+        if isSelected {
+            return style.selectionEdge
+        }
+        guard let tint else { return .clear }
         return tint.color.opacity(tint.edge)
     }
 

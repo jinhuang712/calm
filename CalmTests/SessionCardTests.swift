@@ -1,3 +1,4 @@
+import AppKit
 @testable import Calm
 import CalmModel
 import Foundation
@@ -19,6 +20,25 @@ struct SessionCardTests {
         #expect(card.workingLine(at: start + 20) == "Working")
         #expect(card.workingLine(at: start + 4 * 60 + 5) == "Working · 4m")
         #expect(card.workingLine(at: start + 2 * 3600) == "Working · 2h")
+    }
+
+    @MainActor @Test func `the selected card wears one ring in every state, and no other card does`() {
+        let style = SidebarStyle.derived(from: .black)
+        for state in SessionState.allCases {
+            let session = Session(projectID: UUID(), workingDirectory: "/tmp", state: state)
+            let selected = SessionCard(session: session, agent: .claudeCode, isSelected: true, style: style)
+            let other = SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style)
+            #expect(selected.border == style.selectionEdge)
+            #expect(other.border != style.selectionEdge)
+        }
+    }
+
+    @MainActor @Test func `the ring around the selected card is stronger with Increase Contrast`() {
+        let style = SidebarStyle.derived(from: .black)
+        let ring = NSColor(style.selectionEdge).alphaComponent
+        let contrasted = NSColor(style.contrasted(true).selectionEdge).alphaComponent
+        #expect(ring > 0.2)
+        #expect(contrasted > ring)
     }
 
     @Test func `a finished turn says how many shells it left running`() {

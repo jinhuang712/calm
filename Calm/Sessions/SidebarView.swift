@@ -7,6 +7,9 @@ import SwiftUI
 struct SidebarStyle: Equatable {
     var background: Color
     var selection: Color
+    /// The hairline around the selected row. A state is a color and the selection is a ring, so
+    /// the two never blur: a done card's slightly lighter sage read as "more done", not "selected".
+    var selectionEdge: Color
     var primary: Color
     var secondary: Color
     var tertiary: Color
@@ -70,6 +73,9 @@ struct SidebarStyle: Equatable {
         style.secondary = Color(nsColor: ink.withAlphaComponent(0.82))
         style.tertiary = Color(nsColor: ink.withAlphaComponent(0.66))
         style.selection = Color(nsColor: ink.withAlphaComponent(isDark ? 0.16 : 0.14))
+        // Higher than the plain ring's 0.3 because `ink` is the theme's text color, a step dimmer
+        // than the white or black the plain ring uses.
+        style.selectionEdge = Color(nsColor: ink.withAlphaComponent(isDark ? 0.75 : 0.7))
         return style
     }
 
@@ -83,6 +89,7 @@ struct SidebarStyle: Equatable {
         return SidebarStyle(
             background: Color(nsColor: background),
             selection: Color(nsColor: ink.withAlphaComponent(isDark ? 0.08 : 0.07)),
+            selectionEdge: Color(nsColor: ink.withAlphaComponent(isDark ? 0.3 : 0.28)),
             primary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.86 : 0.85)),
             secondary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.55 : 0.55)),
             tertiary: Color(nsColor: ink.withAlphaComponent(isDark ? 0.38 : 0.4)),
@@ -683,6 +690,7 @@ struct SessionRow: View {
             RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
         )
+        .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(isSelected ? style.selectionEdge : .clear))
         .contentShape(Rectangle())
         // A scratch session's folder stays hidden.
         .help(session.lastReport?.message ?? (session.isScratch ? "" : session.workingDirectory))

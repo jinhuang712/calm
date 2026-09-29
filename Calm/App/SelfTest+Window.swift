@@ -237,6 +237,16 @@
                 if let state = SessionState(rawValue: String(state.dropFirst(7))), let id = focusedPane?.id {
                     manager.report(id, StatusReport(state: state, message: "Allow edit?", source: .hook))
                 }
+            case let report where report.hasPrefix("report_away:"):
+                // report_away:<state>[:<message>]: a session other than the focused one reports, as
+                // when you're looking elsewhere, so a notification is due (run calm.new_session first;
+                // "\n" in the message is a line break). The log says what it would have shown.
+                let parts = report.dropFirst(12).split(separator: ":", maxSplits: 1).map(String.init)
+                if let state = parts.first.flatMap(SessionState.init(rawValue:)),
+                   let id = manager.workspace.sessions.first(where: { $0.id != focusedPane?.id })?.id {
+                    let message = parts.dropFirst().first?.replacingOccurrences(of: "\\n", with: "\n")
+                    manager.report(id, StatusReport(state: state, message: message, source: .hook))
+                }
             case let state where state.hasPrefix("agent:"):
                 // agent:<state>: the focused session becomes a Claude Code card with a recap and a
                 // todo list, in that state, so cards can be snapshotted without running an agent.

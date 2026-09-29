@@ -6,7 +6,10 @@ import Foundation
 public struct AttentionQueue: Sendable, Equatable {
     public struct Item: Sendable, Equatable {
         public var sessionID: UUID
-        public var message: String
+        /// What the agent or program said, if anything.
+        public var message: String?
+        /// What happened, or nil for a notice that isn't a state change (`calm notify`).
+        public var state: SessionState?
         public var queuedAt: Date
     }
 
@@ -21,9 +24,9 @@ public struct AttentionQueue: Sendable, Equatable {
 
     public init() {}
 
-    public mutating func enqueue(_ sessionID: UUID, message: String, at date: Date) {
+    public mutating func enqueue(_ sessionID: UUID, message: String?, state: SessionState? = nil, at date: Date) {
         pending.removeAll { $0.sessionID == sessionID }
-        pending.append(Item(sessionID: sessionID, message: message, queuedAt: date))
+        pending.append(Item(sessionID: sessionID, message: message, state: state, queuedAt: date))
     }
 
     /// The session was visited or stopped waiting; its notification no longer applies.

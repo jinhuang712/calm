@@ -319,7 +319,7 @@ final class SessionManager {
         // Opted in (Agents panel): a turn finishing or failing where you aren't looking notifies too.
         if settings.notifyStates == .all, let state = workspace.session(id)?.state, state != previous,
            state == .done || state == .failed, id != lookingAtSessionID {
-            AttentionCenter.shared.notify(report.message ?? state.label, for: id)
+            AttentionCenter.shared.notify(report.message, state: state, for: id)
         }
         scheduleSave()
     }

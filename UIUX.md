@@ -109,10 +109,16 @@ Rules:
 ## Notifications
 
 1. **Needs you** in a session the user is not looking at → a macOS notification, held until the user pauses (stops typing for a moment or switches focus).
-2. The notification says which session and what it asked, in one line.
-3. Clicking it brings Calm forward and focuses that session.
-4. No sound by default.
-5. Nothing else notifies unless the user opts in.
+2. The title is a mark for the state, then the session's name (the one its card shows): ✋ needs you, ✅ done, ⚠️ failed (the last two only when opted in). A notice that isn't a state change (`calm notify`, a plain shell's own notification) has the name alone. There is no subtitle and no project or agent name: Calm's icon says where it comes from, and the name says which session. The mark is an emoji because it's the only way to give a banner color: macOS sets its text in fixed styles.
+3. The body is what the agent said, in plain words, at most about two lines: Markdown taken out, headings dropped, cut at a sentence and never in the middle of a word. For *needs you* it's the last question the agent asked; otherwise its first sentences while they fit. No message, or one that only repeats the title, leaves the body out.
+4. Clicking it brings Calm forward and focuses that session.
+5. No sound by default.
+6. Nothing else notifies unless the user opts in.
+
+```
+✋ Fix login
+Should I delete the old migration too?
+```
 
 ## App icon
 

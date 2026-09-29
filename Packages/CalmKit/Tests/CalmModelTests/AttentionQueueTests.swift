@@ -48,6 +48,15 @@ struct AttentionQueueTests {
         #expect(queue.takeDue(at: at(60)).count == 1)
     }
 
+    @Test func `the state waits in the queue with its message`() {
+        var queue = AttentionQueue()
+        queue.enqueue(session, message: nil, state: .failed, at: at(0))
+        queue.enqueue(UUID(), message: "Hello", at: at(0))
+        let items = queue.takeDue(at: at(0))
+        #expect(items.map(\.state) == [.failed, nil])
+        #expect(items.map(\.message) == [nil, "Hello"])
+    }
+
     @Test func `withdrawn when visited, and one per session`() {
         var queue = AttentionQueue()
         queue.noteTyping(at: at(0))

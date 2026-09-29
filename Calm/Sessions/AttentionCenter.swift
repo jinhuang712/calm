@@ -58,15 +58,16 @@ final class AttentionCenter: NSObject {
         case .none:
             break
         case .notify:
-            enqueue(SessionManager.shared.workspace.session(id)?.lastReport?.message ?? SessionState.needsYou.label, for: id)
+            enqueue(SessionManager.shared.workspace.session(id)?.lastReport?.message, state: .needsYou, for: id)
         case .withdraw:
             withdraw(id)
         }
     }
 
-    /// `calm notify`, or a program's own desktop notification in a plain shell.
-    func notify(_ message: String, for id: Session.ID) {
-        enqueue(message, for: id)
+    /// A state worth a notification when it's opted into (done, failed), or `calm notify`, or a
+    /// program's own desktop notification in a plain shell (no state, so no mark in the title).
+    func notify(_ message: String?, state: SessionState? = nil, for id: Session.ID) {
+        enqueue(message, state: state, for: id)
     }
 
     /// The user switched to a session: a pause for everything else, and its own
@@ -79,8 +80,8 @@ final class AttentionCenter: NSObject {
 
     // MARK: Delivery
 
-    private func enqueue(_ message: String, for id: Session.ID) {
-        queue.enqueue(id, message: message, at: Date())
+    private func enqueue(_ message: String?, state: SessionState?, for id: Session.ID) {
+        queue.enqueue(id, message: message, state: state, at: Date())
         deliverDue()
         if !queue.pending.isEmpty, timer == nil {
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
@@ -111,14 +112,18 @@ final class AttentionCenter: NSObject {
         let manager = SessionManager.shared
         // Still worth saying? Not if the user is looking at the session by now.
         guard let session = manager.workspace.session(item.sessionID), manager.lookingAtSessionID != item.sessionID else { return }
-        let project = manager.workspace.project(session.projectID)?.name ?? ""
-        Self.log.info("notify \(session.displayTitle, privacy: .public) · \(project, privacy: .public): \(item.message, privacy: .public)")
-        guard Self.deliversNotifications else { return }
+        // No subtitle: Calm's icon says where it's from, and the session's name says which one.
+        let text = NotificationText(state: item.state, sessionName: session.displayTitle, message: item.message)
+        Self.log.info("notify \(text.title, privacy: .public): \(text.body, privacy: .public)")
+        guard Self.deliversNotifications else {
+            // Self-tests read what would have been shown from their log.
+            FileHandle.standardError.write(Data("calm-selftest: notification \(text.title) | \(text.body)\n".utf8))
+            return
+        }
 
         let content = UNMutableNotificationContent()
-        content.title = session.displayTitle
-        content.subtitle = project
-        content.body = item.message
+        content.title = text.title
+        content.body = text.body
         content.threadIdentifier = item.sessionID.uuidString
         content.userInfo = ["session": item.sessionID.uuidString]
         content.sound = manager.settings.notificationSound ? .default : nil // UIUX.md: no sound by default

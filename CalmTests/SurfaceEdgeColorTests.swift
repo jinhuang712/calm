@@ -4,16 +4,18 @@ import IOSurface
 import Testing
 
 struct SurfaceEdgeColorTests {
-    /// A 4×2 BGRA frame, tagged like libghostty's, with `bgra` across the first row.
+    /// A 4×2 BGRA frame, tagged like libghostty's, painted all over in `bgra`.
     private func frame(bgra: [UInt8], space: CGColorSpace? = CGColorSpace(name: CGColorSpace.displayP3)) throws -> IOSurface {
         let surface = try #require(IOSurface(properties: [
             .width: 4, .height: 2, .bytesPerElement: 4, .pixelFormat: kCVPixelFormatType_32BGRA,
         ]))
         surface.lock(options: [], seed: nil)
         let bytes = surface.baseAddress.assumingMemoryBound(to: UInt8.self)
-        for x in 0 ..< 4 {
-            for channel in 0 ..< 4 {
-                bytes[x * 4 + channel] = bgra[channel]
+        for y in 0 ..< 2 {
+            for x in 0 ..< 4 {
+                for channel in 0 ..< 4 {
+                    bytes[y * surface.bytesPerRow + x * 4 + channel] = bgra[channel]
+                }
             }
         }
         surface.unlock(options: [], seed: nil)
@@ -42,8 +44,8 @@ struct SurfaceEdgeColorTests {
         #expect(color.colorSpace == NSColorSpace.displayP3)
     }
 
-    /// A 64×20 BGRA frame with each row painted by `row(y)`, as libghostty draws a pane.
-    private func pane(_ row: (Int) -> [UInt8]) throws -> IOSurface {
+    /// A 64×20 BGRA frame with each pixel painted by `color(x, y)`, as libghostty draws a pane.
+    private func pane(_ color: (Int, Int) -> [UInt8]) throws -> IOSurface {
         let surface = try #require(IOSurface(properties: [
             .width: 64, .height: 20, .bytesPerElement: 4, .pixelFormat: kCVPixelFormatType_32BGRA,
         ]))
@@ -52,7 +54,7 @@ struct SurfaceEdgeColorTests {
         for y in 0 ..< 20 {
             for x in 0 ..< 64 {
                 for channel in 0 ..< 4 {
-                    bytes[y * surface.bytesPerRow + x * 4 + channel] = row(y)[channel]
+                    bytes[y * surface.bytesPerRow + x * 4 + channel] = color(x, y)[channel]
                 }
             }
         }
@@ -65,40 +67,57 @@ struct SurfaceEdgeColorTests {
 
     private let dark: [UInt8] = [26, 29, 33, 255]
     private let grey: [UInt8] = [96, 96, 96, 255]
+    /// The dark green Claude Code paints under an added line of a diff.
+    private let added: [UInt8] = [0, 40, 2, 255]
 
     private func red(_ color: NSColor?) -> Int {
         Int(((color?.redComponent ?? -1) * 255).rounded())
     }
 
+    /// Whether (x, y) is in the middle of the pane, where content sits, clear of its sides.
+    private func inMiddle(_ x: Int, _ y: Int, from top: Int = 2) -> Bool {
+        (4 ..< 60).contains(x) && (top ..< 18).contains(y)
+    }
+
     @Test func `an app that paints the whole pane colors the strip like it`() throws {
-        // Neovim, OpenCode: the top row and the body agree, so the strip meets them without a seam.
-        #expect(try red(SurfaceEdgeColor.top(of: pane { _ in grey })) == 96)
+        // Neovim, OpenCode: the top row and the sides agree, so the strip meets them without a seam.
+        #expect(try red(SurfaceEdgeColor.top(of: pane { _, _ in grey })) == 96)
     }
 
-    @Test func `a band on the top rows does not tint the strip`() throws {
-        // Claude Code's sticky prompt: a lighter band on the first rows, dark below.
-        #expect(try red(SurfaceEdgeColor.top(of: pane { $0 < 3 ? grey : dark })) == 33)
+    @Test func `content in the middle of the pane does not tint the strip`() throws {
+        // Claude Code with a long diff on screen: the green filled most of the middle, and the
+        // strip took it, though the top edge and the sides were the terminal's own background.
+        #expect(try red(SurfaceEdgeColor.top(of: pane { x, y in inMiddle(x, y) ? added : dark })) == 33)
     }
 
-    @Test func `a full-width band on one body row does not outvote the rest`() throws {
-        #expect(try red(SurfaceEdgeColor.top(of: pane { $0 == 10 ? grey : dark })) == 33)
+    @Test func `an app's background colors the strip with content across its middle`() throws {
+        // OpenCode showing a diff: its background still runs down the sides.
+        #expect(try red(SurfaceEdgeColor.top(of: pane { x, y in inMiddle(x, y) ? added : grey })) == 96)
     }
 
-    @Test func `a body a shade off the top row is the same color`() throws {
+    @Test func `a band on the top rows gives no color, so the strip keeps the theme's`() throws {
+        // Claude Code's sticky prompt: a lighter band on the first rows, dark below, and
+        // whatever content is in the middle.
+        #expect(try SurfaceEdgeColor.top(of: pane { _, y in y < 3 ? grey : dark }) == nil)
+        #expect(try SurfaceEdgeColor.top(of: pane { x, y in y < 3 ? grey : inMiddle(x, y, from: 3) ? added : dark }) == nil)
+    }
+
+    @Test func `a full-width band on one row does not outvote the rest`() throws {
+        #expect(try red(SurfaceEdgeColor.top(of: pane { _, y in y == 10 ? grey : dark })) == 33)
+    }
+
+    @Test func `one side in a shade of its own still lets the other agree`() throws {
+        // Neovim's sign column, or a file tree, down the left; the background on the right.
+        #expect(try red(SurfaceEdgeColor.top(of: pane { x, _ in x < 2 ? grey : dark })) == 33)
+    }
+
+    @Test func `sides a shade off the top row are the same color`() throws {
         let nearly: [UInt8] = [27, 30, 34, 255]
-        #expect(try red(SurfaceEdgeColor.top(of: pane { $0 == 0 ? nearly : dark })) == 34)
+        #expect(try red(SurfaceEdgeColor.top(of: pane { _, y in y == 0 ? nearly : dark })) == 34)
     }
 
-    @Test func `the top row wins over a body that isn't opaque`() throws {
-        #expect(try red(SurfaceEdgeColor.top(of: pane { $0 < 3 ? grey : [0, 0, 0, 128] })) == 96)
-    }
-
-    @Test func `the most common shade wins, and a tie goes to the first seen`() {
-        typealias Pixel = SurfaceEdgeColor.Pixel
-        let (a, b) = (Pixel(blue: 10, green: 10, red: 10, alpha: 255), Pixel(blue: 200, green: 200, red: 200, alpha: 255))
-        #expect(SurfaceEdgeColor.common([a, b, b]) == b)
-        #expect(SurfaceEdgeColor.common([a, b]) == a)
-        #expect(SurfaceEdgeColor.common([]) == nil)
+    @Test func `an opaque band over a translucent pane gives no color`() throws {
+        #expect(try SurfaceEdgeColor.top(of: pane { _, y in y < 3 ? grey : [0, 0, 0, 128] }) == nil)
     }
 
     @Test func `a translucent edge gives no color`() throws {

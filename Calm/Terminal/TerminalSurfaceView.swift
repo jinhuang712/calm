@@ -72,7 +72,7 @@ final class TerminalSurfaceView: NSView {
     private(set) var cellSize: NSSize = .zero
     private var contentSize: NSSize = .zero
     private var focused = false
-    private var isWindowVisible = true
+    private var visibility = PaneVisibility()
     private var pendingTitle: String?
     private var titleTimer: Timer?
     private var trackingArea: NSTrackingArea?
@@ -400,18 +400,19 @@ final class TerminalSurfaceView: NSView {
 
     /// Hidden panes (in layouts not on screen) stop rendering until shown again.
     func setVisible(_ visible: Bool) {
-        guard let surface, visible != isWindowVisible else { return }
-        isWindowVisible = visible
-        ghostty_surface_set_occlusion(surface, visible)
+        updateVisibility { $0.isShown = visible }
     }
 
     private func occlusionDidChange() {
-        guard let surface, let window else { return }
+        guard let window else { return }
         // A headless self-test's window is transparent, which counts as occluded; keep rendering.
         let visible = window.occlusionState.contains(.visible) || Headless.isOn
-        guard visible != isWindowVisible else { return }
-        isWindowVisible = visible
-        ghostty_surface_set_occlusion(surface, visible)
+        updateVisibility { $0.isWindowVisible = visible }
+    }
+
+    private func updateVisibility(_ change: (inout PaneVisibility) -> Void) {
+        guard let surface, let draws = visibility.update(change) else { return }
+        ghostty_surface_set_occlusion(surface, draws)
     }
 
     // MARK: Focus

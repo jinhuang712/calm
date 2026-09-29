@@ -17,12 +17,23 @@ struct CodexTranscriptTests {
 
     private static let otherID = "01a0e957-0000-7000-8000-000000000002"
 
+    /// Who started a rollout: the header's `originator`, `source` and `thread_source`, as captured
+    /// from real ones (2026-09-29). Under the shared daemon (0.157+) the terminal's own `codex`
+    /// says `source: "vscode"`; only `originator` tells it from the desktop app.
+    private enum Origin {
+        static let terminalUnderDaemon = #""originator":"codex-tui","source":"vscode","thread_source":"user""#
+        static let terminalBeforeDaemon = #""originator":"codex-tui","source":"cli","thread_source":"user""#
+        static let desktopApp = #""originator":"Codex Desktop","source":"vscode","thread_source":"user""#
+        static let subagentOfTerminal = #""originator":"codex-tui","source":{"subagent":{}},"thread_source":"subagent""#
+        static let subagentOfApp = #""originator":"Codex Desktop","source":{"subagent":{}},"thread_source":"subagent""#
+    }
+
     private struct Rollout {
         var id: String
         var fixture = "rollout-done"
         var day = "2026/09/29"
-        /// Replaces the header's `"source":"cli"` (an app's session, or a subagent's thread).
-        var source = #""source":"cli""#
+        /// Replaces the fixture's header fields (which are `Origin.terminalUnderDaemon`).
+        var origin = Origin.terminalUnderDaemon
     }
 
     /// A temporary home with rollouts copied from fixtures into `.codex/sessions/<day>/`.
@@ -33,7 +44,7 @@ struct CodexTranscriptTests {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             var text = try String(contentsOf: fixture(rollout.fixture), encoding: .utf8)
             text = text.replacingOccurrences(of: sessionID, with: rollout.id)
-            text = text.replacingOccurrences(of: #""source":"cli""#, with: rollout.source)
+            text = text.replacingOccurrences(of: Origin.terminalUnderDaemon, with: rollout.origin)
             try Data(text.utf8).write(to: folder.appending(path: "rollout-2026-09-29T02-46-30-\(rollout.id).jsonl"))
         }
         return home
@@ -43,6 +54,7 @@ struct CodexTranscriptTests {
         let tail = try tail("rollout-done")
         #expect(tail.lastMessage == "Fixed the login test. The mock returned an expired token; it now uses a fresh one.")
         #expect(tail.interrupted == false)
+        #expect(tail.turn == .finished)
         // Codex keeps no title in its rollouts and, in recent ones, no plan.
         #expect(tail.title == nil)
         #expect(tail.step == nil)
@@ -53,11 +65,14 @@ struct CodexTranscriptTests {
         let tail = try tail("rollout-running")
         #expect(tail.lastMessage == "Running the whole suite now.")
         #expect(tail.interrupted == false)
+        // The newest turn started and hasn't ended: Codex is working, and says so nowhere else.
+        #expect(tail.turn == .inProgress)
     }
 
     @Test func `an interrupted turn is noticed`() throws {
         let tail = try tail("rollout-interrupted")
         #expect(tail.interrupted)
+        #expect(tail.turn == nil) // interrupted, not working: the interruption settles it
         #expect(tail.lastMessage == "Starting with the tokenizer.")
     }
 
@@ -70,6 +85,7 @@ struct CodexTranscriptTests {
         defer { try? FileManager.default.removeItem(at: url) }
         let tail = try #require(adapter.readTail(of: url, agentSessionID: nil, home: url))
         #expect(tail.interrupted == false)
+        #expect(tail.turn == .inProgress) // the new prompt's turn
     }
 
     @Test func `a huge tool output as the newest record doesn't hide the messages before it`() throws {
@@ -141,11 +157,42 @@ struct CodexTranscriptTests {
         #expect(CodexAdapter.transcript(facts: ProcessFacts(), home: home) == nil)
     }
 
-    @Test func `subagent threads and the app's sessions don't make a folder ambiguous`() throws {
+    @Test func `a terminal codex under the shared daemon is found, though its rollout says vscode`() throws {
+        // The real case that was missed: Codex 0.159 in a Calm session. Its rollout's `source` is
+        // "vscode"; only `originator: "codex-tui"` says it's a terminal.
+        let home = try makeHome([Rollout(id: sessionID, origin: Origin.terminalUnderDaemon)])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let facts = ProcessFacts(directory: "/Users/me/src/app", started: Date().addingTimeInterval(-60), arguments: ["codex", "--yolo"])
+        #expect(CodexAdapter.transcript(facts: facts, home: home)?.agentSessionID == sessionID)
+    }
+
+    @Test func `a terminal codex from before the daemon is found too`() throws {
+        let home = try makeHome([Rollout(id: sessionID, origin: Origin.terminalBeforeDaemon)])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let facts = ProcessFacts(directory: "/Users/me/src/app", started: Date().addingTimeInterval(-60))
+        #expect(CodexAdapter.transcript(facts: facts, home: home)?.agentSessionID == sessionID)
+    }
+
+    @Test func `who started a rollout is read from its originator and thread source`() throws {
+        func head(_ origin: String) throws -> SessionHead {
+            let home = try makeHome([Rollout(id: sessionID, origin: origin)])
+            defer { try? FileManager.default.removeItem(at: home) }
+            let url = home.appending(path: ".codex/sessions/2026/09/29/rollout-2026-09-29T02-46-30-\(sessionID).jsonl")
+            return try #require(CodexAdapter.head(of: url))
+        }
+        #expect(try head(Origin.terminalUnderDaemon).isTerminalSession)
+        #expect(try head(Origin.terminalBeforeDaemon).isTerminalSession)
+        #expect(try !head(Origin.desktopApp).isTerminalSession)
+        #expect(try !head(Origin.subagentOfTerminal).isTerminalSession)
+        #expect(try !head(Origin.subagentOfApp).isTerminalSession)
+    }
+
+    @Test func `subagent threads and the desktop app's sessions don't make a folder ambiguous`() throws {
         let home = try makeHome([
             Rollout(id: sessionID),
-            Rollout(id: Self.otherID, source: #""source":{"subagent":{}}"#),
-            Rollout(id: "01a0e957-0000-7000-8000-000000000003", source: #""source":"vscode""#),
+            Rollout(id: Self.otherID, origin: Origin.subagentOfTerminal),
+            Rollout(id: "01a0e957-0000-7000-8000-000000000003", origin: Origin.desktopApp),
+            Rollout(id: "01a0e957-0000-7000-8000-000000000004", origin: Origin.subagentOfApp),
         ])
         defer { try? FileManager.default.removeItem(at: home) }
         let facts = ProcessFacts(directory: "/Users/me/src/app", started: Date().addingTimeInterval(-60))
@@ -200,6 +247,21 @@ struct CodexTranscriptTests {
         print("real rollouts: \(recaps) with a recap, \(interrupted) interrupted, \(unreadable) unreadable, \(elapsed) in all")
         #expect(headers == files.count)
         #expect(unreadable == 0)
+    }
+
+    /// Opt-in check of a real running Codex (CALM_REAL_CODEX_PID=<pid>): whether its rollout is
+    /// found from the process, and what it reads; prints no content.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CALM_REAL_CODEX_PID"] != nil))
+    func `finds the rollout of a real running codex`() throws {
+        let pid = try #require(ProcessInfo.processInfo.environment["CALM_REAL_CODEX_PID"].flatMap { Int32($0) })
+        let facts = ProcessFacts.of(pid)
+        let found = CodexAdapter.transcript(facts: facts, home: FileManager.default.homeDirectoryForCurrentUser)
+        print(
+            "real codex: folder known \(facts.directory != nil), start known \(facts.started != nil), open files \(facts.openFiles.count)",
+        )
+        let tail = found.flatMap { adapter.readTail(of: $0.url, agentSessionID: nil, home: $0.url) }
+        print("real codex: found \(found != nil), recap \(tail?.lastMessage?.count ?? -1) chars, interrupted \(tail?.interrupted ?? false)")
+        #expect(found != nil)
     }
 
     /// Opt-in check against a real rollout (CALM_REAL_CODEX_ROLLOUT=<path>): prints only which

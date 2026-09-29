@@ -101,8 +101,24 @@ struct OpenCodeTranscriptTests {
         #expect(tail.title == "Fix the login test")
         #expect(tail.lastMessage == "Fixed the login test. The mock returned an expired token.")
         #expect(tail.interrupted == false)
+        #expect(tail.turn == .finished)
         #expect(tail.step == nil)
         #expect(tail.progress == nil)
+    }
+
+    @Test func `a turn with no idle record after it is still in progress`() throws {
+        // OpenCode writes `idle` when a turn ends: until then it is working, and (without its
+        // plugin) says so nowhere else.
+        #expect(try tail(Session(messages: [Self.user])).turn == .inProgress)
+        #expect(try tail(Session(messages: [Self.user, Self.assistant("Reading the parser.")])).turn == .inProgress)
+        #expect(try tail(Session(messages: [Self.user, Self.assistant(nil)])).turn == .inProgress)
+    }
+
+    @Test func `a turn that ended in failure is failed`() throws {
+        let failed = Message(type: "idle", json: #"{"outcome":"failed","time":{"created":1}}"#)
+        let tail = try tail(Session(messages: [Self.user, Self.assistant("Trying."), failed]))
+        #expect(tail.turn == .failed)
+        #expect(tail.interrupted == false)
     }
 
     @Test func `the placeholder title is no title`() throws {
@@ -114,12 +130,14 @@ struct OpenCodeTranscriptTests {
     @Test func `an interrupted turn is noticed, keeping the last words before it`() throws {
         let tail = try tail(Session(messages: [Self.user, Self.assistant("Starting with the tokenizer."), Self.interrupted]))
         #expect(tail.interrupted)
+        #expect(tail.turn == nil) // interrupted, not working
         #expect(tail.lastMessage == "Starting with the tokenizer.")
     }
 
     @Test func `a new prompt after an interruption clears it`() throws {
         let tail = try tail(Session(messages: [Self.user, Self.assistant("Starting."), Self.interrupted, Self.user]))
         #expect(tail.interrupted == false)
+        #expect(tail.turn == .inProgress)
     }
 
     @Test func `steps with only tools and thinking don't replace the last words`() throws {

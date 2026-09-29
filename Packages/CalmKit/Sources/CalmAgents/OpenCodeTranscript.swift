@@ -75,17 +75,14 @@ extension OpenCodeAdapter: TranscriptReading {
                 guard tail.lastMessage == nil, let type = row.text(0) else { return }
                 let json = row.text(1).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
                 let data = json as? [String: Any] ?? [:]
-                switch type {
-                case "idle":
-                    // Only the newest record can show an interruption: a later prompt starts a new turn.
-                    if !sawConversation {
-                        tail.interrupted = data["outcome"] as? String == "interrupted"
-                    }
-                case "assistant":
+                if !sawConversation {
+                    // Only the newest record says where the turn stands, and whether it was
+                    // interrupted: a later prompt starts a new turn.
+                    (tail.turn, tail.interrupted) = Self.turn(after: type, data)
+                }
+                if type == "assistant" {
                     // Lines kept apart, so the cleaning can tell a heading from what follows it.
                     tail.lastMessage = MessageText.recap(Self.texts(of: data).joined(separator: "\n"))
-                default:
-                    break
                 }
                 sawConversation = true
             }
@@ -93,6 +90,20 @@ extension OpenCodeAdapter: TranscriptReading {
             return nil
         }
         return tail
+    }
+
+    /// Where the turn stands after its newest record. OpenCode writes an `idle` record with an
+    /// `outcome` when a turn ends, so a user or assistant record as the newest one means the turn
+    /// is still going: OpenCode says nothing else to Calm about that (its notifications are off
+    /// by default and only tell an ask or a finished turn while its terminal isn't focused).
+    private static func turn(after type: String, _ data: [String: Any]) -> (phase: TurnPhase?, interrupted: Bool) {
+        guard type == "idle" else { return (.inProgress, false) }
+        switch data["outcome"] as? String {
+        case "succeeded": return (.finished, false)
+        case "failed": return (.failed, false)
+        case "interrupted": return (nil, true)
+        default: return (nil, false)
+        }
     }
 
     /// The database and its write-ahead log, which is what grows while OpenCode works.

@@ -37,6 +37,7 @@ struct TraceTests {
             progress: TodoProgress(done: 3, total: 5), interrupted: true,
         )
         #expect(Trace.fields(of: tail) == "title, recap, step, todos 3/5, interrupted")
+        #expect(Trace.fields(of: TranscriptTail(turn: .inProgress)) == "turn inProgress")
     }
 
     @Test func `the trace never carries what an agent or the user wrote`() {

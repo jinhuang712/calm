@@ -70,6 +70,7 @@ A fast, correct terminal on libghostty.
 
 - Each agent session has a state: **working**, **needs you**, **done**, **failed**, or **idle**.
 - State comes from each agent's hook or notification system reporting to Calm, with terminal signals (bell, progress reports, desktop notification sequences) as a fallback. The fallback alone already works for Claude Code and Codex, with no setup.
+- Codex and OpenCode have no hook to say they are working (their notifications only tell a finished turn or an ask, and only while their terminal isn't focused), so Calm reads it from their own conversation files: a turn that has started and not ended is **working**, and one that ended is **done** (or **failed**, for OpenCode). The card works and settles within a couple of seconds of the agent. This is a guess, so an agent's own hook always outranks it, and it never replaces a pending **needs you**.
 - A Claude Code turn that ends with one of Claude's own background agents still running stays **working**: Claude picks up again on its own when the agent finishes.
 - Background *shells* don't hold it: a dev server or a monitor never ends and nothing would wake Claude, so the turn is **done** (the next move is yours), and the card adds "· 2 shells running" until you move on from it (2026-09-29, the author's call). Only tasks still running or pending count; a kind of task Calm doesn't know counts as a shell.
 - Plain shells get a quiet mark too: a command that ran for 10 seconds or more shows **done** or **failed** until the session is visited.

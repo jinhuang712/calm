@@ -52,9 +52,21 @@ extension CodexAdapter: TranscriptReading {
               let payload = record["payload"] as? [String: Any],
               let id = (payload["id"] as? String) ?? (payload["session_id"] as? String)
         else { return nil }
-        // `source` is "cli" for a terminal, "vscode" for the app; a subagent's thread has an
-        // object there.
-        return SessionHead(id: id, directory: payload["cwd"] as? String, isTerminalSession: payload["source"] as? String == "cli")
+        return SessionHead(id: id, directory: payload["cwd"] as? String, isTerminalSession: startedByTerminal(payload))
+    }
+
+    /// Whether a person started this rollout from a terminal's `codex`, from the header's fields
+    /// (checked on 184 real rollouts, 2026-09-29):
+    ///
+    /// - `originator` is `codex-tui` for the terminal (`codex_cli_rs` in early versions) and
+    ///   `Codex Desktop` for the app. `source` can't tell them apart: under the shared daemon
+    ///   (0.157+) the terminal's own rollouts say `vscode` too, and before it they said `cli`.
+    /// - A subagent's thread has `thread_source: "subagent"` and an object for `source`, whoever
+    ///   started its parent.
+    static func startedByTerminal(_ header: [String: Any]) -> Bool {
+        let terminalOriginators = ["codex-tui", "codex_cli_rs"]
+        let isSubagent = header["thread_source"] as? String == "subagent" || header["source"] is [String: Any]
+        return !isSubagent && terminalOriginators.contains(header["originator"] as? String ?? "")
     }
 
     public func readTail(of transcript: URL, agentSessionID _: String?, home _: URL) -> TranscriptTail? {
@@ -65,18 +77,27 @@ extension CodexAdapter: TranscriptReading {
             sawRecord = true
             guard let payload = record["payload"] as? [String: Any] else { continue }
             switch (record["type"] as? String, payload["type"] as? String) {
+            // Only the newest turn marker says where the turn stands: `task_started` opens a turn,
+            // `task_complete` ends it, `turn_aborted` is Esc. Codex sends Calm nothing else to
+            // say it is working (its notifications only tell a finished turn or an ask, and only
+            // while its terminal isn't focused).
             case (_, "task_complete"?):
+                if !sawTurnMarker {
+                    tail.turn = .finished
+                }
                 sawTurnMarker = true
                 if tail.lastMessage == nil {
                     tail.lastMessage = MessageText.recap(payload["last_agent_message"] as? String)
                 }
             case (_, "turn_aborted"?):
-                // Only the newest turn marker can show an interruption: a later prompt starts a new turn.
                 if !sawTurnMarker {
                     tail.interrupted = payload["reason"] as? String == "interrupted"
                 }
                 sawTurnMarker = true
             case (_, "task_started"?):
+                if !sawTurnMarker {
+                    tail.turn = .inProgress
+                }
                 sawTurnMarker = true
             case ("response_item"?, "message"?) where payload["role"] as? String == "assistant":
                 if tail.lastMessage == nil {

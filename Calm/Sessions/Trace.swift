@@ -74,6 +74,7 @@ enum Trace {
         let found = [
             tail.title.map { _ in "title" }, tail.lastMessage.map { _ in "recap" }, tail.step.map { _ in "step" },
             tail.progress.map { "todos \($0.done)/\($0.total)" }, tail.interrupted ? "interrupted" : nil,
+            tail.turn.map { "turn \($0.rawValue)" },
         ].compactMap(\.self)
         return found.isEmpty ? "nothing" : found.joined(separator: ", ")
     }

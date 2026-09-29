@@ -359,6 +359,13 @@ final class SessionManager {
             workspace.updateTranscriptTail(id, tail)
         }
         Trace.transcriptRead(id, tail, before: session.state, after: workspace.session(id)?.state)
+        // An agent with no hook or extension can't say it is working or has finished; its transcript
+        // does (`TranscriptTail.stateChange`). Reported as a terminal-grade guess, so a real hook
+        // still outranks it.
+        if let current = workspace.session(id),
+           let state = tail.stateChange(from: current.state, after: current.lastReport, transcriptWritten: modified) {
+            report(id, StatusReport(state: state, message: state == .done ? tail.lastMessage : nil, source: .terminal))
+        }
         scheduleSave()
     }
 

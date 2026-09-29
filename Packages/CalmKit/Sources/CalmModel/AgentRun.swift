@@ -30,6 +30,14 @@ public struct TodoProgress: Codable, Hashable, Sendable {
 }
 
 /// What the agent's transcript says right now (FEATURES.md → F2 session cards).
+/// Where an agent's newest turn stands, as its transcript says.
+public enum TurnPhase: String, Codable, Sendable {
+    /// Started and not ended.
+    case inProgress
+    case finished
+    case failed
+}
+
 public struct TranscriptTail: Codable, Hashable, Sendable {
     /// The agent's own session title (e.g. set by `/rename`, or generated).
     public var title: String?
@@ -43,6 +51,10 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     /// The folder the agent works in now, by its own account. It can move into a git worktree
     /// and out again while the shell that started it stays where it was.
     public var directory: String?
+    /// Where the newest turn stands, for agents whose transcript says (nil: it doesn't, or the
+    /// turn was interrupted). An agent with no hook or extension has no other way to tell Calm
+    /// it is working.
+    public var turn: TurnPhase?
 
     public init(
         title: String? = nil,
@@ -51,6 +63,7 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         progress: TodoProgress? = nil,
         interrupted: Bool = false,
         directory: String? = nil,
+        turn: TurnPhase? = nil,
     ) {
         self.title = title
         self.lastMessage = lastMessage
@@ -58,6 +71,29 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         self.progress = progress
         self.interrupted = interrupted
         self.directory = directory
+        self.turn = turn
+    }
+
+    /// The state a session should move to given what this reading says of the newest turn, or nil
+    /// for no change. Only for agents that can't say it themselves, so:
+    ///
+    /// - An agent's own hook report outranks it, as it does a terminal signal.
+    /// - A reading written before the latest report is stale: a desktop notification for the
+    ///   finished turn may have come first (the same rule as for an interruption).
+    /// - A turn in progress starts *working* from idle, done or failed, but never overrides a
+    ///   pending *needs you*: an ask is made mid-turn and waits for the person.
+    /// - A turn that ended (finished or failed) ends the work or the wait.
+    public func stateChange(from state: SessionState, after report: StatusReport?, transcriptWritten: Date) -> SessionState? {
+        guard let turn, report?.source != .hook else { return nil }
+        if let reported = report?.date, transcriptWritten <= reported {
+            return nil
+        }
+        switch (turn, state) {
+        case (.inProgress, .idle), (.inProgress, .done), (.inProgress, .failed): return .working
+        case (.finished, .working), (.finished, .needsYou): return .done
+        case (.failed, .working), (.failed, .needsYou): return .failed
+        default: return nil
+        }
     }
 }
 

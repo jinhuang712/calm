@@ -141,7 +141,7 @@ A fast, correct terminal on libghostty.
 
 - Copies the text of one cell of a table drawn with box characters (`│ ─ ┼` and similar), instead of whole rows.
 - **Hold ⌥** over a table: a faint dotted outline marks the cell under the pointer. **⌥-click** copies that cell, and a small "Cell copied" note shows by the pointer. It works in programs that take the mouse too (Claude Code's full-screen view): Calm keeps that click, so the program never sees it.
-- **⌥-drag** still selects, as it always has: a rectangle selection, or that program's own selection where a program takes the mouse. Only a press that doesn't move copies a cell.
+- **⌥-drag** that starts in a cell selects inside that cell only, and copies what it selected when you let go ("Copied"): part of a long cell, across its wrapped lines, never picking up the cells beside it. Past the cell's lines it stays inside (beside a line, to that line's edge; below the cell, to its end). The selection shows for a moment after the copy. Programs that take the mouse never see the drag. An ⌥-drag that starts outside a table is the terminal's rectangle selection as before (or the program's own selection).
 - Right-click → **Copy Cell** does the same where the program doesn't take the mouse.
 - Wrapped lines inside the cell are joined, and padding is trimmed, giving one clean string.
 - Outside a drawn table, an ⌥-click is an ordinary click. Claude Code prints a table too wide for the pane as `Name: value` lines instead of a box, and those aren't a table to copy from.

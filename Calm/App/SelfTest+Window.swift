@@ -76,13 +76,8 @@
                 if let pane = focusedPane {
                     surface(pane, requestsOpenLink: String(link.dropFirst(10)))
                 }
-            case let copy where copy.hasPrefix("copy_cell:") || copy.hasPrefix("cell_drag:"):
-                // copy_cell:<text>: hold ⌥ over the text and click it; cell_drag:<text>: ⌥-drag from
-                // it six cells to the right instead. Logs the outline, what was copied and whether
-                // the terminal made a selection of its own.
-                let text = String(copy.dropFirst(10))
-                let result = focusedPane?.optionClickForTesting(text, dragCells: copy.hasPrefix("cell_drag:") ? 6 : 0)
-                FileHandle.standardError.write(Data("calm-selftest: \(copy.prefix(9)) at \(text): \(result ?? "not found")\n".utf8))
+            case let copy where ["copy_cell:", "cell_drag:", "cell_select:", "cell_hold:"].contains { copy.hasPrefix($0) }:
+                copyCellForTesting(copy)
             case let search where search.hasPrefix("search:"):
                 toggleSearch(query: String(search.dropFirst(7)))
             case let search where search.hasPrefix("search_open:"):
@@ -444,6 +439,21 @@
                 characters: String(utf16CodeUnits: [unichar(key.function)], count: 1),
                 modifiers: [.command, .option],
             )
+        }
+
+        /// copy_cell:<text>: hold ⌥ over the text and click it; cell_drag:<text>: ⌥-drag from it six
+        /// cells to the right; cell_select:<from>|<to>: ⌥-drag from the first to the last character
+        /// of <to>; cell_hold: the same, not let go, for a snapshot. Logs the outline, the
+        /// selection, what was copied and whether the terminal selected too.
+        private func copyCellForTesting(_ action: String) {
+            let name = action.prefix { $0 != ":" }
+            let parts = action.dropFirst(name.count + 1).split(separator: "|", maxSplits: 1).map(String.init)
+            let result = focusedPane?.optionClickForTesting(
+                parts[0], to: parts.count > 1 ? parts[1] : nil, dragCells: name == "cell_drag" ? 6 : 0,
+                release: name != "cell_hold",
+            )
+            let line = "calm-selftest: \(name) at \(parts.joined(separator: " → ")): \(result ?? "not found")\n"
+            FileHandle.standardError.write(Data(line.utf8))
         }
 
         private func doubleClickForTesting(at topLeft: NSPoint) {

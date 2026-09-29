@@ -54,6 +54,16 @@ final class PaneLinks {
     /// The grid cell the outline was last looked up for, so moving within a cell reads nothing.
     var cellOutlineProbe: CellRun?
 
+    /// What an ⌥-drag inside a table cell selects, one rectangle per line, in the pane's
+    /// coordinates; drawn by the same overlay, since libghostty never saw the drag.
+    var cellSelection: [NSRect] = [] {
+        didSet {
+            if cellSelection != oldValue {
+                onChange?()
+            }
+        }
+    }
+
     /// Where the pointer is in the pane, while it's over it.
     var pointer: NSPoint?
     /// Whether ⌘ is down, as the last pointer or modifier event said (`NSEvent.modifierFlags` doesn't

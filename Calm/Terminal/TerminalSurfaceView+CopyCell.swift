@@ -95,18 +95,39 @@ extension TerminalSurfaceView {
     }
 }
 
+/// An ⌥-press over a table cell, from the press until it's a click or a drag inside the cell.
+enum CellGesture {
+    /// Pressed and not yet moved: a click if it's released now.
+    case pressed(NSEvent)
+    /// Moved: selecting inside `cell` from `anchor`, over the screen as it was when the drag began.
+    case selecting(CellDrag)
+}
+
+struct CellDrag {
+    let press: NSEvent
+    let cell: CopyCell.Cell
+    let grid: TextGrid
+    let anchor: (row: Int, column: Int)
+
+    /// What's selected with the pointer over `focus`.
+    func selection(to focus: (row: Int, column: Int)) -> CopyCell.Selection? {
+        CopyCell.selection(in: grid, cell: cell, from: anchor, to: focus)
+    }
+}
+
 /// Copy Cell (FEATURES.md → F9): holding ⌥ over a table an agent drew outlines the cell under the
-/// pointer, and an ⌥-click copies it, instead of whole rows; right-click → Copy Cell does the same
-/// where the program leaves the mouse to the terminal. The table logic is `CopyCell` (CalmModel);
-/// this reads the grid and maps the pointer to a cell.
+/// pointer, an ⌥-click copies it and an ⌥-drag selects inside it, instead of across whole rows;
+/// right-click → Copy Cell also copies it where the program leaves the mouse to the terminal. The
+/// table logic is `CopyCell` (CalmModel); this reads the grid and maps the pointer to a cell.
 ///
-/// The ⌥-press over a cell is held back from libghostty, so a program that takes the mouse
-/// (Claude Code's full-screen view) never sees the click; if it moves on as a drag, the press is
-/// sent after all and the drag selects as ⌥-drag always did (a rectangle, or the program's own
-/// selection where it takes the mouse).
+/// The ⌥-press over a cell never reaches libghostty, so a program that takes the mouse (Claude
+/// Code's full-screen view) sees neither the click nor the drag. An ⌥-drag that starts outside a
+/// table is the terminal's as before (a rectangle, or the program's own selection).
 extension TerminalSurfaceView {
     /// How far an ⌥-press over a cell may move and still be a click, in points.
     private static let clickSlop: CGFloat = 3
+    /// How long a finished ⌥-drag's selection stays on screen, showing what was copied.
+    private static let selectionShown: Duration = .milliseconds(600)
 
     /// The table cell under a point, or nil outside a drawn table.
     func tableCell(at point: NSPoint) -> CopyCell.Cell? {
@@ -120,7 +141,7 @@ extension TerminalSurfaceView {
         guard let text = tableCell(at: point)?.text else { return false }
         NSPasteboard.calm.clearContents()
         NSPasteboard.calm.setString(text, forType: .string)
-        host?.surfaceDidCopyCell(self, at: point)
+        host?.surfaceDidCopyCell(self, at: point, whole: true)
         return true
     }
 
@@ -129,46 +150,98 @@ extension TerminalSurfaceView {
         flags.intersection([.option, .command, .shift, .control]) == .option
     }
 
-    /// An ⌥-press over a table cell is kept back until it's a click or a drag.
+    /// An ⌥-press over a table cell is kept back until it's a click or a drag. Any press puts
+    /// away the last ⌥-drag's selection, still showing what it copied.
     func holdsCellPress(_ event: NSEvent) -> Bool {
+        links.cellSelection = []
         guard Self.isOptionOnly(event.modifierFlags), tableCell(at: convert(event.locationInWindow, from: nil)) != nil else {
             return false
         }
-        heldCellPress = event
+        cellGesture = .pressed(event)
         return true
     }
 
-    /// A held press that moves becomes a drag: libghostty gets the press where it happened.
+    /// A held press that moves becomes a selection inside its cell, and follows the pointer.
     func dragsCellPress(_ event: NSEvent) {
-        guard let press = heldCellPress else { return }
-        let start = convert(press.locationInWindow, from: nil)
         let now = convert(event.locationInWindow, from: nil)
-        guard hypot(now.x - start.x, now.y - start.y) > Self.clickSlop else { return }
-        heldCellPress = nil
-        updateCellOutline([])
-        sendMousePosition(press)
-        _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, press)
+        switch cellGesture {
+        case let .pressed(press):
+            let start = convert(press.locationInWindow, from: nil)
+            guard hypot(now.x - start.x, now.y - start.y) > Self.clickSlop else { return }
+            let grid = TextGrid(lines: viewportRows())
+            guard let from = cell(at: start), let cell = CopyCell.cell(in: grid, row: from.row, column: from.column) else {
+                cellGesture = nil
+                return
+            }
+            let drag = CellDrag(press: press, cell: cell, grid: grid, anchor: from)
+            cellGesture = .selecting(drag)
+            links.cellSelection = selectionRects(drag.selection(to: gridPoint(at: now)))
+        case let .selecting(drag):
+            links.cellSelection = selectionRects(drag.selection(to: gridPoint(at: now)))
+        case nil:
+            return
+        }
     }
 
-    /// A held press released without moving is an ⌥-click: the cell is copied, and neither half
-    /// of the click reaches a program that takes the mouse.
+    /// The release ends it: a click copies the cell, a drag what it selected. Neither reaches a
+    /// program that takes the mouse.
     func releasesCellPress(_ event: NSEvent) -> Bool {
-        guard let press = heldCellPress else { return false }
-        heldCellPress = nil
-        copyTableCell(at: convert(press.locationInWindow, from: nil))
-        // An older selection would stay highlighted, as if it were what was copied; a plain click
-        // is how the terminal lets go of one (libghostty has no action for it). Only where no
-        // program takes the mouse, which would take the click for its own.
-        if let surface, ghostty_surface_has_selection(surface), !ghostty_surface_mouse_captured(surface),
-           let plain = NSEvent.mouseEvent(
-               with: .leftMouseDown, location: press.locationInWindow, modifierFlags: [], timestamp: event.timestamp,
-               windowNumber: event.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1,
-           ) {
-            sendMousePosition(plain)
-            _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, plain)
-            _ = sendMouseButton(GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, plain)
+        guard let gesture = cellGesture else { return false }
+        cellGesture = nil
+        switch gesture {
+        case let .pressed(press):
+            copyTableCell(at: convert(press.locationInWindow, from: nil))
+            releaseTerminalSelection(at: press, event)
+        case let .selecting(drag):
+            let point = convert(event.locationInWindow, from: nil)
+            let selection = drag.selection(to: gridPoint(at: point))
+            links.cellSelection = selectionRects(selection)
+            if let text = selection?.text {
+                NSPasteboard.calm.clearContents()
+                NSPasteboard.calm.setString(text, forType: .string)
+                host?.surfaceDidCopyCell(self, at: point, whole: text == drag.cell.text)
+            }
+            releaseTerminalSelection(at: drag.press, event)
+            let shown = links.cellSelection
+            Task { [weak self] in
+                try? await Task.sleep(for: Self.selectionShown)
+                if let self, links.cellSelection == shown {
+                    links.cellSelection = []
+                }
+            }
         }
         return true
+    }
+
+    /// An older selection of the terminal's would stay highlighted, as if it were what was
+    /// copied; a plain click is how the terminal lets go of one (libghostty has no action for it).
+    /// Only where no program takes the mouse, which would take the click for its own.
+    private func releaseTerminalSelection(at press: NSEvent, _ event: NSEvent) {
+        guard let surface, ghostty_surface_has_selection(surface), !ghostty_surface_mouse_captured(surface),
+              let plain = NSEvent.mouseEvent(
+                  with: .leftMouseDown, location: press.locationInWindow, modifierFlags: [], timestamp: event.timestamp,
+                  windowNumber: event.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1,
+              )
+        else { return }
+        sendMousePosition(plain)
+        _ = sendMouseButton(GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, plain)
+        _ = sendMouseButton(GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, plain)
+    }
+
+    /// The grid cell under a point, even past the grid's edges (negative above and to the left),
+    /// so a drag out of the pane still says which way it went.
+    private func gridPoint(at point: NSPoint) -> (row: Int, column: Int) {
+        guard let origin = gridOrigin(), cellSize.width > 0, cellSize.height > 0 else { return (0, 0) }
+        return (
+            Int(((bounds.height - point.y - origin.y) / cellSize.height).rounded(.down)),
+            Int(((point.x - origin.x) / cellSize.width).rounded(.down)),
+        )
+    }
+
+    /// Where a selection's runs are drawn, in this view's coordinates.
+    private func selectionRects(_ selection: CopyCell.Selection?) -> [NSRect] {
+        guard let selection, let origin = gridOrigin() else { return [] }
+        return selection.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
     }
 
     /// Outlines the cell under the pointer while ⌥ alone is held, and nothing otherwise.

@@ -77,7 +77,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 - **Not found:** the name dims and the action reads "Not found", so you know before clicking.
 - The tag takes no clicks and goes away on typing, clicking or scrolling, or when ⌘ or the pointer leaves the link.
 - **Programs that take the mouse:** under ⌘ a link looks and behaves the same (underline, pointing hand, tag), but there are no resting marks, since such a screen is redrawn too often for them to hold still. The tag goes away when the link's text changes under a resting pointer.
-- **Table cells, holding ⌥** (Copy Cell): the cell under the pointer gets the links' dots as a rounded outline (3 pt corners), inside the table's own lines. It follows the pointer from cell to cell, showing and going in 0.1 s so it never trails, and goes away on typing or scrolling, or when ⌥ or the pointer leaves the table. An ⌥-click leaves the small "Cell copied" note by the pointer, gone within a second. The same happens in programs that take the mouse.
+- **Table cells, holding ⌥** (Copy Cell): the cell under the pointer gets the links' dots as a rounded outline (3 pt corners), inside the table's own lines. It follows the pointer from cell to cell, showing and going in 0.1 s so it never trails, and goes away on typing or scrolling, or when ⌥ or the pointer leaves the table. An ⌥-click leaves the small "Cell copied" note by the pointer, gone within a second. An ⌥-drag inside the cell shows its selection as bands in the theme's selection color at 40%, one per line and only over the text, inside the outline; on release it says "Copied" ("Cell copied" if it took the whole cell) and the bands fade after 0.6 s. The same happens in programs that take the mouse.
 
 ## Viewing files
 

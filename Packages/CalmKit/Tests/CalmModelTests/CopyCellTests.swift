@@ -58,6 +58,48 @@ struct CopyCellTests {
         #expect(CopyCell.cell(in: grid, row: first.row, column: first.column) == cell)
     }
 
+    /// An ⌥-drag from the first cell showing `from` to the one showing `to` (plus `offset` cells).
+    private func select(
+        from: String,
+        to: String,
+        offset: Int = 0,
+        in fixture: String = "claude-code-fullscreen",
+    ) throws -> CopyCell.Selection? {
+        let grid = try grid(fixture)
+        let start = try position(of: from, in: grid, offset: 0)
+        let end = try position(of: to, in: grid, offset: offset)
+        let cell = try #require(CopyCell.cell(in: grid, row: start.row, column: start.column))
+        return CopyCell.selection(in: grid, cell: cell, from: start, to: end)
+    }
+
+    @Test func `an option-drag selects inside one cell, across its wrapped lines`() throws {
+        // From "grouped" on the first line to the end of "calm" on the second: only this cell's
+        // text, although the rows go on through the Status column.
+        let wrapped = try #require(try select(from: "grouped", to: "calm attention", offset: 3))
+        #expect(wrapped.text == "grouped by project, calm")
+        #expect(wrapped.runs.count == 2)
+        // Backwards gives the same.
+        #expect(try select(from: "calm attention", to: "grouped", offset: 0)?.text == "grouped by project, c")
+        // Part of one line.
+        #expect(try select(from: "Blocks", to: "and", offset: 2)?.text == "Blocks and")
+    }
+
+    @Test func `an option-drag past the cell's lines stays inside it`() throws {
+        // Dragged on into the Status column, and below the table: held to the cell's edges.
+        #expect(try select(from: "Sessions", to: "Building")?.text == "Sessions grouped by project,")
+        #expect(try select(from: "Sessions", to: "Want me")?.text == "Sessions grouped by project, calm attention")
+        #expect(try select(from: "Blocks", to: "Shipped")?.text == "Blocks and AI")
+    }
+
+    @Test func `an option-drag over chinese takes whole characters`() throws {
+        // Starting on the second half of 处 still takes 处.
+        let grid = try grid("claude-code-fullscreen")
+        let start = try position(of: "处", in: grid, offset: 1) // the character's second cell
+        let end = try position(of: "题", in: grid, offset: 0)
+        let cell = try #require(CopyCell.cell(in: grid, row: start.row, column: start.column))
+        #expect(CopyCell.selection(in: grid, cell: cell, from: start, to: end)?.text == "处理的问题")
+    }
+
     @Test func `chinese cells join without spaces`() throws {
         #expect(try copy("审核记录", in: "claude-code") == "审核记录")
         #expect(try copy("未处理", in: "claude-code") == "未处理的问题需要复核和跟进")

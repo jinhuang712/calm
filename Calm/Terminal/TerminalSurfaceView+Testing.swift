@@ -190,23 +190,34 @@
                 .map { $0.0.runs.count > 1 ? "\($0.0.text) (\($0.0.runs.count) rows)" : $0.0.text }
         }
 
-        /// Holds ⌥ over `text`, then clicks there (or drags `dragCells` cells to the right), through
-        /// the real handlers. Says what the cell outline covered while hovering, what landed on the
-        /// self-test pasteboard, and whether the terminal now has a selection of its own.
-        func optionClickForTesting(_ text: String, dragCells: Int = 0) -> String? {
+        /// Holds ⌥ over the first character of `text`, then clicks there, or drags to the last
+        /// character of `to` (or `dragCells` cells to the right), through the real handlers. Says
+        /// what the cell outline covered while hovering, how many lines the drag's selection had
+        /// just before the release, what landed on the self-test pasteboard, and whether the
+        /// terminal has a selection of its own.
+        func optionClickForTesting(_ text: String, to: String? = nil, dragCells: Int = 0, release: Bool = true) -> String? {
             guard let window, let surface else { return nil }
             let grid = TextGrid(lines: viewportRows())
-            var target: (row: Int, column: Int)?
-            for (row, cells) in grid.cells.enumerated() {
-                let line = cells.compactMap(\.self).map(String.init).joined()
-                if let range = line.range(of: text) {
-                    target = (row, line[..<range.lowerBound].reduce(0) { $0 + CellWidth.of($1) } + 1)
-                    break
+            /// The first (or last) cell of `text` on screen.
+            func position(of text: String, last: Bool) -> (row: Int, column: Int)? {
+                for (row, cells) in grid.cells.enumerated() {
+                    let line = cells.compactMap(\.self).map(String.init).joined()
+                    guard let range = line.range(of: text) else { continue }
+                    let start = line[..<range.lowerBound].reduce(0) { $0 + CellWidth.of($1) }
+                    let width = line[range].reduce(0) { $0 + CellWidth.of($1) }
+                    return (row, last ? start + width - 1 : start)
                 }
+                return nil
             }
-            guard let target, let cell = rect(row: target.row, columns: target.column ..< target.column + 1) else { return nil }
-            let point = NSPoint(x: cell.midX, y: cell.midY)
-            let end = NSPoint(x: point.x + CGFloat(dragCells) * cellSize.width, y: point.y)
+            func center(_ position: (row: Int, column: Int)) -> NSPoint? {
+                rect(row: position.row, columns: position.column ..< position.column + 1).map { NSPoint(x: $0.midX, y: $0.midY) }
+            }
+            guard let start = position(of: text, last: false), let point = center(start) else { return nil }
+            var end = NSPoint(x: point.x + CGFloat(dragCells) * cellSize.width, y: point.y)
+            if let to {
+                guard let target = position(of: to, last: true).flatMap(center) else { return nil }
+                end = target
+            }
             func send(_ type: NSEvent.EventType, at location: NSPoint) {
                 guard let event = NSEvent.mouseEvent(
                     with: type, location: convert(location, to: nil), modifierFlags: .option,
@@ -225,12 +236,18 @@
             let outline = links.cellOutline.map { "\($0.integral)" } ?? "none"
             NSPasteboard.calm.clearContents()
             send(.leftMouseDown, at: point)
-            if dragCells > 0 {
+            let dragged = end != point
+            if dragged {
+                send(.leftMouseDragged, at: NSPoint(x: (point.x + end.x) / 2, y: (point.y + end.y) / 2))
                 send(.leftMouseDragged, at: end)
             }
-            send(.leftMouseUp, at: end)
+            let lines = links.cellSelection.count
+            if release { // held on, a snapshot shows the selection mid-drag
+                send(.leftMouseUp, at: end)
+            }
             let copied = NSPasteboard.calm.string(forType: .string)
-            return "outline \(outline), copied \(copied.debugDescription), selection \(ghostty_surface_has_selection(surface))"
+            return "outline \(outline), selected lines \(lines), copied \(copied.debugDescription), "
+                + "terminal selection \(ghostty_surface_has_selection(surface))"
         }
     }
 #endif

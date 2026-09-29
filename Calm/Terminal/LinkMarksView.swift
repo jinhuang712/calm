@@ -5,7 +5,7 @@ import CalmModel
 /// the visible text that opens, over one workspace's panes. libghostty draws nothing for links
 /// until ⌘ is held, so Calm draws these; they take no clicks. The link under ⌘ loses its mark
 /// while libghostty underlines it. The same dots outline the table cell under the pointer while
-/// ⌥ is held (Copy Cell, F9).
+/// ⌥ is held (Copy Cell, F9), and an ⌥-drag's selection inside a cell is drawn here too.
 @MainActor
 final class LinkMarksView: NSView {
     /// Each pane's marks: a link's dotted lines, one per row it's on.
@@ -14,6 +14,11 @@ final class LinkMarksView: NSView {
     private var underlines: [UUID: [LinkMarkView]] = [:]
     /// Each pane's cell outline, while ⌥ is held over a table.
     private var outlines: [UUID: CellOutlineView] = [:]
+    /// Each pane's ⌥-drag selection inside a cell, one band per line.
+    private var selections: [UUID: [NSView]] = [:]
+
+    /// How strong a selection band is, over the text it covers.
+    private static let selectionOpacity = 0.4
 
     /// How strong the dots are, against the terminal's text color.
     static let opacity = 0.45
@@ -55,6 +60,37 @@ final class LinkMarksView: NSView {
         marks[pane.id] = views
         updateUnderline(pane, color: color)
         updateOutline(pane, color: color)
+        updateSelection(pane)
+    }
+
+    /// An ⌥-drag's selection inside a cell, in the terminal's own selection color, over the text
+    /// (libghostty never saw the drag, so it draws nothing). Bands follow the pointer at once and
+    /// fade when the selection goes.
+    private func updateSelection(_ pane: TerminalSurfaceView) {
+        let rects = pane.isHidden ? [] : pane.links.cellSelection
+        var bands = selections[pane.id] ?? []
+        if rects.isEmpty {
+            bands.forEach { Motion.fadeOutAndRemove($0, duration: 0.2) }
+            selections[pane.id] = nil
+            return
+        }
+        let color = (pane.config?.color("selection-background") ?? pane.config?.color("foreground") ?? .selectedTextBackgroundColor)
+            .withAlphaComponent(Self.selectionOpacity)
+        while bands.count > rects.count {
+            bands.removeLast().removeFromSuperview()
+        }
+        while bands.count < rects.count {
+            let band = NSView(frame: .zero)
+            band.wantsLayer = true
+            band.layer?.cornerRadius = 2
+            addSubview(band)
+            bands.append(band)
+        }
+        for (band, rect) in zip(bands, rects) {
+            band.frame = pane.convert(rect, to: self)
+            band.layer?.backgroundColor = color.cgColor
+        }
+        selections[pane.id] = bands
     }
 
     /// The underline of a ⌘-hovered link that a program cut across rows: libghostty underlines only
@@ -106,6 +142,7 @@ final class LinkMarksView: NSView {
         underlines[paneID]?.forEach { $0.removeFromSuperview() }
         underlines[paneID] = nil
         outlines.removeValue(forKey: paneID)?.removeFromSuperview()
+        selections.removeValue(forKey: paneID)?.forEach { $0.removeFromSuperview() }
     }
 }
 

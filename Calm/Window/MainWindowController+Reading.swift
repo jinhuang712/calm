@@ -121,7 +121,7 @@ extension MainWindowController {
         fileViewer.close()
     }
 
-    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint) {
-        CopyToast.show("Cell copied", at: view.convert(point, to: container), in: container)
+    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint, whole: Bool) {
+        CopyToast.show(whole ? "Cell copied" : "Copied", at: view.convert(point, to: container), in: container)
     }
 }

@@ -30,8 +30,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surface(_ view: TerminalSurfaceView, resolveLink text: String) -> Link?
     /// A link is under the pointer while ⌘ is held; nil when it no longer is.
     func surface(_ view: TerminalSurfaceView, hoversLink hover: LinkHover?)
-    /// A table cell was copied (Copy Cell); `point` is in the view's coordinates.
-    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint)
+    /// A table cell, or part of one (`whole` false), was copied (Copy Cell); `point` is in the view's coordinates.
+    func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint, whole: Bool)
 }
 
 /// How a new surface should start.
@@ -106,8 +106,8 @@ final class TerminalSurfaceView: NSView {
     private var titleTimer: Timer?
     private var trackingArea: NSTrackingArea?
     private var suppressNextLeftMouseUp = false
-    /// An ⌥-press over a table cell, held back until it's a click (Copy Cell) or a drag.
-    var heldCellPress: NSEvent?
+    /// An ⌥-press over a table cell, held back from libghostty: a click, or a drag inside the cell.
+    var cellGesture: CellGesture?
     private var eventMonitor: Any?
     private var windowObservers: [NSObjectProtocol] = []
     private var frameObservation: NSKeyValueObservation?
@@ -449,7 +449,7 @@ final class TerminalSurfaceView: NSView {
         let accepted = super.resignFirstResponder()
         if accepted {
             suppressNextLeftMouseUp = false
-            heldCellPress = nil
+            cellGesture = nil
             syncFocus()
         }
         return accepted

@@ -68,6 +68,22 @@ struct AgentSetupTests {
         }
     }
 
+    @Test func `the pi extension counts a prompt only during a run, and only answers one it counted`() {
+        let source = PiAdapter.extensionSource
+        // pi reports a passive overlay (pi-briefly's, opened at session_start and never closed)
+        // as a prompt too; outside a run it is not the agent waiting. Replayed against the real
+        // source with node on 2026-09-30: no reports for an overlay at start, or a picker opened
+        // and closed at idle; needs-you then working for an ask during a run.
+        #expect(source.contains("pi.on(\"ui_prompt_start\", (event: any, ctx: any) => {\n    if (!running) return;"))
+        #expect(source.contains("pi.on(\"ui_prompt_end\", (_event: any, ctx: any) => {\n    if (!asked) return;"))
+        // The end of a prompt goes back to working only while the run is still on, or it would
+        // overwrite the state the run settled to.
+        #expect(source.contains("if (running) report(ctx, \"working\");"))
+        // A run's start and settle both close the books on any prompt.
+        #expect(source.contains("running = true;\n    asked = false;"))
+        #expect(source.contains("running = false;\n    asked = false;"))
+    }
+
     @Test func `the pi extension says which conversation it is, without ever failing on it`() {
         let source = PiAdapter.extensionSource
         // Every report names the agent and, when pi knows it, the session file and id.

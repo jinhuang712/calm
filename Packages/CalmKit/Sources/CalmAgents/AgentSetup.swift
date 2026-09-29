@@ -164,7 +164,10 @@ public extension PiAdapter {
 
     /// A pi extension (API checked against pi 0.87.1's `extensions/types.d.ts`): `agent_start`
     /// → working; `agent_settled` → done, failed or idle by the outcome `agent_before_settle`
-    /// saw; `ui_prompt_start`/`ui_prompt_end` → needs you and back. Every report also says which
+    /// saw; `ui_prompt_start`/`ui_prompt_end` → needs you and back, but only for a prompt that
+    /// opens during a run (pi reports every `ctx.ui.custom`, a passive overlay included, as a
+    /// prompt; one opened at `session_start` would otherwise read as needs you from the first
+    /// moment, and its end as a working nobody asked for). Every report also says which
     /// conversation this is (`ctx.sessionManager.getSessionFile()`/`getSessionId()`, read each
     /// time because `/new` and `/resume` change it), so Calm reads that transcript exactly
     /// instead of looking for it. pi awaits handlers, so reports are spawned detached and never
@@ -194,15 +197,34 @@ public extension PiAdapter {
         } catch {}
       };
       let outcome = "completed";
-      pi.on("agent_start", (_event: any, ctx: any) => report(ctx, "working"));
+      // A prompt holds the agent up only during a run. Outside one it is the user's own doing
+      // (a slash command's picker) or an extension's passive overlay, which pi also reports as
+      // a prompt and which stays open for good: pi-briefly opens one when a session starts.
+      let running = false;
+      let asked = false;
+      pi.on("agent_start", (_event: any, ctx: any) => {
+        running = true;
+        asked = false;
+        report(ctx, "working");
+      });
       pi.on("agent_before_settle", (event: any) => {
         outcome = event?.outcome ?? "completed";
       });
-      pi.on("agent_settled", (_event: any, ctx: any) =>
-        report(ctx, outcome === "error" ? "failed" : outcome === "aborted" ? "idle" : "done"),
-      );
-      pi.on("ui_prompt_start", (event: any, ctx: any) => report(ctx, "needs-you", event?.title));
-      pi.on("ui_prompt_end", (_event: any, ctx: any) => report(ctx, "working"));
+      pi.on("agent_settled", (_event: any, ctx: any) => {
+        running = false;
+        asked = false;
+        report(ctx, outcome === "error" ? "failed" : outcome === "aborted" ? "idle" : "done");
+      });
+      pi.on("ui_prompt_start", (event: any, ctx: any) => {
+        if (!running) return;
+        asked = true;
+        report(ctx, "needs-you", event?.title);
+      });
+      pi.on("ui_prompt_end", (_event: any, ctx: any) => {
+        if (!asked) return;
+        asked = false;
+        if (running) report(ctx, "working");
+      });
     }
 
     """

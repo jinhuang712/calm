@@ -26,11 +26,14 @@ extension MainWindowController {
             .forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
     }
 
+    /// The sidebar as it should look now. Everything it draws from that SwiftUI doesn't observe
+    /// (the colors, the footer, the card size) goes in as a value, so a rebuilt sidebar redraws.
     func makeSidebar(style: SidebarStyle) -> SidebarView {
         SidebarView(
             manager: manager,
             style: style,
             showsFooter: manager.settings.sidebarFooter,
+            cardSize: manager.settings.sessionCardSize,
             onSelect: { [weak self] id in self?.select(id) },
             onClose: { [weak self] id in self?.requestCloseSession(id) },
             onNewSession: { [weak self] in self?.newSession() },

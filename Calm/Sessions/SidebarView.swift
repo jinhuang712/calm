@@ -122,6 +122,10 @@ struct SidebarView: View {
     /// The footer's setting, passed in like `style`: `manager.settings` isn't observed, so a read
     /// in the body would go stale when the setting changes.
     let showsFooter: Bool
+    /// Settings → Appearance → Session cards. Passed in rather than read from `manager.settings`
+    /// in the body: the settings aren't observed, so when saving one rebuilt the sidebar with
+    /// nothing else changed, SwiftUI kept the old cards until something it watches moved.
+    let cardSize: CalmSettings.SessionCardSize
     let onSelect: (Session.ID) -> Void
     let onClose: (Session.ID) -> Void
     let onNewSession: () -> Void
@@ -177,9 +181,8 @@ struct SidebarView: View {
                 .padding(.horizontal, 12.scaled)
                 // No room of its own at the foot: the footer's handle strip, or the strip along the
                 // bottom edge when it's hidden, is the gap.
-                // A new card size eases every card to its height; the settings aren't observed,
-                // so this redraw comes from the sidebar being rebuilt when they're saved.
-                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: manager.settings.sessionCardSize)
+                // A new card size eases every card to its height.
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: cardSize)
             }
             .scrollIndicators(.never)
 
@@ -390,7 +393,7 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                size: manager.settings.sessionCardSize, isHovered: hoveredSessionID == session.id,
+                size: cardSize, isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
             )
         } else {

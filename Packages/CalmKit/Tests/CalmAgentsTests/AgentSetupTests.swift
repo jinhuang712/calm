@@ -161,7 +161,8 @@ struct AgentSetupTests {
         #expect(CodexAdapter().resumeCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex resume '019a'")
         #expect(CodexAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
         #expect(PiAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/it's/s.jsonl") == #"pi --session '/it'\''s/s.jsonl'"#)
-        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: "x", transcriptPath: "/x") == nil)
+        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: "ses_1", transcriptPath: "/db#ses_1") == "opencode --session 'ses_1'")
+        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/db") == nil)
     }
 
     @Test func `fork commands per agent, quoted for the shell`() {

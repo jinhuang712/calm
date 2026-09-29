@@ -31,6 +31,16 @@ public extension CodexAdapter {
     }
 }
 
+public extension OpenCodeAdapter {
+    /// `--session` continues a session by id (2.0.19's own TUI). An id OpenCode no longer has
+    /// would start a new, empty session under it, so this is only for a conversation still there
+    /// (search offers no resume for one that's gone). No fork: 2.0.19's TUI has no `--fork`
+    /// (only `opencode mini` and `opencode run` do), so the menu offers none.
+    func resumeCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
+        agentSessionID.map { "opencode --session \(shellQuoted($0))" }
+    }
+}
+
 public extension PiAdapter {
     /// pi takes a session file or id; the file is unambiguous.
     func resumeCommand(agentSessionID _: String?, transcriptPath: String) -> String? {

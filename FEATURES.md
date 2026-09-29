@@ -108,9 +108,9 @@ A fast, correct terminal on libghostty.
 
 **Settings:** none.
 
-## F7 — Search all sessions 🚧
+## F7 — Search all sessions ✅
 
-- **⌘K**, or the **Search sessions** field at the top of the sidebar, opens a search box over every past and present session of Claude Code, Codex and pi. Known gap: OpenCode's history isn't searchable yet.
+- **⌘K**, or the **Search sessions** field at the top of the sidebar, opens a search box over every past and present session of Claude Code, Codex, OpenCode and pi.
 - Results are sessions, not lines: agent, project, title, last active time and the matching snippet.
 - **Enter** jumps to the session if it is open; otherwise it resumes the conversation in a new session in its folder (home if the folder is gone).
 - History outlives the agents' cleanup: a conversation stays searchable after its agent deletes the transcript (Claude Code does after 30 days). Claude Code conversations deleted before Calm indexed them are found through the prompts in `~/.claude/history.jsonl`. These can't be resumed; Enter opens a new session in their folder.
@@ -184,7 +184,7 @@ A quick, read-only look at the repository without leaving Calm.
 
 **Settings:** 5, over the budget of one or two, all in Settings → Appearance and saved to config.toml: `theme`, `ui-size = "larger"`, `background = "glass"` and `layout = "card"` under `[window]`, and `motion = "reduced"`. Choosing a default removes its key, except the theme (F14).
 
-## F12 — Session actions 🚧
+## F12 — Session actions ✅
 
 - **Where:** right-click a session's card, or the ⋯ button at the right of the title strip above the terminal (for the session you're in): one menu in both places. Rename from the title brings a hidden sidebar back, since the name is edited on its card.
 - **Rename** a session: Rename… edits the name in place (return keeps it, esc cancels, an empty name gives the session back its own title). The name wins over the shell's and the agent's titles, in the sidebar, the title strip above the terminal, switcher, arrival card and notifications, and survives relaunch.
@@ -200,9 +200,9 @@ A quick, read-only look at the repository without leaving Calm.
   | Claude Code | `claude --resume <id>` | `claude --resume <id> --fork-session` |
   | Codex | `codex resume <id>` | `codex fork <id>` |
   | pi | `pi --session <file>` | `pi --fork <file>` |
-  | OpenCode | not yet | not yet |
+  | OpenCode | `opencode --session <id>` | none: its own interface has no `--fork` (2.0.19) |
 
-  An action shows only where the agent has the command. Known gap: OpenCode conversations can't be resumed or forked yet.
+  An action shows only where the agent has the command. A conversation the agent no longer has isn't offered for resuming (OpenCode would start a new, empty one under its id).
 
 **Settings:** none. The menu offers the destination.
 

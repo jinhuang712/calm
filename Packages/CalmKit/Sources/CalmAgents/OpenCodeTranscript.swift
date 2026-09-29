@@ -112,7 +112,7 @@ extension OpenCodeAdapter: TranscriptReading {
     }
 
     /// OpenCode names a session `New session - <time>` until it has a real title.
-    private static func title(_ text: String?) -> String? {
+    static func title(_ text: String?) -> String? {
         guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
               !text.hasPrefix("New session - "), !text.hasPrefix("Child session - ")
         else { return nil }

@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
+**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); OpenCode's plugin (M3; its search and resume are built, and it has no fork to offer); and the *Later* list.
 
 ## How to read this
 
@@ -135,7 +135,7 @@ Any past conversation, across every agent, is one search away.
 **Exit criteria**
 - "Which session talked about X?" is answered with one search, most of the time.
 
-*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Exit criterion met in the author's real use (2026-09-30). Left: OpenCode's SQLite history (not indexed yet: OpenCode 2 keeps it in `session_v2` and `session_message`, and the database wrapper now lives in `CalmSQLite` where `CalmAgents` can use it).*
+*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Exit criterion met in the author's real use (2026-09-30). OpenCode's history is indexed too (2026-09-30): sessions read from its own database by version, not from files by offset (DESIGNS.md → Search → Agents' own databases).*
 
 ---
 
@@ -202,7 +202,7 @@ Conversations can be renamed, resumed and forked.
 **Exit criteria**
 - Resuming or forking a conversation is one right-click.
 
-*Status: built and self-tested headless with stand-in conversations. Resume and fork worked with a real agent in the author's use (2026-09-30), which meets the exit criterion; not every agent was checked one by one. Left: OpenCode's resume and fork.*
+*Status: built and self-tested headless with stand-in conversations. Resume and fork worked with a real agent in the author's use (2026-09-30), which meets the exit criterion; not every agent was checked one by one. OpenCode resumes with `opencode --session <id>` (2026-09-30); it has no fork to offer, since 2.0.19's own interface has no `--fork`.*
 
 ---
 

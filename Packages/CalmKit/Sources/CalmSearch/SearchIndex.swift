@@ -81,9 +81,10 @@ public final class SearchIndex: @unchecked Sendable {
             DROP TABLE IF EXISTS meta
             """)
         }
-        // `origin` is 'transcript' (path is the transcript) or 'history' (a session known only
-        // from the agent's prompt log; path is `<log>#<session id>`). `gone`: the transcript
-        // was deleted.
+        // `origin` is 'transcript' (path is the transcript), 'history' (a session known only
+        // from the agent's prompt log; path is `<log>#<session id>`) or 'database' (a session in
+        // an agent's own database, `<database>#<session id>`, whose `size` and `mtime` hold its
+        // message count and newest change). `gone`: the transcript or session was deleted.
         try database.execute("""
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE IF NOT EXISTS files (
@@ -115,12 +116,14 @@ public final class SearchIndex: @unchecked Sendable {
         var info: TranscriptInfo
     }
 
-    /// Indexes what's new in every transcript under `home` and in the agents' prompt histories,
-    /// and marks transcripts that are gone (their sessions stay searchable).
+    /// Indexes what's new in every transcript under `home`, in the agents' own databases and in
+    /// their prompt histories, and marks transcripts that are gone (their sessions stay
+    /// searchable).
     @discardableResult
     public func update(
         home: URL = SearchIndex.defaultHome,
         indexers: [any TranscriptIndexing] = Agents.indexers,
+        databaseIndexers: [any SessionDatabaseIndexing] = Agents.databaseIndexers,
     ) -> IndexStats {
         queue.sync {
             var stats = IndexStats()
@@ -149,10 +152,128 @@ public final class SearchIndex: @unchecked Sendable {
                 try? database.query("UPDATE files SET gone = 1 WHERE id = ?", [.integer(row.id)])
                 stats.filesRemoved += 1
             }
+            for indexer in databaseIndexers {
+                indexDatabase(home: home, indexer: indexer, stats: &stats)
+            }
             for indexer in indexers {
                 stats.messagesAdded += indexPromptHistory(home: home, indexer: indexer)
             }
             return stats
+        }
+    }
+
+    private struct DatabaseRow {
+        var id: Int64
+        var messages: Int64
+        var updated: Int64
+        var title: String?
+        var directory: String?
+        var gone: Bool
+    }
+
+    /// Indexes the sessions an agent keeps in a database of its own (OpenCode). Each is a row of
+    /// its own (`origin` 'database', path `<database>#<session id>`), read again whole when its
+    /// version changes, since the agent rewrites messages in place. Nothing is read while the
+    /// database and its write-ahead log are unchanged, so an idle update stays cheap.
+    private func indexDatabase(home: URL, indexer: any SessionDatabaseIndexing, stats: inout IndexStats) {
+        let url = home.appending(path: indexer.sessionDatabase)
+        let prefix = url.path + "#"
+        let marker = Self.marker(of: [url, URL(filePath: url.path + "-wal")])
+        var last: Int64?
+        try? database.query("SELECT offset FROM sources WHERE path = ?", [.text(url.path)]) { last = $0.integer(0) }
+        guard marker != last else { return }
+
+        var known: [String: DatabaseRow] = [:]
+        try? database.query(
+            "SELECT id, session_id, size, mtime, title, directory, gone FROM files WHERE origin = 'database' AND substr(path, 1, ?) = ?",
+            [.integer(Int64(prefix.count)), .text(prefix)],
+        ) { row in
+            guard let sessionID = row.text(1) else { return }
+            known[sessionID] = DatabaseRow(
+                id: row.integer(0), messages: row.integer(2), updated: Int64(row.real(3)), title: row.text(4),
+                directory: row.text(5), gone: row.integer(6) != 0,
+            )
+        }
+        // Gone altogether (OpenCode uninstalled): its sessions stay searchable, marked gone.
+        // Unreadable (locked, or another schema): nothing changes, and it's tried again next time.
+        var sessions: [DatabaseSession] = []
+        if FileManager.default.fileExists(atPath: url.path) {
+            guard let found = indexer.indexedSessions(in: url) else { return }
+            sessions = found
+        }
+        for session in sessions {
+            stats.filesSeen += 1
+            let old = known.removeValue(forKey: session.id)
+            if let old, old.messages == session.version.messages, old.updated == session.version.updated {
+                if old.gone || old.title != session.title || old.directory != session.directory {
+                    try? database.query(
+                        "UPDATE files SET title = ?, directory = ?, gone = 0 WHERE id = ?",
+                        [Self.value(session.title), Self.value(session.directory), .integer(old.id)],
+                    )
+                }
+                continue
+            }
+            guard let messages = indexer.messages(ofSession: session.id, in: url), old != nil || !messages.isEmpty else { continue }
+            if (try? storeDatabaseSession(session, messages: messages, path: prefix + session.id, agent: indexer.kind, id: old?.id)) !=
+                nil {
+                stats.filesUpdated += 1
+                stats.messagesAdded += messages.count
+            }
+        }
+        for (_, row) in known where !row.gone {
+            try? database.query("UPDATE files SET gone = 1 WHERE id = ?", [.integer(row.id)])
+            stats.filesRemoved += 1
+        }
+        try? database.query("INSERT OR REPLACE INTO sources (path, offset) VALUES (?, ?)", [.text(url.path), .integer(marker)])
+    }
+
+    /// Replaces a database session's messages with `messages` and brings its row up to date.
+    private func storeDatabaseSession(
+        _ session: DatabaseSession,
+        messages: [TranscriptMessage],
+        path: String,
+        agent: AgentKind,
+        id known: Int64?,
+    ) throws {
+        try database.transaction {
+            var id = known ?? 0
+            if known == nil {
+                try database.query(
+                    "INSERT INTO files (path, agent, origin) VALUES (?, ?, 'database')",
+                    [.text(path), .text(agent.rawValue)],
+                )
+                id = database.lastInsertedRowID
+            } else {
+                try database.query("DELETE FROM messages WHERE file_id = ?", [.integer(id)])
+            }
+            for message in messages {
+                try database.query(
+                    "INSERT INTO messages (text, file_id, role) VALUES (?, ?, ?)",
+                    [.text(message.text), .integer(id), .text(message.role.rawValue)],
+                )
+            }
+            let firstPrompt = messages.first { $0.role == .user }.flatMap { HookReport.recap($0.text, limit: 120) }
+            try database.query(
+                """
+                UPDATE files SET size = ?, mtime = ?, session_id = ?, directory = ?, title = ?, first_prompt = ?,
+                    last_active = ?, gone = 0 WHERE id = ?
+                """,
+                [
+                    .integer(session.version.messages), .real(Double(session.version.updated)), .text(session.id),
+                    Self.value(session.directory), Self.value(session.title), Self.value(firstPrompt),
+                    .real(session.lastActive.timeIntervalSince1970), .integer(id),
+                ],
+            )
+        }
+    }
+
+    /// The sizes and modification times of `urls` in one number: it changes when any of them does.
+    private static func marker(of urls: [URL]) -> Int64 {
+        urls.reduce(Int64(17)) { value, url in
+            let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+            let size = Int64(values?.fileSize ?? -1)
+            let modified = Int64((values?.contentModificationDate?.timeIntervalSince1970 ?? 0) * 1000)
+            return (value &* 31 &+ size) &* 31 &+ modified
         }
     }
 

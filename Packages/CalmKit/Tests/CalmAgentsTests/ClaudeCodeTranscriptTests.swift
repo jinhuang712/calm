@@ -117,6 +117,45 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.lastMessage == "Starting with the tokenizer.")
     }
 
+    @Test func `the summary is Claude's recap after its last message, without its hint`() throws {
+        let url = try #require(Bundle.module.url(
+            forResource: "transcript-recap",
+            withExtension: "jsonl",
+            subdirectory: "Fixtures/claude-code",
+        ))
+        let tail = try #require(adapter.readTail(of: url, agentSessionID: nil, home: FileManager.default.temporaryDirectory))
+        // Plain text, like every recap: the backticks around `main` go too.
+        let summary = "You're choosing a cache library, and we've narrowed it to two. Next, benchmark the first one against main."
+        #expect(tail.summary == summary)
+        // The latest message is still read: a card that isn't idle shows it.
+        #expect(tail.lastMessage == "Caveats on the second option: It hasn't been released since spring.")
+        #expect(tail.title == "Pick a cache library")
+    }
+
+    @Test func `a recap older than the latest turn is no summary`() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "calm-claude-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let records: [[String: Any]] = [
+            ["type": "assistant", "message": ["role": "assistant", "content": [["type": "text", "text": "Picked the first one."]]]],
+            ["type": "system", "subtype": "away_summary", "content": "You're choosing a cache library. (disable recaps in /config)"],
+            ["type": "user", "message": ["role": "user", "content": "now benchmark it"]],
+        ]
+        let transcript = folder.appending(path: "t.jsonl")
+        let lines = try records.map { try JSONSerialization.data(withJSONObject: $0) + Data("\n".utf8) }
+        try lines.reduce(Data(), +).write(to: transcript)
+        let tail = try #require(adapter.readTail(of: transcript, agentSessionID: sessionID, home: folder))
+        #expect(tail.summary == nil)
+        #expect(tail.lastMessage == "Picked the first one.")
+    }
+
+    @Test func `a recap reads the same with or without the hint`() {
+        #expect(ClaudeCodeAdapter.summary("Next, ship it. (disable recaps in /config)") == "Next, ship it.")
+        #expect(ClaudeCodeAdapter.summary("Next, ship it.") == "Next, ship it.")
+        #expect(ClaudeCodeAdapter.summary("(disable recaps in /config)") == nil)
+        #expect(ClaudeCodeAdapter.summary(nil) == nil)
+    }
+
     @Test func `project folders replace every other character with a hyphen`() {
         #expect(ClaudeCodeAdapter.projectFolder(for: "/Users/me/src/app") == "-Users-me-src-app")
         #expect(ClaudeCodeAdapter
@@ -143,7 +182,7 @@ struct ClaudeCodeTranscriptTests {
         let progress = tail.progress.map { "\($0.done)/\($0.total)" } ?? "none"
         print("real transcript: title \(tail.title?.count ?? -1) chars, recap \(tail.lastMessage?.count ?? -1) chars")
         print("real transcript: step \(tail.step != nil), progress \(progress), interrupted \(tail.interrupted)")
-        print("real transcript: folder \(tail.directory?.count ?? -1) chars")
+        print("real transcript: folder \(tail.directory?.count ?? -1) chars, summary \(tail.summary?.count ?? -1) chars")
         #expect(tail.title != nil)
         #expect(tail.lastMessage != nil)
         #expect(tail.directory != nil)

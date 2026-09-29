@@ -10,6 +10,10 @@ import Foundation
 ///   `assistant` records hold `message.content[]` blocks (`text`, `tool_use`, `thinking`); an
 ///   interrupted turn leaves a `user` record whose text starts with "[Request interrupted".
 ///   The folder can differ from the session's current one, so a hook's `transcript_path` wins.
+/// - A `system` record with `subtype: "away_summary"` holds Claude's recap (`content`): where the
+///   conversation stands and what's next, the "※ recap:" line it prints about three minutes
+///   after a turn ends (seen 2026-09-30, versions 2.1.260 to 2.1.284). Most end with the hint
+///   "(disable recaps in /config)".
 /// - `~/.claude/tasks/<sessionId>/<n>.json`: `{id, subject, activeForm, status}` per todo.
 extension ClaudeCodeAdapter: TranscriptReading {
     public func transcript(forProcess processID: Int32, home: URL) -> (agentSessionID: String, url: URL)? {
@@ -66,6 +70,11 @@ extension ClaudeCodeAdapter: TranscriptReading {
                     tail.interrupted = Self.texts(of: record).contains { $0.hasPrefix("[Request interrupted") }
                 }
                 sawConversation = true
+            case "system" where record["subtype"] as? String == "away_summary":
+                // Only a recap newer than every message: a turn after it has moved on.
+                if !sawConversation, tail.summary == nil {
+                    tail.summary = Self.summary(record["content"] as? String)
+                }
             default:
                 break
             }
@@ -86,6 +95,16 @@ extension ClaudeCodeAdapter: TranscriptReading {
     /// becomes a hyphen.
     static func projectFolder(for path: String) -> String {
         String(path.map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "-" })
+    }
+
+    /// A recap as plain text, without the hint Claude adds for the terminal.
+    static func summary(_ content: String?) -> String? {
+        guard var text = content?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        let hint = "(disable recaps in /config)"
+        if text.hasSuffix(hint) {
+            text = String(text.dropLast(hint.count))
+        }
+        return MessageText.recap(text)
     }
 
     private static func texts(of record: [String: Any]) -> [String] {

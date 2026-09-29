@@ -43,6 +43,10 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     public var title: String?
     /// The latest thing the agent said, cut for a recap.
     public var lastMessage: String?
+    /// The agent's own summary of where the conversation stands and what's next (Claude Code's
+    /// recap), only while nothing has been said since it was written. It's for a session you've
+    /// read: what you need then is where you were, not the tail end of the last answer.
+    public var summary: String?
     /// What it's doing now: the task in progress.
     public var step: String?
     public var progress: TodoProgress?
@@ -59,6 +63,7 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     public init(
         title: String? = nil,
         lastMessage: String? = nil,
+        summary: String? = nil,
         step: String? = nil,
         progress: TodoProgress? = nil,
         interrupted: Bool = false,
@@ -67,6 +72,7 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     ) {
         self.title = title
         self.lastMessage = lastMessage
+        self.summary = summary
         self.step = step
         self.progress = progress
         self.interrupted = interrupted
@@ -130,6 +136,20 @@ public struct AgentConversation: Codable, Hashable, Sendable {
         self.agentSessionID = agentSessionID
         self.transcriptPath = transcriptPath
         self.title = title
+    }
+}
+
+public extension Session {
+    /// The recap a card and the arrival card show: what the agent asked while it waits for you;
+    /// once you've read it (idle), the agent's own summary of where things stand, if it wrote one
+    /// after its last message; otherwise the latest thing it said.
+    var recap: String? {
+        let tail = agent?.tail
+        switch state {
+        case .needsYou: return lastReport?.message ?? tail?.lastMessage
+        case .idle: return tail?.summary ?? tail?.lastMessage ?? lastReport?.message
+        case .working, .done, .failed: return tail?.lastMessage ?? lastReport?.message
+        }
     }
 }
 

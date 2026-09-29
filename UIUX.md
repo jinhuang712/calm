@@ -56,7 +56,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | 1 | agent's mark · **session name** · time since last activity | always |
 | 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m"); while working, the agent's moving mark stands in for the state mark. A done card whose turn left shells running adds "· 2 shells running" in the tertiary color: a footnote, gone once you move on | not idle |
 | 3 | thin progress bar · "3 of 5" | not idle, and the agent keeps a todo list |
-| 4 | recap: the latest agent message as plain text (no Markdown marks: headings, code blocks and bold go, a list reads "a; b; c"), two lines at most (one when idle) | always |
+| 4 | recap: the latest agent message as plain text (no Markdown marks: headings, code blocks and bold go, a list reads "a; b; c"), two lines at most (one when idle). An idle card shows the agent's own summary instead when it wrote one after that message (Claude Code's recap): by then you've read the answer, and what you need is where you were. A done card keeps the message, since it's the news | always |
 | 5 | worktree mark · worktree name | the session runs in a git worktree |
 
 - A name too long for its line keeps its start and ends in "…". Rest the pointer on the card or row for half a second and the name glides once to its end and holds; it slides back when the pointer leaves. With motion reduced it stays truncated.
@@ -91,7 +91,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 | State | Indicator | Loudness |
 |---|---|---|
-| idle | a shorter card: the agent's mark in gray at 45%, name dimmed, one line of recap | silent |
+| idle | a shorter card: the agent's mark in gray at 45%, name dimmed, one line of recap (the agent's own summary when it wrote one) | silent |
 | working | soft blue card; the agent's mark moves in its own way; "Working · 4m" in blue, a soft light crossing it every 2.6 s | silent |
 | done | sage card with a filled check, until visited (then idle) | silent until visited |
 | failed | small mark in the theme's muted red | silent until visited |
@@ -161,7 +161,7 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 ## Arrival card
 
 - Appears at the top of the pane when switching into an agent session, only when it adds something: the sidebar is hidden (its card would say the same) and the session had activity since the user left it. ⌘⇧I shows it any time.
-- Content: state mark, title · state (with the card's "· 2 shells running" when a done turn left shells) · time since last activity, and one or two lines: what the agent asked while it needs you, otherwise the last thing it said.
+- Content: state mark, title · state (with the card's "· 2 shells running" when a done turn left shells) · time since last activity, and one or two lines: what the agent asked while it needs you, the agent's own summary for an idle session that has one, otherwise the last thing it said (the card's recap, by the same rule).
 - Fades out on the first keystroke or after a few seconds. A shortcut shows it again.
 - Never covers the agent's input line.
 

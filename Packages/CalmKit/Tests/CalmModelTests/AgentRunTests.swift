@@ -33,6 +33,30 @@ struct AgentRunTests {
         #expect(workspace.session(id)?.state == .idle)
     }
 
+    @Test func `a read card shows the agent's summary, one with news shows its latest message`() {
+        var (workspace, id) = workspaceWithSession()
+        workspace.startAgentRun(id, AgentRun(kind: .claudeCode, processID: 1))
+        workspace.updateTranscriptTail(
+            id,
+            TranscriptTail(lastMessage: "Caveats on option two.", summary: "You're picking a library. Next, benchmark it."),
+        )
+        workspace.report(id, StatusReport(state: .done, message: "Caveats on option two.", source: .hook), focusedSessionID: nil)
+        // Done and not yet seen: what it just said is the news.
+        #expect(workspace.session(id)?.recap == "Caveats on option two.")
+        workspace.report(id, StatusReport(state: .idle, source: .hook), focusedSessionID: nil)
+        #expect(workspace.session(id)?.recap == "You're picking a library. Next, benchmark it.")
+        workspace.report(id, StatusReport(state: .needsYou, message: "Allow Bash: swift test", source: .hook), focusedSessionID: nil)
+        #expect(workspace.session(id)?.recap == "Allow Bash: swift test")
+    }
+
+    @Test func `an idle card with no summary keeps the latest message`() {
+        var (workspace, id) = workspaceWithSession()
+        workspace.startAgentRun(id, AgentRun(kind: .codex, processID: 1))
+        workspace.updateTranscriptTail(id, TranscriptTail(lastMessage: "Fixed the login test."))
+        #expect(workspace.session(id)?.state == .idle)
+        #expect(workspace.session(id)?.recap == "Fixed the login test.")
+    }
+
     @Test func `ending a run clears it`() {
         var (workspace, id) = workspaceWithSession()
         workspace.startAgentRun(id, AgentRun(kind: .pi, processID: 7))

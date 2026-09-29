@@ -44,7 +44,7 @@ struct SessionCard: View {
                 TodoProgressLine(progress: progress, style: style)
                     .padding(.leading, Self.indent)
             }
-            if let message = recap {
+            if let message = session.recap {
                 Text(message)
                     .calmFont(size: 13)
                     .lineSpacing(1.5)
@@ -162,14 +162,6 @@ struct SessionCard: View {
         }
     }
 
-    /// While the agent waits for you, what it asked; otherwise the latest thing it said.
-    private var recap: String? {
-        if session.state == .needsYou {
-            return session.lastReport?.message ?? session.agent?.tail?.lastMessage
-        }
-        return session.agent?.tail?.lastMessage ?? session.lastReport?.message
-    }
-
     /// The detail lines start under the title, past the agent mark.
     @MainActor
     static var indent: CGFloat {
@@ -216,7 +208,7 @@ struct SessionCard: View {
 
     private var accessibilityText: String {
         let state = isConfirming ? "Restoring" : session.state == .working ? workingLine(at: .now) : session.state.label
-        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), recap]
+        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), session.recap]
             .compactMap(\.self)
             .joined(separator: ", ")
     }

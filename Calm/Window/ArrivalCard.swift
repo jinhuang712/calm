@@ -124,7 +124,7 @@ struct ArrivalCardView: View {
                     .foregroundStyle(style.tertiary)
                 Spacer(minLength: 0)
             }
-            if let message {
+            if let message = session.recap {
                 Text(message)
                     .calmFont(size: 12)
                     .foregroundStyle(style.secondary)
@@ -144,13 +144,5 @@ struct ArrivalCardView: View {
         .onTapGesture(perform: onDismiss)
         .environment(\.colorScheme, style.isDark ? .dark : .light)
         .accessibilityElement(children: .combine)
-    }
-
-    /// What it asked, while it waits for you; otherwise the last thing it said.
-    private var message: String? {
-        if session.state == .needsYou {
-            return session.lastReport?.message ?? agent.tail?.lastMessage
-        }
-        return agent.tail?.lastMessage ?? session.lastReport?.message
     }
 }

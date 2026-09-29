@@ -286,6 +286,13 @@
                     tail.title = String(title.dropFirst(12))
                     manager.transcriptChanged(id, tail, modified: .now)
                 }
+            case let summary where summary.hasPrefix("agent_summary:"):
+                // agent_summary:<text>: the agent in the focused session wrote its own recap after its
+                // last message (run agent:<state> first), as Claude Code does a few minutes after a turn.
+                if let id = focusedPane?.id, var tail = manager.workspace.session(id)?.agent?.tail {
+                    tail.summary = String(summary.dropFirst(14))
+                    manager.transcriptChanged(id, tail, modified: .now)
+                }
             case let text where text.hasPrefix("copy:"):
                 // copy:<sessionID|resumeCommand|folderPath>: what the title's ⋯ menu copies, read back from
                 // the self-test pasteboard.

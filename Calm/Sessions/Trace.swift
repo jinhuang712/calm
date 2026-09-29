@@ -93,7 +93,8 @@ enum Trace {
     /// What a transcript tail held, without any of its text: `title, recap, todos 3/5`.
     static func fields(of tail: TranscriptTail) -> String {
         let found = [
-            tail.title.map { _ in "title" }, tail.lastMessage.map { _ in "recap" }, tail.step.map { _ in "step" },
+            tail.title.map { _ in "title" }, tail.lastMessage.map { _ in "recap" }, tail.summary.map { _ in "summary" },
+            tail.step.map { _ in "step" },
             tail.progress.map { "todos \($0.done)/\($0.total)" }, tail.interrupted ? "interrupted" : nil,
             tail.turn.map { "turn \($0.rawValue)" },
         ].compactMap(\.self)

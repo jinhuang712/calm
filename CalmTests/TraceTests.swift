@@ -46,10 +46,10 @@ struct TraceTests {
     @Test func `a transcript tail is described by which fields it held, not what they said`() {
         #expect(Trace.fields(of: TranscriptTail()) == "nothing")
         let tail = TranscriptTail(
-            title: "secret title", lastMessage: "secret recap", step: "secret step",
+            title: "secret title", lastMessage: "secret recap", summary: "secret summary", step: "secret step",
             progress: TodoProgress(done: 3, total: 5), interrupted: true,
         )
-        #expect(Trace.fields(of: tail) == "title, recap, step, todos 3/5, interrupted")
+        #expect(Trace.fields(of: tail) == "title, recap, summary, step, todos 3/5, interrupted")
         #expect(Trace.fields(of: TranscriptTail(turn: .inProgress)) == "turn inProgress")
     }
 

@@ -26,6 +26,8 @@ case "${1:-build}" in
   run)
     app="$derived/Build/Products/Debug/Calm.app"
     pkill -x Calm 2>/dev/null || true
+    # A new Calm quits at once if the old one still answers on the control socket.
+    for _ in {1..50}; do pgrep -x Calm >/dev/null || break; sleep 0.1; done
     open "$app"
     ;;
   snapshot)

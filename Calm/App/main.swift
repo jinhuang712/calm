@@ -1,5 +1,8 @@
 import AppKit
 
+// A second Calm steps aside before it starts anything (see SingleInstance).
+SingleInstance.yieldToRunningCalm()
+
 // AppKit entry point. The terminal engine is initialized before the app runs
 // so every later call into libghostty has a ready global state.
 MainActor.assumeIsolated {

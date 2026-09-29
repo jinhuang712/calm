@@ -33,4 +33,47 @@ struct ControlProtocolTests {
             _ = try ControlClient.send(ControlRequest(cmd: .list), socketPath: path)
         }
     }
+
+    // MARK: isListening
+
+    /// Short: a Unix socket path must fit in `sun_path` (104 bytes).
+    private func socketPath() -> String {
+        "/tmp/calm-cpt-\(UUID().uuidString.prefix(8)).sock"
+    }
+
+    /// Binds a socket file at `path`; listening or not, the file stays until the test unlinks it.
+    private func bindSocket(at path: String, listening: Bool) -> Int32 {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        withUnsafeMutableBytes(of: &address.sun_path) { buffer in
+            buffer.copyBytes(from: path.utf8)
+            buffer[path.utf8.count] = 0
+        }
+        _ = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        if listening {
+            listen(fd, 4)
+        }
+        return fd
+    }
+
+    @Test func `no socket file means nobody is listening`() {
+        #expect(!ControlClient.isListening(socketPath: socketPath()))
+    }
+
+    @Test func `a listening socket counts, and the file a dead Calm left behind does not`() {
+        let path = socketPath()
+        defer { unlink(path) }
+        let fd = bindSocket(at: path, listening: true)
+        #expect(ControlClient.isListening(socketPath: path))
+
+        // The process is gone but its socket file stays: connecting is refused.
+        close(fd)
+        #expect(FileManager.default.fileExists(atPath: path))
+        #expect(!ControlClient.isListening(socketPath: path))
+    }
 }

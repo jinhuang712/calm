@@ -13,7 +13,15 @@ final class ControlServer {
     private let queue = DispatchQueue(label: "calm.control")
     private(set) var socketPath: String
     /// The socket file this server bound, so `stop()` never removes another Calm's socket.
-    private var boundFile: (device: dev_t, inode: ino_t)?
+    private var boundFile: FileID?
+    /// The file at the path that a live Calm was found to own, so a busy one isn't asked every time.
+    private var rivalFile: FileID?
+    private var watchdog: Timer?
+
+    private struct FileID: Equatable {
+        var device: dev_t
+        var inode: ino_t
+    }
 
     init(socketPath: String = ControlProtocol.defaultSocketPath) {
         self.socketPath = socketPath
@@ -54,6 +62,31 @@ final class ControlServer {
         boundFile = Self.fileID(at: path)
 
         source = Self.makeAcceptSource(fd: fd, queue: queue)
+        watchdog = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.listenAgainIfLost() }
+        }
+        watchdog?.tolerance = 2
+    }
+
+    /// The path can stop leading to this server while it keeps running: another Calm unlinked and
+    /// bound it, or the file was removed. Its listener then sits on a socket nobody can reach,
+    /// every hook is refused, and sessions stop following their agents. When the path is free or
+    /// holds what a Calm that died left, listen on it again. When a live Calm owns it, leave it:
+    /// taking it back would cut that one off in turn.
+    func listenAgainIfLost() {
+        guard listenFD >= 0, let boundFile else { return }
+        let current = Self.fileID(at: socketPath)
+        if current == boundFile || (current != nil && current == rivalFile) {
+            return
+        }
+        if ControlClient.isListening(socketPath: socketPath) {
+            rivalFile = current
+            Trace.note("control socket taken by another Calm; leaving it")
+            return
+        }
+        Trace.note("control socket lost; listening again")
+        closeListener()
+        start()
     }
 
     /// Built outside the main actor: its handler runs on the control queue, and a closure
@@ -70,12 +103,7 @@ final class ControlServer {
     }
 
     func stop() {
-        source?.cancel()
-        source = nil
-        if listenFD >= 0 {
-            close(listenFD)
-        }
-        listenFD = -1
+        closeListener()
         // Only our own file: the unit-test host never starts a server but still quits through
         // here, and another Calm may have bound this path since; unlinking theirs would cut
         // every hook off from the Calm that is running.
@@ -85,15 +113,31 @@ final class ControlServer {
         boundFile = nil
     }
 
-    private static func fileID(at path: String) -> (device: dev_t, inode: ino_t)? {
+    private func closeListener() {
+        watchdog?.invalidate()
+        watchdog = nil
+        source?.cancel()
+        source = nil
+        if listenFD >= 0 {
+            close(listenFD)
+        }
+        listenFD = -1
+        rivalFile = nil
+    }
+
+    private static func fileID(at path: String) -> FileID? {
         var info = stat()
         guard lstat(path, &info) == 0 else { return nil }
-        return (info.st_dev, info.st_ino)
+        return FileID(device: info.st_dev, inode: info.st_ino)
     }
 
     /// Runs on the control queue: read one line, handle it on main, write the reply.
     private nonisolated static func serve(_ client: Int32) {
         defer { close(client) }
+        // A caller that hangs up before the reply (a hook that timed out, a probe that only
+        // connects) must not raise SIGPIPE here, which would end Calm.
+        var noSignal: Int32 = 1
+        setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size))
         var received = Data()
         var buffer = [UInt8](repeating: 0, count: 4096)
         while !received.contains(0x0A), received.count < 1_000_000 {

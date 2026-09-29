@@ -141,27 +141,8 @@ public enum ControlClient {
         socketPath: String = ControlProtocol.defaultSocketPath,
         timeout: TimeInterval = 2,
     ) throws -> ControlResponse {
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard fd >= 0 else { throw ClientError.io("socket() failed") }
+        let fd = try connectedSocket(to: socketPath, timeout: timeout)
         defer { close(fd) }
-        var limit = timeval(tv_sec: Int(timeout), tv_usec: Int32((timeout - timeout.rounded(.down)) * 1_000_000))
-        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
-        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
-
-        var address = sockaddr_un()
-        address.sun_family = sa_family_t(AF_UNIX)
-        let capacity = MemoryLayout.size(ofValue: address.sun_path)
-        guard socketPath.utf8.count < capacity else { throw ClientError.io("socket path too long") }
-        withUnsafeMutableBytes(of: &address.sun_path) { buffer in
-            buffer.copyBytes(from: socketPath.utf8)
-            buffer[socketPath.utf8.count] = 0
-        }
-        let connected = withUnsafePointer(to: &address) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-        guard connected == 0 else { throw ClientError.notRunning(socketPath) }
 
         var line = try JSONEncoder().encode(request)
         line.append(0x0A)
@@ -179,5 +160,43 @@ public enum ControlClient {
         }
         guard let end = received.firstIndex(of: 0x0A) else { throw ClientError.io("no response from Calm") }
         return try JSONDecoder().decode(ControlResponse.self, from: received[..<end])
+    }
+
+    /// Whether a Calm is listening at `socketPath`. The socket file a Calm that died left behind
+    /// refuses the connection, so it counts as nobody. Connects and hangs up without a request.
+    public static func isListening(socketPath: String = ControlProtocol.defaultSocketPath) -> Bool {
+        guard let fd = try? connectedSocket(to: socketPath, timeout: 1) else { return false }
+        close(fd)
+        return true
+    }
+
+    private static func connectedSocket(to socketPath: String, timeout: TimeInterval) throws -> Int32 {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { throw ClientError.io("socket() failed") }
+        var limit = timeval(tv_sec: Int(timeout), tv_usec: Int32((timeout - timeout.rounded(.down)) * 1_000_000))
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &limit, socklen_t(MemoryLayout<timeval>.size))
+
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let capacity = MemoryLayout.size(ofValue: address.sun_path)
+        guard socketPath.utf8.count < capacity else {
+            close(fd)
+            throw ClientError.io("socket path too long")
+        }
+        withUnsafeMutableBytes(of: &address.sun_path) { buffer in
+            buffer.copyBytes(from: socketPath.utf8)
+            buffer[socketPath.utf8.count] = 0
+        }
+        let connected = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard connected == 0 else {
+            close(fd)
+            throw ClientError.notRunning(socketPath)
+        }
+        return fd
     }
 }

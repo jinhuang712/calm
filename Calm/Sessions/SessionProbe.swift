@@ -28,6 +28,19 @@ final class SessionProbe {
     private var readingTranscripts: Set<Session.ID> = []
     /// When Calm last looked for each session's transcript.
     private var lastDiscoveries: [Session.ID: Date] = [:]
+    /// The launch pass is still out, with rows showing as loading (`settleSavedRuns`).
+    private var savedRunsPending = false
+
+    /// Where the launch pass leaves its answer for the main thread to pick up.
+    private final class AnswerBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: LaunchPass.Answer?
+
+        var answer: LaunchPass.Answer? {
+            get { lock.withLock { stored } }
+            set { lock.withLock { stored = newValue } }
+        }
+    }
 
     /// Size and modification time of the files that show a transcript changed (a database's
     /// write-ahead log grows while the database file stays put).
@@ -63,6 +76,75 @@ final class SessionProbe {
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    // MARK: Launch
+
+    /// Settles the saved agent runs before the window opens (DESIGNS.md → Launch): is each agent
+    /// still running in its shell, and what does it say about itself? The reads run off the main
+    /// thread and the window waits for them up to `LaunchPass.budget`, so the sidebar almost
+    /// always opens right. If they take longer, the rows show as loading until they finish, and
+    /// a pass that hasn't answered by `LaunchPass.deadline` is given up on.
+    func settleSavedRuns() {
+        let manager = SessionManager.shared
+        let questions = manager.workspace.sessions.compactMap { session in
+            session.agent.map { LaunchPass.Question(id: session.id, shellName: session.persistentName, kind: $0.kind) }
+        }
+        guard !questions.isEmpty else { return }
+        // Without zmx the shells ended with Calm, and so did their agents.
+        guard manager.persistenceEnabled, PersistentShell.isAvailable else {
+            manager.settleSavedRuns(nil)
+            Trace.note("launch pass: no persistent shells, \(questions.count) saved runs ended")
+            return
+        }
+        let started = ContinuousClock.now
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let box = AnswerBox()
+        let group = DispatchGroup()
+        group.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            box.answer = LaunchPass.run(questions, home: home)
+            group.leave()
+        }
+        if group.wait(timeout: .now() + LaunchPass.budget) == .success {
+            seed(box.answer)
+            manager.settleSavedRuns(box.answer)
+            let took = Trace.milliseconds(started.duration(to: .now))
+            Trace.note("launch pass: \(questions.count) saved runs settled in \(took), before the window")
+            return
+        }
+        manager.beginConfirming(Set(questions.map(\.id)))
+        Trace.note("launch pass: not done in \(LaunchPass.budgetMilliseconds) ms, \(questions.count) rows show as loading")
+        savedRunsPending = true
+        group.notify(queue: .main) { [weak self] in
+            MainActor.assumeIsolated { self?.finishSavedRuns(box.answer, gaveUp: false, since: started) }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + LaunchPass.deadline) { [weak self] in
+            MainActor.assumeIsolated { self?.finishSavedRuns(nil, gaveUp: true, since: started) }
+        }
+    }
+
+    /// The pass answered after the window opened, or the deadline came first: whichever is first.
+    private func finishSavedRuns(_ answer: LaunchPass.Answer?, gaveUp: Bool, since started: ContinuousClock.Instant) {
+        guard savedRunsPending else { return }
+        savedRunsPending = false
+        let took = Trace.milliseconds(started.duration(to: .now))
+        Trace.note(gaveUp ? "launch pass: no answer after \(took), saved runs end" : "launch pass: answered after \(took)")
+        seed(answer)
+        SessionManager.shared.finishConfirming(answer)
+    }
+
+    /// What the pass learned, so the first regular probe neither asks zmx again nor takes the
+    /// agents it just confirmed for new ones.
+    private func seed(_ answer: LaunchPass.Answer?) {
+        guard let answer else { return }
+        shellProcesses = answer.shells
+        lastListing = Date()
+        for (id, found) in answer.outcomes {
+            if case let .running(_, processID, _) = found {
+                foregroundJobs[id] = processID
+            }
+        }
     }
 
     private func poll() {

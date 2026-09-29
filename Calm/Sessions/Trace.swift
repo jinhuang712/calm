@@ -50,18 +50,39 @@ enum Trace {
         note("report \(Trace.id(id)) from \(report.source.rawValue) says \(report.state.rawValue): \(transition(before, after))")
     }
 
-    /// A hook said which agent it speaks for. Each one does; only the first, or one that
-    /// changed something, is news once the launch is over.
-    static func hookNamed(_ id: Session.ID, _ kind: AgentKind, before: AgentRun?, after: AgentRun?) {
+    /// A hook, or the probe finding a transcript, said which agent a session runs. Every hook
+    /// does; only the first, or one that changed something, is news once the launch is over.
+    static func agentNamed(_ id: Session.ID, _ kind: AgentKind, before: AgentRun?, after: AgentRun?) {
         guard isLaunching || before?.kind != after?.kind || before?.transcriptPath != after?.transcriptPath else { return }
         let transcript = after?.transcriptPath == nil ? "unknown" : "known"
         let agent = before == nil ? "was not known" : "was known"
-        note("hook names \(Trace.id(id)): \(kind.rawValue), transcript \(transcript), agent \(agent)")
+        note("agent named \(Trace.id(id)): \(kind.rawValue), transcript \(transcript), agent \(agent)")
     }
 
     /// The probe saw an agent start or end in a session's foreground.
     static func probed(_ id: Session.ID, _ event: String, before: Session, after: Session?) {
         note("probe \(Trace.id(id)): \(event); \(describe(before)) → \(describe(after))")
+    }
+
+    /// The launch pass settled a saved agent run.
+    static func settled(_ id: Session.ID, found: AgentAtLaunch, before: Session, after: Session?) {
+        note("settle \(Trace.id(id)): \(describe(found)); \(describe(before)) → \(describe(after))")
+    }
+
+    /// What the launch pass found: `running as 87070, says busy`, `running as 87070, no status`.
+    static func describe(_ found: AgentAtLaunch) -> String {
+        switch found {
+        case .gone:
+            return "agent gone"
+        case let .running(_, processID, status):
+            guard let status else { return "running as \(processID), no status" }
+            let phase = switch status.phase {
+            case .busy: "busy"
+            case .idle: "idle"
+            case .waiting: "waiting"
+            }
+            return "running as \(processID), says \(phase)"
+        }
     }
 
     /// The transcript was read again and its tail differed.
@@ -85,6 +106,12 @@ enum Trace {
         let waited = received.duration(to: clock.now)
         guard waited >= stallThreshold else { return }
         note("control \(command) waited \(offset(waited).dropFirst()) s for the main thread")
+    }
+
+    /// `12 ms`: a span, in whole milliseconds.
+    static func milliseconds(_ span: Duration) -> String {
+        let (seconds, attoseconds) = span.components
+        return "\(Int((Double(seconds) * 1000 + Double(attoseconds) / 1e15).rounded())) ms"
     }
 
     /// `+2.11`: seconds, to the hundredth.

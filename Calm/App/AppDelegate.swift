@@ -24,6 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !isTesting {
             SessionManager.shared.restore()
             Trace.note("state restored")
+            // Before the control server and the window: the saved rows are checked against the
+            // running agents, so hooks refine a settled sidebar and the first frame is right.
+            SessionProbe.shared.settleSavedRuns()
             ControlServer.shared.start()
             Trace.note("control socket listening")
             SessionProbe.shared.start()

@@ -11,6 +11,19 @@ struct TraceTests {
         #expect(Trace.offset(.seconds(125)) == "+125.00")
     }
 
+    @Test func `a span reads in whole milliseconds`() {
+        #expect(Trace.milliseconds(.milliseconds(12)) == "12 ms")
+        #expect(Trace.milliseconds(.seconds(2)) == "2000 ms")
+        #expect(Trace.milliseconds(.microseconds(400)) == "0 ms")
+    }
+
+    @Test func `what the launch pass found is described without the agent's words`() {
+        let status = AgentLiveStatus(phase: .busy, since: Date())
+        #expect(Trace.describe(AgentAtLaunch.gone) == "agent gone")
+        #expect(Trace.describe(AgentAtLaunch.running(kind: .claudeCode, processID: 4242, status: status)) == "running as 4242, says busy")
+        #expect(Trace.describe(AgentAtLaunch.running(kind: .claudeCode, processID: 4242, status: nil)) == "running as 4242, no status")
+    }
+
     @Test func `a session is named by the first eight hex digits of its id`() throws {
         let id = try #require(UUID(uuidString: "68B8D9E3-05FF-4BF6-A9C0-9E167413981B"))
         #expect(Trace.id(id) == "68b8d9e3")

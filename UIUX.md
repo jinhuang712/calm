@@ -91,6 +91,8 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 
 When the work ends, the mark settles once, in about a second, before it rests.
 
+**Restoring.** After a launch or a Restart the sidebar comes back as it was left: each agent's mark, state and recap, and how long it has been working. Calm checks every saved agent against the running one before the window opens (DESIGNS.md → Launch), so normally there is nothing to see. Only if that takes more than a quarter of a second do the rows hold what was saved, quietly: no tint, the mark gray and still, a soft bar that breathes where the state goes, the recap dimmed, and each card keeping its size so nothing moves. A line, "Restoring sessions…", sits in the gap under the search field, so nothing moves when it goes. When the check ends, every row settles together in one 0.45 s fade: at once if it was quick, but never sooner than 0.45 s after the loading began (so it never flashes), and after 2 s at the latest. The loading state asserts no state, so nothing shown is ever wrong. With Reduce Motion the bars stay still and the fade is a cut.
+
 ## Agent marks
 
 Each agent shows its own logo, which moves only while the agent works. The motions follow each agent's own, slowed and softened where Calm poses them; they run at 30 frames a second, and not at all with Reduce Motion.
@@ -206,6 +208,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
 | Session switching | hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom (⌃⇧Tab goes up, both wrap), over small live previews; release ⌃ to settle on the chosen one. A quick ⌃Tab goes straight to the next session down without showing anything |
 | Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping. The agent's mark moves while it works and settles once when the work ends (see Agent marks) |
+| Restoring | after a launch nothing moves: rows come back as they were left. If the check is slow, rows hold their saved look with a placeholder that breathes (1.9 s) and settle together in one 0.45 s fade (see Session states) |
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |

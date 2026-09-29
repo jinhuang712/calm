@@ -12,14 +12,18 @@ struct SessionCard: View {
     let style: SidebarStyle
     /// The pointer rests on the card: a long title glides to its end.
     var isHovered = false
+    /// The saved row is still being checked against the running agent (only when that takes
+    /// longer than the window can wait): the card keeps its saved size but says nothing about
+    /// the state, so nothing shown is wrong. UIUX.md → Restoring.
+    var isConfirming = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6.scaled) {
             HStack(spacing: 10.scaled) {
-                AgentLogo(agent: agent, state: session.state, style: style)
+                AgentLogo(agent: agent, state: isConfirming ? .idle : session.state, style: style)
                 ScrollingTitle(text: title, isHovered: isHovered)
                     .calmFont(size: 14.5, weight: .medium)
-                    .foregroundStyle(isAsleep ? style.secondary : style.primary)
+                    .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
                 Spacer(minLength: 4)
                 if let date = session.lastReport?.date ?? session.agent?.startedAt {
                     RelativeTimeText(date: date)
@@ -28,10 +32,15 @@ struct SessionCard: View {
                 }
             }
             if !isCompact {
-                stateLine
-                    .padding(.leading, Self.indent)
+                if isConfirming {
+                    LoadingBar(style: style)
+                        .padding(.leading, Self.indent)
+                } else {
+                    stateLine
+                        .padding(.leading, Self.indent)
+                }
             }
-            if !isCompact, let progress = session.agent?.tail?.progress, progress.total > 0 {
+            if !isCompact, !isConfirming, let progress = session.agent?.tail?.progress, progress.total > 0 {
                 TodoProgressLine(progress: progress, style: style)
                     .padding(.leading, Self.indent)
             }
@@ -39,7 +48,7 @@ struct SessionCard: View {
                 Text(message)
                     .calmFont(size: 13)
                     .lineSpacing(1.5)
-                    .foregroundStyle(style.secondary)
+                    .foregroundStyle(isConfirming ? style.tertiary : style.secondary)
                     .lineLimit(isCompact ? 1 : 2)
                     .padding(.leading, Self.indent)
                     .transition(.opacity)
@@ -59,6 +68,7 @@ struct SessionCard: View {
         .overlay(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).strokeBorder(border))
         .contentShape(Rectangle())
         .animation(.easeInOut(duration: 0.25), value: session.state)
+        .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.45), value: isConfirming)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -168,11 +178,13 @@ struct SessionCard: View {
     }
 
     private var tint: Tint? {
+        // While the state is being checked the card doesn't wear it.
+        guard !isConfirming else { return nil }
         switch session.state {
-        case .needsYou: Tint(color: style.attention, fill: 0.14, selectedFill: 0.2, edge: 0.22)
-        case .working: Tint(color: style.working, fill: 0.1, selectedFill: 0.15, edge: 0.24)
-        case .done: Tint(color: style.done, fill: 0.1, selectedFill: 0.15, edge: 0.24)
-        case .idle, .failed: nil
+        case .needsYou: return Tint(color: style.attention, fill: 0.14, selectedFill: 0.2, edge: 0.22)
+        case .working: return Tint(color: style.working, fill: 0.1, selectedFill: 0.15, edge: 0.24)
+        case .done: return Tint(color: style.done, fill: 0.1, selectedFill: 0.15, edge: 0.24)
+        case .idle, .failed: return nil
         }
     }
 
@@ -188,10 +200,30 @@ struct SessionCard: View {
     }
 
     private var accessibilityText: String {
-        let state = session.state == .working ? workingLine(at: .now) : session.state.label
+        let state = isConfirming ? "Restoring" : session.state == .working ? workingLine(at: .now) : session.state.label
         return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), recap]
             .compactMap(\.self)
             .joined(separator: ", ")
+    }
+}
+
+/// Where a card's state goes while the state is being checked: a soft bar that breathes, as tall
+/// as the state's own line so the card keeps its size. Still with Reduce Motion.
+struct LoadingBar: View {
+    let style: SidebarStyle
+    @State private var dimmed = true
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 4.5.scaled, style: .continuous)
+            .fill(style.primary.opacity(0.14))
+            .frame(width: 92.scaled, height: 9.scaled)
+            .opacity(dimmed && !Motion.isReduced ? 0.4 : 1)
+            .padding(.vertical, 3.5.scaled)
+            .onAppear {
+                guard !Motion.isReduced else { return }
+                withAnimation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true)) { dimmed = false }
+            }
+            .accessibilityHidden(true)
     }
 }
 

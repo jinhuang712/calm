@@ -52,6 +52,7 @@ A fast, correct terminal on libghostty.
 - Quitting Calm detaches shells instead of killing them. Relaunching reattaches, with scrollback and running processes intact.
 - **Restart Calm** (Calm menu, no shortcut) quits and opens Calm again once the old one has fully exited, so every session comes back as after any relaunch, agents still running. It opens the app from the same place, so a version installed meanwhile (`install.sh`) is the one that starts. When shells aren't being kept alive (zmx missing or failing) and something is running, it asks first, as Quit does.
 - Projects, sessions and split layouts are restored.
+- The sidebar comes back as it was left: each agent's mark, state and recap, and how long it has been working. Before the window opens Calm checks every saved agent against the running one (Claude Code tells what it is doing in its own status file), so a session that was working still shows working, one that has since finished shows idle, and one whose agent has ended has no mark. If that check takes more than a moment, the rows show a quiet "Restoring sessions…" state instead of a state, and settle together.
 - Closing a session ends its shell (⌘⇧T opens a new one in its place; F12). Shells Calm no longer knows about (for example after a crash) are ended at the next launch; other apps' sessions are never touched.
 - Each session can show a one-line attach command so it can be reached from another device over SSH.
 

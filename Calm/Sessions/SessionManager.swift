@@ -45,25 +45,38 @@ final class SessionManager {
     /// No workspace was ever saved: Calm's very first launch (the welcome page shows).
     @ObservationIgnored let isFirstUse: Bool
 
+    /// When the saved workspace was written: at a launch, how long Calm was away.
+    @ObservationIgnored let stateSavedAt: Date?
+
+    /// Sessions whose rows show as loading: their saved agent run is being checked against the
+    /// running agent and the check is taking a moment (DESIGNS.md → Launch). Empty almost
+    /// always, since the check is over before the window opens. Not saved.
+    private(set) var confirming: Set<Session.ID> = []
+    @ObservationIgnored private var confirmingSince: ContinuousClock.Instant?
+
+    /// Once shown, the loading state stays at least this long, so a check that ends just after
+    /// the window opens doesn't flash.
+    nonisolated static let minimumLoading = Duration.milliseconds(450)
+
     init(store: WorkspaceStore = .standard) {
         self.store = store
         isFirstUse = !FileManager.default.fileExists(atPath: store.fileURL.path)
+        stateSavedAt = (try? FileManager.default.attributesOfItem(atPath: store.fileURL.path))?[.modificationDate] as? Date
         workspace = store.load()
     }
 
     // MARK: Lifecycle
 
     /// Prepares the saved workspace at launch, so Calm starts where the user left off.
+    ///
+    /// A saved agent run is kept, with its state and what its card shows: the launch pass
+    /// (`SessionProbe.settleSavedRuns`) checks it against the running agent before the window
+    /// opens, so the sidebar comes back as it was left.
     func restore() {
         removeOrphanedShells()
         Trace.note("orphaned shells checked")
         for session in workspace.sessions {
-            let saved = Trace.describe(session)
-            if session.agent != nil {
-                // Saved by an earlier launch; the probe finds agents that are still running.
-                workspace.endAgentRun(session.id)
-            }
-            Trace.note("restore \(Trace.id(session.id)): \(saved) → \(Trace.describe(workspace.session(session.id)))")
+            Trace.note("restore \(Trace.id(session.id)): \(Trace.describe(session)) (saved)")
         }
         // Sessions filed under older rules find their groups (FEATURES.md → F2).
         if autoGrouping {
@@ -88,6 +101,54 @@ final class SessionManager {
                     workspace.updateTree(layout.id, tree)
                 }
             }
+        }
+        scheduleSave()
+    }
+
+    // MARK: Launch pass
+
+    /// How much of the loading state is left once it has been shown for `shown`.
+    nonisolated static func remainingLoading(shown: Duration) -> Duration {
+        max(.zero, minimumLoading - shown)
+    }
+
+    /// The launch pass is taking longer than the window can wait: these rows show as loading.
+    func beginConfirming(_ ids: Set<Session.ID>) {
+        confirming = ids
+        confirmingSince = .now
+    }
+
+    /// Ends the loading state with what the pass found, no sooner than `minimumLoading` after it
+    /// began. The answer is applied with it, so a row doesn't change height under its placeholder.
+    func finishConfirming(_ answer: LaunchPass.Answer?) {
+        let wait = Self.remainingLoading(shown: confirmingSince.map { $0.duration(to: .now) } ?? .zero)
+        guard wait > .zero else {
+            settleSavedRuns(answer, animated: true)
+            return
+        }
+        Task { [self] in
+            try? await Task.sleep(for: wait)
+            settleSavedRuns(answer, animated: true)
+        }
+    }
+
+    /// Settles every saved agent run against what the launch pass found. With no answer (nothing
+    /// in time, or no persistent shells to have kept the agents alive) every run is over, as a
+    /// launch always made it.
+    func settleSavedRuns(_ answer: LaunchPass.Answer?, animated: Bool = false) {
+        let settle = { [self] in
+            for session in workspace.sessions where session.agent != nil {
+                let found = answer?.outcomes[session.id] ?? .gone
+                workspace.settleSavedRun(session.id, found: found, savedAt: stateSavedAt)
+                Trace.settled(session.id, found: found, before: session, after: workspace.session(session.id))
+            }
+            confirming = []
+            confirmingSince = nil
+        }
+        if animated {
+            Motion.animate(.easeInOut(duration: 0.45), settle)
+        } else {
+            settle()
         }
         scheduleSave()
     }
@@ -372,7 +433,7 @@ final class SessionManager {
     func noteAgentSession(_ id: Session.ID, kind: AgentKind, agentSessionID: String?, transcriptPath: String?) {
         let before = workspace.session(id)?.agent
         workspace.noteAgentSession(id, kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath)
-        Trace.hookNamed(id, kind, before: before, after: workspace.session(id)?.agent)
+        Trace.agentNamed(id, kind, before: before, after: workspace.session(id)?.agent)
         scheduleSave()
     }
 

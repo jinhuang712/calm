@@ -131,6 +131,14 @@ struct SidebarView: View {
             searchField
                 .padding(.horizontal, 14.scaled)
                 .padding(.bottom, 18.scaled)
+                .overlay(alignment: .bottom) {
+                    // In the gap under the field, so nothing moves when it goes.
+                    if !manager.confirming.isEmpty {
+                        restoringLine
+                            .transition(.opacity)
+                    }
+                }
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.45), value: manager.confirming.isEmpty)
 
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
@@ -338,6 +346,7 @@ struct SidebarView: View {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
                 isHovered: hoveredSessionID == session.id,
+                isConfirming: manager.confirming.contains(session.id),
             )
         } else {
             SessionRow(
@@ -379,6 +388,18 @@ struct SidebarView: View {
             .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(style.primary.opacity(0.06)))
         }
         .accessibilityLabel("Search sessions")
+    }
+
+    /// Shown only while saved rows are checked against their agents and that takes a moment
+    /// (UIUX.md → Restoring). Quiet and still; the cards' own placeholders breathe.
+    private var restoringLine: some View {
+        Text("Restoring sessions…")
+            .calmFont(size: 12)
+            .foregroundStyle(style.tertiary)
+            .padding(.leading, 26.scaled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 1)
+            .accessibilityLabel("Restoring sessions")
     }
 
     /// The three ways to start something, one row each with its shortcut, so the corner reads at

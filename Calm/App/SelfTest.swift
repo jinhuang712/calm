@@ -13,7 +13,8 @@
     ///   the typing and logs how its content moved (`MotionProbe`); `CALM_SELFTEST_MOTION_CELLS=
     ///   col,row,col,row` watches only that rectangle of cells, `CALM_SELFTEST_MOTION_COLOR=ff00ff`
     ///   also counts the pixel rows showing that color in each frame (to catch something drawn
-    ///   twice), and `CALM_SELFTEST_MOTION_DUMP=/path.csv` writes each frame's row profile.
+    ///   twice), `CALM_SELFTEST_MOTION_DUMP=/path.csv` writes each frame's row profile, and
+    ///   `CALM_SELFTEST_MOTION_FRAMES=/dir` saves each of the first frames as `frame-NNN.png`.
     /// - `CALM_SNAPSHOT_DELAY=2.5` seconds to wait before capturing (default 1.5).
     /// - `CALM_SNAPSHOT_QUIT=1` quits after capturing.
     @MainActor

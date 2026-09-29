@@ -1,0 +1,925 @@
+Subject: a region scroll leaves an overlay's own cells in place, not its whole row
+
+0008 kept an overlay a program repaints inside its scrolling region (Claude Code's "Jump to
+bottom" hint on its transcript's last row) from being drawn two or three times by drawing the
+overlay's whole edge row in place and sliding only the rows between. But that row holds text too:
+it showed its final line at once while the rows around it slid, so the same line was on screen
+twice, one copy squeezed under the pinned row, and the row read as stuck.
+
+The region now animates whole, edge rows included, and the overlay's own cells (the run
+`repaintedInPlace` finds, no longer its row) are a hole in it: drawn where they are while the
+content slides past and under them. The shaders take two holes per region (`region_hole`, one
+for each edge row); a cell in a hole belongs to no region, content that would be drawn in one is
+cut off there, and the hole's own cells are never drawn as part of the content, so the old copy
+of a hint sliding out and the new one sliding in stay out of sight. The hit test leaves the
+cells unshifted too (`RegionHole`), so a click on the hint lands on it while the text beside it
+still slides.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0011, replacing the pinned rows
+(`PinnedEdges`) 0008 added with holes.
+
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -65,75 +65,81 @@
+ /// one is taken last everywhere (inside `draw_mutex` by drawFrame, inside
+ /// the state mutex by updateFrame and the surface) and nothing is taken
+ /// while it is held, so it can't be part of a deadlock.
+-/// The edge rows of a scrolled region that the program repainted where
+-/// they were instead of letting them scroll: an overlay pinned inside the
+-/// region, such as Claude Code's "Jump to bottom" hint on the last row of
+-/// its transcript. They are drawn in place, and a region scroll animation
+-/// moves only the rows between them (see `repaintedInPlace`). Animating
+-/// them with the rest drew the overlay twice, the old copy sliding away as
+-/// a ghost row while the new one slid in.
+-const PinnedEdges = struct {
+-    top: bool = false,
+-    bottom: bool = false,
++/// The cells of a scrolled region's edge rows that the program repainted
++/// where they were instead of letting them scroll: an overlay drawn over
++/// the region, such as Claude Code's "Jump to bottom" hint on the last row
++/// of its transcript (see `repaintedInPlace`). A region scroll animation
++/// draws these cells in place and slides everything else, the rest of their
++/// rows included. Animating them with the rest drew the overlay twice, the
++/// old copy sliding away as a ghost row while the new one slid in; pinning
++/// the whole row instead left the text beside the overlay standing still
++/// while the rows around it slid.
++const Overlays = struct {
++    top: ?Columns = null,
++    bottom: ?Columns = null,
+ 
+-    /// The part of `scroll` that moves: the region without its pinned
+-    /// rows. Null when that leaves nothing that keeps any content across
+-    /// the scroll, which is then no motion to draw.
+-    fn moving(
+-        self: PinnedEdges,
+-        scroll: terminal.Screen.RegionScroll,
+-    ) ?terminal.Screen.RegionScroll {
+-        var region = scroll;
+-        if (self.top) region.top += 1;
+-        if (self.bottom) {
+-            if (region.bottom == 0) return null;
+-            region.bottom -= 1;
+-        }
+-        if (region.bottom < region.top) return null;
+-        const height: u32 = @as(u32, region.bottom - region.top) + 1;
+-        if (@abs(region.lines) >= height) return null;
+-        return region;
++    /// The columns of an edge row, inclusive.
++    const Columns = struct {
++        left: terminal.size.CellCountInt,
++        right: terminal.size.CellCountInt,
++    };
++
++    /// The overlays as the cells `scroll`'s animation leaves where they are.
++    fn holes(self: Overlays, scroll: terminal.Screen.RegionScroll) terminal.RenderState.RegionHoles {
++        return .{
++            if (self.top) |o| .{ .row = scroll.top, .left = o.left, .right = o.right } else null,
++            if (self.bottom) |o| .{ .row = scroll.bottom, .left = o.left, .right = o.right } else null,
++        };
+     }
+ };
+ 
+-/// A region scroll drained from the terminal, with the edge rows the
+-/// program repainted in place in the same frame.
++/// A region scroll drained from the terminal, with the overlays the
++/// program repainted in place on its edge rows in the same frame.
+ const PendingScroll = struct {
+     scroll: terminal.Screen.RegionScroll,
+-    pinned: PinnedEdges = .{},
++    overlays: Overlays = .{},
+ };
+ 
+-/// Whether `new`, an edge row of a scrolled region, carries something the
+-/// program repainted where it was rather than content the scroll moved: an
+-/// overlay, a run of at least `pinned_run` cells with a background color
+-/// and some text in it that are what `old`, the row there in the previous
+-/// frame, had in the same cells, and mostly not what `source`, the row the
+-/// scroll moved into it, had (empty when that row is outside the region).
+-/// Such a run can sit over whatever the row holds. Plain text is never an
+-/// overlay: consecutive lines often share long runs in the same cells (a
+-/// table's rule, indentation, a bar), and the scroll animates them.
++/// The overlay `new`, an edge row of a scrolled region, carries, if the
++/// program repainted it where it was rather than moved it with the scroll:
++/// a run of at least `pinned_run` cells with a background color and some
++/// text in it that are what `old`, the row there in the previous frame, had
++/// in the same cells, and mostly not what `source`, the row the scroll moved
++/// into it, had (empty when that row is outside the region). Such a run can
++/// sit over whatever the row holds. Plain text is never an overlay:
++/// consecutive lines often share long runs in the same cells (a table's
++/// rule, indentation, a bar), and the scroll animates them. The overlay is
++/// the whole run, however far it goes on.
+ fn repaintedInPlace(
+     new: []const terminal.RenderState.Cell,
+     old: []const terminal.RenderState.Cell,
+     source: []const terminal.RenderState.Cell,
+-) bool {
++) ?Overlays.Columns {
+     var run: usize = 0;
+     var run_text: usize = 0;
+     var run_moved: usize = 0;
++    var found: ?Overlays.Columns = null;
+     for (new, 0..) |cell, x| {
+         const boxed = cell.raw.hasStyling() and cell.style.bg_color != .none;
+         if (!boxed or x >= old.len or !sameCell(cell, old[x])) {
++            if (found != null) break;
+             run = 0;
+             run_text = 0;
+             run_moved = 0;
+             continue;
+         }
++        if (found) |*overlay| {
++            overlay.right = @intCast(x);
++            continue;
++        }
+         run += 1;
+         if (cell.raw.hasText() and cell.raw.codepoint() != ' ') run_text += 1;
+         if (x < source.len and sameCell(cell, source[x])) run_moved += 1;
+-        if (run >= pinned_run and run_text >= pinned_text and run_moved * 2 < run) return true;
++        if (run >= pinned_run and run_text >= pinned_text and run_moved * 2 < run) {
++            found = .{ .left = @intCast(x + 1 - run), .right = @intCast(x) };
++        }
+     }
+-    return false;
++    return found;
+ }
+ 
+ /// The shortest run that counts as a pinned overlay, and the text it must
+@@ -153,7 +159,7 @@
+ /// The previous frame's rows that decide whether a region scroll left an
+ /// edge row repainted in place: `slots` rows of `cols` cells per scroll,
+ /// taken before the render state takes the new frame (`snapshot`) and
+-/// compared with it after (`pinned`).
++/// compared with it after (`overlays`).
+ const EdgeRows = struct {
+     cells: std.ArrayListUnmanaged(terminal.RenderState.Cell) = .empty,
+     /// One row of the new frame, to compare.
+@@ -241,15 +247,16 @@
+         };
+     }
+ 
+-    /// Which edge rows of the `index`th snapshotted scroll `new`, the render
+-    /// state once it has taken the new frame, shows repainted in place.
+-    fn pinned(
++    /// The overlays on the edge rows of the `index`th snapshotted scroll that
++    /// `new`, the render state once it has taken the new frame, shows
++    /// repainted in place.
++    fn overlays(
+         self: *EdgeRows,
+         alloc: Allocator,
+         new: *const terminal.RenderState,
+         scroll: terminal.Screen.RegionScroll,
+         index: usize,
+-    ) PinnedEdges {
++    ) Overlays {
+         const cols = self.cols;
+         // A new grid size has nothing to compare against.
+         if (cols == 0 or cols != new.cols) return .{};
+@@ -262,7 +269,7 @@
+             .{ .y = scroll.top, .old = 0, .source = 2 },
+             .{ .y = scroll.bottom, .old = 1, .source = 3 },
+         };
+-        var result: [2]bool = .{ false, false };
++        var result: [2]?Overlays.Columns = .{ null, null };
+         for (edges, 0..) |edge, i| {
+             self.new.clearRetainingCapacity();
+             copyRow(alloc, new, edge.y, cols, &self.new) catch return .{};
+@@ -433,18 +440,20 @@
+         }
+ 
+         /// The terminal scrolled these regions after every frame drawn so
+-        /// far, the one on screen included.
++        /// far, the one on screen included. A region scrolled with an
++        /// overlay repainted in place has that overlay in place on screen.
+         pub fn scrolled(
+             self: *Self,
+             io: std.Io,
+-            scrolls: []const terminal.Screen.RegionScroll,
++            scrolls: []const PendingScroll,
+             cell_height: f64,
+         ) void {
+             self.mutex.lockUncancelable(io);
+             defer self.mutex.unlock(io);
+-            for (scrolls) |scroll| {
+-                self.presented.addScroll(scroll, cell_height);
+-                for (&self.frames) |*frame| frame.shifts.addScroll(scroll, cell_height);
++            for (scrolls) |pending| {
++                const holes = pending.overlays.holes(pending.scroll);
++                self.presented.addHoledScroll(pending.scroll, holes, cell_height);
++                for (&self.frames) |*frame| frame.shifts.addHoledScroll(pending.scroll, holes, cell_height);
+             }
+         }
+ 
+@@ -1560,9 +1569,10 @@
+         /// that left: they need no terminal access, only the frame before.
+         const RegionAnim = struct {
+             region: terminal.Screen.RegionScroll,
+-            /// Edge rows the latest scroll left repainted in place: drawn
+-            /// where they are, outside the animation (see `moving`).
+-            pinned: PinnedEdges = .{},
++            /// Overlays the latest scroll left repainted in place on the
++            /// region's edge rows: drawn where they are, outside the
++            /// animation (see `Overlays`).
++            overlays: Overlays = .{},
+             /// Pixels the content is drawn below its final place (negative:
+             /// above).
+             shift: f64,
+@@ -1587,15 +1597,9 @@
+                 self.ghosts.deinit(alloc);
+             }
+ 
+-            /// The rows that move: the region without its pinned edge rows.
+-            fn moving(self: *const RegionAnim) terminal.Screen.RegionScroll {
+-                return self.pinned.moving(self.region) orelse self.region;
+-            }
+-
+-            /// Grid-pixel extent of the rows that move: left, top, right,
+-            /// bottom.
++            /// Grid-pixel extent of the region: left, top, right, bottom.
+             fn rect(self: *const RegionAnim, cell_w: f32, cell_h: f32) [4]f32 {
+-                const r = self.moving();
++                const r = self.region;
+                 return .{
+                     @as(f32, @floatFromInt(r.left)) * cell_w,
+                     @as(f32, @floatFromInt(r.top)) * cell_h,
+@@ -1603,6 +1607,19 @@
+                     @as(f32, @floatFromInt(@as(u32, r.bottom) + 1)) * cell_h,
+                 };
+             }
++
++            /// Grid-pixel extent of the region's `hole`th hole (the top edge
++            /// row's, then the bottom's), which the animation leaves in
++            /// place; empty when the row has none.
++            fn holeRect(self: *const RegionAnim, hole: usize, cell_w: f32, cell_h: f32) [4]f32 {
++                const h = self.overlays.holes(self.region)[hole] orelse return @splat(0);
++                return .{
++                    @as(f32, @floatFromInt(h.left)) * cell_w,
++                    @as(f32, @floatFromInt(h.row)) * cell_h,
++                    @as(f32, @floatFromInt(@as(u32, h.right) + 1)) * cell_w,
++                    @as(f32, @floatFromInt(@as(u32, h.row) + 1)) * cell_h,
++                };
++            }
+         };
+ 
+         comptime {
+@@ -1779,23 +1796,21 @@
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             const cols: usize = self.cells.size.columns;
+             for (self.pending_region_scrolls.items) |pending| {
+-                // Pinned edge rows stay where they are; only the rows
+-                // between them move. An animation is keyed by the whole
+-                // region, since whether a row is pinned can change from one
+-                // scroll to the next.
+-                const scroll = pending.pinned.moving(pending.scroll) orelse continue;
++                const scroll = pending.scroll;
+                 const anim: *RegionAnim = anim: {
+                     for (self.region_anims.items) |*anim| {
+-                        if (anim.region.sameRegion(pending.scroll)) break :anim anim;
++                        if (anim.region.sameRegion(scroll)) break :anim anim;
+                     }
+                     if (self.region_anims.items.len >= shaderpkg.Uniforms.max_region_anims) continue;
+                     self.region_anims.append(self.alloc, .{
+-                        .region = pending.scroll,
++                        .region = scroll,
+                         .shift = 0,
+                     }) catch continue;
+                     break :anim &self.region_anims.items[self.region_anims.items.len - 1];
+                 };
+-                anim.pinned = pending.pinned;
++                // Overlays repainted in place stay where they are, whether
++                // or not the last scroll had them.
++                anim.overlays = pending.overlays;
+ 
+                 // The new content is drawn where the old was: `lines` rows
+                 // away. Beyond the region's height nothing of the old
+@@ -1808,11 +1823,11 @@
+                 );
+                 for (anim.ghosts.items) |*ghost| ghost.final_row -= scroll.lines;
+ 
+-                // The rows that left the moving rows, as the previous frame
+-                // drew them. A scroll up loses rows at the top, a scroll
+-                // down at the bottom; each ends up `lines` rows from where
+-                // it was. Next to a pinned row that is the row the pinned
+-                // one now covers, which slides under it.
++                // The rows that left the region, as the previous frame drew
++                // them. A scroll up loses rows at the top, a scroll down at
++                // the bottom; each ends up `lines` rows from where it was.
++                // An overlay in one of them (the old copy of a hint) is
++                // hidden by the hole it leaves on the way out.
+                 const count: usize = @intCast(@abs(scroll.lines));
+                 const first: usize = if (scroll.lines > 0)
+                     scroll.top
+@@ -1867,9 +1882,8 @@
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             var total: usize = 0;
+             for (self.region_anims.items) |*anim| {
+-                const region = anim.moving();
+-                const top: f64 = @as(f64, @floatFromInt(region.top)) * cell_h;
+-                const bottom: f64 = @as(f64, @floatFromInt(@as(u32, region.bottom) + 1)) * cell_h;
++                const top: f64 = @as(f64, @floatFromInt(anim.region.top)) * cell_h;
++                const bottom: f64 = @as(f64, @floatFromInt(@as(u32, anim.region.bottom) + 1)) * cell_h;
+                 var i: usize = 0;
+                 while (i < anim.ghosts.items.len) {
+                     const ghost = &anim.ghosts.items[i];
+@@ -1936,6 +1950,7 @@
+             const cols: usize = self.cells.size.columns;
+ 
+             self.uniforms.region_rect = @splat(@splat(0));
++            self.uniforms.region_hole = @splat(@splat(0));
+             self.uniforms.region_shift = @splat(@splat(0));
+             self.uniforms.ghost_rows = @splat(@splat(-1));
+             self.ghost_bg_upload.clearRetainingCapacity();
+@@ -1944,6 +1959,7 @@
+             var ghost_count: usize = 0;
+             for (self.region_anims.items, 0..) |*anim, i| {
+                 self.uniforms.region_rect[i] = anim.rect(cell_w, cell_h);
++                for (0..2) |k| self.uniforms.region_hole[i * 2 + k] = anim.holeRect(k, cell_w, cell_h);
+                 self.uniforms.region_shift[i] = .{ @floatCast(anim.shift), 0, 0, 0 };
+                 for (anim.ghosts.items) |ghost| {
+                     if (ghost_count >= shaderpkg.Uniforms.max_ghost_rows) break;
+@@ -1980,16 +1996,16 @@
+                 .cols = self.cells.size.columns,
+                 .rows = self.cells.size.rows,
+             };
+-            // The rows that move, as the shaders draw them: a pinned row is
+-            // drawn in place, so a click there needs nothing undone.
++            // The holes the shaders leave in place: a click on an overlay
++            // needs nothing undone.
+             for (self.region_anims.items, 0..) |*anim, i| {
+-                const region = anim.moving();
+                 shifts.append(.{
+-                    .top = region.top,
+-                    .bottom = region.bottom,
+-                    .left = region.left,
+-                    .right = region.right,
++                    .top = anim.region.top,
++                    .bottom = anim.region.bottom,
++                    .left = anim.region.left,
++                    .right = anim.region.right,
+                     .offset = self.uniforms.region_shift[i][0],
++                    .holes = anim.overlays.holes(anim.region),
+                 });
+             }
+             return shifts;
+@@ -2007,7 +2023,7 @@
+         /// the screen.
+         fn regionsScrolled(
+             self: *Self,
+-            scrolls: []const terminal.Screen.RegionScroll,
++            scrolls: []const PendingScroll,
+         ) void {
+             if (scrolls.len == 0) return;
+             self.presented_regions.scrolled(
+@@ -2360,29 +2376,22 @@
+                             self.terminal_state.endUpdate();
+                         }
+ 
+-                        // The hit test sees the rows that move, as drawn.
+-                        var moving: [terminal.Screen.RegionScrolls.capacity]terminal.Screen.RegionScroll = undefined;
+-                        var moving_len: usize = 0;
++                        // The hit test sees this frame's scrolls with the
++                        // overlays they left in place, as drawn.
++                        const first = self.pending_region_scrolls.items.len;
+                         for (scrolls.slice(), 0..) |scroll, i| {
+-                            const pinned = self.edge_rows.pinned(self.alloc, &self.terminal_state, scroll, i);
+                             self.pending_region_scrolls.append(self.alloc, .{
+                                 .scroll = scroll,
+-                                .pinned = pinned,
++                                .overlays = self.edge_rows.overlays(self.alloc, &self.terminal_state, scroll, i),
+                             }) catch break;
+-                            if (pinned.moving(scroll)) |region| {
+-                                moving[moving_len] = region;
+-                                moving_len += 1;
+-                            }
+                         }
+ 
+                         // A program that repaints its rows rather than
+                         // scrolling them, animated as if it had scrolled.
+                         if (self.inferRedrawScroll(scrolls.len == 0)) |scroll| infer: {
+                             self.pending_region_scrolls.append(self.alloc, .{ .scroll = scroll }) catch break :infer;
+-                            moving[moving_len] = scroll;
+-                            moving_len += 1;
+                         }
+-                        self.regionsScrolled(moving[0..moving_len]);
++                        self.regionsScrolled(self.pending_region_scrolls.items[first..]);
+                     }
+                     scrolls.clear();
+                 }
+@@ -4778,7 +4787,9 @@
+ 
+     // The program scrolls two more 20px rows: every frame drawn so far
+     // shows the content 40px further from the terminal's rows.
+-    regions.scrolled(io, &.{.{ .top = 1, .bottom = 6, .left = 0, .right = 9, .lines = 2 }}, 20);
++    regions.scrolled(io, &.{.{
++        .scroll = .{ .top = 1, .bottom = 6, .left = 0, .right = 9, .lines = 2 },
++    }}, 20);
+     try testing.expectEqual(70, offset(&regions, 100));
+     try testing.expectEqual(60, offset(&regions, 101));
+     try testing.expectEqual(60, offset(&regions, 0));
+@@ -4829,28 +4840,33 @@
+         cell.* = .{ .raw = raw, .grapheme = &.{}, .style = style };
+     }
+     return row;
++}
++
++/// The overlay a hint drawn by `testPinnedRow` is: its cells and no others.
++fn expectHint(overlay: ?Overlays.Columns) !void {
++    const found = overlay orelse return error.TestExpectedEqual;
++    try std.testing.expectEqual(test_hint_x, found.left);
++    try std.testing.expectEqual(test_hint_x + test_hint.len - 1, found.right);
+ }
+ 
+ test "repaintedInPlace: a hint drawn again on a scrolled row stays in place" {
+-    const testing = std.testing;
+     // Claude Code scrolling back: the region moved down a row, so its last
+     // row now holds what the row above had, and the hint was drawn over it
+     // again where it was.
+     const old = testPinnedRow("  123", true);
+     const source = testPinnedRow("  122", false);
+     const new = testPinnedRow("  122", true);
+-    try testing.expect(repaintedInPlace(&new, &old, &source));
++    try expectHint(repaintedInPlace(&new, &old, &source));
+ 
+     // Scrolling forward, the row is the one entering: no source.
+     const entering = testPinnedRow("  124", true);
+-    try testing.expect(repaintedInPlace(&entering, &old, &testPinnedRow("", false)));
++    try expectHint(repaintedInPlace(&entering, &old, &testPinnedRow("", false)));
+ }
+ 
+ test "repaintedInPlace: a hint over a full line of text still counts" {
+-    const testing = std.testing;
+     const old = testPinnedRow("The renderer draws the grid shifted by a few pixels.", true);
+     const new = testPinnedRow("Another line of prose runs under the hint as it streams", true);
+-    try testing.expect(repaintedInPlace(&new, &old, &testPinnedRow("", false)));
++    try expectHint(repaintedInPlace(&new, &old, &testPinnedRow("", false)));
+ }
+ 
+ test "repaintedInPlace: scrolled and new content are not in place" {
+@@ -4860,36 +4876,39 @@
+     // Streaming: the top row now holds what the row below it had.
+     const top_old = testPinnedRow("first line of the answer", false);
+     const top_new = testPinnedRow("second line of the answer", false);
+-    try testing.expect(!repaintedInPlace(&top_new, &top_old, &top_new));
++    try testing.expectEqual(null, repaintedInPlace(&top_new, &top_old, &top_new));
+ 
+     // A new line entering where the last one was: words line up only in
+     // short stretches.
+     const bottom_old = testPinnedRow("alpha beta gamma delta epsilon", false);
+     const bottom_new = testPinnedRow("alpha zeta omega sigma epsilons", false);
+-    try testing.expect(!repaintedInPlace(&bottom_new, &bottom_old, &blank));
++    try testing.expectEqual(null, repaintedInPlace(&bottom_new, &bottom_old, &blank));
+ 
+     // A row identical to the one it scrolled from (a table's border) moved.
+     const border = testPinnedRow("+----------+----------+", false);
+-    try testing.expect(!repaintedInPlace(&border, &border, &border));
++    try testing.expectEqual(null, repaintedInPlace(&border, &border, &border));
+ 
+     // Nothing but spaces is nothing to pin.
+-    try testing.expect(!repaintedInPlace(&blank, &blank, &blank));
++    try testing.expectEqual(null, repaintedInPlace(&blank, &blank, &blank));
+ }
+ 
+-test "PinnedEdges: the rows that move leave the pinned ones out" {
++test "Overlays: the cells an animation leaves in place are on the region's edge rows" {
+     const testing = std.testing;
+     const scroll: terminal.Screen.RegionScroll = .{ .top = 1, .bottom = 29, .left = 0, .right = 99, .lines = -1 };
+-    const bottom = (PinnedEdges{ .bottom = true }).moving(scroll).?;
+-    try testing.expectEqual(1, bottom.top);
+-    try testing.expectEqual(28, bottom.bottom);
+-    const both = (PinnedEdges{ .top = true, .bottom = true }).moving(scroll).?;
+-    try testing.expectEqual(2, both.top);
+-    try testing.expectEqual(28, both.bottom);
+-    try testing.expectEqual(scroll, (PinnedEdges{}).moving(scroll).?);
+ 
+-    // Nothing left that keeps content across the scroll is no motion.
+-    const small: terminal.Screen.RegionScroll = .{ .top = 3, .bottom = 4, .left = 0, .right = 9, .lines = 1 };
+-    try testing.expectEqual(null, (PinnedEdges{ .bottom = true }).moving(small));
++    const none = (Overlays{}).holes(scroll);
++    try testing.expectEqual(null, none[0]);
++    try testing.expectEqual(null, none[1]);
++
++    const bottom = (Overlays{ .bottom = .{ .left = 40, .right = 64 } }).holes(scroll);
++    try testing.expectEqual(null, bottom[0]);
++    try testing.expectEqual(29, bottom[1].?.row);
++    try testing.expectEqual(40, bottom[1].?.left);
++    try testing.expectEqual(64, bottom[1].?.right);
++
++    const top = (Overlays{ .top = .{ .left = 2, .right = 9 } }).holes(scroll);
++    try testing.expectEqual(1, top[0].?.row);
++    try testing.expectEqual(null, top[1]);
+ }
+ 
+ /// Feeds `steps` scrolls of the region rows 2–8 (of 12) to a terminal the way
+@@ -4897,7 +4916,7 @@
+ /// drawing the hint again on the region's last row after each when `hint`,
+ /// and checks what `EdgeRows` makes of every step. Every line's bar runs on
+ /// under the hint, the case that once kept the hint from counting.
+-fn testEdgeRowsScrolling(lines: i32, steps: usize, hint: bool, expect_bottom: bool) !void {
++fn testEdgeRowsScrolling(lines: i32, steps: usize, hint: bool) !void {
+     const testing = std.testing;
+     const alloc = testing.allocator;
+     var t = try terminal.Terminal.init(testing.io, alloc, .{ .cols = 60, .rows = 12 });
+@@ -4946,25 +4965,33 @@
+         try testing.expectEqual(1, scrolls.len);
+         edges.snapshot(alloc, &state, scrolls);
+         try state.update(alloc, &t);
+-        const pinned = edges.pinned(alloc, &state, scrolls[0], 0);
+-        try testing.expectEqual(expect_bottom, pinned.bottom);
+-        try testing.expect(!pinned.top);
++        const found = edges.overlays(alloc, &state, scrolls[0], 0);
++        try testing.expect(found.top == null);
++        if (hint) {
++            // The hint's box and nothing else: the bar that runs on under it
++            // is plain text, and the row's other cells slide.
++            const overlay = found.bottom orelse return error.TestExpectedEqual;
++            try testing.expectEqual(30, overlay.left);
++            try testing.expectEqual(30 + " Jump to bottom (click) ".len - 1, overlay.right);
++        } else {
++            try testing.expect(found.bottom == null);
++        }
+         t.screens.active.region_scrolls.clear();
+     }
+ }
+ 
+ test "EdgeRows: a hint drawn again after every scroll back is pinned" {
+-    try testEdgeRowsScrolling(-2, 10, true, true);
+-    try testEdgeRowsScrolling(-1, 10, true, true);
++    try testEdgeRowsScrolling(-2, 10, true);
++    try testEdgeRowsScrolling(-1, 10, true);
+ }
+ 
+ test "EdgeRows: a hint drawn again after every scroll forward is pinned" {
+-    try testEdgeRowsScrolling(2, 10, true, true);
++    try testEdgeRowsScrolling(2, 10, true);
+ }
+ 
+ test "EdgeRows: plain scrolling pins nothing" {
+-    try testEdgeRowsScrolling(3, 10, false, false);
+-    try testEdgeRowsScrolling(-3, 10, false, false);
++    try testEdgeRowsScrolling(3, 10, false);
++    try testEdgeRowsScrolling(-3, 10, false);
+ }
+ 
+ /// Row hashes for a screen of `n` rows: a header on row 0, content rows
+diff --git a/src/renderer/metal/shaders.zig b/src/renderer/metal/shaders.zig
+--- a/src/renderer/metal/shaders.zig
++++ b/src/renderer/metal/shaders.zig
+@@ -275,11 +275,16 @@
+     /// row `grid_size.y + k` is a ghost row: a row that scrolled out of
+     /// region `ghost_rows[k].x`, drawn at row `ghost_rows[k].y` (outside
+     /// the region) and clipped to it. `anim_counts.x` regions and `.y`
+-    /// ghost rows are live; the rest is ignored.
++    /// ghost rows are live; the rest is ignored. `region_hole[2 * i]`
++    /// and `[2 * i + 1]` are rectangles of region `i` (same units) that
++    /// stay where they are: cells its program repainted in place, drawn
++    /// unshifted while the region's content slides past and under them.
++    /// An empty rectangle is no hole.
+     region_rect: [max_region_anims][4]f32 align(16) = @splat(@splat(0)),
+     region_shift: [max_region_anims][4]f32 align(16) = @splat(@splat(0)),
+     ghost_rows: [max_ghost_rows][4]i32 align(16) = @splat(@splat(-1)),
+     anim_counts: [4]u32 align(16) = @splat(0),
++    region_hole: [2 * max_region_anims][4]f32 align(16) = @splat(@splat(0)),
+ 
+     pub const max_region_anims = 4;
+     pub const max_ghost_rows = 64;
+diff --git a/src/renderer/opengl/shaders.zig b/src/renderer/opengl/shaders.zig
+--- a/src/renderer/opengl/shaders.zig
++++ b/src/renderer/opengl/shaders.zig
+@@ -217,6 +217,7 @@
+     region_shift: [max_region_anims][4]f32 align(16) = @splat(@splat(0)),
+     ghost_rows: [max_ghost_rows][4]i32 align(16) = @splat(@splat(-1)),
+     anim_counts: [4]u32 align(16) = @splat(0),
++    region_hole: [2 * max_region_anims][4]f32 align(16) = @splat(@splat(0)),
+ 
+     pub const max_region_anims = 4;
+     pub const max_ghost_rows = 64;
+diff --git a/src/renderer/shaders/shaders.metal b/src/renderer/shaders/shaders.metal
+--- a/src/renderer/shaders/shaders.metal
++++ b/src/renderer/shaders/shaders.metal
+@@ -36,18 +36,36 @@
+   // Grid row grid_size.y + k is a ghost row that scrolled out of region
+   // ghost_rows[k].x and is drawn at row ghost_rows[k].y, outside the
+   // region, clipped to it. anim_counts.x regions and .y ghosts are live.
++  // region_hole[2 * i] and [2 * i + 1] are rectangles of region i (grid
++  // pixels, like region_rect) that stay where they are: cells its program
++  // repainted in place, drawn unshifted while the content slides past and
++  // under them. An empty rectangle is no hole.
+   float4 region_rect[4];
+   float4 region_shift[4];
+   int4 ghost_rows[64];
+   uint4 anim_counts;
++  float4 region_hole[8];
+ };
+ 
++// Whether `pos`, in grid pixels, is inside a hole of region `region`.
++bool in_region_hole(constant Uniforms& uniforms, uint region, float2 pos) {
++  for (uint k = 0; k < 2; k++) {
++    float4 h = uniforms.region_hole[region * 2 + k];
++    if (pos.x >= h.x && pos.x < h.z && pos.y >= h.y && pos.y < h.w) {
++      return true;
++    }
++  }
++  return false;
++}
++
+ // The region scroll animation a grid cell takes part in, or -1. `pos` is
+-// the cell's top-left in grid pixels, before any shift.
++// the cell's top-left in grid pixels, before any shift. A cell in one of
++// the region's holes takes no part in it.
+ int region_of(constant Uniforms& uniforms, float2 pos) {
+   for (uint i = 0; i < uniforms.anim_counts.x; i++) {
+     float4 r = uniforms.region_rect[i];
+-    if (pos.x >= r.x && pos.x < r.z && pos.y >= r.y && pos.y < r.w) {
++    if (pos.x >= r.x && pos.x < r.z && pos.y >= r.y && pos.y < r.w &&
++        !in_region_hole(uniforms, i, pos)) {
+       return int(i);
+     }
+   }
+@@ -614,6 +632,11 @@
+     int cols = int(uniforms.grid_size.x);
+     if (y >= r.y && y < r.w) {
+       row = clamp(row, 0, int(uniforms.grid_size.y) - 1);
++      // What sits in a hole is drawn in place, not with the content.
++      if (in_region_hole(uniforms, uint(region),
++                         float2(float(col), float(row)) * uniforms.cell_size)) {
++        return bg;
++      }
+       return load_color(cells[row * cols + col],
+                         uniforms.use_display_p3,
+                         uniforms.use_linear_blending);
+@@ -699,6 +722,8 @@
+   // Grid-pixel rectangle the glyph is clipped to: the region it is
+   // scrolling in, or everything.
+   float4 clip [[flat]];
++  // The region it is scrolling in, or -1: its holes cut the glyph too.
++  int region [[flat]];
+ };
+ 
+ vertex CellTextVertexOut cell_text_vertex(
+@@ -753,6 +778,7 @@
+   CellTextVertexOut out;
+   out.atlas = in.atlas;
+   out.clip = clip;
++  out.region = region;
+ 
+   //              === Grid Cell ===
+   //      +X
+@@ -866,6 +892,10 @@
+         rel.y < in.clip.y || rel.y >= in.clip.w) {
+       discard_fragment();
+     }
++    // The content sliding by leaves a hole's cells alone.
++    if (in.region >= 0 && in_region_hole(uniforms, uint(in.region), rel)) {
++      discard_fragment();
++    }
+   }
+ 
+   // Smooth scrolling: a partially revealed row extends into the padding;
+diff --git a/src/renderer/shaders/glsl/common.glsl b/src/renderer/shaders/glsl/common.glsl
+--- a/src/renderer/shaders/glsl/common.glsl
++++ b/src/renderer/shaders/glsl/common.glsl
+@@ -34,19 +34,35 @@
+     // right, bottom); region_shift[i].x: how far its content is drawn
+     // from its final place (positive: down). Grid row grid_size.y + k is
+     // a ghost row from region ghost_rows[k].x drawn at row ghost_rows[k].y.
+-    // anim_counts.x regions and .y ghost rows are live.
++    // anim_counts.x regions and .y ghost rows are live. region_hole[2 * i]
++    // and [2 * i + 1]: rectangles of region i (grid pixels) that stay where
++    // they are; an empty one is no hole.
+     uniform vec4 region_rect[4];
+     uniform vec4 region_shift[4];
+     uniform ivec4 ghost_rows[64];
+     uniform uvec4 anim_counts;
++    uniform vec4 region_hole[8];
+ };
+ 
++// Whether `pos`, in grid pixels, is inside a hole of region `region`.
++bool in_region_hole(uint region, vec2 pos) {
++    for (uint k = 0u; k < 2u; k++) {
++        vec4 h = region_hole[region * 2u + k];
++        if (pos.x >= h.x && pos.x < h.z && pos.y >= h.y && pos.y < h.w) {
++            return true;
++        }
++    }
++    return false;
++}
++
+ // The region scroll animation a grid cell takes part in, or -1. `pos` is
+-// the cell's top-left in grid pixels, before any shift.
++// the cell's top-left in grid pixels, before any shift. A cell in one of
++// the region's holes takes no part in it.
+ int region_of(vec2 pos) {
+     for (uint i = 0u; i < anim_counts.x; i++) {
+         vec4 r = region_rect[i];
+-        if (pos.x >= r.x && pos.x < r.z && pos.y >= r.y && pos.y < r.w) {
++        if (pos.x >= r.x && pos.x < r.z && pos.y >= r.y && pos.y < r.w &&
++            !in_region_hole(i, pos)) {
+             return int(i);
+         }
+     }
+diff --git a/src/renderer/shaders/glsl/cell_bg.f.glsl b/src/renderer/shaders/glsl/cell_bg.f.glsl
+--- a/src/renderer/shaders/glsl/cell_bg.f.glsl
++++ b/src/renderer/shaders/glsl/cell_bg.f.glsl
+@@ -136,6 +136,10 @@
+         int cols = int(grid_size.x);
+         if (y >= r.y && y < r.w) {
+             row = clamp(row, 0, int(grid_size.y) - 1);
++            // What sits in a hole is drawn in place, not with the content.
++            if (in_region_hole(uint(region), vec2(float(col), float(row)) * cell_size)) {
++                return bg;
++            }
+             return load_color(unpack4u8(cells[row * cols + col]), use_linear_blending);
+         }
+         for (uint k = 0u; k < anim_counts.y; k++) {
+diff --git a/src/renderer/shaders/glsl/cell_text.v.glsl b/src/renderer/shaders/glsl/cell_text.v.glsl
+--- a/src/renderer/shaders/glsl/cell_text.v.glsl
++++ b/src/renderer/shaders/glsl/cell_text.v.glsl
+@@ -37,6 +37,8 @@
+     // Grid-pixel rectangle the glyph is clipped to: the region it is
+     // scrolling in, or everything.
+     flat vec4 clip;
++    // The region it is scrolling in, or -1: its holes cut the glyph too.
++    flat int region;
+ } out_data;
+ 
+ layout(binding = 1, std430) readonly buffer bg_cells {
+@@ -69,6 +71,7 @@
+         clip = region_rect[region];
+     }
+     out_data.clip = clip;
++    out_data.region = region;
+ 
+     // Smooth scrolling: grid rows are shifted by the sub-row offset, with
+     // an extra row above the viewport drawn at negative y.
+diff --git a/src/renderer/shaders/glsl/cell_text.f.glsl b/src/renderer/shaders/glsl/cell_text.f.glsl
+--- a/src/renderer/shaders/glsl/cell_text.f.glsl
++++ b/src/renderer/shaders/glsl/cell_text.f.glsl
+@@ -9,6 +9,7 @@
+     flat vec4 bg_color;
+     vec2 tex_coord;
+     flat vec4 clip;
++    flat int region;
+ } in_data;
+ 
+ // Values `atlas` can take.
+@@ -30,6 +31,10 @@
+             rel.y < in_data.clip.y || rel.y >= in_data.clip.w) {
+             discard;
+         }
++        // The content sliding by leaves a hole's cells alone.
++        if (in_data.region >= 0 && in_region_hole(uint(in_data.region), rel)) {
++            discard;
++        }
+     }
+ 
+     // Smooth scrolling: a partially revealed row extends into the padding;
+diff --git a/src/terminal/render.zig b/src/terminal/render.zig
+--- a/src/terminal/render.zig
++++ b/src/terminal/render.zig
+@@ -1220,7 +1220,25 @@
+             .pixel_pad = pixel_pad,
+         };
+     }
++
++    /// Cells of a scrolled region that stay where they are while its content
++    /// slides: an overlay the program repaints on the region's edge row after
++    /// every scroll (Claude Code's "Jump to bottom" hint), which is drawn in
++    /// place, once, while the rest of its row slides. `left` and `right` are
++    /// inclusive columns of the row `row`.
++    pub const RegionHole = struct {
++        row: size.CellCountInt,
++        left: size.CellCountInt,
++        right: size.CellCountInt,
++
++        pub fn contains(self: RegionHole, x: size.CellCountInt, y: size.CellCountInt) bool {
++            return y == self.row and x >= self.left and x <= self.right;
++        }
++    };
+ 
++    /// A region's holes: on its top edge row, and on its bottom edge row.
++    pub const RegionHoles = [2]?RegionHole;
++
+     /// A rectangle of the screen whose content is drawn `offset` pixels
+     /// below where the terminal has it (negative: above): a region scroll
+     /// animation (see `Screen.region_scrolls`) partway through its ease, or
+@@ -1232,6 +1250,9 @@
+         left: size.CellCountInt,
+         right: size.CellCountInt,
+         offset: f64,
++        /// Cells the region's animation leaves where they are (see
++        /// `RegionHole`): its top edge row's and its bottom edge row's.
++        holes: RegionHoles = .{ null, null },
+ 
+         /// What `offset` becomes once the region's content scrolls
+         /// `scroll.lines` more rows: that many rows further from its place,
+@@ -1257,6 +1278,14 @@
+             return self.top == scroll.top and self.bottom == scroll.bottom and
+                 self.left == scroll.left and self.right == scroll.right;
+         }
++
++        /// Whether the cell (`x`, `y`) is one the region leaves in place.
++        fn holed(self: RegionShift, x: size.CellCountInt, y: size.CellCountInt) bool {
++            for (self.holes) |hole| {
++                if (hole) |h| if (h.contains(x, y)) return true;
++            }
++            return false;
++        }
+     };
+ 
+     /// The regions a frame draws away from where the terminal has them, and
+@@ -1311,6 +1340,19 @@
+             scroll: Screen.RegionScroll,
+             cell_height: f64,
+         ) void {
++            self.addHoledScroll(scroll, .{ null, null }, cell_height);
++        }
++
++        /// `addScroll` for a region whose `holes` the program repainted
++        /// where they were: the frame on screen has them in place, so a
++        /// region that was drawn in place has them too. A region already
++        /// being drawn keeps the holes it was drawn with.
++        pub fn addHoledScroll(
++            self: *RegionShifts,
++            scroll: Screen.RegionScroll,
++            holes: RegionHoles,
++            cell_height: f64,
++        ) void {
+             for (self.items[0..self.len]) |*shift| {
+                 if (!shift.sameRegion(scroll)) continue;
+                 shift.offset = RegionShift.scrolledOffset(shift.offset, scroll, cell_height);
+@@ -1322,6 +1364,7 @@
+                 .left = scroll.left,
+                 .right = scroll.right,
+                 .offset = RegionShift.scrolledOffset(0, scroll, cell_height),
++                .holes = holes,
+             });
+         }
+ 
+@@ -1345,6 +1388,11 @@
+                 const top: f64 = @as(f64, @floatFromInt(shift.top)) * cell_height;
+                 const bottom: f64 = @as(f64, @floatFromInt(@as(u32, shift.bottom) + 1)) * cell_height;
+                 if (x < left or x >= right or y < top or y >= bottom) continue;
++                // A hole is drawn in place, and belongs to no region.
++                if (shift.holed(
++                    @intFromFloat(@floor(x / cell_width)),
++                    @intFromFloat(@floor(y / cell_height)),
++                )) continue;
+ 
+                 const content = y - shift.offset;
+                 if (content < top) return top;
+@@ -1367,6 +1415,7 @@
+             for (self.slice()) |shift| {
+                 if (x < shift.left or x > shift.right or
+                     y < shift.top or y > shift.bottom) continue;
++                if (shift.holed(x, y)) continue;
+                 return shift.offset;
+             }
+ 
+@@ -3770,6 +3819,47 @@
+     shifts.append(.{ .top = 0, .bottom = 9, .left = 0, .right = 9, .offset = 7 });
+     try testing.expectEqual(180, contentY(&shifts, 15, 150));
+     try testing.expectEqual(143, contentY(&shifts, 5, 150));
++}
++
++test "RenderState RegionShifts leave a hole where it is drawn" {
++    const testing = std.testing;
++
++    // Rows 2..9 of a grid of 10x20px cells drawn 25px below their place,
++    // with the hint on the bottom row's columns 3..5 repainted in place.
++    var shifts: RenderState.RegionShifts = .{};
++    shifts.append(.{
++        .top = 2,
++        .bottom = 9,
++        .left = 0,
++        .right = 9,
++        .offset = 25,
++        .holes = .{ null, .{ .row = 9, .left = 3, .right = 5 } },
++    });
++
++    // The hole's cells are where they are drawn; the rest of their row
++    // slides with the region.
++    try testing.expectEqual(190, shifts.contentY(40, 190, 10, 20));
++    try testing.expectEqual(0, shifts.offsetAt(3, 9));
++    try testing.expectEqual(0, shifts.offsetAt(5, 9));
++    try testing.expectEqual(165, shifts.contentY(20, 190, 10, 20));
++    try testing.expectEqual(165, shifts.contentY(60, 190, 10, 20));
++    try testing.expectEqual(25, shifts.offsetAt(2, 9));
++    try testing.expectEqual(25, shifts.offsetAt(6, 9));
++
++    // Other rows have no hole in those columns.
++    try testing.expectEqual(145, shifts.contentY(40, 170, 10, 20));
++    try testing.expectEqual(25, shifts.offsetAt(4, 8));
++
++    // A scroll of a region not yet drawn shifted starts with the holes the
++    // frame on screen has; one already drawn keeps its own.
++    var fresh: RenderState.RegionShifts = .{};
++    const scroll: Screen.RegionScroll = .{ .top = 2, .bottom = 9, .left = 0, .right = 9, .lines = 1 };
++    fresh.addHoledScroll(scroll, .{ null, .{ .row = 9, .left = 3, .right = 5 } }, 20);
++    try testing.expectEqual(0, fresh.offsetAt(4, 9));
++    try testing.expectEqual(20, fresh.offsetAt(4, 8));
++    fresh.addHoledScroll(scroll, .{ null, null }, 20);
++    try testing.expectEqual(0, fresh.offsetAt(4, 9));
++    try testing.expectEqual(40, fresh.offsetAt(4, 8));
+ }
+ 
+ test "RenderState RegionShifts offsetAt is where a cell is drawn" {

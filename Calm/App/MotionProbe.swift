@@ -153,6 +153,10 @@
             }
         }
 
+        /// How many frames `CALM_SELFTEST_MOTION_FRAMES` keeps as pictures. Writing them slows
+        /// the sampling down, so frame timing is read from a run without it.
+        static let maxFramePictures = 240
+
         /// Samples `pane`'s presented frames every few milliseconds for `seconds`, the whole frame
         /// or only `cells`. Sampling only keeps each new frame's profile; the shifts are worked out
         /// afterwards, so the analysis never delays a sample.
@@ -164,6 +168,8 @@
             let columns = cells.map { $0.columns.lowerBound * width ..< ($0.columns.upperBound + 1) * width }
             let rows = cells.map { $0.rows.lowerBound * height ..< ($0.rows.upperBound + 1) * height }
             let end = ContinuousClock.now + .seconds(seconds)
+            let framesDirectory = ProcessInfo.processInfo.environment["CALM_SELFTEST_MOTION_FRAMES"]
+                .flatMap { $0.isEmpty ? nil : $0 }
             var frames: [(time: ContinuousClock.Instant, profile: [Float])] = []
             while ContinuousClock.now < end {
                 if let surface = pane.presentedFrameForTesting,
@@ -171,6 +177,19 @@
                     report.samples += 1
                     if profile != frames.last?.profile {
                         frames.append((ContinuousClock.now, profile))
+                        // With a frames directory, each of the first few frames is kept as a
+                        // picture, to look at how something moves rather than count it.
+                        if let framesDirectory, frames.count <= Self.maxFramePictures,
+                           surface.lock(options: .readOnly, seed: nil) == kIOReturnSuccess {
+                            // Copied under the lock: libghostty may draw the next frame into the
+                            // same surface before a second read.
+                            let pixels = Data(bytes: surface.baseAddress, count: surface.bytesPerRow * surface.height)
+                            surface.unlock(options: .readOnly, seed: nil)
+                            if let png = png(pixels, like: surface) {
+                                let name = String(format: "frame-%03d.png", frames.count)
+                                try? png.write(to: URL(filePath: "\(framesDirectory)/\(name)"))
+                            }
+                        }
                         if let color {
                             // With a dump, the first few frames showing the color too much are
                             // kept as pictures.

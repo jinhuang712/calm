@@ -78,7 +78,8 @@ final class SessionSwitcher {
         let sessions = manager.orderedSessions
         guard sessions.count > 1 else { return }
         let focused = manager.workspace.selectedLayout?.focusedSessionID
-        let current = sessions.firstIndex { $0.id == focused } ?? 0
+        // With no session selected the first press goes to the first session (⇧: the last).
+        let current = sessions.firstIndex { $0.id == focused } ?? (backwards ? 0 : -1)
         model.sessions = sessions
         model.index = current
         move(backwards ? -1 : 1)

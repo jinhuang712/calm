@@ -110,8 +110,47 @@ struct WorkspaceTests {
         let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
         let other = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
         workspace.removeSession(other.id)
-        #expect(workspace.layouts.count == 1)
-        #expect(workspace.selectedLayout?.tree == .leaf(first.id))
+        #expect(workspace.layouts.map(\.tree) == [.leaf(first.id)])
+    }
+
+    @Test func `closing the session on screen selects none, and choosing one selects it`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.select(second.id)
+        workspace.removeSession(second.id)
+        #expect(workspace.selectedLayout == nil)
+        #expect(workspace.layouts.count == 2)
+
+        workspace.select(first.id)
+        #expect(workspace.selectedLayout?.focusedSessionID == first.id)
+    }
+
+    @Test func `closing a session that isn't on screen leaves the selection alone`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.removeSession(first.id)
+        #expect(workspace.selectedLayout?.focusedSessionID == second.id)
+    }
+
+    @Test func `closing a split's pane keeps its layout on screen`() throws {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let split = workspace.splitSession(first.id, direction: .right, in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = try #require(split)
+        workspace.removeSession(second.id)
+        #expect(workspace.selectedLayout?.focusedSessionID == first.id)
+    }
+
+    @Test func `closing the session on screen settles nobody`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.setState(first.id, .done)
+        workspace.removeSession(second.id)
+        #expect(workspace.session(first.id)?.state == .done) // nobody looked at it
     }
 
     @Test func `selecting a session shows its layout and settles the one left behind`() {

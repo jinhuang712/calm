@@ -265,8 +265,10 @@ public struct Workspace: Codable, Hashable, Sendable {
         layouts.first { $0.tree.contains(sessionID) }
     }
 
+    /// The layout on screen. Nil while none is chosen: closing the session you're in leaves the
+    /// choice to you, so no session takes its place.
     public var selectedLayout: PaneLayout? {
-        layouts.first { $0.id == selectedLayoutID } ?? layouts.first
+        layouts.first { $0.id == selectedLayoutID }
     }
 
     /// The sidebar's order (UIUX.md → Layout): scratch sessions on top, then the projects the user
@@ -486,7 +488,7 @@ public struct Workspace: Codable, Hashable, Sendable {
                 let removedID = layouts[layoutIndex].id
                 layouts.remove(at: layoutIndex)
                 if selectedLayoutID == removedID {
-                    selectedLayoutID = layouts.last?.id
+                    selectedLayoutID = nil
                 }
             }
         }

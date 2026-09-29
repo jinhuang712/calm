@@ -145,7 +145,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
         updateWelcomePage()
-        guard let layout = manager.workspace.selectedLayout else { return }
+        guard let layout = manager.workspace.selectedLayout else {
+            showNoSession()
+            return
+        }
         let workspace = workspaces[layout.id] ?? makeWorkspace(for: layout)
         for (id, view) in workspaces {
             view.isHidden = id != layout.id
@@ -159,6 +162,18 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         if filesColumn.isShown {
             filesColumn.model.follow(focusedProjectPath, isScratch: focusedSession?.isScratch == true)
+        }
+        applyAppearance()
+    }
+
+    /// No session is selected: with none open the welcome page covers the window, and when the
+    /// one on screen was closed the main area is left empty for the user to choose from the
+    /// sidebar, rather than Calm choosing for them. No pane takes the keyboard.
+    private func showNoSession() {
+        workspaces.values.forEach { $0.isHidden = true }
+        restorePaneVisibility()
+        if filesColumn.isShown {
+            filesColumn.model.follow(nil)
         }
         applyAppearance()
     }

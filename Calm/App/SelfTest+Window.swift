@@ -163,6 +163,9 @@
                 addProjects([URL(filePath: String(add.dropFirst(12)), directoryHint: .isDirectory)])
             case "make_project":
                 focusedPane.flatMap { manager.workspace.session($0.id) }.map { manager.makeProject($0.projectID) }
+            case "fold_group":
+                // What a click on the focused session's group header does: fold it, or unfold it.
+                focusedPane.flatMap { manager.workspace.session($0.id) }.map { manager.toggleCollapsed($0.projectID) }
             case let keep where keep.hasPrefix("keep_scratch:"):
                 // keep_scratch:<path>: what "Keep as Project…" does once a folder is picked
                 if let session = focusedPane.flatMap({ manager.workspace.session($0.id) }), let folder = session.scratchFolder {

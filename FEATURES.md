@@ -43,7 +43,7 @@ A fast, correct terminal on libghostty.
   | pi | yes | its session name | none | yes |
 
   Calm finds the conversation from the agent's process (from its hooks or extension where it has them). When two conversations of one agent could be the one in a folder and Calm can't tell which, the card shows no recap rather than another conversation's. Known gap: after `/new` in OpenCode, the card stays on the conversation it found first.
-- Projects can be collapsed to one line with a short summary (for example "2 sessions · 1 done").
+- Projects can be collapsed to one line that shows what's going on inside in the cards' state marks: three working agents are three blue rings, four or more a ring and the number; idle sessions show only when nothing else is going on, and a session that needs you tints the line amber (UIUX.md → Session cards).
 - The folder comes from the shell itself (Ghostty's shell integration for zsh, fish and elvish, also inside persistent sessions); for other shells Calm reads it from the shell process every couple of seconds.
 
 **Settings:** 1 — auto-grouping on/off (default on): `auto-grouping = false` in `~/.config/calm/config.toml` (Settings → General), re-read by Reload Configuration (⌘⇧,). Off, sessions stay in the group they started in.

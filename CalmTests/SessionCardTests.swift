@@ -43,4 +43,10 @@ struct SessionCardTests {
             #expect(agent.monogram.count == 1)
         }
     }
+
+    @Test func `a folded group's line says itself in words`() {
+        #expect(GroupSummary([.idle, .working, .working, .working, .idle]).words == "3 working, 2 idle")
+        #expect(GroupSummary([.done, .needsYou]).words == "1 needs you, 1 done")
+        #expect(GroupSummary([]).words == "No sessions")
+    }
 }

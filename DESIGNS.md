@@ -91,6 +91,8 @@ As built (M2): `Workspace` holds `projects`, `sessions` and `layouts`. A `PaneLa
 
 **Project marks.** `Identicon` (CalmModel) makes a project's mark from its name: a 5×5 grid mirrored left to right, in one of eight hues spread around the wheel (a hue taken straight from the hash bunched up). The hash is FNV-1a, not Swift's `Hasher`, which is seeded per process: a mark must stay the same across launches. Clicking the mark stores a random `Project.markSeed`, mixed into the hash, so the new mark is kept. `GroupMark` and `IdenticonTile` draw it in the sidebar, the title strip and the welcome page.
 
+**Folded groups.** `GroupSummary` (CalmModel, unit-tested) turns a group's session states into what its folded line draws: runs, most urgent first, each a mark per session up to `markLimit` (3) or one mark and the count; idle only when nothing else is going on; and a `tally` of every state for the words (VoiceOver, the header's tooltip). `GroupSummaryView` draws the runs with the cards' own `StateMark` (`compact` shrinks done's check to sit with the dots). It is `.fixedSize()` with a layout priority, so the group's name truncates before a mark is cut. The header's amber fill is keyed on `GroupSummary.needsYou`. Self-tests fold the focused session's group with `fold_group`.
+
 ## Agents
 
 **Adapters (CalmAgents).** `AgentAdapter` says what an agent is: the names, binary prefixes and package paths its process runs under, its config folder (present means installed), how it connects to Calm (`AgentSetup`), its mark, and its resume and fork commands. An agent can also adopt `HookReporting` (its hooks call `calm hook <name>`), `TranscriptReading` (find and read its transcript for cards) and `TranscriptIndexing` (search). `Agents.adapters` lists them.

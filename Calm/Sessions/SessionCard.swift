@@ -257,6 +257,8 @@ struct TodoProgressLine: View {
 struct StateMark: View {
     let state: SessionState
     let style: SidebarStyle
+    /// A folded group's line: done's check shrinks to sit level with the dots and rings beside it.
+    var compact = false
 
     var body: some View {
         switch state {
@@ -266,10 +268,10 @@ struct StateMark: View {
             // Filled, so done reads at a glance next to the other marks.
             Circle()
                 .fill(style.done)
-                .frame(width: 14.scaled, height: 14.scaled)
+                .frame(width: (compact ? 11 : 14).scaled, height: (compact ? 11 : 14).scaled)
                 .overlay(
                     Image(systemName: "checkmark")
-                        .calmFont(size: 7.5, weight: .heavy)
+                        .calmFont(size: compact ? 6 : 7.5, weight: .heavy)
                         .foregroundStyle(style.background),
                 )
         case .failed:

@@ -176,6 +176,8 @@ struct SidebarView: View {
 
     private func projectSection(_ project: Project) -> some View {
         let sessions = manager.workspace.sessions(in: project.id)
+        let summary = GroupSummary(sessions.map(\.state))
+        let tinted = project.isCollapsed && summary.needsYou
         return VStack(alignment: .leading, spacing: 6.scaled) {
             Button {
                 manager.toggleCollapsed(project.id)
@@ -203,20 +205,23 @@ struct SidebarView: View {
                         // Room for the hover controls laid over this end of the header.
                         Color.clear.frame(width: groupControlsWidth(project), height: 1)
                     } else if project.isCollapsed {
-                        Text(summary(sessions))
-                            .calmFont(size: 12)
-                            .foregroundStyle(style.tertiary)
+                        GroupSummaryView(summary: summary, style: style)
                     }
                 }
                 .foregroundStyle(style.tertiary)
                 .padding(.horizontal, 8.scaled)
                 .padding(.vertical, project.location() == nil ? 0 : 3.scaled)
                 .frame(minHeight: 26.scaled)
+                .background(
+                    // A shell row's *needs you* tint, so folding a group never hides one.
+                    RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
+                        .fill(tinted ? style.attention.opacity(0.14) : .clear)
+                        .animation(.easeInOut(duration: 0.25), value: tinted),
+                )
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            // A scratch group's folder is Calm's business; the others show theirs.
-            .help(project.kind == .scratch ? "" : project.path)
+            .help(groupHelp(project, summary))
             .overlay(alignment: .trailing) {
                 if hoveredGroupID == project.id {
                     groupControls(project).padding(.trailing, 4.scaled)
@@ -361,16 +366,12 @@ struct SidebarView: View {
         }
     }
 
-    /// "2 sessions · 1 needs you": the collapsed project's one line.
-    private func summary(_ sessions: [Session]) -> String {
-        var parts = [sessions.count == 1 ? "1 session" : "\(sessions.count) sessions"]
-        for state in [SessionState.needsYou, .failed, .done] {
-            let count = sessions.count { $0.state == state }
-            if count > 0 {
-                parts.append("\(count) \(state.label.lowercased())")
-            }
-        }
-        return parts.joined(separator: " · ")
+    /// The folder, and for a folded group its line in words, since hovering swaps the marks for
+    /// the group's controls. A scratch group's folder is Calm's business; the others show theirs.
+    private func groupHelp(_ project: Project, _ summary: GroupSummary) -> String {
+        [project.kind == .scratch ? nil : project.path, project.isCollapsed ? summary.words : nil]
+            .compactMap(\.self)
+            .joined(separator: "\n")
     }
 
     /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.
@@ -564,6 +565,58 @@ struct GroupMark: View {
                 .calmFont(size: 12)
                 .accessibilityLabel("Scratch")
         }
+    }
+}
+
+/// A folded group's line (UIUX.md → Session cards): the cards' own state marks, a mark per
+/// session up to three, then one mark and the number in the state's color. Never cut: the
+/// group's name gives way instead, since the marks are what a folded group is for.
+struct GroupSummaryView: View {
+    let summary: GroupSummary
+    let style: SidebarStyle
+
+    var body: some View {
+        HStack(spacing: 9.scaled) {
+            ForEach(summary.runs, id: \.state) { run in
+                HStack(spacing: 3.scaled) {
+                    ForEach(0 ..< run.marks, id: \.self) { _ in
+                        StateMark(state: run.state, style: style, compact: true)
+                    }
+                    if run.showsCount {
+                        Text("\(run.count)")
+                            .calmFont(size: 12, weight: .medium)
+                            .monospacedDigit()
+                            .foregroundStyle(color(run.state))
+                            .padding(.leading, 2.scaled)
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        .fixedSize()
+        .layoutPriority(1)
+        // A card's state change crossfades in 0.25 s; the line follows it the same way.
+        .animation(.easeInOut(duration: 0.25), value: summary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary.words)
+    }
+
+    private func color(_ state: SessionState) -> Color {
+        switch state {
+        case .needsYou: style.attention
+        case .failed: style.failure
+        case .done: style.done
+        case .working: style.working
+        case .idle: style.tertiary
+        }
+    }
+}
+
+extension GroupSummary {
+    /// "3 working, 2 idle": the line in words, for VoiceOver and the header's tooltip.
+    var words: String {
+        guard !tally.isEmpty else { return "No sessions" }
+        return tally.map { "\($0.count) \($0.state.label.lowercased())" }.joined(separator: ", ")
     }
 }
 

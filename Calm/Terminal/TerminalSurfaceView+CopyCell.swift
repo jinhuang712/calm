@@ -116,9 +116,8 @@ struct CellDrag {
 }
 
 /// Copy Cell (FEATURES.md → F9): holding ⌥ over a table an agent drew outlines the cell under the
-/// pointer, an ⌥-click copies it and an ⌥-drag selects inside it, instead of across whole rows;
-/// right-click → Copy Cell also copies it where the program leaves the mouse to the terminal. The
-/// table logic is `CopyCell` (CalmModel); this reads the grid and maps the pointer to a cell.
+/// pointer, an ⌥-click copies it and an ⌥-drag selects inside it, instead of across whole rows.
+/// The table logic is `CopyCell` (CalmModel); this reads the grid and maps the pointer to a cell.
 ///
 /// The ⌥-press over a cell never reaches libghostty, so a program that takes the mouse (Claude
 /// Code's full-screen view) sees neither the click nor the drag. An ⌥-drag that starts outside a
@@ -266,26 +265,15 @@ extension TerminalSurfaceView {
         links.cellOutline = top.union(bottom)
     }
 
-    /// The right-click menu, when the program running doesn't take the mouse itself.
-    override func menu(for event: NSEvent) -> NSMenu? {
-        let point = convert(event.locationInWindow, from: nil)
+    /// The right-click menu, when the program running doesn't take the mouse itself: Copy and
+    /// Paste. It has no Copy Cell: ⌥-click and ⌥-drag do that everywhere (the author's call,
+    /// 2026-09-30).
+    override func menu(for _: NSEvent) -> NSMenu? {
         let menu = NSMenu()
-        if tableCell(at: point) != nil {
-            let item = NSMenuItem(title: "Copy Cell", action: #selector(copyCellFromMenu(_:)), keyEquivalent: "")
-            item.representedObject = NSValue(point: point)
-            item.target = self
-            menu.addItem(item)
-            menu.addItem(.separator())
-        }
         if let surface, ghostty_surface_has_selection(surface) {
             menu.addItem(withTitle: "Copy", action: #selector(copy(_:)), keyEquivalent: "")
         }
         menu.addItem(withTitle: "Paste", action: #selector(paste(_:)), keyEquivalent: "")
         return menu
-    }
-
-    @objc private func copyCellFromMenu(_ sender: NSMenuItem) {
-        guard let point = (sender.representedObject as? NSValue)?.pointValue else { return }
-        copyTableCell(at: point)
     }
 }

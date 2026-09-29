@@ -311,7 +311,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 ## Accessibility
 
 - Full keyboard operation.
-- VoiceOver labels for every sidebar row and state.
+- VoiceOver labels for every sidebar row and state, as built; they have never been checked with VoiceOver running, and that isn't planned.
 - State is never shown by color alone: each state also has a shape. One exception is the Dock icon's *failed* state. It differs from idle mostly in color (a grey ring, a red cursor cell), and the session's card still marks it by shape.
 - Respects Reduce Motion and Increase Contrast.
 - **Interface size** (Settings → Appearance), chips under the themes and drawn the same way: each a strip of Calm in the picked theme at that size, its sidebar and cards growing (fewer fit) while the terminal's lines stay put, which is what the setting does. The chosen one is ringed in the accent like the chosen theme; names under them, the percentage as a tooltip. No window chrome or traffic lights: Calm's own picture, not the system's. Default, Large, Larger or Largest (100, 115, 130, 150%) scales every size and length in Calm's chrome at once: the sidebar and its width, cards, the title strip's text (the strip itself stays level with the traffic lights), the files column, search, the palette, the arrival card, the welcome page and Settings. The terminal keeps the Ghostty font's size (⌘+ and ⌘−). A change applies at once; saved as `ui-size` in `config.toml`.

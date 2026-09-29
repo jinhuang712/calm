@@ -12,8 +12,6 @@ struct SessionCard: View {
     let style: SidebarStyle
     /// The pointer rests on the card: a long title glides to its end.
     var isHovered = false
-    /// Set while a scratch card offers its ×; it takes the time's place.
-    var onClose: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6.scaled) {
@@ -23,9 +21,7 @@ struct SessionCard: View {
                     .calmFont(size: 14.5, weight: .medium)
                     .foregroundStyle(isAsleep ? style.secondary : style.primary)
                 Spacer(minLength: 4)
-                if let onClose {
-                    ScratchCloseButton(style: style, action: onClose)
-                } else if let date = session.lastReport?.date ?? session.agent?.startedAt {
+                if let date = session.lastReport?.date ?? session.agent?.startedAt {
                     RelativeTimeText(date: date)
                         .calmFont(size: 12)
                         .foregroundStyle(style.tertiary)

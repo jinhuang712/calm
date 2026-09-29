@@ -299,13 +299,6 @@ struct SidebarView: View {
         }
     }
 
-    /// A scratch session is closed when it's done: its row offers that, quietly, on hover or
-    /// while selected, in the place of its time or state mark.
-    private func closeAction(_ session: Session) -> (() -> Void)? {
-        guard session.isScratch, hoveredSessionID == session.id || selectedSessionID == session.id else { return nil }
-        return { onClose(session.id) }
-    }
-
     private func beginRename(_ session: Session) {
         editing.renamingSessionID = session.id
     }
@@ -344,12 +337,12 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                isHovered: hoveredSessionID == session.id, onClose: closeAction(session),
+                isHovered: hoveredSessionID == session.id,
             )
         } else {
             SessionRow(
                 session: session, isSelected: session.id == selectedSessionID, style: style,
-                isHovered: hoveredSessionID == session.id, onClose: closeAction(session),
+                isHovered: hoveredSessionID == session.id,
             )
         }
     }
@@ -475,25 +468,6 @@ private struct GroupControlLabel: View {
     }
 }
 
-/// A scratch session's quiet ×, where its row keeps its time or state mark.
-struct ScratchCloseButton: View {
-    let style: SidebarStyle
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "xmark")
-                .calmFont(size: 9, weight: .semibold)
-                .foregroundStyle(style.secondary)
-                .frame(width: 22.scaled, height: 22.scaled)
-                .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(style.selection))
-        }
-        .buttonStyle(.plain)
-        .help("Close Scratch Session")
-        .accessibilityLabel("Close scratch session")
-    }
-}
-
 /// A shortcut drawn as small key caps (⌘ T), the way the menu bar would print it but calmer.
 struct KeyCaps: View {
     let keys: [String]
@@ -608,8 +582,6 @@ struct SessionRow: View {
     let style: SidebarStyle
     /// The pointer rests on the row: a long name glides to its end.
     var isHovered = false
-    /// Set while a scratch row offers its ×.
-    var onClose: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 10.scaled) {
@@ -622,9 +594,7 @@ struct SessionRow: View {
                 .calmFont(size: 14, weight: isSelected ? .medium : .regular)
                 .foregroundStyle(isSelected ? style.primary : style.secondary)
             Spacer(minLength: 4)
-            if let onClose {
-                ScratchCloseButton(style: style, action: onClose)
-            } else if session.state != .idle {
+            if session.state != .idle {
                 StateMark(state: session.state, style: style)
             }
         }

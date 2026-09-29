@@ -1,0 +1,98 @@
+Subject: a link under ⌘ works while a program has the mouse captured
+
+A program that turns on mouse reporting (vim, htop, Claude Code's full-screen view) gets the
+mouse, and links stop working: no hover, no highlight, no click. Ghostty's only way out is
+shift, and shift-click is a select gesture, not the link gesture people use everywhere else.
+
+Super (⌘ on macOS) can't be reported to a program at all (no mouse protocol has a bit for it),
+so a program never sees it and loses nothing when the terminal takes it. While super is held,
+links refresh on pointer moves and modifier changes as they already do when shift releases the
+mouse, and a press or release over a link isn't sent to the program, so the click that opens the
+link doesn't also reach it as a plain click. Away from a link, a ⌘-click reaches the program as
+before.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005.
+
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -2840,9 +2840,9 @@
+         // We only refresh links if
+         // 1. mouse reporting is off
+         // OR
+-        // 2. mouse reporting is on and we are not reporting shift to the terminal
++        // 2. mouse reporting is on and shift or super releases the mouse from it
+         if (self.io.terminal.flags.mouse_event == .none or
+-            (self.mouse.mods.shift and !self.mouseShiftCapture(false)))
++            SurfaceMouse.linksOverrideCapture(self.mouse.mods, self.mouseShiftCapture(false)))
+         {
+             // Refresh our link state
+             const pos = self.rt_surface.getCursorPos() catch break :mouse_mods;
+@@ -4051,6 +4051,11 @@
+             // then we do not do a mouse report.
+             if (mods.shift and !shift_capture) break :report;
+ 
++            // A link under super is ours to open (on release, above), so the
++            // program gets neither half of the click: it can't see super, and
++            // would take the press for a plain click.
++            if (mods.super and self.mouse.over_link) break :report;
++
+             // In any other mouse button scenario without shift pressed we
+             // clear the selection since the underlying application can handle
+             // that in any way (i.e. "scrolling").
+@@ -4712,12 +4717,12 @@
+     // AND
+     // 1. mouse reporting is off
+     // OR
+-    // 2. mouse reporting is on and we are not reporting shift to the terminal
++    // 2. mouse reporting is on and shift or super releases the mouse from it
+     if ((over_link or
+         self.mouse.link_point == null or
+         (self.mouse.link_point != null and !self.mouse.link_point.?.eql(pos_vp))) and
+         (self.io.terminal.flags.mouse_event == .none or
+-            (self.mouse.mods.shift and !self.mouseShiftCapture(false))))
++            SurfaceMouse.linksOverrideCapture(self.mouse.mods, self.mouseShiftCapture(false))))
+     {
+         // If we were previously over a link, we always update. We do this so that if the text
+         // changed underneath us, even if the mouse didn't move, we update the URL hints and state
+diff --git a/src/surface_mouse.zig b/src/surface_mouse.zig
+--- a/src/surface_mouse.zig
++++ b/src/surface_mouse.zig
+@@ -83,6 +83,15 @@
+     return self.mouse_shape;
+ }
+ 
++/// Whether a link under the pointer is handled here even though the program has the mouse
++/// captured (mouse reporting). Shift is Ghostty's own override, unless the terminal or the user
++/// keeps shift for the program. Super (⌘ on macOS) is always ours: no mouse protocol has a bit
++/// for it, so the program never sees it, and the click that opens a link would otherwise reach
++/// the program as a plain click.
++pub fn linksOverrideCapture(mods: input.Mods, shift_captured: bool) bool {
++    return mods.super or (mods.shift and !shift_captured);
++}
++
+ fn eligibleMouseShapeKeyEvent(physical_key: input.Key) bool {
+     return physical_key.ctrlOrSuper() or
+         physical_key.leftOrRightShift() or
+@@ -294,4 +303,21 @@
+         const got = m.keyToMouseShape();
+         try testing.expect(want == got);
+     }
++}
++
++test "linksOverrideCapture" {
++    const testing = std.testing;
++
++    // Nothing held: the program keeps the mouse.
++    try testing.expect(!linksOverrideCapture(.{}, false));
++    // Shift releases it, unless shift is kept for the program.
++    try testing.expect(linksOverrideCapture(.{ .shift = true }, false));
++    try testing.expect(!linksOverrideCapture(.{ .shift = true }, true));
++    // Super does, whatever happens to shift.
++    try testing.expect(linksOverrideCapture(.{ .super = true }, false));
++    try testing.expect(linksOverrideCapture(.{ .super = true }, true));
++    try testing.expect(linksOverrideCapture(.{ .super = true, .shift = true }, true));
++    // Ctrl and alt reach the program, so they don't.
++    try testing.expect(!linksOverrideCapture(.{ .ctrl = true }, false));
++    try testing.expect(!linksOverrideCapture(.{ .alt = true }, false));
+ }

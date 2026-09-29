@@ -41,6 +41,9 @@ final class PaneLinks {
     /// Where the pointer is in the pane, while it's over it.
     var pointer: NSPoint?
     fileprivate var rows: [String] = []
+    /// The screen's rows when the hovered link was found, for a program that takes the mouse (its
+    /// screen is redrawn while the pointer rests, and libghostty looks again only on the next move).
+    fileprivate var hoverRows: [String] = []
     fileprivate var isSettled = false
     fileprivate var isScanPending = false
 }
@@ -75,10 +78,22 @@ extension TerminalSurfaceView {
     private func scanLinks() {
         links.isScanPending = false
         guard let surface, window != nil, !isHiddenOrHasHiddenAncestor else { return }
-        // A program that takes the mouse (vim, htop) gets the clicks, so ⌘-click opens nothing there.
+        // A program that takes the mouse (vim, htop, an agent's full-screen view) has no resting marks:
+        // its screen is redrawn too often for them to hold still. ⌘ still opens its links (engine
+        // patch 0011), so the hovered one stays only as long as its text does.
         guard !ghostty_surface_mouse_captured(surface) else {
             links.rows = []
             links.marks = [:]
+            if let hovered = links.hovered {
+                let rows = viewportRows()
+                let unchanged = hovered.runs.allSatisfy { run in
+                    links.hoverRows.indices.contains(run.row) && rows.indices.contains(run.row)
+                        && links.hoverRows[run.row] == rows[run.row]
+                }
+                if !unchanged {
+                    setLinkHover(nil) // the text under it moved
+                }
+            }
             return
         }
         let rows = viewportRows()
@@ -174,7 +189,9 @@ extension TerminalSurfaceView {
             return
         }
         // Where the link starts and ends: libghostty says what it is, not where.
-        let grid = TextGrid(lines: viewportRows())
+        let rows = viewportRows()
+        links.hoverRows = rows
+        let grid = TextGrid(lines: rows)
         let line = lines(of: grid).first { $0.contains(cell.row) } ?? cell.row ..< cell.row + 1
         let match = LinkMatcher.matches(in: grid, rows: line).first { $0.covers(row: cell.row, column: cell.column) }
         let under = CellRun(row: cell.row, columns: cell.column ..< cell.column + 1)

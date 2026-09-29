@@ -285,6 +285,20 @@
                     try? await Task.sleep(for: .seconds(0.3))
                     FileHandle.standardError.write(Data("calm-selftest: hover found \(found): \(linkTag.descriptionForTesting)\n".utf8))
                 }
+            case let link where link.hasPrefix("link_click:"):
+                // link_click:<text on screen>: ⌘-move onto it and ⌘-click, through the pane's mouse handlers
+                let found = focusedPane?.commandClickForTesting(String(link.dropFirst(11))) ?? false
+                FileHandle.standardError.write(Data("calm-selftest: command-click found \(found)\n".utf8))
+            case let link where link.hasPrefix("link_press:"):
+                // link_press:<text on screen>: the pointer rests on it, then ⌘ goes down
+                let found = focusedPane?.commandPressOverForTesting(String(link.dropFirst(11))) ?? false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(0.3))
+                    FileHandle.standardError.write(Data("calm-selftest: press found \(found): \(linkTag.descriptionForTesting)\n".utf8))
+                }
+            case "link_tag":
+                // what the link tag shows right now
+                FileHandle.standardError.write(Data("calm-selftest: \(linkTag.descriptionForTesting)\n".utf8))
             case "link_marks":
                 let marks = focusedPane?.linkMarksForTesting ?? []
                 FileHandle.standardError.write(Data("calm-selftest: \(marks.count) link marks: \(marks.joined(separator: " | "))\n".utf8))

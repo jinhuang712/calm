@@ -65,6 +65,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 - **Images:** the tag shows Quick Look's thumbnail above the name, at most 220 × 140 pt; it fades in when ready, and the tag shows without it until then.
 - **Not found:** the name dims and the action reads "Not found", so you know before clicking.
 - The tag takes no clicks and goes away on typing, clicking or scrolling, or when ⌘ or the pointer leaves the link.
+- **Programs that take the mouse:** under ⌘ a link looks and behaves the same (underline, pointing hand, tag), but there are no resting marks, since such a screen is redrawn too often for them to hold still. The tag goes away when the link's text changes under a resting pointer.
 
 ## Viewing files
 

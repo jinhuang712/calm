@@ -132,6 +132,57 @@
             return false
         }
 
+        /// The window point at the middle of the first cell showing `text`.
+        private func windowPointForTesting(of text: String) -> NSPoint? {
+            let grid = TextGrid(lines: viewportRows())
+            for (row, cells) in grid.cells.enumerated() {
+                let line = cells.compactMap(\.self).map(String.init).joined()
+                guard let range = line.range(of: text) else { continue }
+                let column = line[..<range.lowerBound].reduce(0) { $0 + CellWidth.of($1) } + 1
+                guard let cell = rect(row: row, columns: column ..< column + 1) else { return nil }
+                return convert(NSPoint(x: cell.midX, y: cell.midY), to: nil)
+            }
+            return nil
+        }
+
+        /// ⌘-moves onto the first cell showing `text` and ⌘-clicks it, through the pane's own mouse
+        /// handlers as AppKit calls them (unlike `hoverLinkForTesting`, which talks to libghostty
+        /// directly), so libghostty decides what the click opens, mouse captured or not.
+        func commandClickForTesting(_ text: String) -> Bool {
+            guard let window, let point = windowPointForTesting(of: text) else { return false }
+            for type in [NSEvent.EventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+                guard let event = NSEvent.mouseEvent(
+                    with: type, location: point, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1,
+                ) else { continue }
+                switch type {
+                case .mouseMoved: mouseMoved(with: event)
+                case .leftMouseDown: mouseDown(with: event)
+                default: mouseUp(with: event)
+                }
+            }
+            return true
+        }
+
+        /// Rests the pointer on the first cell showing `text` with no modifier, then presses ⌘
+        /// (a flagsChanged event, as the keyboard sends), so only the key press can start the hover.
+        func commandPressOverForTesting(_ text: String) -> Bool {
+            guard let window, let point = windowPointForTesting(of: text),
+                  let moved = NSEvent.mouseEvent(
+                      with: .mouseMoved, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                      windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 0, pressure: 0,
+                  ),
+                  let flags = NSEvent.keyEvent(
+                      with: .flagsChanged, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                      windowNumber: window.windowNumber, context: nil, characters: "", charactersIgnoringModifiers: "",
+                      isARepeat: false, keyCode: 0x37,
+                  )
+            else { return false }
+            mouseMoved(with: moved)
+            flagsChanged(with: flags)
+            return true
+        }
+
         /// What the grid's origin is worked out from: the baseline read_text reports, the IME point
         /// (the cursor cell's bottom), the cell size and the origin found.
         var gridGeometryForTesting: String {

@@ -1,0 +1,401 @@
+Subject: animate a program's redraw that moves its rows, as a region scroll
+
+smooth-scroll animates a region scroll the terminal is told about
+(DECSTBM with SU/SD, IND/RI at a margin). Many full-screen programs move
+their content by repainting every row instead: pi's full-screen view
+rewrites each changed row in place, in one synchronized update, for every
+streamed line and every wheel step, so the terminal never sees a scroll and
+the content jumps a row at a time. On the alternate screen, when the
+terminal recorded no scroll, the renderer now compares each row's hash with
+the previous frame's: when at least half of the rows that changed (and at
+least three) are the old ones moved by the same number of rows, that span,
+between rows that stayed as they were (a header, a prompt), is animated
+exactly as a region scroll of it, ghost rows and hit testing included.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005 and 0008.
+
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -275,7 +275,134 @@
+         return .{ .top = result[0], .bottom = result[1] };
+     }
+ };
++
++/// A hash of what a row shows: each drawn cell's column, character and
++/// style. `blank_row` for a row with nothing drawn in it, which matches any
++/// other empty row and so proves nothing. Styles must be denormalized
++/// (after `endUpdate`).
++fn rowHash(cells: std.MultiArrayList(terminal.RenderState.Cell).Slice) u64 {
++    const raws = cells.items(.raw);
++    const styles = cells.items(.style);
++    var hasher = std.hash.Wyhash.init(0);
++    var drawn = false;
++    for (raws, 0..) |raw, x| {
++        const styled = raw.hasStyling();
++        const text = raw.hasText() and raw.codepoint() != ' ';
++        if (!text and !(styled and styles[x].bg_color != .none)) continue;
++        drawn = true;
++        const column: u32 = @intCast(x);
++        const cp: u32 = raw.codepoint();
++        const style: u64 = if (styled) styles[x].hash() else 0;
++        hasher.update(std.mem.asBytes(&column));
++        hasher.update(std.mem.asBytes(&cp));
++        hasher.update(std.mem.asBytes(&style));
++    }
++    if (!drawn) return blank_row;
++    const hash = hasher.final();
++    return if (hash == blank_row) 1 else hash;
++}
++
++const blank_row: u64 = 0;
++
++/// The fewest rows that must be seen moving before a redraw counts as a
++/// scroll: a couple of rows lining up by chance is not motion.
++const min_moved_rows = 3;
++
++/// The part of a program's redrawn screen that is the previous frame moved
++/// by whole rows, as a region scroll to animate. Many full-screen programs
++/// move their content by repainting every row rather than scrolling it (pi's
++/// full-screen view does, for each streamed line and each wheel step), which
++/// leaves the terminal no scroll to animate; comparing each row with the
++/// frame before finds the motion anyway. `old` and `new` are the rows'
++/// hashes (`rowHash`) before and after.
++///
++/// The shift is the one that explains the most rows that changed and hold
++/// something, and it must explain at least half of them. The region is the
++/// span of rows it explains, widened by the rows it brought in, within one
++/// stretch of the screen that no unchanged row interrupts, so a header or a
++/// prompt drawn the same in both frames stays out of it.
++fn inferScroll(old: []const u64, new: []const u64, cols: usize) ?terminal.Screen.RegionScroll {
++    const n = new.len;
++    if (old.len != n or n < min_moved_rows + 1 or cols == 0) return null;
+ 
++    var changed: usize = 0;
++    for (old, new) |before, after| {
++        if (after != before and after != blank_row) changed += 1;
++    }
++    if (changed < min_moved_rows) return null;
++
++    const Moved = struct {
++        fn is(o: []const u64, w: []const u64, y: usize, k: isize) bool {
++            const source = @as(isize, @intCast(y)) + k;
++            if (source < 0 or source >= w.len) return false;
++            return w[y] != o[y] and w[y] != blank_row and w[y] == o[@intCast(source)];
++        }
++    };
++
++    // Content moved up by `k` rows means row y now shows old row y + k.
++    const max_k: isize = @intCast(n / 2);
++    var best_k: isize = 0;
++    var best: usize = 0;
++    var k: isize = -max_k;
++    while (k <= max_k) : (k += 1) {
++        if (k == 0) continue;
++        var moved: usize = 0;
++        for (0..n) |y| {
++            if (Moved.is(old, new, y, k)) moved += 1;
++        }
++        if (moved > best or (moved == best and moved > 0 and @abs(k) < @abs(best_k))) {
++            best = moved;
++            best_k = k;
++        }
++    }
++    if (best < min_moved_rows or best * 2 < changed) return null;
++
++    // The stretch between unchanged rows with the most moved rows in it.
++    const Span = struct { start: usize, end: usize, first: usize, last: usize, moved: usize };
++    var span: ?Span = null;
++    var start: usize = 0;
++    while (start < n) {
++        var end = start;
++        var first: ?usize = null;
++        var last: usize = 0;
++        var moved: usize = 0;
++        while (end < n and !(new[end] == old[end] and new[end] != blank_row)) : (end += 1) {
++            if (Moved.is(old, new, end, best_k)) {
++                if (first == null) first = end;
++                last = end;
++                moved += 1;
++            }
++        }
++        if (first) |f| {
++            if (span == null or moved > span.?.moved) span = .{
++                .start = start,
++                .end = end,
++                .first = f,
++                .last = last,
++                .moved = moved,
++            };
++        }
++        start = end + 1;
++    }
++    const found = span orelse return null;
++    if (found.moved < min_moved_rows) return null;
++
++    // Widen by the rows the scroll brought in, which match nothing: below
++    // the moved rows when content went up, above them when it went down,
++    // never past the stretch.
++    const lines: usize = @intCast(@abs(best_k));
++    const top = if (best_k > 0) found.first else @max(found.first -| lines, found.start);
++    const bottom = if (best_k > 0) @min(found.last + lines, found.end - 1) else found.last;
++    if (bottom <= top or lines >= bottom - top + 1) return null;
++    return .{
++        .top = @intCast(top),
++        .bottom = @intCast(bottom),
++        .left = 0,
++        .right = @intCast(cols - 1),
++        .lines = @intCast(best_k),
++    };
++}
++
+ fn PresentedRegions(comptime slots: usize) type {
+     return struct {
+         const Self = @This();
+@@ -490,6 +617,17 @@
+         /// The previous frame's rows that decide whether a region scroll
+         /// left an edge row repainted in place (see `EdgeRows`).
+         edge_rows: EdgeRows = .{},
++
++        /// Each alternate-screen row's hash in the previous frame, to find
++        /// scrolls a program drew by repainting rows (`inferRedrawScroll`),
++        /// with the screen and width they were taken for; `row_hashes_next`
++        /// is this frame's, swapped in after. `last_inferred` is the region
++        /// of the last one found: a region that moves by a row or two from
++        /// frame to frame is kept as one, so its motion stays one animation.
++        row_hashes: std.ArrayListUnmanaged(u64) = .empty,
++        row_hashes_next: std.ArrayListUnmanaged(u64) = .empty,
++        row_hashes_cols: usize = 0,
++        last_inferred: ?terminal.Screen.RegionScroll = null,
+         region_anim_screen: ?terminal.ScreenSet.Key = null,
+ 
+         /// The region scroll animations of the frame on screen, for the
+@@ -1175,6 +1313,8 @@
+             self.region_anims.deinit(self.alloc);
+             self.pending_region_scrolls.deinit(self.alloc);
+             self.edge_rows.deinit(self.alloc);
++            self.row_hashes.deinit(self.alloc);
++            self.row_hashes_next.deinit(self.alloc);
+             self.ghost_bg_upload.deinit(self.alloc);
+             self.ghost_fg_upload.deinit(self.alloc);
+             self.fg_upload_lists.deinit(self.alloc);
+@@ -1559,7 +1699,56 @@
+             self.region_anims.clearRetainingCapacity();
+             self.region_anim_tick = null;
+         }
++
++        /// A scroll a program drew by repainting rows instead of scrolling
++        /// them (see `inferScroll`), found by comparing this frame's row
++        /// hashes with the previous frame's; `look` is false when the
++        /// terminal recorded scrolls of its own this frame. Alternate
++        /// screen only, like the scrolls the terminal records. Keeps this
++        /// frame's hashes for the next. Requires the renderer state mutex,
++        /// after the update and its styles (`endUpdate`).
++        fn inferRedrawScroll(self: *Self, look: bool) ?terminal.Screen.RegionScroll {
++            const state = &self.terminal_state;
++            if (state.screen != .alternate) {
++                self.row_hashes.clearRetainingCapacity();
++                self.last_inferred = null;
++                return null;
++            }
+ 
++            self.row_hashes_next.clearRetainingCapacity();
++            const rows = state.row_data.items(.cells);
++            for (0..state.rows) |y| {
++                const index = state.viewportStart() + y;
++                const hash = if (index < rows.len) rowHash(rows[index].slice()) else blank_row;
++                self.row_hashes_next.append(self.alloc, hash) catch {
++                    self.row_hashes.clearRetainingCapacity();
++                    return null;
++                };
++            }
++            defer {
++                std.mem.swap(std.ArrayListUnmanaged(u64), &self.row_hashes, &self.row_hashes_next);
++                self.row_hashes_cols = state.cols;
++            }
++
++            if (!look or self.row_hashes_cols != state.cols) return null;
++            var scroll = inferScroll(
++                self.row_hashes.items,
++                self.row_hashes_next.items,
++                state.cols,
++            ) orelse return null;
++            if (self.last_inferred) |last| {
++                const near = @max(scroll.top, last.top) - @min(scroll.top, last.top) <= 2 and
++                    @max(scroll.bottom, last.bottom) - @min(scroll.bottom, last.bottom) <= 2;
++                const height: u32 = @as(u32, last.bottom - last.top) + 1;
++                if (near and @abs(scroll.lines) < height) {
++                    scroll.top = last.top;
++                    scroll.bottom = last.bottom;
++                }
++            }
++            self.last_inferred = scroll;
++            return scroll;
++        }
++
+         /// Take the region scrolls recorded since the previous frame into
+         /// the animations, making ghost rows of the rows that scrolled out
+         /// from the previous frame's GPU cells. Must run in rebuildCells
+@@ -2161,12 +2350,15 @@
+                 {
+                     const scrolls = &state.terminal.screens.active.region_scrolls;
+                     if (self.config.smooth_scroll) {
+-                        // Comparing edge rows needs the cells' styles, which
+-                        // the update only fills in at endUpdate, outside this
+-                        // lock; a frame with a scroll completes it here
++                        // Comparing rows needs the cells' styles, which the
++                        // update only fills in at endUpdate, outside this
++                        // lock; a frame with a scroll, or on the alternate
++                        // screen where a redraw may be one, completes it here
+                         // (endUpdate needs no terminal access, and the later
+                         // call then has nothing left to do).
+-                        if (scrolls.len > 0) self.terminal_state.endUpdate();
++                        if (scrolls.len > 0 or self.terminal_state.screen == .alternate) {
++                            self.terminal_state.endUpdate();
++                        }
+ 
+                         // The hit test sees the rows that move, as drawn.
+                         var moving: [terminal.Screen.RegionScrolls.capacity]terminal.Screen.RegionScroll = undefined;
+@@ -2181,6 +2373,14 @@
+                                 moving[moving_len] = region;
+                                 moving_len += 1;
+                             }
++                        }
++
++                        // A program that repaints its rows rather than
++                        // scrolling them, animated as if it had scrolled.
++                        if (self.inferRedrawScroll(scrolls.len == 0)) |scroll| infer: {
++                            self.pending_region_scrolls.append(self.alloc, .{ .scroll = scroll }) catch break :infer;
++                            moving[moving_len] = scroll;
++                            moving_len += 1;
+                         }
+                         self.regionsScrolled(moving[0..moving_len]);
+                     }
+@@ -4765,4 +4965,127 @@
+ test "EdgeRows: plain scrolling pins nothing" {
+     try testEdgeRowsScrolling(3, 10, false, false);
+     try testEdgeRowsScrolling(-3, 10, false, false);
++}
++
++/// Row hashes for a screen of `n` rows: a header on row 0, content rows
++/// numbered from `first` on rows 1 through `n - 4`, and a three-row prompt
++/// that never changes below them.
++fn testInferScreen(comptime n: usize, first: u64) [n]u64 {
++    var rows: [n]u64 = undefined;
++    rows[0] = 0xAAAA;
++    for (1..n - 3) |y| rows[y] = 1000 + first + y;
++    for (n - 3..n) |y| rows[y] = 0xBBBB + y;
++    return rows;
++}
++
++test "inferScroll: content repainted a few rows higher is a scroll up" {
++    const testing = std.testing;
++    const old = testInferScreen(24, 0);
++    const new = testInferScreen(24, 3);
++    const scroll = inferScroll(&old, &new, 80).?;
++    try testing.expectEqual(3, scroll.lines);
++    // The header and the prompt stay out of it.
++    try testing.expectEqual(1, scroll.top);
++    try testing.expectEqual(20, scroll.bottom);
++    try testing.expectEqual(79, scroll.right);
+ }
++
++test "inferScroll: content repainted lower is a scroll down" {
++    const testing = std.testing;
++    const old = testInferScreen(24, 3);
++    const new = testInferScreen(24, 0);
++    const scroll = inferScroll(&old, &new, 80).?;
++    try testing.expectEqual(-3, scroll.lines);
++    try testing.expectEqual(1, scroll.top);
++    try testing.expectEqual(20, scroll.bottom);
++}
++
++test "inferScroll: changes no shift explains are not a scroll" {
++    const testing = std.testing;
++    const old = testInferScreen(24, 0);
++    var new = old;
++    // A progress display rewriting its rows in place.
++    for (2..12) |y| new[y] = 50_000 + y;
++    try testing.expectEqual(null, inferScroll(&old, &new, 80));
++
++    // Nothing changed.
++    try testing.expectEqual(null, inferScroll(&old, &old, 80));
++
++    // Two rows lining up is chance, not motion.
++    var two = old;
++    two[5] = old[6];
++    two[6] = old[7];
++    try testing.expectEqual(null, inferScroll(&old, &two, 80));
++}
++
++test "inferScroll: an unchanged row splits the screen" {
++    const testing = std.testing;
++    // Two panes, rows 1–10 and 12–20, split by a divider on row 11 that
++    // stays; only the lower one scrolled.
++    var old: [24]u64 = undefined;
++    var new: [24]u64 = undefined;
++    for (0..24) |y| old[y] = 7000 + y;
++    new = old;
++    for (12..21) |y| old[y] = 9000 + y;
++    for (12..21) |y| new[y] = 9000 + y + 2;
++    const scroll = inferScroll(&old, &new, 80).?;
++    try testing.expectEqual(2, scroll.lines);
++    try testing.expectEqual(12, scroll.top);
++    try testing.expectEqual(20, scroll.bottom);
++}
++
++/// The hashes of `state`'s viewport rows, as the renderer takes them.
++fn testRowHashes(state: *const terminal.RenderState, out: []u64) void {
++    const rows = state.row_data.items(.cells);
++    for (out, 0..) |*hash, y| hash.* = rowHash(rows[state.viewportStart() + y].slice());
++}
++
++test "inferScroll: a program repainting every row finds its scroll" {
++    const testing = std.testing;
++    const alloc = testing.allocator;
++    var t = try terminal.Terminal.init(testing.io, alloc, .{ .cols = 50, .rows = 16 });
++    defer t.deinit(alloc);
++    var s = t.vtStream();
++    defer s.deinit();
++    var buf: [128]u8 = undefined;
++
++    // Draws a transcript from `first` on rows 2–12 the way pi's
++    // full-screen view does: every row rewritten in place, in one
++    // synchronized update, under a header and above a prompt that stay.
++    const Frame = struct {
++        fn draw(stream: anytype, b: []u8, first: usize) !void {
++            stream.nextSlice("\x1b[?2026h\x1b[1;1H\x1b[2K\x1b[1mpi\x1b[0m");
++            for (2..13) |row| stream.nextSlice(try std.fmt.bufPrint(
++                b,
++                "\x1b[{};1H\x1b[2Kline {} of the answer",
++                .{ row, first + row },
++            ));
++            stream.nextSlice("\x1b[15;1H\x1b[2K> type here\x1b[?2026l");
++        }
++    };
++
++    s.nextSlice("\x1b[?1049h");
++    try Frame.draw(&s, &buf, 0);
++    var state: terminal.RenderState = .empty;
++    defer state.deinit(alloc);
++    try state.update(alloc, &t);
++    var old: [16]u64 = undefined;
++    testRowHashes(&state, &old);
++
++    // The answer streamed two lines: everything moved up two rows.
++    try Frame.draw(&s, &buf, 2);
++    try state.update(alloc, &t);
++    var new: [16]u64 = undefined;
++    testRowHashes(&state, &new);
++    const scroll = inferScroll(&old, &new, 50).?;
++    try testing.expectEqual(2, scroll.lines);
++    try testing.expectEqual(1, scroll.top);
++    try testing.expectEqual(11, scroll.bottom);
++
++    // Drawn again unchanged: no motion.
++    try Frame.draw(&s, &buf, 2);
++    try state.update(alloc, &t);
++    var same: [16]u64 = undefined;
++    testRowHashes(&state, &same);
++    try testing.expectEqual(null, inferScroll(&new, &same, 50));
++}

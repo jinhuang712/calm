@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M4 — Recall. M1 and M3 are built and wait only on the author's real use (M1.12's dogfooding day; M3's week of work with agents).
+**Current milestone:** none open. M0 to M7 are all built and self-tested headless. What is left is the author's real use (M3's week of work with agents; the "Left" notes under M4 to M7), the other agents' gaps (M3.4, M3.7b, M4 and M7 for OpenCode) and the *Later* list. The dogfooding day (M1.12) was skipped by the author on 2026-09-29.
 
 ## How to read this
 
@@ -67,10 +67,10 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
 - [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
 - [ ] **M1.11 Quick terminal:** a drop-down terminal on a global hotkey. *Moved to Later: not needed for daily agent work.*
-- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Needs the author; automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
+- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Skipped by the author (2026-09-29), so M1 stays 🟨 by the rule above. Automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
 
 **Exit criteria**
-- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker.
+- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker. *Not checked: the day was skipped.*
 
 ---
 
@@ -102,10 +102,11 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode, pi and omp.
 - [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events, pi and omp extension APIs, and where omp stores transcripts. Record findings in DESIGNS.md.
 - [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
-- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect. Codex and omp: their own notifications (hooks would need Codex's /hooks approval; later). OpenCode: a hint until its shared service can be tied to a terminal.*
+- [ ] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect. Codex and omp: their own notifications (hooks would need Codex's /hooks approval; later). OpenCode: its own attention notifications, off until `attention.notifications` is true in its `cli.json` (Settings → Agents says so, then reads Connected); no plugin, since its shared service can't be tied to a terminal yet.*
 - [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
 - [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
-- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code done, including the agent's own title and Esc interruptions; Codex, OpenCode, pi and omp readers follow the same `TranscriptReading` protocol.*
+- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code only, including the agent's own title and Esc interruptions (the only `TranscriptReading` adapter). The other four agents are M3.7b.*
+- [ ] **M3.7b Transcript tails for the other agents:** Codex, OpenCode, pi and omp readers on the same `TranscriptReading` protocol. *Until then their cards show state and whatever the agent reports, with no title, step or todo progress read from a transcript. Transcript formats are in DESIGNS.md → Research (M3.2).*
 - [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree and diff size; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. Diff size comes with the files column (M5).*
 - [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
@@ -116,7 +117,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.
 - No *needs you* is missed.
 
-*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: Codex hooks (need Codex's /hooks approval; its own notifications already work), diff size on cards (with the files column, M5), and the week of real use.*
+*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: Codex hooks (need Codex's /hooks approval; its own notifications already work), transcript tails for Codex, OpenCode, pi and omp (M3.7b), diff size on cards (with the files column, M5), and the week of real use.*
 
 ---
 
@@ -162,7 +163,7 @@ Agent output is easy to act on.
 
 Calm looks right out of the box, and making it yours takes a minute.
 
-- [x] **M6.1 Theme format:** the theme file and loader; a curated set of about twelve soft themes in light and dark pairs. *Built: five themes in light and dark, generated and contrast-checked (reworked from six tints of one theme into five directions, with a softer, neutral default); the default gives way to the user's Ghostty theme, a picked one (`theme` in config.toml) wins and follows the appearance.*
+- [x] **M6.1 Theme format:** the theme file and loader; a curated set of soft themes in light and dark pairs. *Built: five themes (fewer than the twelve first planned, on purpose: each is its own direction) in light and dark, generated and contrast-checked (reworked from six tints of one theme into five directions, with a softer, neutral default); the default gives way to the user's Ghostty theme, a picked one (`theme` in config.toml) wins and follows the appearance.*
 - [x] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme. *Built: the theme's sidebar, text, accent and red when its background is on screen; derived from the terminal otherwise.*
 - [x] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance. *Built: Settings (⌘,) → Appearance, a row of previews in the current appearance under a live miniature of the window, plus a Ghostty choice when the user's Ghostty config has its own colors.*
 - [x] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background. *Built: Settings → Appearance, applied live; the adaptive background (an app's OSC 11) now eases the sidebar into its colors. Glass is self-tested for layering only: the window server's blur doesn't show in headless snapshots.*

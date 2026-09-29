@@ -1,0 +1,1310 @@
+Subject: a scroll found in a redraw moves the whole content, not the part between look-alike rows, and leaves a scrollbar and a sidebar in place
+
+0010 finds the scroll a program draws by repainting its rows (pi's full-screen view, OpenCode)
+and animates the span of rows it explains, bounded by rows drawn the same in both frames: a
+header, a prompt. OpenCode paints every cell of its pane, so its empty lines are drawn rows that
+look alike, and so are a table's rules; scrolled by three rows (a wheel step), an empty line
+often lands on an empty line and a rule on the same table's next rule. Each such row looked like
+a header that stayed and split the transcript, and only the largest piece slid while the rest
+jumped: rows drew over each other and gaps opened where the pieces met, on almost every step (a
+screen recording from the user, 2026-09-30; replaying OpenCode's own bytes showed the transcript
+cut into two to eight pieces in most frames).
+
+A row now counts as having stayed only when it is drawn as before and the shift would have put
+something else there, and something more than a cell or two different (`Shifted.stayed`,
+`RowCells`); a row that looks like the one the shift brings moved with the rest. A row the shift
+brought in from beyond the screen has nothing to be judged against and never stayed. The span is
+widened by the `lines` rows the scroll brought in, even past a row that seems to have stayed,
+since an incoming empty line can land on an empty line whose source is the prompt.
+
+OpenCode also draws a scrollbar three cells in from the right, and on a wide window its sidebar
+beside the transcript. Neither moves with the text, so the rows beside the thumb or the
+sidebar's lines matched nothing: they split the span or ended it early (the last row then showed
+its new line at once while the rows above still slid towards it), and inside the region the
+thumb and the sidebar's lines slid away with the text and snapped back on every step. The
+renderer now keeps each cell's hash of the previous frame (`cellHashes`, `CellGrid`) rather than
+each row's. Rows are compared on their middle first, `still_edge_band` (8) columns in from each
+side, and on their whole width only when that finds nothing (lines that differ only at the
+sides). Then the columns at either side that stayed while the rows moved are left out of the
+region (`movingColumns`), from the edge inwards up to the first column seen moving and never more
+than half the width: a column is judged by its edges, the cells that differ from the one above,
+across the region and the changed rows next to it (`reach_top`, `reach_bottom`); an edge the
+shift explains moved, one where it was or a row or two from it (a thumb moving by itself) stayed
+(in a row brought in, only one exactly where it was). A column showing neither stays out when
+the last region left it out, or when it is a bar within 8 columns of the side or of a still
+column (`isBar`: one background, no text, down all the rows but two, that its neighbours don't
+have: a scrollbar's track; the thumb changes its glyph as it moves half a cell, so on a scroll's
+first step its edges often match nothing). `cellHashes` marks text cells in the low bit for it.
+The rows are then compared again without those columns.
+
+0010 kept a region found within two rows of the last one as the last one, so that its motion
+stays one animation; with a frame often finding a row too few (one beside the thumb matched
+nothing), the first frame's shortfall stayed for the whole scroll, and that row showed its new
+line at once on every step while the rows above it slid. The region now takes the rows of both
+(`joinInferred`), and the animation under way moves to it, new columns included, rather than a
+second one starting over the same rows.
+
+When frames come late (58 ms apart at the start of a fast flick), the content can move further
+than the inference looks (half the screen) and no scroll is found; the animation under way then
+went on with its offset and ghost rows over content that had jumped, an old row creeping below
+the new text. A redraw that changes most of the last inferred region with no scroll found now
+ends the animations over it (`mostlyChanged`), and the new content is drawn where it is, as with
+motion off.
+
+The inference runs in updateFrame under the renderer state mutex, while drawing ticks and removes
+the animations under the draw mutex, on the main thread too; it changes no animation itself. What
+should happen to one goes with the scroll (`PendingScroll.from`, the region of the animation to
+move) or in `pending_region_end`, and `applyRegionScrolls` does it under the draw mutex.
+
+Calm's own patch (not from thdxg/ghostty); changes 0010's inference, and applies on top of 0014.
+
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -124,10 +124,16 @@
+ };
+ 
+ /// A region scroll drained from the terminal, with the overlays the
+-/// program repainted in place on its edge rows in the same frame.
++/// program repainted in place on its edge rows in the same frame. `from`
++/// is the region of an animation under way that an inferred scroll goes on
++/// with in a region a little different (see `joinInferred`): the animation
++/// moves to the scroll's region when it is taken in (`applyRegionScrolls`,
++/// under the draw mutex), rather than a second one starting over the same
++/// rows.
+ const PendingScroll = struct {
+     scroll: terminal.Screen.RegionScroll,
+     overlays: Overlays = .{},
++    from: ?terminal.Screen.RegionScroll = null,
+ };
+ 
+ /// The overlay `new`, an edge row of a scrolled region, carries, if the
+@@ -406,54 +412,175 @@
+     }
+ };
+ 
+-/// A hash of what a row shows: each drawn cell's column, character and
+-/// style. `blank_row` for a row with nothing drawn in it, which matches any
+-/// other empty row and so proves nothing. Styles must be denormalized
+-/// (after `endUpdate`).
+-fn rowHash(cells: std.MultiArrayList(terminal.RenderState.Cell).Slice) u64 {
++/// What each cell of a row shows, for comparing frames: its character and
++/// style, or `blank_cell` when nothing is drawn in it (no text and no
++/// background), which matches any other empty cell. The low bit says
++/// whether the cell has text (`hasText`); a background alone is even.
++/// Styles must be denormalized (after `endUpdate`).
++fn cellHashes(cells: std.MultiArrayList(terminal.RenderState.Cell).Slice, out: []u64) void {
+     const raws = cells.items(.raw);
+     const styles = cells.items(.style);
+-    var hasher = std.hash.Wyhash.init(0);
+-    var drawn = false;
+-    for (raws, 0..) |raw, x| {
++    for (out, 0..) |*hash, x| {
++        hash.* = blank_cell;
++        if (x >= raws.len) continue;
++        const raw = raws[x];
+         const styled = raw.hasStyling();
+         const text = raw.hasText() and raw.codepoint() != ' ';
+         if (!text and !(styled and styles[x].bg_color != .none)) continue;
+-        drawn = true;
+-        const column: u32 = @intCast(x);
+-        const cp: u32 = raw.codepoint();
+-        const style: u64 = if (styled) styles[x].hash() else 0;
+-        hasher.update(std.mem.asBytes(&column));
+-        hasher.update(std.mem.asBytes(&cp));
+-        hasher.update(std.mem.asBytes(&style));
++        const parts = [2]u64{ raw.codepoint(), if (styled) styles[x].hash() else 0 };
++        const cell = std.hash.Wyhash.hash(0, std.mem.asBytes(&parts));
++        hash.* = if (text) cell | 1 else (cell & ~@as(u64, 1)) | 2;
+     }
+-    if (!drawn) return blank_row;
+-    const hash = hasher.final();
+-    return if (hash == blank_row) 1 else hash;
+ }
+ 
++const blank_cell: u64 = 0;
++
++/// Whether a cell (`cellHashes`) has text rather than a background alone.
++fn hasText(cell: u64) bool {
++    return cell & 1 == 1;
++}
+ const blank_row: u64 = 0;
+ 
++/// ColumnSpan `left` through `right`.
++const ColumnSpan = struct {
++    left: usize,
++    right: usize,
++
++    fn eql(a: ColumnSpan, b: ColumnSpan) bool {
++        return a.left == b.left and a.right == b.right;
++    }
++};
++
++/// A frame's `cellHashes`, row after row, `cols` to a row.
++const CellGrid = struct {
++    cells: []const u64,
++    cols: usize,
++
++    fn rows(self: CellGrid) usize {
++        return if (self.cols == 0) 0 else self.cells.len / self.cols;
++    }
++
++    fn at(self: CellGrid, x: usize, y: usize) u64 {
++        return self.cells[y * self.cols + x];
++    }
++
++    /// A hash of what row `y` shows in `columns`: each drawn cell's column
++    /// and `cellHashes`. `blank_row` when nothing is drawn there, which
++    /// matches any other empty row and so proves nothing.
++    fn rowHash(self: CellGrid, y: usize, columns: ColumnSpan) u64 {
++        var hasher = std.hash.Wyhash.init(0);
++        var drawn = false;
++        for (columns.left..columns.right + 1) |x| {
++            const cell = self.at(x, y);
++            if (cell == blank_cell) continue;
++            drawn = true;
++            const column: u64 = x;
++            hasher.update(std.mem.asBytes(&column));
++            hasher.update(std.mem.asBytes(&cell));
++        }
++        if (!drawn) return blank_row;
++        const hash = hasher.final();
++        return if (hash == blank_row) 1 else hash;
++    }
++
++    fn rowHashes(self: CellGrid, columns: ColumnSpan, out: []u64) void {
++        for (out, 0..) |*hash, y| hash.* = self.rowHash(y, columns);
++    }
++};
++
+ /// The fewest rows that must be seen moving before a redraw counts as a
+ /// scroll: a couple of rows lining up by chance is not motion.
+ const min_moved_rows = 3;
+ 
+-/// The part of a program's redrawn screen that is the previous frame moved
+-/// by whole rows, as a region scroll to animate. Many full-screen programs
+-/// move their content by repainting every row rather than scrolling it (pi's
+-/// full-screen view does, for each streamed line and each wheel step), which
+-/// leaves the terminal no scroll to animate; comparing each row with the
+-/// frame before finds the motion anyway. `old` and `new` are the rows'
+-/// hashes (`rowHash`) before and after.
++/// The rows of a redraw that show the previous frame's moved by `lines`
++/// (up when positive), `top` through `bottom`. `reach_top` through
++/// `reach_bottom` adds the rows next to them that changed too without
++/// matching the shift: they may be the region's own, with something beside
++/// them that doesn't move (a sidebar's lines).
++const MovedRows = struct {
++    top: usize,
++    bottom: usize,
++    lines: isize,
++    reach_top: usize,
++    reach_bottom: usize,
++};
++
++/// The cells behind two frames' row hashes, to tell rows that differ only
++/// in a cell or two (a scrollbar's thumb beside one of them) from rows that
++/// differ.
++const RowCells = struct {
++    old: CellGrid,
++    new: CellGrid,
++    columns: ColumnSpan,
++
++    const max_differing = 2;
++
++    /// Whether new row `y` and old row `source` differ in at most
++    /// `max_differing` cells.
++    fn close(self: RowCells, y: usize, source: usize) bool {
++        var differing: usize = 0;
++        for (self.columns.left..self.columns.right + 1) |x| {
++            if (self.new.at(x, y) == self.old.at(x, source)) continue;
++            differing += 1;
++            if (differing > max_differing) return false;
++        }
++        return true;
++    }
++};
++
++/// A redraw's rows (`new`) against the previous frame's (`old`), as if the
++/// content moved up by `k` rows: row y shows what old row y + k showed.
++/// `cells` are the cells behind the hashes, when known.
++const Shifted = struct {
++    old: []const u64,
++    new: []const u64,
++    k: isize,
++    cells: ?RowCells = null,
++
++    fn source(self: Shifted, y: usize) ?usize {
++        const s = @as(isize, @intCast(y)) + self.k;
++        if (s < 0 or s >= self.old.len) return null;
++        return @intCast(s);
++    }
++
++    /// Changed, into what the shift brings here.
++    fn moved(self: Shifted, y: usize) bool {
++        const s = self.source(y) orelse return false;
++        const row = self.new[y];
++        return row != blank_row and row != self.old[y] and row == self.old[s];
++    }
++
++    /// Drawn as before where the shift would have brought something else:
++    /// a header or a prompt that stayed. A row that looks the same as the
++    /// one the shift brings is not one (an empty line landing on an empty
++    /// one, a table's rule on the same table's next rule: OpenCode paints
++    /// every cell, so its empty lines are drawn rows, and scrolled by three
++    /// they often land on each other), nor is one that differs from it in a
++    /// cell or two (the scrollbar's thumb beside one of them), nor a row the
++    /// shift brought in from beyond the screen, which has nothing to be
++    /// judged against. A header differs from the row the shift would bring
++    /// in far more.
++    fn stayed(self: Shifted, y: usize) bool {
++        const s = self.source(y) orelse return false;
++        const row = self.new[y];
++        if (row == blank_row or row != self.old[y] or row == self.old[s]) return false;
++        return if (self.cells) |cells| !cells.close(y, s) else true;
++    }
++};
++
++/// The rows of a program's redrawn screen that are the previous frame moved
++/// by whole rows. `old` and `new` are the rows' hashes before and after,
++/// `cells` the cells behind them when known.
+ ///
+ /// The shift is the one that explains the most rows that changed and hold
+-/// something, and it must explain at least half of them. The region is the
+-/// span of rows it explains, widened by the rows it brought in, within one
+-/// stretch of the screen that no unchanged row interrupts, so a header or a
+-/// prompt drawn the same in both frames stays out of it.
+-fn inferScroll(old: []const u64, new: []const u64, cols: usize) ?terminal.Screen.RegionScroll {
++/// something, and it must explain at least half of them. The rows are the
++/// span of those it explains within one stretch of the screen that no row
++/// that stayed interrupts (see `Shifted.stayed`), so a header or a prompt
++/// drawn the same in both frames stays out of it, widened by the rows it
++/// brought in.
++fn inferRows(old: []const u64, new: []const u64, cells: ?RowCells) ?MovedRows {
+     const n = new.len;
+-    if (old.len != n or n < min_moved_rows + 1 or cols == 0) return null;
++    if (old.len != n or n < min_moved_rows + 1) return null;
+ 
+     var changed: usize = 0;
+     for (old, new) |before, after| {
+@@ -461,24 +588,16 @@
+     }
+     if (changed < min_moved_rows) return null;
+ 
+-    const Moved = struct {
+-        fn is(o: []const u64, w: []const u64, y: usize, k: isize) bool {
+-            const source = @as(isize, @intCast(y)) + k;
+-            if (source < 0 or source >= w.len) return false;
+-            return w[y] != o[y] and w[y] != blank_row and w[y] == o[@intCast(source)];
+-        }
+-    };
+-
+-    // Content moved up by `k` rows means row y now shows old row y + k.
+     const max_k: isize = @intCast(n / 2);
+     var best_k: isize = 0;
+     var best: usize = 0;
+     var k: isize = -max_k;
+     while (k <= max_k) : (k += 1) {
+         if (k == 0) continue;
++        const shift: Shifted = .{ .old = old, .new = new, .k = k };
+         var moved: usize = 0;
+         for (0..n) |y| {
+-            if (Moved.is(old, new, y, k)) moved += 1;
++            if (shift.moved(y)) moved += 1;
+         }
+         if (moved > best or (moved == best and moved > 0 and @abs(k) < @abs(best_k))) {
+             best = moved;
+@@ -486,8 +605,9 @@
+         }
+     }
+     if (best < min_moved_rows or best * 2 < changed) return null;
++    const shift: Shifted = .{ .old = old, .new = new, .k = best_k, .cells = cells };
+ 
+-    // The stretch between unchanged rows with the most moved rows in it.
++    // The stretch between rows that stayed with the most moved rows in it.
+     const Span = struct { start: usize, end: usize, first: usize, last: usize, moved: usize };
+     var span: ?Span = null;
+     var start: usize = 0;
+@@ -496,8 +616,8 @@
+         var first: ?usize = null;
+         var last: usize = 0;
+         var moved: usize = 0;
+-        while (end < n and !(new[end] == old[end] and new[end] != blank_row)) : (end += 1) {
+-            if (Moved.is(old, new, end, best_k)) {
++        while (end < n and !shift.stayed(end)) : (end += 1) {
++            if (shift.moved(end)) {
+                 if (first == null) first = end;
+                 last = end;
+                 moved += 1;
+@@ -517,22 +637,252 @@
+     const found = span orelse return null;
+     if (found.moved < min_moved_rows) return null;
+ 
+-    // Widen by the rows the scroll brought in, which match nothing: below
+-    // the moved rows when content went up, above them when it went down,
+-    // never past the stretch.
++    // Widen by the rows the scroll brought in, which match nothing: `lines`
++    // of them below the moved rows when content went up, above them when it
++    // went down. Past the stretch too: a row brought in can look like the
++    // row that was there (an empty line again), and the row it would have
++    // come from is then outside the region (the prompt's), so it seems to
++    // have stayed.
+     const lines: usize = @intCast(@abs(best_k));
+-    const top = if (best_k > 0) found.first else @max(found.first -| lines, found.start);
+-    const bottom = if (best_k > 0) @min(found.last + lines, found.end - 1) else found.last;
++    const top = if (best_k > 0) found.first else found.first -| lines;
++    const bottom = if (best_k > 0) @min(found.last + lines, n - 1) else found.last;
+     if (bottom <= top or lines >= bottom - top + 1) return null;
++    var reach_top = top;
++    while (reach_top > found.start and changedRow(old, new, reach_top - 1)) reach_top -= 1;
++    var reach_bottom = bottom;
++    while (reach_bottom + 1 < found.end and changedRow(old, new, reach_bottom + 1)) reach_bottom += 1;
+     return .{
+-        .top = @intCast(top),
+-        .bottom = @intCast(bottom),
+-        .left = 0,
+-        .right = @intCast(cols - 1),
+-        .lines = @intCast(best_k),
++        .top = top,
++        .bottom = bottom,
++        .lines = best_k,
++        .reach_top = reach_top,
++        .reach_bottom = reach_bottom,
+     };
+ }
+ 
++fn changedRow(old: []const u64, new: []const u64, y: usize) bool {
++    return new[y] != blank_row and new[y] != old[y];
++}
++
++/// How many columns in from each side rows are first compared without
++/// (see `inferScroll`): room for a scrollbar and the margin beside it.
++const still_edge_band = 8;
++
++/// The columns of `rows` that moved with them: all of them, but for a band
++/// at either side that stayed where it was while they moved, such as a
++/// scrollbar beside the text (OpenCode's, three columns in from the right)
++/// or a panel (OpenCode's sidebar). Left in the region, a scrollbar's thumb
++/// slid away with the text and snapped back on every step, and so did the
++/// sidebar's lines. A column is judged by its edges, the cells that differ
++/// from the one above, across the rows' reach (the rows beside a sidebar's
++/// lines match nothing, so the region may start below them): an edge the
++/// shift
++/// explains moved; one where it was, or a row or two from it (a thumb that
++/// moves by itself), stayed (in a row brought in, only one exactly where it
++/// was); a column with more that stayed is still. From
++/// each side inwards, the band ends at the first column seen moving; within
++/// it, a column with no edges either way (a plain track, a margin) is still
++/// when the last region left it out (`keep`), or when it is a bar within
++/// `still_edge_band` columns of the side or of a still column (`isBar`: a
++/// scrollbar's track, beside the text, maybe inside a sidebar).
++/// Never less than half the width.
++fn movingColumns(old: CellGrid, new: CellGrid, rows: MovedRows, keep: ColumnSpan) ColumnSpan {
++    const cols = new.cols;
++    const full: ColumnSpan = .{ .left = 0, .right = cols - 1 };
++    const right = stillEdge(old, new, rows, .right, if (keep.right + 1 < cols) keep.right + 1 else null);
++    const left = stillEdge(old, new, rows, .left, if (keep.left > 0) keep.left - 1 else null);
++    const moving: ColumnSpan = .{
++        .left = if (left) |x| x + 1 else 0,
++        .right = if (right) |x| x -| 1 else cols - 1,
++    };
++    if (moving.right < moving.left or (moving.right - moving.left + 1) * 2 < cols) return full;
++    return moving;
++}
++
++/// The innermost still column at one side of the screen (see
++/// `movingColumns`), if any; `kept` is the one the last region kept out.
++fn stillEdge(old: CellGrid, new: CellGrid, rows: MovedRows, side: enum { left, right }, kept: ?usize) ?usize {
++    const cols = new.cols;
++    var found: ?usize = null;
++    // Columns since the side or the last still column: a scrollbar sits at
++    // the edge of what scrolls, which a sidebar can put far from the screen's.
++    var since: usize = 0;
++    for (0..cols) |i| {
++        const x = if (side == .right) cols - 1 - i else i;
++        const seen = columnMotion(old, new, rows, x);
++        if (seen.moved > 0 and seen.moved >= seen.stayed) break;
++        if (seen.stayed > 0 or kept == x or (since < still_edge_band and isBar(new, rows, x))) {
++            found = x;
++            since = 0;
++        } else since += 1;
++    }
++    return found;
++}
++
++/// Whether column `x` is a bar down the reach of `rows`: one cell, a
++/// background with no text, in all its rows but two at most (a scrollbar's
++/// track, with the thumb), that the columns beside it don't have. The thumb changes its glyph as it
++/// moves by half a cell (`▄`, `█`), so on the first step of a scroll, before
++/// any region has kept the column out, its edges often match nothing and
++/// the track showed nothing either way: the thumb slid with the text. A
++/// margin is the same cell as its neighbours, and text isn't a background
++/// alone (a line prefix, a code block's gutter repeat down the rows too),
++/// so neither is a bar.
++fn isBar(grid: CellGrid, rows: MovedRows, x: usize) bool {
++    const height = rows.reach_bottom - rows.reach_top + 1;
++    if (height < 4) return false;
++    // The cell most of the column has (a majority vote), then a count.
++    var candidate: u64 = blank_cell;
++    var votes: usize = 0;
++    for (rows.reach_top..rows.reach_bottom + 1) |y| {
++        const cell = grid.at(x, y);
++        if (votes == 0) candidate = cell;
++        votes = if (cell == candidate) votes + 1 else votes - 1;
++    }
++    if (candidate == blank_cell or hasText(candidate)) return false;
++    var same: usize = 0;
++    var beside: usize = 0;
++    for (rows.reach_top..rows.reach_bottom + 1) |y| {
++        if (grid.at(x, y) == candidate) same += 1;
++        if (x > 0 and grid.at(x - 1, y) == candidate) beside += 1;
++        if (x + 1 < grid.cols and grid.at(x + 1, y) == candidate) beside += 1;
++    }
++    return same + 2 >= height and beside <= 2;
++}
++
++/// How many of column `x`'s edges within the reach of `rows` moved with
++/// them and how many stayed (see `movingColumns`).
++fn columnMotion(old: CellGrid, new: CellGrid, rows: MovedRows, x: usize) struct { moved: usize, stayed: usize } {
++    const Edge = struct {
++        /// Whether `grid`'s column `x` turns from `above` to `here` at row
++        /// `y`, both rows within the reach of `rows`.
++        fn at(grid: CellGrid, column: usize, y: isize, within: MovedRows, above: u64, here: u64) bool {
++            if (y <= @as(isize, @intCast(within.reach_top)) or y > @as(isize, @intCast(within.reach_bottom))) return false;
++            const row: usize = @intCast(y);
++            return grid.at(column, row - 1) == above and grid.at(column, row) == here;
++        }
++    };
++    var moved: usize = 0;
++    var stayed: usize = 0;
++    for (rows.reach_top + 1..rows.reach_bottom + 1) |y| {
++        const above = new.at(x, y - 1);
++        const here = new.at(x, y);
++        if (above == here) continue;
++        const row: isize = @intCast(y);
++        const source = row + rows.lines;
++        if (source <= @as(isize, @intCast(rows.reach_top)) or source > @as(isize, @intCast(rows.reach_bottom))) {
++            // Brought in: it can't have moved, but it can stand exactly
++            // where it was, as a panel beside the rows does.
++            if (Edge.at(old, x, row, rows, above, here)) stayed += 1;
++            continue;
++        }
++        if (Edge.at(old, x, source, rows, above, here)) {
++            moved += 1;
++            continue;
++        }
++        for ([_]isize{ 0, -1, 1, -2, 2 }) |d| {
++            if (d == rows.lines) continue;
++            if (Edge.at(old, x, row + d, rows, above, here)) {
++                stayed += 1;
++                break;
++            }
++        }
++    }
++    return .{ .moved = moved, .stayed = stayed };
++}
++
++/// The part of a program's redrawn screen that is the previous frame moved
++/// by whole rows, as a region scroll to animate. Many full-screen programs
++/// move their content by repainting every row rather than scrolling it (pi's
++/// full-screen view does, for each streamed line and each wheel step, and so
++/// does OpenCode), which leaves the terminal no scroll to animate; comparing
++/// each row with the frame before finds the motion anyway (`inferRows`),
++/// less any still column at the sides (`movingColumns`). The rows are
++/// compared on their middle first, `still_edge_band` columns in from each
++/// side, so a scrollbar there can't hide their motion (its thumb made the
++/// rows beside it match nothing, and the first frames of a scroll, before
++/// the scrollbar was known, drew a row's new line while the rows above it
++/// still slid towards it), then on their whole width, for lines that differ
++/// only at the sides, and once the still columns are known, without them. `old` and `new` are the frames' cells (`cellHashes`),
++/// `keep` the columns of the last region found, and `scratch` room for two
++/// hashes per row.
++fn inferScroll(old: CellGrid, new: CellGrid, keep: ?ColumnSpan, scratch: []u64) ?terminal.Screen.RegionScroll {
++    const n = new.rows();
++    if (new.cols == 0 or old.cols != new.cols or old.cells.len != new.cells.len) return null;
++    if (scratch.len < 2 * n) return null;
++    const full: ColumnSpan = .{ .left = 0, .right = new.cols - 1 };
++    const middle: ColumnSpan = if (new.cols >= 4 * still_edge_band)
++        .{ .left = still_edge_band, .right = new.cols - 1 - still_edge_band }
++    else
++        full;
++
++    const old_rows = scratch[0..n];
++    const new_rows = scratch[n .. 2 * n];
++    var rows = rows: {
++        old.rowHashes(middle, old_rows);
++        new.rowHashes(middle, new_rows);
++        if (inferRows(old_rows, new_rows, .{ .old = old, .new = new, .columns = middle })) |rows| break :rows rows;
++        if (middle.eql(full)) return null;
++        old.rowHashes(full, old_rows);
++        new.rowHashes(full, new_rows);
++        break :rows inferRows(old_rows, new_rows, .{ .old = old, .new = new, .columns = full }) orelse return null;
++    };
++
++    var kept = keep orelse full;
++    if (kept.right >= new.cols or kept.left > kept.right) kept = full;
++    const columns = movingColumns(old, new, rows, kept);
++
++    // Compared again without the still columns: a sidebar's lines are in
++    // the middle too, and the rows beside them matched nothing.
++    if (!columns.eql(full)) {
++        old.rowHashes(columns, old_rows);
++        new.rowHashes(columns, new_rows);
++        if (inferRows(old_rows, new_rows, .{ .old = old, .new = new, .columns = columns })) |again| rows = again;
++    }
++    return .{
++        .top = @intCast(rows.top),
++        .bottom = @intCast(rows.bottom),
++        .left = @intCast(columns.left),
++        .right = @intCast(columns.right),
++        .lines = @intCast(rows.lines),
++    };
++}
++
++/// A region found within a row or two of the last one found, kept as one
++/// with it so that its motion stays one animation: the rows of both and the
++/// columns found now; null when it isn't that near, or it moved further
++/// than the last one is tall. The rows of both, since a frame often finds a
++/// row too few (one beside a scrollbar's thumb matched nothing): keeping the
++/// last region's rows kept the first frame's shortfall for a whole scroll,
++/// and that row showed its new line at once on every step while the rows
++/// above it slid.
++fn joinInferred(last: terminal.Screen.RegionScroll, scroll: terminal.Screen.RegionScroll) ?terminal.Screen.RegionScroll {
++    const near = @max(scroll.top, last.top) - @min(scroll.top, last.top) <= 2 and
++        @max(scroll.bottom, last.bottom) - @min(scroll.bottom, last.bottom) <= 2;
++    const height: u32 = @as(u32, last.bottom - last.top) + 1;
++    if (!near or @abs(scroll.lines) >= height) return null;
++    var joined = scroll;
++    joined.top = @min(scroll.top, last.top);
++    joined.bottom = @max(scroll.bottom, last.bottom);
++    return joined;
++}
++
++/// Whether a redraw changed more than half of `region`'s rows, within its
++/// columns: with no scroll found for it, the animation over the region no
++/// longer describes what is there.
++fn mostlyChanged(old: CellGrid, new: CellGrid, region: terminal.Screen.RegionScroll) bool {
++    if (old.cols != new.cols or old.cells.len != new.cells.len) return true;
++    if (region.bottom >= new.rows() or region.right >= new.cols or region.left > region.right) return true;
++    const width: usize = @as(usize, region.right) - region.left + 1;
++    var changed: usize = 0;
++    for (region.top..@as(usize, region.bottom) + 1) |y| {
++        const start = y * new.cols + region.left;
++        if (!std.mem.eql(u64, old.cells[start..][0..width], new.cells[start..][0..width])) changed += 1;
++    }
++    const height: usize = @as(usize, region.bottom) - region.top + 1;
++    return changed * 2 > height;
++}
++
+ fn PresentedRegions(comptime slots: usize) type {
+     return struct {
+         const Self = @This();
+@@ -750,16 +1100,22 @@
+         /// left an edge row repainted in place (see `EdgeRows`).
+         edge_rows: EdgeRows = .{},
+ 
+-        /// Each alternate-screen row's hash in the previous frame, to find
++        /// Each alternate-screen cell's hash in the previous frame, to find
+         /// scrolls a program drew by repainting rows (`inferRedrawScroll`),
+-        /// with the screen and width they were taken for; `row_hashes_next`
+-        /// is this frame's, swapped in after. `last_inferred` is the region
+-        /// of the last one found: a region that moves by a row or two from
+-        /// frame to frame is kept as one, so its motion stays one animation.
+-        row_hashes: std.ArrayListUnmanaged(u64) = .empty,
+-        row_hashes_next: std.ArrayListUnmanaged(u64) = .empty,
+-        row_hashes_cols: usize = 0,
++        /// with the width they were taken for; `cell_hashes_next` is this
++        /// frame's, swapped in after, and `row_scratch` room for comparing
++        /// rows. `last_inferred` is the region of the last one found: a
++        /// region within a row or two of it is kept as one with it (the rows
++        /// of both), so its motion stays one animation, and the still columns
++        /// it left out stay out. `pending_region_end` is the last inferred
++        /// region when a redraw changed most of it with no scroll found, for
++        /// `applyRegionScrolls` to end the animations over it.
++        cell_hashes: std.ArrayListUnmanaged(u64) = .empty,
++        cell_hashes_next: std.ArrayListUnmanaged(u64) = .empty,
++        cell_hashes_cols: usize = 0,
++        row_scratch: std.ArrayListUnmanaged(u64) = .empty,
+         last_inferred: ?terminal.Screen.RegionScroll = null,
++        pending_region_end: ?terminal.Screen.RegionScroll = null,
+         region_anim_screen: ?terminal.ScreenSet.Key = null,
+ 
+         /// The region scroll animations of the frame on screen, for the
+@@ -1450,8 +1806,9 @@
+             self.region_anims.deinit(self.alloc);
+             self.pending_region_scrolls.deinit(self.alloc);
+             self.edge_rows.deinit(self.alloc);
+-            self.row_hashes.deinit(self.alloc);
+-            self.row_hashes_next.deinit(self.alloc);
++            self.cell_hashes.deinit(self.alloc);
++            self.cell_hashes_next.deinit(self.alloc);
++            self.row_scratch.deinit(self.alloc);
+             self.ghost_bg_upload.deinit(self.alloc);
+             self.ghost_fg_upload.deinit(self.alloc);
+             self.fg_upload_lists.deinit(self.alloc);
+@@ -1857,52 +2214,66 @@
+         }
+ 
+         /// A scroll a program drew by repainting rows instead of scrolling
+-        /// them (see `inferScroll`), found by comparing this frame's row
+-        /// hashes with the previous frame's; `look` is false when the
+-        /// terminal recorded scrolls of its own this frame. Alternate
+-        /// screen only, like the scrolls the terminal records. Keeps this
+-        /// frame's hashes for the next. Requires the renderer state mutex,
+-        /// after the update and its styles (`endUpdate`).
+-        fn inferRedrawScroll(self: *Self, look: bool) ?terminal.Screen.RegionScroll {
++        /// them (see `inferScroll`), found by comparing this frame's cells
++        /// with the previous frame's; `look` is false when the terminal
++        /// recorded scrolls of its own this frame. Alternate screen only,
++        /// like the scrolls the terminal records. Keeps this frame's cells
++        /// for the next. Requires the renderer state mutex, after the update
++        /// and its styles (`endUpdate`). Touches no animation: drawing ticks
++        /// them under the draw mutex, so what should happen to one goes with
++        /// the scroll (`PendingScroll.from`) or in `pending_region_end`, for
++        /// `applyRegionScrolls`.
++        fn inferRedrawScroll(self: *Self, look: bool) ?PendingScroll {
+             const state = &self.terminal_state;
+             if (state.screen != .alternate) {
+-                self.row_hashes.clearRetainingCapacity();
++                self.cell_hashes.clearRetainingCapacity();
+                 self.last_inferred = null;
+                 return null;
+             }
+ 
+-            self.row_hashes_next.clearRetainingCapacity();
++            const cols: usize = state.cols;
+             const rows = state.row_data.items(.cells);
++            self.cell_hashes_next.resize(self.alloc, @as(usize, state.rows) * cols) catch {
++                self.cell_hashes.clearRetainingCapacity();
++                return null;
++            };
+             for (0..state.rows) |y| {
++                const out = self.cell_hashes_next.items[y * cols ..][0..cols];
+                 const index = state.viewportStart() + y;
+-                const hash = if (index < rows.len) rowHash(rows[index].slice()) else blank_row;
+-                self.row_hashes_next.append(self.alloc, hash) catch {
+-                    self.row_hashes.clearRetainingCapacity();
+-                    return null;
+-                };
++                if (index < rows.len) cellHashes(rows[index].slice(), out) else @memset(out, blank_cell);
+             }
+             defer {
+-                std.mem.swap(std.ArrayListUnmanaged(u64), &self.row_hashes, &self.row_hashes_next);
+-                self.row_hashes_cols = state.cols;
++                std.mem.swap(std.ArrayListUnmanaged(u64), &self.cell_hashes, &self.cell_hashes_next);
++                self.cell_hashes_cols = cols;
+             }
+ 
+-            if (!look or self.row_hashes_cols != state.cols) return null;
+-            var scroll = inferScroll(
+-                self.row_hashes.items,
+-                self.row_hashes_next.items,
+-                state.cols,
+-            ) orelse return null;
++            if (!look or self.cell_hashes_cols != cols) return null;
++            self.row_scratch.resize(self.alloc, 2 * @as(usize, state.rows)) catch return null;
++            const keep: ?ColumnSpan = if (self.last_inferred) |last|
++                .{ .left = last.left, .right = last.right }
++            else
++                null;
++            const old: CellGrid = .{ .cells = self.cell_hashes.items, .cols = cols };
++            const new: CellGrid = .{ .cells = self.cell_hashes_next.items, .cols = cols };
++            const found = inferScroll(old, new, keep, self.row_scratch.items) orelse {
++                if (self.last_inferred) |last| {
++                    if (mostlyChanged(old, new, last)) self.pending_region_end = last;
++                }
++                return null;
++            };
++            var pending: PendingScroll = .{ .scroll = found };
+             if (self.last_inferred) |last| {
+-                const near = @max(scroll.top, last.top) - @min(scroll.top, last.top) <= 2 and
+-                    @max(scroll.bottom, last.bottom) - @min(scroll.bottom, last.bottom) <= 2;
+-                const height: u32 = @as(u32, last.bottom - last.top) + 1;
+-                if (near and @abs(scroll.lines) < height) {
+-                    scroll.top = last.top;
+-                    scroll.bottom = last.bottom;
++                if (joinInferred(last, found)) |joined| {
++                    pending.scroll = joined;
++                    // The animation under way goes on in the region as found
++                    // now (other columns once a scrollbar is found, a row
++                    // more), rather than a second one starting beside it over
++                    // the same rows.
++                    if (!joined.sameRegion(last)) pending.from = last;
+                 }
+             }
+-            self.last_inferred = scroll;
+-            return scroll;
++            self.last_inferred = pending.scroll;
++            return pending;
+         }
+ 
+         /// Take the region scrolls recorded since the previous frame into
+@@ -1915,6 +2286,7 @@
+             grid_changed: bool,
+         ) void {
+             defer self.pending_region_scrolls.clearRetainingCapacity();
++            defer self.pending_region_end = null;
+ 
+             // A resize scrambles the cells the ghosts would come from, and
+             // a screen switch leaves nothing to animate.
+@@ -1932,10 +2304,40 @@
+                 }
+             }
+ 
++            // A redraw that changed most of the last inferred region with no
++            // scroll to explain it (a jump further than `inferScroll` looks,
++            // when frames came late) ends the animations over it: their offset
++            // and ghost rows belong to content that is gone. Kept, they slid
++            // the new content in from the wrong place, with an old row
++            // creeping below it (OpenCode with its sidebar, a fast flick, 2026-
++            // 09-30). The new content is drawn where it is, as with motion off.
++            if (self.pending_region_end) |ended| {
++                var i: usize = 0;
++                while (i < self.region_anims.items.len) {
++                    const anim = &self.region_anims.items[i];
++                    if (anim.region.top <= ended.bottom and ended.top <= anim.region.bottom) {
++                        anim.deinit(self.alloc);
++                        _ = self.region_anims.orderedRemove(i);
++                        continue;
++                    }
++                    i += 1;
++                }
++                if (self.region_anims.items.len == 0) self.region_anim_tick = null;
++            }
++
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             const cols: usize = self.cells.size.columns;
+             for (self.pending_region_scrolls.items) |pending| {
+                 const scroll = pending.scroll;
++                if (pending.from) |from| {
++                    for (self.region_anims.items) |*anim| {
++                        if (!anim.region.sameRegion(from)) continue;
++                        anim.region.top = scroll.top;
++                        anim.region.bottom = scroll.bottom;
++                        anim.region.left = scroll.left;
++                        anim.region.right = scroll.right;
++                    }
++                }
+                 const anim: *RegionAnim = anim: {
+                     for (self.region_anims.items) |*anim| {
+                         if (anim.region.sameRegion(scroll)) break :anim anim;
+@@ -2567,8 +2969,8 @@
+ 
+                         // A program that repaints its rows rather than
+                         // scrolling them, animated as if it had scrolled.
+-                        if (self.inferRedrawScroll(scrolls.len == 0)) |scroll| infer: {
+-                            self.pending_region_scrolls.append(self.alloc, .{ .scroll = scroll }) catch break :infer;
++                        if (self.inferRedrawScroll(scrolls.len == 0)) |pending| infer: {
++                            self.pending_region_scrolls.append(self.alloc, pending) catch break :infer;
+                         }
+                         self.regionsScrolled(self.pending_region_scrolls.items[first..]);
+                     }
+@@ -5297,47 +5699,46 @@
+     return rows;
+ }
+ 
+-test "inferScroll: content repainted a few rows higher is a scroll up" {
++test "inferRows: content repainted a few rows higher is a scroll up" {
+     const testing = std.testing;
+     const old = testInferScreen(24, 0);
+     const new = testInferScreen(24, 3);
+-    const scroll = inferScroll(&old, &new, 80).?;
+-    try testing.expectEqual(3, scroll.lines);
++    const rows = inferRows(&old, &new, null).?;
++    try testing.expectEqual(3, rows.lines);
+     // The header and the prompt stay out of it.
+-    try testing.expectEqual(1, scroll.top);
+-    try testing.expectEqual(20, scroll.bottom);
+-    try testing.expectEqual(79, scroll.right);
++    try testing.expectEqual(1, rows.top);
++    try testing.expectEqual(20, rows.bottom);
+ }
+ 
+-test "inferScroll: content repainted lower is a scroll down" {
++test "inferRows: content repainted lower is a scroll down" {
+     const testing = std.testing;
+     const old = testInferScreen(24, 3);
+     const new = testInferScreen(24, 0);
+-    const scroll = inferScroll(&old, &new, 80).?;
+-    try testing.expectEqual(-3, scroll.lines);
+-    try testing.expectEqual(1, scroll.top);
+-    try testing.expectEqual(20, scroll.bottom);
++    const rows = inferRows(&old, &new, null).?;
++    try testing.expectEqual(-3, rows.lines);
++    try testing.expectEqual(1, rows.top);
++    try testing.expectEqual(20, rows.bottom);
+ }
+ 
+-test "inferScroll: changes no shift explains are not a scroll" {
++test "inferRows: changes no shift explains are not a scroll" {
+     const testing = std.testing;
+     const old = testInferScreen(24, 0);
+     var new = old;
+     // A progress display rewriting its rows in place.
+     for (2..12) |y| new[y] = 50_000 + y;
+-    try testing.expectEqual(null, inferScroll(&old, &new, 80));
++    try testing.expectEqual(null, inferRows(&old, &new, null));
+ 
+     // Nothing changed.
+-    try testing.expectEqual(null, inferScroll(&old, &old, 80));
++    try testing.expectEqual(null, inferRows(&old, &old, null));
+ 
+     // Two rows lining up is chance, not motion.
+     var two = old;
+     two[5] = old[6];
+     two[6] = old[7];
+-    try testing.expectEqual(null, inferScroll(&old, &two, 80));
++    try testing.expectEqual(null, inferRows(&old, &two, null));
+ }
+ 
+-test "inferScroll: an unchanged row splits the screen" {
++test "inferRows: an unchanged row splits the screen" {
+     const testing = std.testing;
+     // Two panes, rows 1–10 and 12–20, split by a divider on row 11 that
+     // stays; only the lower one scrolled.
+@@ -5347,16 +5748,66 @@
+     new = old;
+     for (12..21) |y| old[y] = 9000 + y;
+     for (12..21) |y| new[y] = 9000 + y + 2;
+-    const scroll = inferScroll(&old, &new, 80).?;
+-    try testing.expectEqual(2, scroll.lines);
+-    try testing.expectEqual(12, scroll.top);
+-    try testing.expectEqual(20, scroll.bottom);
++    const rows = inferRows(&old, &new, null).?;
++    try testing.expectEqual(2, rows.lines);
++    try testing.expectEqual(12, rows.top);
++    try testing.expectEqual(20, rows.bottom);
+ }
+ 
+-/// The hashes of `state`'s viewport rows, as the renderer takes them.
+-fn testRowHashes(state: *const terminal.RenderState, out: []u64) void {
++test "inferRows: rows that only look unchanged don't split it" {
++    const testing = std.testing;
++    // OpenCode paints every cell, so its empty lines are drawn rows that
++    // look alike, and so do a table's rules: every third line here is one.
++    // Scrolled by three, each lands on a row that looked the same, which
++    // is where the shift put it too.
++    const Ruled = struct {
++        fn screen(first: u64) [24]u64 {
++            var rows = testInferScreen(24, first);
++            for (1..21) |y| {
++                if ((first + y) % 3 == 0) rows[y] = 0x5555;
++            }
++            return rows;
++        }
++    };
++    const up = inferRows(&Ruled.screen(0), &Ruled.screen(3), null).?;
++    try testing.expectEqual(3, up.lines);
++    try testing.expectEqual(1, up.top);
++    try testing.expectEqual(20, up.bottom);
++
++    const down = inferRows(&Ruled.screen(3), &Ruled.screen(0), null).?;
++    try testing.expectEqual(-3, down.lines);
++    try testing.expectEqual(1, down.top);
++    try testing.expectEqual(20, down.bottom);
++}
++
++test "inferRows: rows brought in from beyond the screen don't split it" {
++    const testing = std.testing;
++    // No header: scrolled back by three, the top three rows are new, and
++    // one of them, an empty line, looks like the empty line that was
++    // there. Nothing above the screen can say it stayed.
++    const Screen = struct {
++        fn rows(first: u64) [24]u64 {
++            var out: [24]u64 = undefined;
++            for (0..21) |y| {
++                const line = first + y;
++                out[y] = if (line == 1 or line == 4) 0x7777 else 1000 + line;
++            }
++            for (21..24) |y| out[y] = 0xBBBB + y;
++            return out;
++        }
++    };
++    const rows = inferRows(&Screen.rows(3), &Screen.rows(0), null).?;
++    try testing.expectEqual(-3, rows.lines);
++    try testing.expectEqual(0, rows.top);
++    try testing.expectEqual(20, rows.bottom);
++}
++
++/// The cells of `state`'s viewport, as the renderer takes them.
++fn testCellHashes(state: *const terminal.RenderState, cols: usize, out: []u64) void {
+     const rows = state.row_data.items(.cells);
+-    for (out, 0..) |*hash, y| hash.* = rowHash(rows[state.viewportStart() + y].slice());
++    for (0..out.len / cols) |y| {
++        cellHashes(rows[state.viewportStart() + y].slice(), out[y * cols ..][0..cols]);
++    }
+ }
+ 
+ test "inferScroll: a program repainting every row finds its scroll" {
+@@ -5388,27 +5839,364 @@
+     var state: terminal.RenderState = .empty;
+     defer state.deinit(alloc);
+     try state.update(alloc, &t);
+-    var old: [16]u64 = undefined;
+-    testRowHashes(&state, &old);
++    var old: [16 * 50]u64 = undefined;
++    testCellHashes(&state, 50, &old);
++    var scratch: [32]u64 = undefined;
+ 
+     // The answer streamed two lines: everything moved up two rows.
+     try Frame.draw(&s, &buf, 2);
+     try state.update(alloc, &t);
+-    var new: [16]u64 = undefined;
+-    testRowHashes(&state, &new);
+-    const scroll = inferScroll(&old, &new, 50).?;
++    var new: [16 * 50]u64 = undefined;
++    testCellHashes(&state, 50, &new);
++    const scroll = inferScroll(.{ .cells = &old, .cols = 50 }, .{ .cells = &new, .cols = 50 }, null, &scratch).?;
+     try testing.expectEqual(2, scroll.lines);
+     try testing.expectEqual(1, scroll.top);
+     try testing.expectEqual(11, scroll.bottom);
++    try testing.expectEqual(0, scroll.left);
++    try testing.expectEqual(49, scroll.right);
+ 
+     // Drawn again unchanged: no motion.
+     try Frame.draw(&s, &buf, 2);
+     try state.update(alloc, &t);
+-    var same: [16]u64 = undefined;
+-    testRowHashes(&state, &same);
+-    try testing.expectEqual(null, inferScroll(&new, &same, 50));
++    var same: [16 * 50]u64 = undefined;
++    testCellHashes(&state, 50, &same);
++    try testing.expectEqual(null, inferScroll(.{ .cells = &new, .cols = 50 }, .{ .cells = &same, .cols = 50 }, null, &scratch));
++}
++
++/// A transcript like OpenCode's: tables, whose rules look alike, and
++/// empty lines, which do too.
++const test_opencode_lines = [_][]const u8{
++    "Specs",
++    "",
++    "┌────────┬────────┐",
++    "│ id     │ sol    │",
++    "├────────┼────────┤",
++    "│ window │ 1M     │",
++    "├────────┼────────┤",
++    "│ output │ 128k   │",
++    "├────────┼────────┤",
++    "│ cutoff │ Apr    │",
++    "└────────┴────────┘",
++    "",
++    "No minimal effort.",
++    "It always reasons.",
++    "",
++    "Pricing",
++    "",
++    "┌────────┬────────┐",
++    "│ input  │ $2     │",
++    "├────────┼────────┤",
++    "│ cached │ $0.10  │",
++    "├────────┼────────┤",
++    "│ output │ $10    │",
++    "└────────┴────────┘",
++    "",
++    "Fast mode is 2x.",
++    "",
++    "Same price as before.",
++};
++
++/// A screen drawn the way OpenCode draws a session, one synchronized update
++/// a frame: every cell painted, the transcript's lines from `first` on its
++/// rows, inset two cells, a scrollbar track three cells in from its right
++/// with the thumb on row `thumb` (none when that's off the transcript),
++/// optionally the sidebar beside it with a few lines at its top, and a gap,
++/// a prompt box and a status line below that never change.
++const TestOpenCode = struct {
++    /// The transcript's rows; the screen has six more.
++    rows: usize = 10,
++    sidebar: bool = false,
++    /// The thumb's glyph in the second frame of `frames`: it changes as the
++    /// thumb moves by half a cell.
++    then_glyph: []const u8 = "▄",
++
++    /// The transcript's width, scrollbar and margin included, and the
++    /// sidebar's.
++    const width = 40;
++    const sidebar_width = 24;
++    const sidebar_lines = [_]struct { row: usize, text: []const u8 }{
++        .{ .row = 1, .text = "Quick check-in" },
++        .{ .row = 3, .text = "Context" },
++        .{ .row = 4, .text = "50,920 tokens" },
++    };
++
++    fn cols(self: TestOpenCode) usize {
++        return if (self.sidebar) width + sidebar_width else width;
++    }
++
++    fn screenRows(self: TestOpenCode) usize {
++        return self.rows + 6;
++    }
++
++    fn draw(self: TestOpenCode, stream: anytype, buf: []u8, first: usize, thumb: usize, glyph: []const u8) !void {
++        const spaces = " " ** (width + sidebar_width);
++        const all = spaces[0..self.cols()];
++        stream.nextSlice("\x1b[?2026h");
++        for (0..self.rows) |row| {
++            const line = if (first + row < test_opencode_lines.len) test_opencode_lines[first + row] else "";
++            stream.nextSlice(try std.fmt.bufPrint(
++                buf,
++                "\x1b[{};1H\x1b[48;2;10;10;10m{s}\x1b[{};3H{s}\x1b[{};38H\x1b[48;2;30;30;30m{s}\x1b[48;2;10;10;10m  ",
++                .{ row + 1, spaces[0..37], row + 1, line, row + 1, if (row == thumb) glyph else " " },
++            ));
++            if (self.sidebar) {
++                stream.nextSlice(spaces[0..sidebar_width]);
++                for (sidebar_lines) |side| {
++                    if (side.row != row) continue;
++                    stream.nextSlice(try std.fmt.bufPrint(buf, "\x1b[{};{}H{s}", .{ row + 1, width + 5, side.text }));
++                }
++            }
++            stream.nextSlice("\x1b[0m");
++        }
++        stream.nextSlice(try std.fmt.bufPrint(buf, "\x1b[{};1H\x1b[48;2;10;10;10m{s}\x1b[0m", .{ self.rows + 1, all }));
++        for (0..4, [_][]const u8{ "", "type here", "", "Build auto" }) |i, text| {
++            const row = self.rows + 2 + i;
++            stream.nextSlice(try std.fmt.bufPrint(
++                buf,
++                "\x1b[{};1H\x1b[48;2;20;20;20m┃{s}\x1b[{};4H{s}\x1b[0m",
++                .{ row, all[1..], row, text },
++            ));
++        }
++        stream.nextSlice(try std.fmt.bufPrint(
++            buf,
++            "\x1b[{};1H\x1b[48;2;10;10;10m{s}\x1b[{};3H~/project\x1b[{};25Hctrl+p commands\x1b[0m\x1b[?2026l",
++            .{ self.rows + 6, all, self.rows + 6, self.rows + 6 },
++        ));
++    }
++
++    /// The cells of two frames: the transcript from `first` with its thumb
++    /// on `thumb`, then from `then_first` with it on `then_thumb`.
++    fn frames(
++        self: TestOpenCode,
++        first: usize,
++        thumb: usize,
++        then_first: usize,
++        then_thumb: usize,
++        old: []u64,
++        new: []u64,
++    ) !void {
++        const alloc = std.testing.allocator;
++        var t = try terminal.Terminal.init(std.testing.io, alloc, .{
++            .cols = @intCast(self.cols()),
++            .rows = @intCast(self.screenRows()),
++        });
++        defer t.deinit(alloc);
++        var s = t.vtStream();
++        defer s.deinit();
++        var buf: [512]u8 = undefined;
++        var state: terminal.RenderState = .empty;
++        defer state.deinit(alloc);
++
++        s.nextSlice("\x1b[?1049h");
++        try self.draw(&s, &buf, first, thumb, "▄");
++        try state.update(alloc, &t);
++        testCellHashes(&state, self.cols(), old);
++        try self.draw(&s, &buf, then_first, then_thumb, self.then_glyph);
++        try state.update(alloc, &t);
++        testCellHashes(&state, self.cols(), new);
++    }
++};
++
++test "inferScroll: OpenCode's sidebar stays out of the region" {
++    const testing = std.testing;
++    const screen: TestOpenCode = .{ .rows = 20, .sidebar = true };
++    var old: [26 * 64]u64 = undefined;
++    var new: [26 * 64]u64 = undefined;
++    var scratch: [52]u64 = undefined;
++
++    // Scrolled back by three with the sidebar shown: its lines stay where
++    // they are while the transcript beside them moves, so the region ends
++    // before it (and before the scrollbar), rather than sliding them with
++    // the text and snapping them back. The screen is wide enough that the
++    // scrollbar is in the rows' middle, and an empty line that landed on
++    // an empty line differs from the one the shift brings only by the
++    // thumb beside it: it moved like the rest.
++    try screen.frames(6, 5, 3, 5, &old, &new);
++    const scroll = inferScroll(.{ .cells = &old, .cols = 64 }, .{ .cells = &new, .cols = 64 }, null, &scratch).?;
++    try testing.expectEqual(-3, scroll.lines);
++    try testing.expectEqual(0, scroll.top);
++    try testing.expectEqual(19, scroll.bottom);
++    try testing.expectEqual(0, scroll.left);
++    try testing.expectEqual(36, scroll.right);
+ }
+ 
++test "inferScroll: OpenCode's transcript moves whole, and its scrollbar stays" {
++    const testing = std.testing;
++    var old: [16 * 40]u64 = undefined;
++    var new: [16 * 40]u64 = undefined;
++    var scratch: [32]u64 = undefined;
++
++    // Scrolled back by three: an empty line lands on an empty line (row
++    // 8), and the thumb climbs a row by itself. Before, row 8 split the
++    // transcript and only the part above it slid, and the scrollbar's
++    // column slid with the text.
++    try (TestOpenCode{}).frames(6, 5, 3, 4, &old, &new);
++    const back = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(-3, back.lines);
++    try testing.expectEqual(0, back.top);
++    try testing.expectEqual(9, back.bottom);
++    try testing.expectEqual(0, back.left);
++    try testing.expectEqual(36, back.right);
++
++    // And forward again, the thumb staying where it is.
++    try (TestOpenCode{}).frames(3, 4, 6, 4, &old, &new);
++    const forward = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(3, forward.lines);
++    try testing.expectEqual(0, forward.top);
++    try testing.expectEqual(9, forward.bottom);
++    try testing.expectEqual(36, forward.right);
++}
++
++test "inferScroll: the thumb beside the last row doesn't cut it off" {
++    const testing = std.testing;
++    var old: [16 * 40]u64 = undefined;
++    var new: [16 * 40]u64 = undefined;
++    var scratch: [32]u64 = undefined;
++
++    // The first step of a scroll back, nothing known yet, with the thumb
++    // beside the transcript's last row. Compared whole, that row matched
++    // nothing, the region ended above it, and it showed its new line at
++    // once while the rows above still slid towards it.
++    try (TestOpenCode{}).frames(6, 9, 3, 9, &old, &new);
++    const scroll = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(-3, scroll.lines);
++    try testing.expectEqual(0, scroll.top);
++    try testing.expectEqual(9, scroll.bottom);
++    try testing.expectEqual(36, scroll.right);
++}
++
++test "inferScroll: a still column stays out while its scroll shows nothing of it" {
++    const testing = std.testing;
++    var old: [16 * 40]u64 = undefined;
++    var new: [16 * 40]u64 = undefined;
++    var scratch: [32]u64 = undefined;
++
++    // No thumb on screen. The track is a bar, so it stays out either way;
++    // the blank column inside it (35) shows neither motion nor stillness:
++    // left out by the last scroll, it stays out; unknown, it moves with the
++    // rows.
++    try (TestOpenCode{}).frames(6, 99, 3, 99, &old, &new);
++    const kept = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, .{ .left = 0, .right = 34 }, &scratch).?;
++    try testing.expectEqual(34, kept.right);
++    const unknown = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(36, unknown.right);
++}
++
++test "inferScroll: text out to the edge moves with its rows" {
++    const testing = std.testing;
++    const alloc = testing.allocator;
++    var t = try terminal.Terminal.init(testing.io, alloc, .{ .cols = 40, .rows = 16 });
++    defer t.deinit(alloc);
++    var s = t.vtStream();
++    defer s.deinit();
++    var buf: [256]u8 = undefined;
++    var state: terminal.RenderState = .empty;
++    defer state.deinit(alloc);
++
++    // Every row written across the whole width, different on each line.
++    const Frame = struct {
++        fn draw(stream: anytype, b: []u8, first: usize) !void {
++            stream.nextSlice("\x1b[?2026h");
++            for (1..13) |row| stream.nextSlice(try std.fmt.bufPrint(
++                b,
++                "\x1b[{};1H\x1b[2Kline {d:0>3} of the answer, all the way out{c}",
++                .{ row, first + row, @as(u8, 'a' + @as(u8, @intCast((first + row) % 26))) },
++            ));
++            stream.nextSlice("\x1b[15;1H\x1b[2K> type here\x1b[?2026l");
++        }
++    };
++    s.nextSlice("\x1b[?1049h");
++    try Frame.draw(&s, &buf, 0);
++    try state.update(alloc, &t);
++    var old: [16 * 40]u64 = undefined;
++    testCellHashes(&state, 40, &old);
++    try Frame.draw(&s, &buf, 3);
++    try state.update(alloc, &t);
++    var new: [16 * 40]u64 = undefined;
++    testCellHashes(&state, 40, &new);
++    var scratch: [32]u64 = undefined;
++
++    const scroll = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(3, scroll.lines);
++    try testing.expectEqual(39, scroll.right);
++    // A column the last scroll left out comes back once it's seen moving.
++    const back = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, .{ .left = 0, .right = 36 }, &scratch).?;
++    try testing.expectEqual(39, back.right);
++}
++
++test "joinInferred: a region near the last one takes the rows of both" {
++    const testing = std.testing;
++    const last: terminal.Screen.RegionScroll = .{ .top = 0, .bottom = 25, .left = 0, .right = 96, .lines = -3 };
++
++    // A row more, and the scrollbar found: both kept.
++    const more = joinInferred(last, .{ .top = 0, .bottom = 26, .left = 0, .right = 93, .lines = -3 }).?;
++    try testing.expectEqual(0, more.top);
++    try testing.expectEqual(26, more.bottom);
++    try testing.expectEqual(93, more.right);
++
++    // A row fewer this time: the last region's row stays in.
++    const fewer = joinInferred(more, .{ .top = 1, .bottom = 26, .left = 0, .right = 93, .lines = -1 }).?;
++    try testing.expectEqual(0, fewer.top);
++    try testing.expectEqual(26, fewer.bottom);
++    try testing.expectEqual(-1, fewer.lines);
++
++    // Somewhere else, or a jump past its height: a region of its own.
++    try testing.expectEqual(null, joinInferred(last, .{ .top = 10, .bottom = 25, .left = 0, .right = 96, .lines = 2 }));
++    try testing.expectEqual(null, joinInferred(last, .{ .top = 0, .bottom = 25, .left = 0, .right = 96, .lines = 30 }));
++}
++
++test "mostlyChanged: a redraw over most of a region, not a few rows" {
++    const testing = std.testing;
++    var old: [16 * 40]u64 = undefined;
++    var new: [16 * 40]u64 = undefined;
++    const region: terminal.Screen.RegionScroll = .{ .top = 0, .bottom = 9, .left = 0, .right = 36, .lines = -3 };
++
++    // The transcript moved: most of its rows changed.
++    try (TestOpenCode{}).frames(6, 5, 3, 5, &old, &new);
++    try testing.expect(mostlyChanged(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, region));
++
++    // Only the thumb moved, and it is outside the region's columns anyway.
++    try (TestOpenCode{}).frames(6, 5, 6, 4, &old, &new);
++    try testing.expect(!mostlyChanged(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, region));
++
++    // Nothing changed.
++    try (TestOpenCode{}).frames(6, 5, 6, 5, &old, &new);
++    try testing.expect(!mostlyChanged(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, region));
++}
++
++test "inferScroll: a scrollbar's track stays out on a scroll's first step" {
++    const testing = std.testing;
++    var old: [16 * 40]u64 = undefined;
++    var new: [16 * 40]u64 = undefined;
++    var scratch: [32]u64 = undefined;
++
++    // Nothing kept from a region before, and the thumb, beside the last
++    // row, moved half a cell: its glyph changed, so its edges match
++    // nothing. The track is still a bar the text beside it doesn't have.
++    try (TestOpenCode{ .then_glyph = "█" }).frames(6, 9, 3, 9, &old, &new);
++    const scroll = inferScroll(.{ .cells = &old, .cols = 40 }, .{ .cells = &new, .cols = 40 }, null, &scratch).?;
++    try testing.expectEqual(-3, scroll.lines);
++    try testing.expectEqual(0, scroll.top);
++    try testing.expectEqual(9, scroll.bottom);
++    try testing.expectEqual(36, scroll.right);
++}
++
++test "inferScroll: beside a sidebar too, the track stays out on the first step" {
++    const testing = std.testing;
++    const screen: TestOpenCode = .{ .rows = 20, .sidebar = true, .then_glyph = "█" };
++    var old: [26 * 64]u64 = undefined;
++    var new: [26 * 64]u64 = undefined;
++    var scratch: [52]u64 = undefined;
++
++    // The scrollbar is at the transcript's edge, 27 columns from the
++    // screen's: the bar is looked for next to the sidebar's still columns.
++    try screen.frames(6, 5, 3, 5, &old, &new);
++    const scroll = inferScroll(.{ .cells = &old, .cols = 64 }, .{ .cells = &new, .cols = 64 }, null, &scratch).?;
++    try testing.expectEqual(0, scroll.top);
++    try testing.expectEqual(19, scroll.bottom);
++    try testing.expectEqual(36, scroll.right);
++}
++
+ test "shaderAnimates: cursor animates for a second after the cursor or the focus changes" {
+     const testing = std.testing;
+     try testing.expect(shaderAnimates(.cursor, true, 0));

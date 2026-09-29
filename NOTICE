@@ -34,7 +34,7 @@ is not affiliated with or endorsed by these projects, and the marks remain their
   spinner, taken off its background and recolored; they are Anthropic's.
 - OpenAI and the Blossom mark are trademarks of OpenAI. Path data from the Codex repository
   (https://github.com/openai/codex, codex-rs/tui/src/empty_state_animation/paths.rs),
-  Apache-2.0.
+  Apache-2.0 (Licenses/Codex.txt). OpenAI Codex, Copyright 2025 OpenAI.
 - The OpenCode mark is OpenCode's, from https://github.com/anomalyco/opencode
-  (packages/identity/mark.svg), MIT License, Copyright (c) 2025 opencode.
-- The pi mark is pi's, from https://pi.dev/logo-auto.svg.
+  (packages/identity/mark.svg), MIT License (Licenses/OpenCode.txt), Copyright (c) 2025 opencode.
+- The pi mark is pi's, from https://pi.dev/logo-auto.svg. The site states no license for it.

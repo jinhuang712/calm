@@ -15,11 +15,20 @@ struct WelcomeView: View {
         let open: (SearchPanelModel.Item) -> Void
     }
 
+    /// Where the page stands: over the whole window (no session open), or in the main area beside
+    /// the sidebar (sessions open, none chosen), where the sidebar's footer already has the three
+    /// ways to start.
+    enum Placement {
+        case window
+        case mainArea
+    }
+
     @Bindable var model: WelcomeModel
     let style: SidebarStyle
     /// The terminal's background: the page stands where the sessions would.
     let background: Color
     let actions: Actions
+    var placement = Placement.window
 
     @FocusState private var fieldFocused: Bool
     @State private var caret: TextSelection?
@@ -31,16 +40,23 @@ struct WelcomeView: View {
         GeometryReader { proxy in
             let stacked = proxy.size.width < 760.scaled
             ZStack(alignment: .bottom) {
-                switch model.content {
-                case .actions:
+                switch (model.content, placement) {
+                case (.actions, .window):
                     ViewThatFits(in: .vertical) {
                         actionsPage
                         ScrollView { actionsPage.padding(.vertical, 24.scaled) }
                     }
-                case .lists:
+                case (.actions, .mainArea):
+                    // Nothing to list yet, and the ways to start are in the sidebar: the mark alone.
+                    WelcomeMark(clock: model.clock, isDark: style.isDark, side: 60)
+                        .padding(.bottom, 60.scaled)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case (.lists, _):
                     listsPage(width: proxy.size.width, stacked: stacked)
-                    HintLine(style: style, actions: actions)
-                        .padding(.bottom, 34.scaled)
+                    if placement == .window {
+                        HintLine(style: style, actions: actions)
+                            .padding(.bottom, 34.scaled)
+                    }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -139,18 +155,21 @@ struct WelcomeView: View {
     private func listsPage(width: CGFloat, stacked: Bool) -> some View {
         let wide = model.showsBothColumns && !stacked
         let contentWidth = min((wide ? 880 : 520).scaled, width - 48.scaled)
+        // Beside the sidebar the mark is a size down: the sidebar already says whose window it is.
+        let small = stacked || placement == .mainArea
         return VStack(spacing: 0) {
-            WelcomeMark(clock: model.clock, isDark: style.isDark, side: stacked ? 48 : 60)
+            WelcomeMark(clock: model.clock, isDark: style.isDark, side: small ? 48 : 60)
             searchField(stacked: stacked)
-                .padding(.top, (stacked ? 26 : 34).scaled)
+                .padding(.top, (small ? 26 : 34).scaled)
             columns(stacked: stacked)
                 .padding(.top, (stacked ? 22 : 30).scaled)
         }
         .frame(width: contentWidth)
-        // The title strip's height and a little more, so the mark stands level with the search
-        // panel's top edge; room below for the hint line.
-        .padding(.top, CalmWindow.titleStripHeight + 8.scaled)
-        .padding(.bottom, 84.scaled)
+        // Over the window: the title strip's height and a little more, so the mark stands level with
+        // the search panel's top edge, and room below for the hint line. The main area already
+        // starts under the strip, and has no hint line.
+        .padding(.top, placement == .window ? CalmWindow.titleStripHeight + 8.scaled : 64.scaled)
+        .padding(.bottom, (placement == .window ? 84 : 32).scaled)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 

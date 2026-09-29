@@ -132,10 +132,48 @@ extension MainWindowController {
         )
     }
 
-    /// ⌘K. The welcome page has a search field of its own, so there the caret goes to it instead of
-    /// a second search opening over it.
+    /// The pages that stand in for a session: the welcome page with none open, the main area's page
+    /// with none chosen.
+    func updatePages() {
+        updateWelcomePage()
+        updateNoSessionPage()
+    }
+
+    /// Sessions are open but none is chosen: the main area shows what waits, or search.
+    func updateNoSessionPage() {
+        guard manager.workspace.selectedLayout == nil, !manager.workspace.sessions.isEmpty else {
+            noSessionPage.hide()
+            return
+        }
+        let background = TerminalEngine.shared.config?.backgroundColor ?? NSColor(white: 0.15, alpha: 1)
+        noSessionPage.show(
+            manager: manager, style: sidebarStyle, background: background,
+            actions: NoSessionView.Actions(open: { [weak self] id in self?.select(id) }, welcome: welcomeActions),
+        )
+    }
+
+    /// Back from something laid over the window (Settings, search, the command palette): the keys go
+    /// to the session on screen, or with none chosen to the main area's page.
+    func refocus() {
+        if let focusedPane {
+            window?.makeFirstResponder(focusedPane)
+        } else {
+            noSessionPage.focus()
+        }
+    }
+
+    /// ⌘1…9: the session at that place in the sidebar, counting from the top.
+    func selectSession(atPosition index: Int) -> Bool {
+        let sessions = manager.orderedSessions
+        guard sessions.indices.contains(index) else { return false }
+        select(sessions[index].id)
+        return true
+    }
+
+    /// ⌘K. The welcome page, and the main area's lists, have a search field of their own, so there
+    /// the caret goes to it instead of a second search opening over it.
     func searchSessions() {
-        if !welcomePage.focusSearch() {
+        if !welcomePage.focusSearch(), !noSessionPage.focusSearch() {
             toggleSearch()
         }
     }

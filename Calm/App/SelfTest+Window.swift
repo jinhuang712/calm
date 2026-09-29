@@ -20,7 +20,8 @@
                 + "accent \(NSColor(sidebarStyle.accent).hexString), theme chrome \(themed)"
             let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), title \(titleHost?.frame ?? .zero), "
                 + "overlays \(overlays)"
-            return "\(frames); \(chrome); welcome \(welcomePage.isShowing); window title \(window?.title ?? ""); \(titleMenuForTesting)"
+            return "\(frames); \(chrome); welcome \(welcomePage.isShowing); no-session page \(noSessionPage.isShowing); "
+                + "window title \(window?.title ?? ""); \(titleMenuForTesting)"
         }
 
         /// Where the title's ⋯ button is, and whether a click lands on it (and not beside it).
@@ -315,14 +316,14 @@
             return true
         }
 
-        /// The welcome page. A headless window is never key, so neither clicks nor keys reach it:
-        /// these drive its model the way they would. `welcome_type:<text>` types into the search;
-        /// `welcome_key:down|up|left|right|enter|escape` presses that key; `welcome_project:<name>`
-        /// and `welcome_session:<n>` click that row; `welcome_state` logs what the page holds.
-        /// False while the page isn't up.
+        /// The welcome page, or the main area's lists with no session chosen. A headless window is
+        /// never key, so neither clicks nor keys reach it: these drive its model the way they would.
+        /// `welcome_type:<text>` types into the search; `welcome_key:down|up|left|right|enter|escape`
+        /// presses that key; `welcome_project:<name>` and `welcome_session:<n>` click that row;
+        /// `welcome_state` logs what the page holds. False while neither is up.
         private func performWelcomeActionForTesting(_ action: String) -> Bool {
-            guard action.hasPrefix("welcome_") else { return performLinkActionForTesting(action) }
-            guard welcomePage.isShowing, let model = welcomePage.model else { return false }
+            guard action.hasPrefix("welcome_") else { return performNoSessionActionForTesting(action) }
+            guard let model = welcomePage.model ?? noSessionPage.model?.welcome else { return false }
             let argument = String(action.drop { $0 != ":" }.dropFirst())
             switch String(action.prefix { $0 != ":" }) {
             case "welcome_type":
@@ -380,6 +381,35 @@
             let result = "\(hook.state.reportName), \(hook.backgroundShells) shells, ok \(response.ok)"
             FileHandle.standardError.write(Data("calm-selftest: hook_stop → \(result)\n".utf8))
             return response.ok
+        }
+
+        /// The main area with no session chosen, driven like the welcome page: `nosession_key:down|up|enter`
+        /// presses that key on the waiting cards; `nosession_state` logs what the page shows.
+        /// False while the page isn't up.
+        private func performNoSessionActionForTesting(_ action: String) -> Bool {
+            guard action.hasPrefix("nosession_") else { return performLinkActionForTesting(action) }
+            guard let model = noSessionPage.model else { return false }
+            switch action {
+            case "nosession_key:down":
+                model.step(1)
+            case "nosession_key:up":
+                model.step(-1)
+            case "nosession_key:enter":
+                guard let id = model.selected else { return false }
+                select(id)
+            case "nosession_state":
+                let titles = model.waitingIDs.map { id in
+                    manager.workspace.session(id).map { $0.title(agentTitle: $0.agent?.tail?.title) } ?? "?"
+                }
+                let selected = model.selected.flatMap { model.waitingIDs.firstIndex(of: $0) }.map(String.init) ?? "none"
+                let shows = model.content == .lists ? "lists (\(model.welcome.content))" : "waiting \(titles)"
+                let line = "no-session page: \(shows), selected \(selected), searched \(model.searched), "
+                    + "first responder \(window?.firstResponder.map { String(describing: type(of: $0)) } ?? "none")"
+                FileHandle.standardError.write(Data("calm-selftest: \(line)\n".utf8))
+            default:
+                return false
+            }
+            return true
         }
 
         /// Smart links (F8): the marks at rest, and the tag under ⌘.

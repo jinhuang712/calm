@@ -27,6 +27,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
     lazy var welcomePage = WelcomePage(container: container)
+    lazy var noSessionPage = NoSessionPage(mainArea: mainArea)
     lazy var settingsPage = SettingsPage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
     /// Off until the saved size is back, so restoring it isn't taken for the user leaving the
@@ -133,7 +134,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
-        updateWelcomePage()
+        updatePages()
         // A new, reopened or closed-into session isn't the one a file was opened over.
         closeViewer(unlessOver: manager.workspace.selectedLayout?.focusedSessionID)
         guard let layout = manager.workspace.selectedLayout else {
@@ -158,8 +159,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     /// No session is selected: with none open the welcome page covers the window, and when the
-    /// one on screen was closed the main area is left empty for the user to choose from the
-    /// sidebar, rather than Calm choosing for them. No pane takes the keyboard.
+    /// one on screen was closed the main area shows what waits for a look, or search, for the user
+    /// to choose from, rather than Calm choosing for them (`NoSessionPage`). No pane takes the keyboard.
     private func showNoSession() {
         workspaces.values.forEach { $0.isHidden = true }
         restorePaneVisibility()
@@ -250,13 +251,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         showSelectedLayout(animated: true)
     }
 
-    func selectSession(atPosition index: Int) -> Bool {
-        let sessions = manager.orderedSessions
-        guard sessions.indices.contains(index) else { return false }
-        select(sessions[index].id)
-        return true
-    }
-
     func requestCloseSession(_ id: Session.ID) {
         let close = { [weak self] in
             guard let self else { return }
@@ -312,8 +306,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }
-        // The welcome page and Settings take the chrome's colors too (they settle after they first show).
-        updateWelcomePage()
+        // The welcome page, the main area's page and Settings take the chrome's colors too (they
+        // settle after they first show).
+        updatePages()
         if settingsPage.isShowing {
             settingsPage.restyle(style: style, background: background, actions: settingsActions)
         }
@@ -390,9 +385,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         guard let host = searchHost else { return }
         searchHost = nil
         Motion.fadeOutAndRemove(host, duration: 0.1)
-        if let focusedPane {
-            window?.makeFirstResponder(focusedPane)
-        }
+        refocus()
     }
 
     /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session.
@@ -424,9 +417,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         guard let host = paletteHost else { return }
         paletteHost = nil
         host.removeFromSuperview()
-        if let focusedPane {
-            window?.makeFirstResponder(focusedPane)
-        }
+        refocus()
     }
 
     // MARK: TerminalSurfaceHost
@@ -629,9 +620,7 @@ extension MainWindowController {
         guard settingsPage.isShowing else { return }
         settingsPage.hide()
         peek?.isEnabled = peekWasEnabled
-        if let focusedPane {
-            window?.makeFirstResponder(focusedPane)
-        }
+        refocus()
     }
 
     var settingsActions: SettingsView.Actions {

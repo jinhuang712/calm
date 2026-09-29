@@ -30,6 +30,7 @@ says why in its header, and is worth offering to the fork or upstream; drop it o
 | Patch | What it does |
 |---|---|
 | `0007-read-text-drawn-row.patch` | `ghostty_surface_read_text` reports a row's position where smooth scrolling draws it (`tl_px_y` plus the viewport's pixel shift), as 0005 does for the IME position. Calm's link marks and cell hit-testing (Copy Cell, the link tag) place things on rows from it. |
+| `0008-region-scroll-pinned-rows.patch` | A region scroll animation leaves an edge row that the program repainted in place where it is, and moves only the rows between. Claude Code redraws its "Jump to bottom" hint on its transcript's last row after every scroll while you scroll back; 0005 animated that row with the rest, so the old copy slid away as a ghost while the new one slid in, and each scroll showed the hint two or three times. A row counts as repainted in place when a run of at least 8 cells with a background color and some text is unchanged in the same cells, and mostly isn't what the scroll moved in (`repaintedInPlace`). Plain text never counts, since consecutive lines often share long runs. Zig tests: `zig build test -Dtest-filter=EdgeRows -Dtest-filter=repaintedInPlace -Dtest-filter=PinnedEdges`. |
 
 After moving to a newer Ghostty, re-check that these still apply; one that doesn't is updated
 here, by hand, against the new 0005.

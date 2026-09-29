@@ -1,0 +1,580 @@
+Subject: region scroll animation leaves rows repainted in place where they are
+
+smooth-scroll animates a program's region scroll by drawing the region's
+content where it was and easing it home, with the rows that scrolled out
+sliding away as ghosts. A program that keeps an overlay inside the region,
+redrawing it on the same row after every scroll (Claude Code's "Jump to
+bottom" hint on its transcript's last row), had that row animated too: the
+old copy slid away as a ghost while the new one slid in, so a scroll drew
+the hint two or three times. An edge row whose new frame repaints a run of
+the cells it had before is now drawn in place, and only the rows between the
+pinned ones move.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005.
+
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -65,6 +65,217 @@
+ /// one is taken last everywhere (inside `draw_mutex` by drawFrame, inside
+ /// the state mutex by updateFrame and the surface) and nothing is taken
+ /// while it is held, so it can't be part of a deadlock.
++/// The edge rows of a scrolled region that the program repainted where
++/// they were instead of letting them scroll: an overlay pinned inside the
++/// region, such as Claude Code's "Jump to bottom" hint on the last row of
++/// its transcript. They are drawn in place, and a region scroll animation
++/// moves only the rows between them (see `repaintedInPlace`). Animating
++/// them with the rest drew the overlay twice, the old copy sliding away as
++/// a ghost row while the new one slid in.
++const PinnedEdges = struct {
++    top: bool = false,
++    bottom: bool = false,
++
++    /// The part of `scroll` that moves: the region without its pinned
++    /// rows. Null when that leaves nothing that keeps any content across
++    /// the scroll, which is then no motion to draw.
++    fn moving(
++        self: PinnedEdges,
++        scroll: terminal.Screen.RegionScroll,
++    ) ?terminal.Screen.RegionScroll {
++        var region = scroll;
++        if (self.top) region.top += 1;
++        if (self.bottom) {
++            if (region.bottom == 0) return null;
++            region.bottom -= 1;
++        }
++        if (region.bottom < region.top) return null;
++        const height: u32 = @as(u32, region.bottom - region.top) + 1;
++        if (@abs(region.lines) >= height) return null;
++        return region;
++    }
++};
++
++/// A region scroll drained from the terminal, with the edge rows the
++/// program repainted in place in the same frame.
++const PendingScroll = struct {
++    scroll: terminal.Screen.RegionScroll,
++    pinned: PinnedEdges = .{},
++};
++
++/// Whether `new`, an edge row of a scrolled region, carries something the
++/// program repainted where it was rather than content the scroll moved: an
++/// overlay, a run of at least `pinned_run` cells with a background color
++/// and some text in it that are what `old`, the row there in the previous
++/// frame, had in the same cells, and mostly not what `source`, the row the
++/// scroll moved into it, had (empty when that row is outside the region).
++/// Such a run can sit over whatever the row holds. Plain text is never an
++/// overlay: consecutive lines often share long runs in the same cells (a
++/// table's rule, indentation, a bar), and the scroll animates them.
++fn repaintedInPlace(
++    new: []const terminal.RenderState.Cell,
++    old: []const terminal.RenderState.Cell,
++    source: []const terminal.RenderState.Cell,
++) bool {
++    var run: usize = 0;
++    var run_text: usize = 0;
++    var run_moved: usize = 0;
++    for (new, 0..) |cell, x| {
++        const boxed = cell.raw.hasStyling() and cell.style.bg_color != .none;
++        if (!boxed or x >= old.len or !sameCell(cell, old[x])) {
++            run = 0;
++            run_text = 0;
++            run_moved = 0;
++            continue;
++        }
++        run += 1;
++        if (cell.raw.hasText() and cell.raw.codepoint() != ' ') run_text += 1;
++        if (x < source.len and sameCell(cell, source[x])) run_moved += 1;
++        if (run >= pinned_run and run_text >= pinned_text and run_moved * 2 < run) return true;
++    }
++    return false;
++}
++
++/// The shortest run that counts as a pinned overlay, and the text it must
++/// hold: shorter than a hint such as Claude Code's " Jump to bottom
++/// (click) ↓ " (25 cells on a grey box), longer than chance, and not a band
++/// of color with nothing in it.
++const pinned_run = 8;
++const pinned_text = 4;
++
++/// Same character and style. The style is only defined on styled cells.
++fn sameCell(a: terminal.RenderState.Cell, b: terminal.RenderState.Cell) bool {
++    if (a.raw.codepoint() != b.raw.codepoint()) return false;
++    if (a.raw.hasStyling() != b.raw.hasStyling()) return false;
++    return !a.raw.hasStyling() or a.style.eql(b.style);
++}
++
++/// The previous frame's rows that decide whether a region scroll left an
++/// edge row repainted in place: `slots` rows of `cols` cells per scroll,
++/// taken before the render state takes the new frame (`snapshot`) and
++/// compared with it after (`pinned`).
++const EdgeRows = struct {
++    cells: std.ArrayListUnmanaged(terminal.RenderState.Cell) = .empty,
++    /// One row of the new frame, to compare.
++    new: std.ArrayListUnmanaged(terminal.RenderState.Cell) = .empty,
++    cols: usize = 0,
++
++    /// Per scroll: its top and bottom rows, and the rows it moves into them.
++    const slots = 4;
++
++    const blank: terminal.RenderState.Cell = .{
++        .raw = terminal.page.Cell.init(0),
++        .grapheme = &.{},
++        .style = .{},
++    };
++
++    fn deinit(self: *EdgeRows, alloc: Allocator) void {
++        self.cells.deinit(alloc);
++        self.new.deinit(alloc);
++    }
++
++    /// The rows of `scroll` kept in each slot, when inside the region: its
++    /// top and bottom rows, then the rows whose content the scroll moves
++    /// into the top and into the bottom (row y shows row y + lines of the
++    /// frame before).
++    fn slotRows(scroll: terminal.Screen.RegionScroll) [slots]?usize {
++        const top: isize = scroll.top;
++        const bottom: isize = scroll.bottom;
++        const into_top = top + scroll.lines;
++        const into_bottom = bottom + scroll.lines;
++        return .{
++            @intCast(top),
++            @intCast(bottom),
++            if (into_top >= top and into_top <= bottom) @intCast(into_top) else null,
++            if (into_bottom >= top and into_bottom <= bottom) @intCast(into_bottom) else null,
++        };
++    }
++
++    /// One row of `state` as cells to compare. The style is read only for a
++    /// styled cell, the one kind it is defined for.
++    fn copyRow(
++        alloc: Allocator,
++        state: *const terminal.RenderState,
++        y: usize,
++        cols: usize,
++        out: *std.ArrayListUnmanaged(terminal.RenderState.Cell),
++    ) Allocator.Error!void {
++        const rows = state.row_data.items(.cells);
++        const index = state.viewportStart() + y;
++        if (y >= state.rows or index >= rows.len) {
++            try out.appendNTimes(alloc, blank, cols);
++            return;
++        }
++        const cells = rows[index].slice();
++        for (0..cols) |x| {
++            if (x >= cells.len) {
++                try out.append(alloc, blank);
++                continue;
++            }
++            const raw = cells.items(.raw)[x];
++            try out.append(alloc, .{
++                .raw = raw,
++                .grapheme = &.{},
++                .style = if (raw.hasStyling()) cells.items(.style)[x] else .{},
++            });
++        }
++    }
++
++    /// Before `old`, the render state of the frame on screen, takes the new
++    /// frame: the rows each of `scrolls` needs, as `old` has them.
++    fn snapshot(
++        self: *EdgeRows,
++        alloc: Allocator,
++        old: *const terminal.RenderState,
++        scrolls: []const terminal.Screen.RegionScroll,
++    ) void {
++        self.cells.clearRetainingCapacity();
++        self.cols = old.cols;
++        if (old.rows == 0 or old.cols == 0) return;
++        for (scrolls) |scroll| for (slotRows(scroll)) |slot| {
++            if (slot) |y| {
++                copyRow(alloc, old, y, old.cols, &self.cells) catch return;
++            } else {
++                self.cells.appendNTimes(alloc, blank, old.cols) catch return;
++            }
++        };
++    }
++
++    /// Which edge rows of the `index`th snapshotted scroll `new`, the render
++    /// state once it has taken the new frame, shows repainted in place.
++    fn pinned(
++        self: *EdgeRows,
++        alloc: Allocator,
++        new: *const terminal.RenderState,
++        scroll: terminal.Screen.RegionScroll,
++        index: usize,
++    ) PinnedEdges {
++        const cols = self.cols;
++        // A new grid size has nothing to compare against.
++        if (cols == 0 or cols != new.cols) return .{};
++        const start = index * slots * cols;
++        if (self.cells.items.len < start + slots * cols) return .{};
++        const kept = self.cells.items[start..][0 .. slots * cols];
++
++        const Edge = struct { y: usize, old: usize, source: usize };
++        const edges = [2]Edge{
++            .{ .y = scroll.top, .old = 0, .source = 2 },
++            .{ .y = scroll.bottom, .old = 1, .source = 3 },
++        };
++        var result: [2]bool = .{ false, false };
++        for (edges, 0..) |edge, i| {
++            self.new.clearRetainingCapacity();
++            copyRow(alloc, new, edge.y, cols, &self.new) catch return .{};
++            result[i] = repaintedInPlace(
++                self.new.items,
++                kept[edge.old * cols ..][0..cols],
++                kept[edge.source * cols ..][0..cols],
++            );
++        }
++        return .{ .top = result[0], .bottom = result[1] };
++    }
++};
++
+ fn PresentedRegions(comptime slots: usize) type {
+     return struct {
+         const Self = @This();
+@@ -273,8 +484,12 @@
+         /// in, and the clock the shifts decay against. `region_anim_screen`
+         /// is the screen they were recorded on; a switch drops them.
+         region_anims: std.ArrayListUnmanaged(RegionAnim) = .empty,
+-        pending_region_scrolls: std.ArrayListUnmanaged(terminal.Screen.RegionScroll) = .empty,
++        pending_region_scrolls: std.ArrayListUnmanaged(PendingScroll) = .empty,
+         region_anim_tick: ?std.Io.Timestamp = null,
++
++        /// The previous frame's rows that decide whether a region scroll
++        /// left an edge row repainted in place (see `EdgeRows`).
++        edge_rows: EdgeRows = .{},
+         region_anim_screen: ?terminal.ScreenSet.Key = null,
+ 
+         /// The region scroll animations of the frame on screen, for the
+@@ -959,6 +1174,7 @@
+             self.clearRegionAnims();
+             self.region_anims.deinit(self.alloc);
+             self.pending_region_scrolls.deinit(self.alloc);
++            self.edge_rows.deinit(self.alloc);
+             self.ghost_bg_upload.deinit(self.alloc);
+             self.ghost_fg_upload.deinit(self.alloc);
+             self.fg_upload_lists.deinit(self.alloc);
+@@ -1204,6 +1420,9 @@
+         /// that left: they need no terminal access, only the frame before.
+         const RegionAnim = struct {
+             region: terminal.Screen.RegionScroll,
++            /// Edge rows the latest scroll left repainted in place: drawn
++            /// where they are, outside the animation (see `moving`).
++            pinned: PinnedEdges = .{},
+             /// Pixels the content is drawn below its final place (negative:
+             /// above).
+             shift: f64,
+@@ -1228,9 +1447,15 @@
+                 self.ghosts.deinit(alloc);
+             }
+ 
+-            /// Grid-pixel extent of the region: left, top, right, bottom.
++            /// The rows that move: the region without its pinned edge rows.
++            fn moving(self: *const RegionAnim) terminal.Screen.RegionScroll {
++                return self.pinned.moving(self.region) orelse self.region;
++            }
++
++            /// Grid-pixel extent of the rows that move: left, top, right,
++            /// bottom.
+             fn rect(self: *const RegionAnim, cell_w: f32, cell_h: f32) [4]f32 {
+-                const r = self.region;
++                const r = self.moving();
+                 return .{
+                     @as(f32, @floatFromInt(r.left)) * cell_w,
+                     @as(f32, @floatFromInt(r.top)) * cell_h,
+@@ -1364,18 +1589,24 @@
+ 
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             const cols: usize = self.cells.size.columns;
+-            for (self.pending_region_scrolls.items) |scroll| {
++            for (self.pending_region_scrolls.items) |pending| {
++                // Pinned edge rows stay where they are; only the rows
++                // between them move. An animation is keyed by the whole
++                // region, since whether a row is pinned can change from one
++                // scroll to the next.
++                const scroll = pending.pinned.moving(pending.scroll) orelse continue;
+                 const anim: *RegionAnim = anim: {
+                     for (self.region_anims.items) |*anim| {
+-                        if (anim.region.sameRegion(scroll)) break :anim anim;
++                        if (anim.region.sameRegion(pending.scroll)) break :anim anim;
+                     }
+                     if (self.region_anims.items.len >= shaderpkg.Uniforms.max_region_anims) continue;
+                     self.region_anims.append(self.alloc, .{
+-                        .region = scroll,
++                        .region = pending.scroll,
+                         .shift = 0,
+                     }) catch continue;
+                     break :anim &self.region_anims.items[self.region_anims.items.len - 1];
+                 };
++                anim.pinned = pending.pinned;
+ 
+                 // The new content is drawn where the old was: `lines` rows
+                 // away. Beyond the region's height nothing of the old
+@@ -1388,9 +1619,11 @@
+                 );
+                 for (anim.ghosts.items) |*ghost| ghost.final_row -= scroll.lines;
+ 
+-                // The rows that left the region, as the previous frame drew
+-                // them. A scroll up loses rows at the top, a scroll down at
+-                // the bottom; each ends up `lines` rows from where it was.
++                // The rows that left the moving rows, as the previous frame
++                // drew them. A scroll up loses rows at the top, a scroll
++                // down at the bottom; each ends up `lines` rows from where
++                // it was. Next to a pinned row that is the row the pinned
++                // one now covers, which slides under it.
+                 const count: usize = @intCast(@abs(scroll.lines));
+                 const first: usize = if (scroll.lines > 0)
+                     scroll.top
+@@ -1445,8 +1678,9 @@
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             var total: usize = 0;
+             for (self.region_anims.items) |*anim| {
+-                const top: f64 = @as(f64, @floatFromInt(anim.region.top)) * cell_h;
+-                const bottom: f64 = @as(f64, @floatFromInt(@as(u32, anim.region.bottom) + 1)) * cell_h;
++                const region = anim.moving();
++                const top: f64 = @as(f64, @floatFromInt(region.top)) * cell_h;
++                const bottom: f64 = @as(f64, @floatFromInt(@as(u32, region.bottom) + 1)) * cell_h;
+                 var i: usize = 0;
+                 while (i < anim.ghosts.items.len) {
+                     const ghost = &anim.ghosts.items[i];
+@@ -1557,13 +1791,18 @@
+                 .cols = self.cells.size.columns,
+                 .rows = self.cells.size.rows,
+             };
+-            for (self.region_anims.items, 0..) |*anim, i| shifts.append(.{
+-                .top = anim.region.top,
+-                .bottom = anim.region.bottom,
+-                .left = anim.region.left,
+-                .right = anim.region.right,
+-                .offset = self.uniforms.region_shift[i][0],
+-            });
++            // The rows that move, as the shaders draw them: a pinned row is
++            // drawn in place, so a click there needs nothing undone.
++            for (self.region_anims.items, 0..) |*anim, i| {
++                const region = anim.moving();
++                shifts.append(.{
++                    .top = region.top,
++                    .bottom = region.bottom,
++                    .left = region.left,
++                    .right = region.right,
++                    .offset = self.uniforms.region_shift[i][0],
++                });
++            }
+             return shifts;
+         }
+ 
+@@ -1898,6 +2137,14 @@
+                 // outside of this critical section, keeping our lock
+                 // hold time as short as possible.
+                 //
++                // Region scrolls compare their edge rows before and after
++                // the update to find rows repainted in place.
++                if (self.config.smooth_scroll) self.edge_rows.snapshot(
++                    self.alloc,
++                    &self.terminal_state,
++                    state.terminal.screens.active.region_scrolls.slice(),
++                );
++
+                 // Smooth scrolling captures the rows a shifted grid reveals
+                 // as overscan; with it off this is a plain beginUpdate.
+                 try self.terminal_state.beginShiftedUpdate(
+@@ -1914,10 +2161,28 @@
+                 {
+                     const scrolls = &state.terminal.screens.active.region_scrolls;
+                     if (self.config.smooth_scroll) {
+-                        for (scrolls.slice()) |scroll| {
+-                            self.pending_region_scrolls.append(self.alloc, scroll) catch break;
++                        // Comparing edge rows needs the cells' styles, which
++                        // the update only fills in at endUpdate, outside this
++                        // lock; a frame with a scroll completes it here
++                        // (endUpdate needs no terminal access, and the later
++                        // call then has nothing left to do).
++                        if (scrolls.len > 0) self.terminal_state.endUpdate();
++
++                        // The hit test sees the rows that move, as drawn.
++                        var moving: [terminal.Screen.RegionScrolls.capacity]terminal.Screen.RegionScroll = undefined;
++                        var moving_len: usize = 0;
++                        for (scrolls.slice(), 0..) |scroll, i| {
++                            const pinned = self.edge_rows.pinned(self.alloc, &self.terminal_state, scroll, i);
++                            self.pending_region_scrolls.append(self.alloc, .{
++                                .scroll = scroll,
++                                .pinned = pinned,
++                            }) catch break;
++                            if (pinned.moving(scroll)) |region| {
++                                moving[moving_len] = region;
++                                moving_len += 1;
++                            }
+                         }
+-                        self.regionsScrolled(scrolls.slice());
++                        self.regionsScrolled(moving[0..moving_len]);
+                     }
+                     scrolls.clear();
+                 }
+@@ -4338,3 +4603,166 @@
+     try testing.expectEqual(0, offset(&regions, 103));
+     try testing.expectEqual(0, offset(&regions, 0));
+ }
++
++const test_cols = 60;
++const test_hint = " Jump to bottom (click) v ";
++const test_hint_x = 30;
++
++/// A row of `test_cols` cells holding `text` from column 0, and, when
++/// `hint` is set, a hint drawn over it at `test_hint_x` in a styled box.
++fn testPinnedRow(text: []const u8, hint: bool) [test_cols]terminal.RenderState.Cell {
++    var row: [test_cols]terminal.RenderState.Cell = undefined;
++    for (&row, 0..) |*cell, x| {
++        const in_hint = hint and x >= test_hint_x and x < test_hint_x + test_hint.len;
++        const cp: u21 = if (in_hint)
++            test_hint[x - test_hint_x]
++        else if (x < text.len)
++            text[x]
++        else
++            ' ';
++        var raw = terminal.page.Cell.init(cp);
++        var style: terminal.Style = .{};
++        if (in_hint) {
++            raw.style_id = 1;
++            style = .{ .bg_color = .{ .rgb = .{ .r = 55, .g = 55, .b = 55 } } };
++        }
++        cell.* = .{ .raw = raw, .grapheme = &.{}, .style = style };
++    }
++    return row;
++}
++
++test "repaintedInPlace: a hint drawn again on a scrolled row stays in place" {
++    const testing = std.testing;
++    // Claude Code scrolling back: the region moved down a row, so its last
++    // row now holds what the row above had, and the hint was drawn over it
++    // again where it was.
++    const old = testPinnedRow("  123", true);
++    const source = testPinnedRow("  122", false);
++    const new = testPinnedRow("  122", true);
++    try testing.expect(repaintedInPlace(&new, &old, &source));
++
++    // Scrolling forward, the row is the one entering: no source.
++    const entering = testPinnedRow("  124", true);
++    try testing.expect(repaintedInPlace(&entering, &old, &testPinnedRow("", false)));
++}
++
++test "repaintedInPlace: a hint over a full line of text still counts" {
++    const testing = std.testing;
++    const old = testPinnedRow("The renderer draws the grid shifted by a few pixels.", true);
++    const new = testPinnedRow("Another line of prose runs under the hint as it streams", true);
++    try testing.expect(repaintedInPlace(&new, &old, &testPinnedRow("", false)));
++}
++
++test "repaintedInPlace: scrolled and new content are not in place" {
++    const testing = std.testing;
++    const blank = testPinnedRow("", false);
++
++    // Streaming: the top row now holds what the row below it had.
++    const top_old = testPinnedRow("first line of the answer", false);
++    const top_new = testPinnedRow("second line of the answer", false);
++    try testing.expect(!repaintedInPlace(&top_new, &top_old, &top_new));
++
++    // A new line entering where the last one was: words line up only in
++    // short stretches.
++    const bottom_old = testPinnedRow("alpha beta gamma delta epsilon", false);
++    const bottom_new = testPinnedRow("alpha zeta omega sigma epsilons", false);
++    try testing.expect(!repaintedInPlace(&bottom_new, &bottom_old, &blank));
++
++    // A row identical to the one it scrolled from (a table's border) moved.
++    const border = testPinnedRow("+----------+----------+", false);
++    try testing.expect(!repaintedInPlace(&border, &border, &border));
++
++    // Nothing but spaces is nothing to pin.
++    try testing.expect(!repaintedInPlace(&blank, &blank, &blank));
++}
++
++test "PinnedEdges: the rows that move leave the pinned ones out" {
++    const testing = std.testing;
++    const scroll: terminal.Screen.RegionScroll = .{ .top = 1, .bottom = 29, .left = 0, .right = 99, .lines = -1 };
++    const bottom = (PinnedEdges{ .bottom = true }).moving(scroll).?;
++    try testing.expectEqual(1, bottom.top);
++    try testing.expectEqual(28, bottom.bottom);
++    const both = (PinnedEdges{ .top = true, .bottom = true }).moving(scroll).?;
++    try testing.expectEqual(2, both.top);
++    try testing.expectEqual(28, both.bottom);
++    try testing.expectEqual(scroll, (PinnedEdges{}).moving(scroll).?);
++
++    // Nothing left that keeps content across the scroll is no motion.
++    const small: terminal.Screen.RegionScroll = .{ .top = 3, .bottom = 4, .left = 0, .right = 9, .lines = 1 };
++    try testing.expectEqual(null, (PinnedEdges{ .bottom = true }).moving(small));
++}
++
++/// Feeds `steps` scrolls of the region rows 2–8 (of 12) to a terminal the way
++/// Claude Code scrolls its transcript, `lines` rows each (negative: back),
++/// drawing the hint again on the region's last row after each when `hint`,
++/// and checks what `EdgeRows` makes of every step. Every line's bar runs on
++/// under the hint, the case that once kept the hint from counting.
++fn testEdgeRowsScrolling(lines: i32, steps: usize, hint: bool, expect_bottom: bool) !void {
++    const testing = std.testing;
++    const alloc = testing.allocator;
++    var t = try terminal.Terminal.init(testing.io, alloc, .{ .cols = 60, .rows = 12 });
++    defer t.deinit(alloc);
++    var s = t.vtStream();
++    defer s.deinit();
++    var buf: [256]u8 = undefined;
++
++    const hint_seq = "\x1b[8;31H\x1b[48;2;255;0;255m\x1b[38;2;255;255;255m Jump to bottom (click) \x1b[0m";
++    s.nextSlice("\x1b[?1049h\x1b[H\x1b[2J");
++    var line: usize = 0;
++    for (2..9) |row| {
++        s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[{};1H\x1b[2Kline {:0>3} ################################################", .{ row, line }));
++        line += 1;
++    }
++    if (hint) s.nextSlice(hint_seq);
++
++    var state: terminal.RenderState = .empty;
++    defer state.deinit(alloc);
++    try state.update(alloc, &t);
++    t.screens.active.region_scrolls.clear();
++
++    var edges: EdgeRows = .{};
++    defer edges.deinit(alloc);
++    const count: usize = @intCast(@abs(lines));
++    for (0..steps) |_| {
++        if (lines > 0) {
++            s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[2;8r\x1b[{}S\x1b[r", .{count}));
++            for (9 - count..9) |row| {
++                s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[{};1H\x1b[2Kline {:0>3} ################################################", .{ row, line }));
++                line += 1;
++            }
++            // The old hint scrolled up with the rest; clear it.
++            if (hint) s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[{};31H\x1b[K", .{8 - count}));
++        } else {
++            s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[2;8r\x1b[{}T\x1b[r", .{count}));
++            for (2..2 + count) |row| {
++                s.nextSlice(try std.fmt.bufPrint(&buf, "\x1b[{};1H\x1b[2Kline {:0>3} ################################################", .{ row, line }));
++                line += 1;
++            }
++        }
++        if (hint) s.nextSlice(hint_seq);
++
++        // The renderer's order: snapshot, update, compare.
++        const scrolls = t.screens.active.region_scrolls.slice();
++        try testing.expectEqual(1, scrolls.len);
++        edges.snapshot(alloc, &state, scrolls);
++        try state.update(alloc, &t);
++        const pinned = edges.pinned(alloc, &state, scrolls[0], 0);
++        try testing.expectEqual(expect_bottom, pinned.bottom);
++        try testing.expect(!pinned.top);
++        t.screens.active.region_scrolls.clear();
++    }
++}
++
++test "EdgeRows: a hint drawn again after every scroll back is pinned" {
++    try testEdgeRowsScrolling(-2, 10, true, true);
++    try testEdgeRowsScrolling(-1, 10, true, true);
++}
++
++test "EdgeRows: a hint drawn again after every scroll forward is pinned" {
++    try testEdgeRowsScrolling(2, 10, true, true);
++}
++
++test "EdgeRows: plain scrolling pins nothing" {
++    try testEdgeRowsScrolling(3, 10, false, false);
++    try testEdgeRowsScrolling(-3, 10, false, false);
++}

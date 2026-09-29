@@ -49,5 +49,15 @@
             #expect(MotionProbe.Cells("3,1") == nil)
             #expect(MotionProbe.Cells("5,1,2,30") == nil)
         }
+
+        @Test func `a watched color reads as hex and matches near it`() throws {
+            let magenta = try #require(MotionProbe.Color("ff00ff"))
+            #expect(magenta.matches(blue: 255, green: 0, red: 255))
+            // sRGB magenta as a Display P3 frame stores it.
+            #expect(magenta.matches(blue: 244, green: 51, red: 234))
+            #expect(!magenta.matches(blue: 128, green: 128, red: 128))
+            #expect(MotionProbe.Color("ff00") == nil)
+            #expect(MotionProbe.Color("zzzzzz") == nil)
+        }
     }
 #endif

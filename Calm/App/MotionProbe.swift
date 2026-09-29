@@ -20,6 +20,12 @@
             var frameInterval = 0.0
             /// Frames read, changed or not: well above the frame rate, or frames were missed.
             var samples = 0
+            /// With a watched color: the most pixel rows showing it in one frame, and how many
+            /// frames showed it on more than one row's height (something drawn twice).
+            var colorRows: Int?
+            var colorFramesOver = 0
+            /// When those frames came, in milliseconds since the first frame.
+            var colorOverAt: [Int] = []
 
             /// Moves that weren't a whole number of rows.
             var offRow: Int {
@@ -51,9 +57,85 @@
                 "motion: \(frames) frames, \(shifts.count) moved, \(inPlace) changed in place; cell \(cellHeight)px; "
                     + "moving frames every \(frameInterval.formatted(.number.precision(.fractionLength(1)))) ms "
                     + "(\(samples) samples); "
-                    + "moves off whole rows: \(offRow)/\(shifts.count); shifts px: "
-                    + shifts.map(String.init).joined(separator: ",")
+                    + "moves off whole rows: \(offRow)/\(shifts.count); "
+                    + (colorRows.map {
+                        "color rows: max \($0) px, frames over one row: \(colorFramesOver) "
+                            + "(at ms \(colorOverAt.map(String.init).joined(separator: ","))); "
+                    } ?? "")
+                    + "shifts px: " + shifts.map(String.init).joined(separator: ",")
             }
+        }
+
+        /// A color to count in each frame, `CALM_SELFTEST_MOTION_COLOR=ff00ff`. The frame is Display
+        /// P3 and the config's colors aren't, so it matches within `tolerance` on each channel.
+        struct Color {
+            var red, green, blue: Int
+            static let tolerance = 64
+
+            init?(_ hex: String) {
+                guard hex.count == 6, let value = Int(hex, radix: 16) else { return nil }
+                red = value >> 16 & 0xFF
+                green = value >> 8 & 0xFF
+                blue = value & 0xFF
+            }
+
+            func matches(blue b: UInt8, green g: UInt8, red r: UInt8) -> Bool {
+                abs(Int(r) - red) <= Self.tolerance && abs(Int(g) - green) <= Self.tolerance
+                    && abs(Int(b) - blue) <= Self.tolerance
+            }
+        }
+
+        /// How many pixel rows in `rows` show `color` across `columns`: a few matching pixels make a
+        /// row count, so text drawn over the color doesn't hide it. With `keep`, also the frame's
+        /// pixels as read, since libghostty may draw the next frame into the same surface before a
+        /// second read.
+        static func colorRows(
+            of surface: IOSurface,
+            color: Color,
+            columns: Range<Int>? = nil,
+            rows: Range<Int>? = nil,
+            keep: Bool = false,
+        ) -> (count: Int, pixels: Data?) {
+            guard surface.pixelFormat == kCVPixelFormatType_32BGRA else { return (0, nil) }
+            let columns = (columns ?? 0 ..< surface.width).clamped(to: 0 ..< surface.width)
+            let rows = (rows ?? 0 ..< surface.height).clamped(to: 0 ..< surface.height)
+            guard surface.lock(options: .readOnly, seed: nil) == kIOReturnSuccess else { return (0, nil) }
+            defer { surface.unlock(options: .readOnly, seed: nil) }
+            let base = surface.baseAddress.assumingMemoryBound(to: UInt8.self)
+            let pixels = keep ? Data(bytes: base, count: surface.bytesPerRow * surface.height) : nil
+            var count = 0
+            for y in rows {
+                let row = base.advanced(by: y * surface.bytesPerRow)
+                var hits = 0
+                // Every fourth pixel: the color fills a box, not a stroke.
+                for x in Swift.stride(from: columns.lowerBound, to: columns.upperBound, by: 4) {
+                    let pixel = row.advanced(by: x * 4)
+                    if color.matches(blue: pixel[0], green: pixel[1], red: pixel[2]) {
+                        hits += 1
+                        if hits == 4 {
+                            break
+                        }
+                    }
+                }
+                if hits == 4 {
+                    count += 1
+                }
+            }
+            return (count, pixels)
+        }
+
+        /// A PNG of BGRA `pixels` read from `surface`.
+        static func png(_ pixels: Data, like surface: IOSurface) -> Data? {
+            guard let provider = CGDataProvider(data: pixels as CFData),
+                  let image = CGImage(
+                      width: surface.width, height: surface.height, bitsPerComponent: 8, bitsPerPixel: 32,
+                      bytesPerRow: surface.bytesPerRow, space: CGColorSpace(name: CGColorSpace.displayP3)!,
+                      bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue
+                          | CGBitmapInfo.byteOrder32Little.rawValue),
+                      provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent,
+                  )
+            else { return nil }
+            return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
         }
 
         /// A rectangle of cells to watch, inclusive: `CALM_SELFTEST_MOTION_CELLS=col,row,col,row`.
@@ -75,7 +157,7 @@
         /// or only `cells`. Sampling only keeps each new frame's profile; the shifts are worked out
         /// afterwards, so the analysis never delays a sample.
         @MainActor
-        static func run(on pane: TerminalSurfaceView, seconds: Double, cells: Cells? = nil) async -> Report {
+        static func run(on pane: TerminalSurfaceView, seconds: Double, cells: Cells? = nil, color: Color? = nil) async -> Report {
             var report = Report(cellHeight: pane.cellHeightPixelsForTesting)
             // Grid padding is left out: a few pixels either way don't matter to a profile.
             let (width, height) = (pane.cellWidthPixelsForTesting, report.cellHeight)
@@ -89,6 +171,26 @@
                     report.samples += 1
                     if profile != frames.last?.profile {
                         frames.append((ContinuousClock.now, profile))
+                        if let color {
+                            // With a dump, the first few frames showing the color too much are
+                            // kept as pictures.
+                            let dump = ProcessInfo.processInfo.environment["CALM_SELFTEST_MOTION_DUMP"]
+                            let (seen, pixels) = colorRows(
+                                of: surface, color: color, columns: columns, rows: rows,
+                                keep: dump != nil && report.colorFramesOver < 4,
+                            )
+                            report.colorRows = max(report.colorRows ?? 0, seen)
+                            // A couple of pixels of slack for anti-aliased edges.
+                            if seen > height + 2 {
+                                report.colorFramesOver += 1
+                                if let start = frames.first?.time {
+                                    report.colorOverAt.append(Int((ContinuousClock.now - start) / .milliseconds(1)))
+                                }
+                                if let dump, let pixels, let png = png(pixels, like: surface) {
+                                    try? png.write(to: URL(filePath: "\(dump).over\(report.colorFramesOver).png"))
+                                }
+                            }
+                        }
                     }
                 }
                 // Well under a 120 Hz frame, so no presented frame is missed.

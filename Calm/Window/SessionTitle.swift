@@ -97,14 +97,8 @@ struct SessionTitleView: View {
                                 Text("·")
                                     .accessibilityHidden(true)
                             }
-                            // The card's worktree line, at this line's size.
-                            HStack(spacing: 4.scaled) {
-                                Image(systemName: "arrow.triangle.branch")
-                                    .calmFont(size: 11, weight: .medium)
-                                Text(worktree)
-                            }
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("worktree \(worktree)")
+                            // The files column's branch, drawn the same way; it keeps its own VoiceOver label.
+                            GitLabel(text: worktree, kind: "worktree", style: style)
                         }
                     }
                     .calmFont(size: 12)

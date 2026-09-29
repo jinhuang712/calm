@@ -333,7 +333,7 @@ struct FilesColumnView: View {
     }
 
     /// The project, its branch and every line its changes add and remove. The branch shows whole
-    /// or not at all: cut down, it was a stray letter in a pill.
+    /// or not at all: cut down, it was a stray letter.
     private func header(style: SidebarStyle) -> some View {
         ViewThatFits(in: .horizontal) {
             headerRow(branch: model.branch, style: style)
@@ -349,7 +349,7 @@ struct FilesColumnView: View {
                 .foregroundStyle(style.primary)
                 .lineLimit(1)
             if let branch, !branch.isEmpty {
-                GitPill(text: branch, kind: "branch", style: style)
+                GitLabel(text: branch, kind: "branch", style: style)
             }
             Spacer(minLength: 4.scaled)
             if let totals = model.totals {

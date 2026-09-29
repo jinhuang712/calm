@@ -186,7 +186,18 @@ struct SidebarView: View {
                         .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
                         .frame(width: 10.scaled)
                     GroupMark(project: project, style: style) { manager.shuffleMark(project.id) }
-                    groupName(project)
+                    VStack(alignment: .leading, spacing: 1.scaled) {
+                        groupName(project)
+                        if let location = project.location() {
+                            // Where the folder is, so two groups with the same name can be told
+                            // apart. Cut at the front: the folders nearest it say the most.
+                            Text(location)
+                                .calmFont(size: 11)
+                                .foregroundStyle(style.tertiary)
+                                .lineLimit(1)
+                                .truncationMode(.head)
+                        }
+                    }
                     Spacer(minLength: 4)
                     if hoveredGroupID == project.id {
                         // Room for the hover controls laid over this end of the header.
@@ -195,18 +206,12 @@ struct SidebarView: View {
                         Text(summary(sessions))
                             .calmFont(size: 12)
                             .foregroundStyle(style.tertiary)
-                    } else if project.kind == .directory, project.path != WorkspacePath.standardize(NSHomeDirectory()) {
-                        // Where the folder is, so two groups with the same name can be told apart.
-                        Text(WorkspacePath.displayName(for: (project.path as NSString).deletingLastPathComponent))
-                            .calmFont(size: 12)
-                            .foregroundStyle(style.tertiary)
-                            .lineLimit(1)
-                            .truncationMode(.head)
                     }
                 }
                 .foregroundStyle(style.tertiary)
                 .padding(.horizontal, 8.scaled)
-                .frame(height: 26.scaled)
+                .padding(.vertical, project.location() == nil ? 0 : 3.scaled)
+                .frame(minHeight: 26.scaled)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

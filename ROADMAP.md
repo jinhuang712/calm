@@ -180,6 +180,7 @@ Calm looks right out of the box, and making it yours takes a minute.
   - *layouts: two columns, one column when one side is empty, stacked in a narrow window, the welcome rows when there is nothing (or a new user with no project).*
 
   *Checked as rendered PNGs in every layout, light and dark, and with the mark frozen at moments of its arrival (`CALM_WELCOME_MARK_AT`); driven through `calm.welcome_*` actions; unfrozen snapshots a half breath apart differ as they should. Not seen: how the motion feels on screen, which headless can't show.*
+- [x] **M6.9 Session card sizes:** Full, Compact or Minimal in Settings → Appearance, asked for by the author to fit more sessions in view. *Built (2026-09-30), picked from three rounds of mockups: Compact puts the state and the recap on one line under the title, Minimal is the title with the time in the state's color; at both, a card that waits for you grows a line. Chips like the interface sizes, and the window miniature follows. The working line lost its minutes at every size (the corner's time counts them). Checked as rendered PNGs at each size, light and dark, with Differentiate Without Color, and the Settings page. Not seen: the height easing on screen, and the restoring state at the smaller sizes.*
 
 **Exit criteria**
 - A new user can make Calm look right in under a minute without editing files.

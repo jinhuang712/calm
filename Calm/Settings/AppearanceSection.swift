@@ -2,8 +2,8 @@ import CalmModel
 import SwiftUI
 
 /// Settings → Appearance (UIUX.md → Settings, Themes): a live miniature of the window in the
-/// picked theme and window options, the themes and the interface sizes as chips, then
-/// background, layout and motion.
+/// picked theme and window options, the themes, the interface sizes and the session card sizes
+/// as chips, then background, layout and motion.
 struct AppearanceSection: View {
     let themes: ThemePickerModel
     let windowOptions: WindowOptionsModel
@@ -28,7 +28,7 @@ struct AppearanceSection: View {
             if let picked {
                 WindowPreview(
                     preview: picked, card: windowOptions.layout == .card, glass: windowOptions.background == .glass,
-                    isDark: style.isDark,
+                    isDark: style.isDark, cards: windowOptions.sessionCardSize,
                 )
                 .padding(.bottom, 32.scaled)
             }
@@ -53,6 +53,12 @@ struct AppearanceSection: View {
                 GroupHeading(title: "Interface size", style: style)
                 InterfaceSizePicker(selection: windowOptions.interfaceSize, preview: sizePreview, style: style) {
                     windowOptions.setInterfaceSize($0)
+                }
+                .padding(.bottom, 32.scaled)
+                // How much each agent card in the sidebar shows.
+                GroupHeading(title: "Session cards", style: style)
+                SessionCardsPicker(selection: windowOptions.sessionCardSize, preview: sizePreview, style: style) {
+                    windowOptions.setSessionCardSize($0)
                 }
                 .padding(.bottom, 32.scaled)
             }
@@ -134,6 +140,8 @@ struct WindowPreview: View {
     let card: Bool
     let glass: Bool
     let isDark: Bool
+    /// The sidebar's cards follow Settings → Appearance → Session cards.
+    var cards = CalmSettings.SessionCardSize.full
 
     var body: some View {
         GeometryReader { proxy in
@@ -232,13 +240,28 @@ struct WindowPreview: View {
         HStack(alignment: .top, spacing: 6) {
             RoundedRectangle(cornerRadius: 3, style: .continuous).fill(mark).frame(width: 11, height: 11)
             VStack(alignment: .leading, spacing: 3) {
-                bar(preview.foreground.opacity(0.75), width: 58, height: 3)
-                bar(state, width: 72, height: 2.5)
-                bar(preview.foreground.opacity(0.3), width: 88, height: 2.5)
+                switch cards {
+                case .full:
+                    bar(preview.foreground.opacity(0.75), width: 58, height: 3)
+                    bar(state, width: 72, height: 2.5)
+                    bar(preview.foreground.opacity(0.3), width: 88, height: 2.5)
+                case .compact:
+                    bar(preview.foreground.opacity(0.75), width: 58, height: 3)
+                    HStack(spacing: 3) {
+                        bar(state, width: 22, height: 2.5)
+                        bar(preview.foreground.opacity(0.3), width: 62, height: 2.5)
+                    }
+                case .minimal:
+                    HStack(spacing: 3) {
+                        bar(preview.foreground.opacity(0.75), width: 58, height: 3)
+                        Spacer(minLength: 2)
+                        bar(state, width: 8, height: 2.5)
+                    }
+                }
             }
-            .padding(.top, 1)
+            .padding(.top, cards == .minimal ? 4 : 1)
         }
-        .padding(6)
+        .padding(cards == .minimal ? 4 : 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(fill))
     }

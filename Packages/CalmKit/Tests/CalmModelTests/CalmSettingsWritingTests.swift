@@ -88,6 +88,13 @@ struct CalmSettingsWritingTests {
         #expect(scales == scales.sorted())
     }
 
+    @Test func `session cards are full unless set`() {
+        #expect(CalmSettings(text: "").sessionCardSize == .full)
+        #expect(CalmSettings(text: "session-cards = \"Compact\"\n").sessionCardSize == .compact)
+        #expect(CalmSettings(text: "session-cards = \"minimal\"\n").sessionCardSize == .minimal)
+        #expect(CalmSettings(text: "session-cards = \"tiny\"\n").sessionCardSize == .full)
+    }
+
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {
         let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
         #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")

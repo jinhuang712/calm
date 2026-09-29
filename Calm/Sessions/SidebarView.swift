@@ -165,6 +165,9 @@ struct SidebarView: View {
                 }
                 .padding(.horizontal, 12.scaled)
                 .padding(.bottom, 16.scaled)
+                // A new card size eases every card to its height; the settings aren't observed,
+                // so this redraw comes from the sidebar being rebuilt when they're saved.
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: manager.settings.sessionCardSize)
             }
             .scrollIndicators(.never)
 
@@ -370,7 +373,7 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                isHovered: hoveredSessionID == session.id,
+                size: manager.settings.sessionCardSize, isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
             )
         } else {

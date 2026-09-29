@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance (ROADMAP.md → M6.4): interface size, background, layout and motion. A
+/// Settings → Appearance (ROADMAP.md → M6.4): interface size, session cards, background, layout and motion. A
 /// change is saved to config.toml (a default removes its key) and applied at once.
 @MainActor
 @Observable
@@ -11,6 +11,7 @@ final class WindowOptionsModel {
     private(set) var layout = CalmSettings.WindowLayout.edge
     private(set) var motion = CalmSettings.MotionLevel.full
     private(set) var interfaceSize = CalmSettings.InterfaceSize.standard
+    private(set) var sessionCardSize = CalmSettings.SessionCardSize.full
 
     func refresh() {
         let settings = SessionManager.shared.settings
@@ -18,6 +19,7 @@ final class WindowOptionsModel {
         layout = settings.windowLayout
         motion = settings.motion
         interfaceSize = settings.interfaceSize
+        sessionCardSize = settings.sessionCardSize
     }
 
     func setBackground(_ value: CalmSettings.WindowBackground) {
@@ -47,6 +49,13 @@ final class WindowOptionsModel {
         save("ui-size", value == .standard ? nil : value.rawValue, reloadsTerminal: false)
     }
 
+    /// How much the sidebar's agent cards show.
+    func setSessionCardSize(_ value: CalmSettings.SessionCardSize) {
+        guard value != sessionCardSize else { return }
+        sessionCardSize = value
+        save("session-cards", value == .full ? nil : value.rawValue, reloadsTerminal: false)
+    }
+
     /// `set:<key>=<value>` in self-tests goes through here, like a click.
     func set(_ key: String, _ value: String) {
         switch key {
@@ -54,6 +63,7 @@ final class WindowOptionsModel {
         case "layout": CalmSettings.WindowLayout(rawValue: value).map(setLayout)
         case "motion": CalmSettings.MotionLevel(rawValue: value).map(setMotion)
         case "ui-size": CalmSettings.InterfaceSize(rawValue: value).map(setInterfaceSize)
+        case "session-cards": CalmSettings.SessionCardSize(rawValue: value).map(setSessionCardSize)
         default: break
         }
     }

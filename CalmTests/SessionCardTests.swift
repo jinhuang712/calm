@@ -12,14 +12,28 @@ struct SessionCardTests {
         #expect(RelativeTimeText.format(4 * 86400) == "4d")
     }
 
-    @MainActor @Test func `working says how long, unless the agent names its step`() {
+    @MainActor @Test func `working names the agent's step and leaves the minutes to the corner`() {
         var session = Session(projectID: UUID(), workingDirectory: "/tmp", state: .working)
-        let start = Date(timeIntervalSince1970: 1000)
-        session.stateSince = start
-        let card = SessionCard(session: session, agent: .claudeCode, isSelected: false, style: .derived(from: .black))
-        #expect(card.workingLine(at: start + 20) == "Working")
-        #expect(card.workingLine(at: start + 4 * 60 + 5) == "Working · 4m")
-        #expect(card.workingLine(at: start + 2 * 3600) == "Working · 2h")
+        session.stateSince = Date(timeIntervalSinceNow: -10 * 60)
+        let style = SidebarStyle.derived(from: .black)
+        #expect(SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style).workingLine == "Working")
+        session.agent = AgentRun(kind: .claudeCode, processID: 0)
+        session.agent?.tail = TranscriptTail(step: "Adding tests")
+        #expect(SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style).workingLine == "Working · Adding tests")
+    }
+
+    @MainActor @Test func `only minimal cards color the time, and never while restoring`() {
+        let style = SidebarStyle.derived(from: .black)
+        func card(_ state: SessionState, _ size: CalmSettings.SessionCardSize, restoring: Bool = false) -> SessionCard {
+            let session = Session(projectID: UUID(), workingDirectory: "/tmp", state: state)
+            return SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style, size: size, isConfirming: restoring)
+        }
+        #expect(card(.needsYou, .minimal).timeColor == style.attention)
+        #expect(card(.working, .minimal).timeColor == style.working)
+        #expect(card(.needsYou, .compact).timeColor == nil)
+        #expect(card(.needsYou, .full).timeColor == nil)
+        #expect(card(.needsYou, .minimal, restoring: true).timeColor == nil)
+        #expect(card(.idle, .minimal).timeColor == nil)
     }
 
     @MainActor @Test func `the selected card wears one ring in every state, and no other card does`() {

@@ -80,7 +80,8 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// Pinned sessions stay in their project when their folder changes.
     public var isPinned: Bool
     public var state: SessionState
-    /// When a report last changed `state` ("Working · 4m"); nil in older state files.
+    /// When a report last changed `state`; nil in older state files. (No longer shown: the card's
+    /// corner time counts a working turn.)
     public var stateSince: Date?
     /// The latest report behind `state` (optional so older state files still load).
     public var lastReport: StatusReport?

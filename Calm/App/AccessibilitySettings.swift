@@ -19,6 +19,17 @@ enum AccessibilitySettings {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
+    /// Differentiate Without Color: where Calm lets color alone carry a state (Minimal session
+    /// cards), the state's mark comes back. Self-tests can force it (`CALM_DIFFERENTIATE=1`).
+    static var differentiateWithoutColor: Bool {
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["CALM_DIFFERENTIATE"] == "1" {
+                return true
+            }
+        #endif
+        return NSWorkspace.shared.accessibilityDisplayShouldDifferentiateWithoutColor
+    }
+
     private static var observer: NSObjectProtocol?
 
     /// Reduce Motion and Increase Contrast reach the Ghostty config (the cursor glide, minimum

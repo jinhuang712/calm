@@ -55,6 +55,16 @@ public extension CalmSettings {
         values["ui-size"].flatMap { InterfaceSize(rawValue: $0.lowercased()) } ?? .standard
     }
 
+    /// How much an agent's card in the sidebar shows (UIUX.md → Session cards): every line, the
+    /// state and the recap on one line, or the title alone.
+    enum SessionCardSize: String, Sendable, CaseIterable {
+        case full, compact, minimal
+    }
+
+    var sessionCardSize: SessionCardSize {
+        values["session-cards"].flatMap { SessionCardSize(rawValue: $0.lowercased()) } ?? .full
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {

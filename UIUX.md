@@ -231,6 +231,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 - The picker, in Settings → Appearance, is a row of small previews under a live miniature of the window (sidebar and terminal in the picked theme, layout and background). A solid window fills the page's width; glass sits on a soft desktop that shows through it. The user's Ghostty colors, when their config sets any, are a separate last choice.
 - Themes come in light and dark pairs and follow the system appearance.
 - Calm's default theme gives way to a theme set in the user's Ghostty config; a theme picked in Calm wins.
+- OpenCode in Calm wears the theme too (its `system` theme: the theme's background, text and hues) unless its own config names a theme.
 - Optional glass background uses the system's material; the terminal can float as a rounded card or run edge to edge.
 - The padding around the terminal takes the color of the cells next to it, so an app that paints its own background (OpenCode, Neovim) fills the pane instead of sitting in a frame of the theme's color. The user's Ghostty `window-padding-color` wins. Edge to edge on a solid background, the title strip above the terminal takes the same color, so the two meet without a seam. Only when the app painted the whole pane in it: a lighter band on just the first rows (Claude Code's sticky prompt) doesn't tint the strip, which then takes the pane's own background.
 

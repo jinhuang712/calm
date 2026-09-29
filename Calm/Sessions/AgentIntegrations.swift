@@ -54,8 +54,23 @@ enum AgentIntegrations {
         }
     }
 
-    /// Variables for a new session's shell. Keeps the user's own plugin directories.
-    static func environment(settings: CalmSettings, inherited: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
+    /// Variables for a new session's shell: Claude Code's hooks and what each adapter asks for
+    /// (OpenCode's theme). Read at each new session, so a change to an agent's config applies to
+    /// the next one.
+    static func environment(
+        settings: CalmSettings,
+        inherited: [String: String] = ProcessInfo.processInfo.environment,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+    ) -> [String: String] {
+        var environment = claudeCodeEnvironment(settings: settings, inherited: inherited)
+        for adapter in Agents.adapters {
+            environment.merge(adapter.shellEnvironment(home: home, inherited: inherited)) { current, _ in current }
+        }
+        return environment
+    }
+
+    /// Adds Calm's plugin to `CLAUDE_CODE_PLUGIN_DIRS`, keeping the user's own directories.
+    private static func claudeCodeEnvironment(settings: CalmSettings, inherited: [String: String]) -> [String: String] {
         guard settings.bool("agents.claude-code-hooks", default: true) else { return [:] }
         let ours = claudeCodePluginDirectory.path
         let existing = inherited["CLAUDE_CODE_PLUGIN_DIRS"].flatMap { $0.isEmpty ? nil : $0 }

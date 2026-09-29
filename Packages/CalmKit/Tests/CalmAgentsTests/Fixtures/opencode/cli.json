@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "animations": true,
+  "session": {
+    "sidebar": "hide",
+    "scrollbar": true,
+    "markdown": "rendered",
+    "permissions": "autoaccept"
+  },
+  "tabs": {
+    "enabled": false
+  },
+  "attention": {
+    "notifications": true,
+    "sound": true,
+    "volume": 0.20000000000000004
+  },
+  "diffs": {
+    "view": "unified"
+  }
+}

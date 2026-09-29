@@ -69,6 +69,9 @@ public protocol AgentAdapter: Sendable {
     func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
     /// The shell command that starts a new conversation from a copy of one, if the agent can.
     func forkCommand(agentSessionID: String?, transcriptPath: String) -> String?
+    /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
+    /// config. `inherited` is Calm's own environment, which also locates the agent's config.
+    func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
 }
 
 public extension AgentAdapter {
@@ -86,6 +89,10 @@ public extension AgentAdapter {
 
     func forkCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
         nil
+    }
+
+    func shellEnvironment(home _: URL, inherited _: [String: String]) -> [String: String] {
+        [:]
     }
 
     func matches(_ process: ProcessSnapshot) -> Bool {

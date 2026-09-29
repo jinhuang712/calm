@@ -25,6 +25,27 @@ struct TerminalSignalTests {
         #expect(agentNotification("", title: "Allow edit?") == .report(.needsYou, message: "Allow edit?"))
     }
 
+    @Test func `an agent's Markdown answer reaches the card without its marks`() {
+        // The start of a real banner: OpenCode's answer, already on one line.
+        let body = "## Short answer Nothing looks broken. Two separate things on that card are easy to misread."
+        #expect(agentNotification(body) == .report(
+            .done,
+            message: "Short answer Nothing looks broken. Two separate things on that card are easy to misread.",
+        ))
+    }
+
+    @Test func `an ask that quotes a command keeps its marks`() {
+        let ask = "Approval requested: echo `date` > '*.txt'"
+        #expect(agentNotification(ask) == .report(.needsYou, message: ask))
+        // Its structure still goes.
+        #expect(agentNotification("## Approval requested\nShould I run `make`?") == .report(.needsYou, message: "Should I run `make`?"))
+    }
+
+    @Test func `a plain shell's notification is passed on as it is`() {
+        #expect(TerminalSignal.notification(title: "Build", body: "**done** in `3 s`")
+            .outcome(currentState: .idle, hasAgent: false) == .notify("Build: **done** in `3 s`"))
+    }
+
     @Test func `progress means working, and clearing it means done`() {
         #expect(TerminalSignal.progress(.active).outcome(currentState: .idle, hasAgent: true) == .report(.working, message: nil))
         #expect(TerminalSignal.progress(.active).outcome(currentState: .working, hasAgent: true) == .ignore)

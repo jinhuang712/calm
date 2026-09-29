@@ -41,37 +41,28 @@ struct NotificationTextTests {
         #expect(body("Finished after 12 s") == "Finished after 12 s")
     }
 
-    @Test func `headings are dropped and the first sentences that fit are kept`() {
-        // What OpenCode's answer looked like in a banner: markers showing, cut in the middle of a word.
-        let message = """
-        ## Short answer
-        Nothing looks broken. Two separate things on that card are easy to misread.
-
-        ### 1. "Not running" is correct right now
-        The agent isn't attached to a terminal in Calm, so the card can't know it's busy.
-        """
-        #expect(body(message) == "Nothing looks broken. Two separate things on that card are easy to misread.")
-    }
-
-    @Test func `a message that is only headings still says something`() {
-        #expect(body("## Summary") == "Summary")
+    /// What someone is asked to allow must reach the banner exactly: nothing here is Markdown.
+    @Test func `a command is never read as Markdown`() {
+        for command in [
+            "Allow Bash: find . -name '*.py' -o -name '*.js'",
+            "Allow Bash: rm -rf **/node_modules **/dist",
+            "Allow Bash: echo `date` > out.txt",
+            "Allow Bash: grep -r snake_case_name src/ | grep _private_",
+            "Allow Bash: # step 1 ls",
+            "Allow Bash: echo $((2*3)) and $((4*5))",
+        ] {
+            #expect(body(command, .needsYou) == command)
+        }
     }
 
     @Test func `a question wins when the agent asks`() {
-        let message = """
-        I found two migrations that look unused.
-
-        - 0004_users.sql
-        - 0007_old.sql
-
-        Should I delete the old migration too?
-        """
+        let message = "I found two migrations that look unused. Should I delete the old migration too?"
         #expect(body(message, .needsYou) == "Should I delete the old migration too?")
     }
 
-    @Test func `the last question is the ask, even with options after it`() {
-        let message = "Which approach do you prefer?\n1. Rewrite it\n2. Patch it"
-        #expect(body(message, .needsYou) == "Which approach do you prefer?")
+    @Test func `the last question is the ask`() {
+        let message = "Is it the token? Or the clock? Tell me which."
+        #expect(body(message, .needsYou) == "Or the clock?")
     }
 
     @Test func `a finished turn leads with the result, not the question it ends with`() {
@@ -84,34 +75,12 @@ struct NotificationTextTests {
         #expect(!text.contains("migration"))
     }
 
-    @Test func `a line that isn't a sentence isn't glued to the next`() {
-        #expect(body("Two things to check:\n- the token\n- the clock") == "Two things to check:")
-    }
-
-    @Test func `inline Markdown is taken out`() {
-        let message = "**Done.** Updated `README.md`, _both_ *guides* and [the docs](https://example.com/docs). ~~Old~~ ![logo](x.png)"
-        #expect(body(message) == "Done. Updated README.md, both guides and the docs. Old logo")
-    }
-
-    @Test func `underscores and stars inside words stay`() {
-        #expect(body("Renamed snake_case_name in file_name.py and 2*3 stays") == "Renamed snake_case_name in file_name.py and 2*3 stays")
-    }
-
-    @Test func `code blocks, rules, quotes and tables are not read out`() {
-        let message = """
-        Run this first:
-        ```sh
-        rm -rf build
-        ```
-        ---
-        | a | b |
-        > Then retry?
-        """
-        #expect(body(message, .needsYou) == "Then retry?")
-    }
-
-    @Test func `a message that is only code says nothing`() {
-        #expect(body("```\nrm -rf build\n```").isEmpty)
+    @Test func `the first sentences are kept while they fit`() {
+        #expect(body("One. Two. Three.") == "One. Two. Three.")
+        let first = "A sentence of some length that says one thing."
+        let second = "Another sentence saying a second thing."
+        let third = "A third that no longer fits in the banner at all, however it is worded."
+        #expect(body("\(first) \(second) \(third)") == "\(first) \(second)")
     }
 
     @Test func `a dot inside a name doesn't end a sentence`() {
@@ -146,5 +115,37 @@ struct NotificationTextTests {
     @Test func `wide characters take two columns`() {
         let text = body(String(repeating: "字", count: 80))
         #expect(text == String(repeating: "字", count: 49) + "…")
+    }
+
+    // MARK: From an agent's words
+
+    /// The opening is the text of a real banner (an OpenCode answer, already one line when it
+    /// reached Calm); the rest continues it.
+    private static let flattenedAnswer = """
+    ## Short answer Nothing looks broken. Two separate things on that card are easy to misread. \
+    ### 1. "Not running" is correct right now The agent isn't attached to a terminal in Calm, so the card can't tell.
+    """
+
+    @Test func `an agent's Markdown, flattened, reaches the banner without its marks`() {
+        for state in [SessionState.needsYou, .done] {
+            let message = MessageText.recap(Self.flattenedAnswer, asking: state == .needsYou)
+            let text = body(message, state)
+            #expect(!text.contains("#"))
+            // What is asked for is the sentences, not a label glued to them: a flat line doesn't
+            // say where a heading ends (MessageText).
+            #expect(text.hasSuffix("Two separate things on that card are easy to misread."))
+        }
+    }
+
+    @Test func `an agent's list and question come out as the question`() {
+        let message = MessageText.recap("""
+        I found two migrations that look unused.
+
+        - 0004_users.sql
+        - 0007_old.sql
+
+        Should I delete the old migration too?
+        """, asking: true)
+        #expect(body(message, .needsYou) == "Should I delete the old migration too?")
     }
 }

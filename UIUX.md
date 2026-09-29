@@ -46,7 +46,7 @@ A visual mock of these screens lives on the design canvas "Calm Terminal UI".
 | 1 | agent's mark · **session name** · time since last activity | always |
 | 2 | state mark · state · current step (e.g. "Running reconciliation"), or how long it's been working ("Working · 4m") | not idle |
 | 3 | thin progress bar · "3 of 5 todos" | not idle, and the agent keeps a todo list |
-| 4 | recap: the latest agent message, two lines at most (one when idle) | always |
+| 4 | recap: the latest agent message as plain text (no Markdown marks: headings, code blocks and bold go, a list reads "a; b; c"), two lines at most (one when idle) | always |
 | 5 | worktree mark · worktree name · diff size | the session runs in a git worktree |
 
 - A name too long for its line keeps its start and ends in "…". Rest the pointer on the card or row for half a second and the name glides once to its end and holds; it slides back when the pointer leaves. With motion reduced it stays truncated.
@@ -111,7 +111,7 @@ Rules:
 
 1. **Needs you** in a session the user is not looking at → a macOS notification, held until the user pauses (stops typing for a moment or switches focus).
 2. The title is a mark for the state, then the session's name (the one its card shows): ✋ needs you, ✅ done, ⚠️ failed (the last two only when opted in). A notice that isn't a state change (`calm notify`, a plain shell's own notification) has the name alone. There is no subtitle and no project or agent name: Calm's icon says where it comes from, and the name says which session. The mark is an emoji because it's the only way to give a banner color: macOS sets its text in fixed styles.
-3. The body is what the agent said, in plain words, at most about two lines: Markdown taken out, headings dropped, cut at a sentence and never in the middle of a word. For *needs you* it's the last question the agent asked; otherwise its first sentences while they fit. No message, or one that only repeats the title, leaves the body out.
+3. The body is what the agent said, in the same plain words as the card's recap, at most about two lines, cut at a sentence and never in the middle of a word. For *needs you* it's the last question the agent asked; otherwise its first sentences while they fit. No message, or one that only repeats the title, leaves the body out. What someone is asked to allow (a command) is shown exactly as it is, never read as Markdown.
 4. Clicking it brings Calm forward and focuses that session.
 5. No sound by default.
 6. Nothing else notifies unless the user opts in.

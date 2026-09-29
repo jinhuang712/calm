@@ -49,6 +49,24 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.interrupted == false)
     }
 
+    @Test func `the recap is what Claude said, without its Markdown`() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "calm-claude-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // Two text blocks, as a turn that spoke before and after a tool call.
+        let record: [String: Any] = [
+            "type": "assistant",
+            "message": ["role": "assistant", "content": [
+                ["type": "text", "text": "## Short answer"],
+                ["type": "text", "text": "Nothing looks broken. Two things on that card are easy to misread."],
+            ]],
+        ]
+        let transcript = folder.appending(path: "t.jsonl")
+        try (JSONSerialization.data(withJSONObject: record) + Data("\n".utf8)).write(to: transcript)
+        let tail = try #require(adapter.readTail(of: transcript, agentSessionID: sessionID, home: folder))
+        #expect(tail.lastMessage == "Nothing looks broken. Two things on that card are easy to misread.")
+    }
+
     @Test func `no todos means no progress`() throws {
         let home = try makeHome(tasks: false)
         defer { try? FileManager.default.removeItem(at: home) }

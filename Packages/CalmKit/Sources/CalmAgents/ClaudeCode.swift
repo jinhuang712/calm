@@ -60,10 +60,12 @@ extension ClaudeCodeAdapter: HookReporting {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         guard let hook = try? decoder.decode(Payload.self, from: payload), let event = hook.hookEventName else { return nil }
-        func report(_ state: SessionState, _ message: String? = nil) -> HookReport {
+        // `prose`: what Claude said (Markdown, made plain). The rest is Calm's own text or text
+        // that quotes a command someone is asked to allow, and stays as it is.
+        func report(_ state: SessionState, _ message: String? = nil, prose: Bool = false) -> HookReport {
             HookReport(
                 state: state,
-                message: HookReport.recap(message),
+                message: prose ? MessageText.recap(message) : HookReport.recap(message),
                 agentSessionID: hook.sessionId,
                 transcriptPath: hook.transcriptPath,
             )
@@ -84,7 +86,7 @@ extension ClaudeCodeAdapter: HookReporting {
             // A turn that leaves background work running isn't over: Claude picks up again
             // without you when it finishes, and its next Stop reports done.
             let waiting = !(hook.backgroundTasks ?? []).isEmpty
-            return report(waiting ? .working : .done, hook.lastAssistantMessage)
+            return report(waiting ? .working : .done, hook.lastAssistantMessage, prose: true)
         case "StopFailure":
             return report(.failed, hook.errorDetails ?? hook.error)
         default:

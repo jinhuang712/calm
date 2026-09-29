@@ -51,7 +51,8 @@ extension ClaudeCodeAdapter: TranscriptReading {
                 aiTitle = record["aiTitle"] as? String
             case "assistant":
                 if tail.lastMessage == nil {
-                    tail.lastMessage = HookReport.recap(Self.texts(of: record).joined(separator: " "))
+                    // Lines kept apart, so the cleaning can tell a heading from what follows it.
+                    tail.lastMessage = MessageText.recap(Self.texts(of: record).joined(separator: "\n"))
                 }
                 sawConversation = true
             case "user":

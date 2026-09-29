@@ -36,6 +36,28 @@ struct ClaudeCodeHookTests {
         #expect(report.message == "Fixed the login test. The mock returned an expired token; it now uses a fresh one. All 42 tests pass.")
     }
 
+    private func payload(_ object: [String: Any]) throws -> Data {
+        try JSONSerialization.data(withJSONObject: object)
+    }
+
+    @Test func `the recap is what Claude said, without its Markdown`() throws {
+        let message = "## Short answer\nNothing looks broken. **Two** things on that card are easy to misread.\n\n- the state\n- the title"
+        let report = try #require(adapter.hookReport(from: payload(["hook_event_name": "Stop", "last_assistant_message": message])))
+        #expect(report.state == .done)
+        #expect(report.message == "Nothing looks broken. Two things on that card are easy to misread. the state; the title")
+    }
+
+    /// What someone is asked to allow is the command itself: never Markdown, never rewritten.
+    @Test func `a permission request keeps its command as it is`() throws {
+        let command = "find . -name '*.py' -o -name '*.js'\n# then\necho `date` | sort **/dist"
+        let report = try #require(adapter.hookReport(from: payload([
+            "hook_event_name": "PermissionRequest",
+            "tool_name": "Bash",
+            "tool_input": ["command": command],
+        ])))
+        #expect(report.message == "Allow Bash: find . -name '*.py' -o -name '*.js' # then echo `date` | sort **/dist")
+    }
+
     @Test func `a stop that leaves background work running is still working`() throws {
         let report = try #require(adapter.hookReport(from: fixture("Stop-background")))
         #expect(report.state == .working)

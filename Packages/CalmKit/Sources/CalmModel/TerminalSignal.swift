@@ -41,7 +41,10 @@ public enum TerminalSignal: Equatable, Sendable {
             let text = [title, body].filter { !$0.isEmpty }.joined(separator: ": ")
             guard !text.isEmpty else { return .ignore }
             guard hasAgent else { return .notify(text) }
-            return .report(Self.classify(title: title, body: body), message: body.isEmpty ? title : body)
+            // An agent's words, often Markdown (OpenCode sends its answer): made plain. An ask keeps
+            // its inline marks, as it may quote a command.
+            let state = Self.classify(title: title, body: body)
+            return .report(state, message: MessageText.recap(body.isEmpty ? title : body, asking: state == .needsYou))
         case let .progress(progress):
             switch progress {
             case .active: return currentState == .working ? .ignore : .report(.working, message: nil)

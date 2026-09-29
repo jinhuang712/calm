@@ -124,6 +124,12 @@ public enum Agents {
         adapters.first { $0.matches(process) }?.kind
     }
 
+    /// The agent a running process is, read from the process itself (nil: it isn't one, or it
+    /// has exited).
+    public static func detect(processID: Int32) -> AgentKind? {
+        ProcessInspector.snapshot(of: processID).flatMap { detect($0) }
+    }
+
     public static func adapter(for kind: AgentKind) -> (any AgentAdapter)? {
         adapters.first { $0.kind == kind }
     }

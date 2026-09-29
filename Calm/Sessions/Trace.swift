@@ -59,6 +59,12 @@ enum Trace {
         note("agent named \(Trace.id(id)): \(kind.rawValue), transcript \(transcript), agent \(agent)")
     }
 
+    /// A hook named an agent other than the one in the session's foreground, and was left out.
+    /// Always written: it is rare, and it is the answer to "why didn't the row change".
+    static func reportIgnored(_ id: Session.ID, _ kind: AgentKind, foreground: AgentKind?) {
+        note("ignored \(Trace.id(id)): report from \(kind.rawValue) while \(foreground?.rawValue ?? "no agent") has the foreground")
+    }
+
     /// The probe saw an agent start or end in a session's foreground.
     static func probed(_ id: Session.ID, _ event: String, before: Session, after: Session?) {
         note("probe \(Trace.id(id)): \(event); \(describe(before)) → \(describe(after))")

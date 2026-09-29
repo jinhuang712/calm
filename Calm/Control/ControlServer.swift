@@ -196,6 +196,13 @@ final class ControlServer {
                 return .failure("Unknown state '\(request.state ?? "")'; use working, needs-you, done, failed or idle.")
             }
             if let kind = request.agent.flatMap(AgentKind.init(rawValue:)) {
+                // Not a session's own agent (Claude Code's Bash tool running `pi -p`): quietly
+                // nothing, since a hook must never fail its agent.
+                let foreground = SessionProbe.shared.foregroundAgent(of: id)
+                guard kind.speaksForSession(whileForeground: foreground) else {
+                    Trace.reportIgnored(id, kind, foreground: foreground)
+                    return .success()
+                }
                 manager.noteAgentSession(id, kind: kind, agentSessionID: request.agentSession, transcriptPath: request.transcript)
             }
             manager.report(id, StatusReport(state: state, message: request.message, source: .hook, backgroundShells: request.shells ?? 0))

@@ -76,6 +76,35 @@ struct AgentDetectionTests {
         #expect(ProcessInspector.parseArguments([1, 0], processID: 1) == nil)
     }
 
+    @Test func `a running process is read for its agent`() throws {
+        // A real process named like the agent: `exec -a claude` sets argv[0] as a shell would find it.
+        let agent = Process()
+        agent.executableURL = URL(filePath: "/bin/bash")
+        agent.arguments = ["-c", "exec -a claude /bin/sleep 30"]
+        let plain = Process()
+        plain.executableURL = URL(filePath: "/bin/sleep")
+        plain.arguments = ["30"]
+        try agent.run()
+        try plain.run()
+        defer {
+            agent.terminate()
+            plain.terminate()
+        }
+
+        // bash is the process until the exec lands.
+        var found = Agents.detect(processID: agent.processIdentifier)
+        for _ in 0 ..< 100 where found == nil {
+            Thread.sleep(forTimeInterval: 0.02)
+            found = Agents.detect(processID: agent.processIdentifier)
+        }
+        #expect(found == .claudeCode)
+        #expect(Agents.detect(processID: plain.processIdentifier) == nil)
+
+        agent.terminate()
+        agent.waitUntilExit()
+        #expect(Agents.detect(processID: agent.processIdentifier) == nil)
+    }
+
     @Test func `this process can be inspected`() throws {
         let snapshot = try #require(ProcessInspector.snapshot(of: getpid()))
         #expect(!snapshot.executablePath.isEmpty)

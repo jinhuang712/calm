@@ -18,6 +18,21 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
     }
 }
 
+public extension AgentKind {
+    /// Whether a report naming this agent speaks for a session whose terminal foreground is held
+    /// by `foreground` right now.
+    ///
+    /// Whatever an agent starts inherits the session's `CALM_SESSION_ID`, so Claude Code running
+    /// `pi -p` in its Bash tool makes pi's extension report as if the session were pi's. The
+    /// agent in the foreground is the session's; another agent's report isn't about the session
+    /// at all, its state included. Only a *different* agent, positively recognised, disproves a
+    /// report. With nothing recognised (a wrapper script, a shell not probed yet) the report
+    /// stands, as it always did.
+    func speaksForSession(whileForeground foreground: AgentKind?) -> Bool {
+        foreground == nil || foreground == self
+    }
+}
+
 /// "3 of 5 todos".
 public struct TodoProgress: Codable, Hashable, Sendable {
     public var done: Int

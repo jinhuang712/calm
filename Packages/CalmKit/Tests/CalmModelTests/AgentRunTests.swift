@@ -57,6 +57,25 @@ struct AgentRunTests {
         #expect(workspace.session(id)?.recap == "Fixed the login test.")
     }
 
+    @Test func `a report is the session's unless another agent has the foreground`() {
+        // The incident (2026-09-30): Claude Code ran `pi -p` in its Bash tool, and pi's report
+        // turned the session's row into pi's, "done" included.
+        #expect(!AgentKind.pi.speaksForSession(whileForeground: .claudeCode))
+        #expect(AgentKind.claudeCode.speaksForSession(whileForeground: .claudeCode))
+        for kind in AgentKind.allCases {
+            for other in AgentKind.allCases where other != kind {
+                #expect(!kind.speaksForSession(whileForeground: other), "\(kind) while \(other)")
+            }
+        }
+    }
+
+    @Test func `a report stands while no agent is recognised in the foreground`() {
+        // A wrapper script, or a shell the probe hasn't looked at yet: degrade to the old way.
+        for kind in AgentKind.allCases {
+            #expect(kind.speaksForSession(whileForeground: nil), "\(kind)")
+        }
+    }
+
     @Test func `ending a run clears it`() {
         var (workspace, id) = workspaceWithSession()
         workspace.startAgentRun(id, AgentRun(kind: .pi, processID: 7))

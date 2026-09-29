@@ -253,6 +253,15 @@ final class SessionProbe {
         }
     }
 
+    /// The agent that holds the session's terminal foreground, read from its process as it is now:
+    /// the last tick says which process that is, and it may have exited since (then nothing is
+    /// recognised). Not `session.agent`: a report can have replaced that run, which is exactly
+    /// what this is asked to check (`AgentKind.speaksForSession`).
+    func foregroundAgent(of id: Session.ID) -> AgentKind? {
+        guard let job = foregroundJobs[id], job > 0 else { return nil }
+        return Agents.detect(processID: job)
+    }
+
     private func noteForegroundJob(_ job: Int32, of id: Session.ID) {
         guard foregroundJobs[id] != job else { return }
         foregroundJobs[id] = job

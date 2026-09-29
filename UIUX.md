@@ -113,6 +113,29 @@ Rules:
 4. No sound by default.
 5. Nothing else notifies unless the user opts in.
 
+## App icon
+
+Calm's mark is a 5 × 5 grid of soft square cells: an open ring of ten, a still center, and the cursor cell just past the ring's end, where the next character goes. There are two versions, and the Finder and the Dock switch between them with the system's appearance:
+
+- **Light:** a warm cream tile, a tan ring, a brown center, and an ember cursor cell with a soft glow.
+- **Dark:** Calm dark's tile, a dim warm ring, the accent center, and a pale cursor cell.
+
+The mark is flat: no Liquid Glass.
+
+While Calm runs, the Dock icon shows how the work is going, one state at a time:
+
+| State | When | Icon |
+|---|---|---|
+| idle | nothing below | the mark, still: the app's own icon, in the user's icon style |
+| running | any session is working | the chase: the cursor cell runs around the ring, a lap in 1.5 s. It holds on each place and steps to the next, and the opening travels just ahead of it. A four-cell trail follows the cursor, and the ring steps back to 60%, so the motion reads at Dock size |
+| done | a session is done and not yet visited | the ring closes, and the cursor cell turns sage |
+| failed | a session failed and not yet visited | the ring loses its warmth to grey, and the cursor cell turns muted red |
+
+- There is one state for the whole app: failed outranks running, which outranks done. *Needs you* has its notification and leaves the icon as it is.
+- When work stops, the cursor carries on to its resting place and takes the last step slowly, settling once as agent marks do. Then the icon turns into done or failed in half a second, or rests.
+- With Reduce Motion (or `motion` reduced or off), running is shown still: the trail and the dimmed ring, without movement.
+- No badges and no bouncing.
+
 ## Arrival card
 
 - Appears at the top of the pane when switching into an agent session, only when it adds something: the sidebar is hidden (its card would say the same) and the session had activity since the user left it. ⌘⇧I shows it any time.
@@ -174,6 +197,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 | Files and viewer | the files column slides in from the sidebar's edge; a viewed file fades up over the session, and esc fades it back |
 | Arrival card | fades in on arrival and dissolves when you type |
 | Adaptive background | the window's chrome gently follows the background color a full-screen app paints |
+| Dock icon | the chase while an agent works, settling once when it stops; done and failed ease in over half a second (see App icon) |
 
 **Settings:** Settings → Appearance holds one motion control (full, reduced or off), saved as `motion` in `config.toml`; it dims and says why while the system's Reduce Motion is on. The system's Reduce Motion always wins. Individual effects stay adjustable in the config file.
 
@@ -253,7 +277,7 @@ Audited against Ghostty's macOS defaults (M1.10):
 
 - Full keyboard operation.
 - VoiceOver labels for every sidebar row and state.
-- State is never shown by color alone: each state also has a shape.
+- State is never shown by color alone: each state also has a shape. One exception is the Dock icon's *failed* state. It differs from idle mostly in color (a grey ring, a red cursor cell), and the session's card still marks it by shape.
 - Respects Reduce Motion and Increase Contrast.
 - **Interface size** (Settings → Appearance), chips under the themes and drawn the same way: each a strip of Calm in the picked theme at that size, its sidebar and cards growing (fewer fit) while the terminal's lines stay put, which is what the setting does. The chosen one is ringed in the accent like the chosen theme; names under them, the percentage as a tooltip. No window chrome or traffic lights: Calm's own picture, not the system's. Default, Large, Larger or Largest (100, 115, 130, 150%) scales every size and length in Calm's chrome at once: the sidebar and its width, cards, the title strip's text (the strip itself stays level with the traffic lights), the files column, search, the palette, the arrival card, the welcome page and Settings. The terminal keeps the Ghostty font's size (⌘+ and ⌘−). A change applies at once; saved as `ui-size` in `config.toml`.
 - **Increase Contrast:** the chrome's secondary text, hints, selection and dividers get stronger. A Calm theme's text colors each reach 4.5:1 by moving toward white (dark) or black (light), so dim text stays dimmer than normal text. A theme from the user's Ghostty config is left as it is (Ghostty's `minimum-contrast` is theirs to set).

@@ -1,0 +1,129 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "srgb:0.98824,0.98039,0.96863,1.00000",
+          "srgb:0.92157,0.89412,0.85882,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "srgb:0.17255,0.15294,0.13725,1.00000",
+          "srgb:0.10588,0.09412,0.08235,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "Mark",
+      "layers": [
+        {
+          "name": "Cursor",
+          "image-name": "cursor.svg",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.85098,0.54118,0.30588,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.95294,0.85098,0.74118,1.00000"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Glow",
+          "image-name": "glow.svg",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "value": false
+            },
+            {
+              "appearance": "dark",
+              "value": true
+            }
+          ]
+        },
+        {
+          "name": "Center",
+          "image-name": "center.svg",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.56078,0.37255,0.23529,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.80784,0.62745,0.50588,1.00000"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ring",
+          "image-name": "ring.svg",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.77647,0.67451,0.59216,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.43922,0.35294,0.28627,1.00000"
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": "combined",
+      "specular": false,
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

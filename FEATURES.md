@@ -68,6 +68,12 @@ A fast, correct terminal on libghostty.
 - Clicking the notification jumps to the session. **⌘⇧A** jumps to the session that has waited longest.
 - **done** and **failed** never interrupt; they show in the sidebar until the session is visited.
 - A **needs you** is never dropped: if delivery is deferred, it waits, and it stays visible in the sidebar until handled.
+- The Dock icon shows the whole app's state:
+  - **running:** a quiet chase around Calm's mark while any session is working;
+  - **done:** the ring closed in sage;
+  - **failed:** the ring dimmed to grey with a red cell.
+
+  Done and failed last until the session is visited. The icon never badges or bounces (UIUX.md → App icon).
 
 - With Claude Code, Calm's hooks are on by default inside Calm (a plugin Claude loads only in Calm's shells; nothing is written to Claude's settings), so *needs you* arrives the moment Claude asks, with what it asks.
 

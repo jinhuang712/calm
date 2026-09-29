@@ -33,7 +33,7 @@ Calm/                    app target (AppKit + SwiftUI)
 CalmTests/               app-hosted tests (engine smoke tests)
 CLI/                     the `calm` command-line tool
 Packages/CalmKit/        UI-free Swift package: CalmModel, CalmControl, CalmAgents; later Search
-scripts/                 GhosttyKit build, xcodebuild wrapper
+scripts/                 GhosttyKit build, xcodebuild wrapper, app icon (app-icon.py)
 Frameworks/              built GhosttyKit + Ghostty resources (not tracked)
 ```
 
@@ -175,6 +175,20 @@ Window titles aren't used: agents' title formats vary and change. Calm never pla
 - A **breakpoint detector** watches keystrokes and focus changes. A notification is delivered when the user has not typed for a short interval, switches focus, or after a maximum wait. It is never dropped.
 - Delivered notifications are removed when the session is visited.
 - As built (M3.9): `AttentionQueue` (CalmModel, unit-tested) holds one notification per session; a pause is 3 s without typing (a local key monitor, so only typing in Calm counts), any focus change (session or app), or 60 s at most. `AttentionCenter` delivers through `UNUserNotificationCenter` with no sound, one identifier per session (a newer message replaces the older; visiting removes it), and skips a notification if the user is looking at the session by then. macOS asks for permission the first time one is delivered. Clicking focuses the session. Self-tests set `CALM_NO_NOTIFICATIONS=1` and only log.
+
+## App icon
+
+**The icon file.** `Calm/Resources/AppIcon.icon` is an Icon Composer document, written by `scripts/app-icon.py`. It has one flat layer per part (ring, center, cursor, and the light icon's glow), each with a light and a dark color, over a light or dark gradient tile, with Liquid Glass off. XcodeGen (2.45.1 and later) adds `.icon` folders as Icon Composer files. With `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`, Xcode compiles it (actool) into `Assets.car`, with light, dark and tinted renditions, plus an `AppIcon.icns` for places that want a plain image. To check a change, render it with Icon Composer's `ictool`, which ships inside Xcode (`…/Icon Composer.app/Contents/Executables/ictool AppIcon.icon --export-image --output-file out.png --platform macOS --rendition Default|Dark --width 512 --height 512 --scale 1`).
+
+**Dock states.**
+- **Model:** `AppIconState.summarizing` reduces the sessions' states to one. `AppIconMotion` (CalmModel, unit-tested) turns state changes into frames; it is pure, so a frame is a function of time. `AppIconFrame.places` gives each of the ring's twelve places its cell and cursor strength.
+- **Drawing:** `DockIcon` (App) follows the workspace through Observation. While the icon isn't idle, it sets `NSApp.dockTile.contentView` to a `DockIconView`, which draws the frame with Core Graphics on the 1024-point grid: the tile at 100…924, a superellipse for the continuous corners, in the .icon's geometry and colors. At rest it clears the content view, so the Dock shows the real icon.
+- **Cost:** it ticks at 30 frames a second only while something moves, and calls `display()` only for frames that changed. The stepped chase holds on each place for most of its beat, so most ticks change nothing.
+- **Testing:** headless self-tests have no Dock; `calm.dock_icon:<folder>` writes the states as PNGs.
+
+Known limits:
+- The drawn states don't follow the user's icon style (tinted or clear).
+- The drawn idle frame differs slightly from the system's rendering of the icon (the system adds its own edge light), visible only at the moment the drawing hands back.
 
 ## Search
 

@@ -169,6 +169,12 @@ Calm looks right out of the box, and making it yours takes a minute.
 - [x] **M6.5 Settings screen:** Appearance, Agents, General and Shortcuts; writes `config.toml` and keeps unknown keys. *Built as a page that takes the whole window (⌘,, esc back), with a list of sections where the sidebar was, in the theme's colors; it shows config.toml lines it couldn't read and when macOS blocks notifications. It replaced a native toolbar-tab window whose tabs resized it and whose controls wore the system blue. Not in yet: a font and size control (General names the font and opens the Ghostty config), updates and SSH options (neither feature exists yet). New top-level keys no longer land after a blank line.*
 - [x] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast. *Built: Increase Contrast for the chrome and Calm's themes (text to 4.5:1, hierarchy kept), live updates when either setting changes, files column reachable by keyboard and VoiceOver. An interface size (100 to 150%) scales all of Calm's chrome. States already had shapes; cards, rows and the theme picker have labels. Not verified with VoiceOver itself: SwiftUI builds its accessibility tree only when an assistive app connects, which headless runs can't do.*
 
+- [x] **M6.7 App icon:** Calm's mark in light and dark, and a Dock icon that shows running, done and failed while Calm runs. *Built:*
+  - *the icon file: an Icon Composer document (`scripts/app-icon.py`), compiled by Xcode into light, dark and tinted renditions;*
+  - *the Dock states: drawn by Calm only while not idle, redrawn only when a frame changes, still under Reduce Motion.*
+
+  *Checked as rendered PNGs (`ictool` for the icon file, `calm.dock_icon:` for the Dock states), not yet in a real Dock: headless self-tests have none.*
+
 **Exit criteria**
 - A new user can make Calm look right in under a minute without editing files.
 - The settings screen fits the budget in PHILOSOPHY.md.

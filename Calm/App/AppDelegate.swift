@@ -27,6 +27,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AgentIntegrations.prepare()
             SearchService.start()
             TerminalWindowManager.shared.openMainWindow()
+            // Headless self-tests run without a Dock icon.
+            if !Headless.isOn {
+                DockIcon.shared.start()
+            }
         }
         if !Headless.isOn {
             NSApp.activate()

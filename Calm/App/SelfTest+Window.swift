@@ -193,9 +193,12 @@
             return true
         }
 
-        /// Settings (F14) and session states for self-tests.
+        /// Settings (F14), session states and the Dock icon for self-tests.
         private func performSettingsActionForTesting(_ action: String) -> Bool {
             switch action {
+            case let folder where folder.hasPrefix("dock_icon:"):
+                // dock_icon:<folder>: the Dock icon's states as PNGs (headless runs have no Dock)
+                return DockIcon.shared.renderForTesting(to: URL(filePath: String(folder.dropFirst(10))))
             case "settings":
                 TerminalMenuTarget.shared.showSettings(nil)
             case let section where section.hasPrefix("settings:"):

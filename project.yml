@@ -112,14 +112,20 @@ targets:
           if [[ -d "$share/terminfo" ]]; then
             rsync -a --delete "$share/terminfo/" "$dest/terminfo/"
           fi
+          # Tools go in as new files, never written over the old ones: macOS keeps the code
+          # signature of a binary it has run, and after the file changes in place it kills the
+          # binary at every launch ("load code signature error 2"). A rebuild after a
+          # persistent self-test left zmx dead, and every session fell back to a plain shell.
           # The `calm` command-line tool, next to zmx.
           if [[ -x "${BUILT_PRODUCTS_DIR}/calm" ]]; then
             mkdir -p "$dest/bin"
+            rm -f "$dest/bin/calm"
             cp "${BUILT_PRODUCTS_DIR}/calm" "$dest/bin/calm"
           fi
           # zmx keeps shells alive across quits (scripts/zmx.sh).
           if [[ -x "${PROJECT_DIR}/Frameworks/bin/zmx" ]]; then
             mkdir -p "$dest/bin"
+            rm -f "$dest/bin/zmx"
             cp "${PROJECT_DIR}/Frameworks/bin/zmx" "$dest/bin/zmx"
           fi
     scheme:

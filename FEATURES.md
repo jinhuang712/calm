@@ -77,7 +77,7 @@ A fast, correct terminal on libghostty.
 
 - With Claude Code, Calm's hooks are on by default inside Calm (a plugin Claude loads only in Calm's shells; nothing is written to Claude's settings), so *needs you* arrives the moment Claude asks, with what it asks.
 
-- **Calm → Agents…** (Settings → Agents; the welcome page links to it) lists the installed agents and how each connects: Claude Code inside Calm; Codex and omp through their own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**); OpenCode with a hint, since its background service can't be tied to a terminal yet.
+- **Calm → Agents…** (Settings → Agents; the welcome page links to it) lists the installed agents and how each connects: Claude Code inside Calm; Codex and omp through their own notifications; pi through a small extension Calm adds only when you click **Connect** (and removes with **Disconnect**); OpenCode through its own attention notifications, which are off until `attention.notifications` is true in `~/.config/opencode/cli.json`: its card offers **Set Up…**, which says so, until it is on, and then reads Connected (there is no plugin, since its background service can't be tied to a terminal yet).
 
 **Settings:** 2, in Settings → Agents — which states notify (default: only *needs you*; or also *done* and *failed*); notification sound on/off (default off). They're stored in config.toml as `notify` and `sound` under `[agents]`. In the config file only: `claude-code-hooks = false` under `[agents]`.
 

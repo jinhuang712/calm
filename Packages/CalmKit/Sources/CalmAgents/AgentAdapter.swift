@@ -61,6 +61,8 @@ public protocol AgentAdapter: Sendable {
     var configFolder: String? { get }
     /// How the agent connects to Calm (the Agents panel).
     var setup: AgentSetup { get }
+    /// `setup` as it stands now, for agents whose own config may already have done the work.
+    func currentSetup(home: URL) -> AgentSetup
     /// The agent's own mark and how it moves while the agent works (in `<Agent>+Mark.swift`).
     var mark: AgentMarkArt { get }
     /// The shell command that resumes one of the agent's past sessions, if it can.

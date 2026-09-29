@@ -21,6 +21,68 @@ struct AgentSetupTests {
         #expect(Agents.adapters.allSatisfy { $0.configFolder != nil })
     }
 
+    /// OpenCode 2.0.18's own `cli.json` on the author's machine (2026-09-29), trimmed to the
+    /// sections that matter here.
+    private let openCodeCLIJSON = """
+    {
+      "$schema": "https://opencode.ai/v2/cli.json",
+      "animations": true,
+      "session": { "sidebar": "hide", "permissions": "autoaccept" },
+      "attention": { "notifications": true, "sound": true, "volume": 0.20000000000000004 },
+      "diffs": { "view": "unified" }
+    }
+    """
+
+    private func writeOpenCodeCLI(_ text: String?, in home: URL) throws {
+        let folder = home.appending(path: ".config/opencode")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        if let text {
+            try text.write(to: folder.appending(path: "cli.json"), atomically: true, encoding: .utf8)
+        }
+    }
+
+    @Test func `opencode points at cli json until its notifications are on`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let opencode = OpenCodeAdapter()
+        guard case let .hint(text) = opencode.setup else { Issue.record("OpenCode's static setup is a hint"); return }
+        #expect(text.contains("cli.json"))
+        #expect(!text.contains("tui.json"))
+
+        // No settings file: notifications are off by default (checked in 2.0.18's code).
+        try writeOpenCodeCLI(nil, in: home)
+        #expect(opencode.currentSetup(home: home) == opencode.setup)
+
+        try writeOpenCodeCLI(openCodeCLIJSON, in: home)
+        #expect(opencode.currentSetup(home: home) == .notifications)
+    }
+
+    @Test func `opencode's notifications count as on only when they are true`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let cases: [(String, Bool)] = [
+            (#"{ "attention": { "notifications": false, "sound": true } }"#, false),
+            (#"{ "attention": { "sound": true } }"#, false),
+            (#"{ "animations": true }"#, false),
+            (#"{ "attention": { "notifications": "yes" } }"#, false),
+            ("not json at all", false),
+            // Comments and a trailing comma, as OpenCode's own parser allows.
+            ("{\n  // loud\n  \"attention\": { \"notifications\": true, },\n}", true),
+        ]
+        for (text, expected) in cases {
+            try writeOpenCodeCLI(text, in: home)
+            #expect(OpenCodeAdapter.attentionNotificationsOn(home: home) == expected, "\(text)")
+        }
+    }
+
+    @Test func `agents without their own switch keep their static setup`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        for adapter in Agents.adapters where adapter.kind != .openCode {
+            #expect(adapter.currentSetup(home: home) == adapter.setup, "\(adapter.kind)")
+        }
+    }
+
     @Test func `the pi extension is safe outside Calm and never waits`() {
         let source = PiAdapter.extensionSource
         #expect(source.contains(AgentSetup.marker))

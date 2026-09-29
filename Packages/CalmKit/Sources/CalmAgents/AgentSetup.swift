@@ -26,6 +26,11 @@ public extension AgentAdapter {
     var setup: AgentSetup {
         .notifications
     }
+
+    /// How the agent connects right now, for agents whose own config decides it. Most don't.
+    func currentSetup(home _: URL) -> AgentSetup {
+        setup
+    }
 }
 
 public extension ClaudeCodeAdapter {
@@ -56,9 +61,27 @@ public extension OpenCodeAdapter {
     }
 
     /// OpenCode 2 runs the agent in a shared background service, so a plugin can't tell which
-    /// terminal it belongs to (DESIGNS.md → Agents, open questions).
+    /// terminal it belongs to (DESIGNS.md → Agents, open questions). What it does send are its
+    /// own attention notifications, which stay off until `attention.notifications` is set.
     var setup: AgentSetup {
-        .hint("Calm sees when OpenCode runs. To see when it needs you, turn on OpenCode's attention notifications in tui.json.")
+        .hint("Calm sees when OpenCode runs. To see when it needs you, set attention.notifications to true in ~/.config/opencode/cli.json.")
+    }
+
+    /// Once the user has turned the notifications on there is nothing left to set up.
+    func currentSetup(home: URL) -> AgentSetup {
+        Self.attentionNotificationsOn(home: home) ? .notifications : setup
+    }
+
+    /// Reads `attention.notifications` from `cli.json` (OpenCode 2's settings; it migrates the
+    /// old `tui.json` into it). Off is the default, so anything unreadable counts as off. JSON5
+    /// tolerates the comments and trailing commas OpenCode's own parser accepts.
+    internal static func attentionNotificationsOn(home: URL) -> Bool {
+        let url = home.appending(path: ".config/opencode/cli.json")
+        guard let data = try? Data(contentsOf: url),
+              let root = try? JSONSerialization.jsonObject(with: data, options: .json5Allowed) as? [String: Any],
+              let attention = root["attention"] as? [String: Any]
+        else { return false }
+        return attention["notifications"] as? Bool == true
     }
 }
 

@@ -12,6 +12,8 @@ import UserNotifications
 final class AgentsSettingsModel {
     struct Row: Identifiable {
         let adapter: any AgentAdapter
+        /// How the agent connects now: its own config can settle it (OpenCode's notifications).
+        var setup: AgentSetup
         var state: AgentSetupFiles.State?
         var id: AgentKind {
             adapter.kind
@@ -44,11 +46,12 @@ final class AgentsSettingsModel {
             guard let folder = adapter.configFolder, FileManager.default.fileExists(atPath: home.appending(path: folder).path) else {
                 return nil
             }
+            let setup = adapter.currentSetup(home: home)
             var state: AgentSetupFiles.State?
-            if case let .files(files) = adapter.setup {
+            if case let .files(files) = setup {
                 state = AgentSetupFiles.state(of: files, home: home)
             }
-            return Row(adapter: adapter, state: state)
+            return Row(adapter: adapter, setup: setup, state: state)
         }
         refreshNotificationStatus()
     }
@@ -70,7 +73,7 @@ final class AgentsSettingsModel {
     }
 
     func connect(_ row: Row) {
-        guard case let .files(files) = row.adapter.setup else { return }
+        guard case let .files(files) = row.setup else { return }
         do {
             try AgentSetupFiles.install(files, home: home)
             error = nil
@@ -81,7 +84,7 @@ final class AgentsSettingsModel {
     }
 
     func disconnect(_ row: Row) {
-        guard case let .files(files) = row.adapter.setup else { return }
+        guard case let .files(files) = row.setup else { return }
         do {
             try AgentSetupFiles.remove(files, home: home)
             error = nil
@@ -258,7 +261,7 @@ private struct AgentCard: View {
     /// Where the agent stands, in quiet text, or the one action it needs.
     @ViewBuilder
     private var standing: some View {
-        switch (row.adapter.setup, row.state) {
+        switch (row.setup, row.state) {
         case let (.files(files), .notInstalled?):
             Button("Connect", action: onConnect)
                 .buttonStyle(SettingsButtonStyle(style: style))

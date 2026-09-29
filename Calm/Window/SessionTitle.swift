@@ -12,6 +12,10 @@ struct SessionTitleView: View {
         16.scaled
     }
 
+    /// The group's mark, at the standard interface size: larger than the sidebar's 20, to go with
+    /// the 15 pt name.
+    static let markSide: CGFloat = 24
+
     let manager: SessionManager
     let style: SidebarStyle
     let actions: SidebarActions
@@ -68,16 +72,16 @@ struct SessionTitleView: View {
             // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
             // folder or scratch glyph, so the text starts in the same place for every session.
             if let project {
-                GroupMark(project: project, style: style)
+                GroupMark(project: project, style: style, side: Self.markSide)
                     .foregroundStyle(style.tertiary)
-                    .frame(width: 20.scaled, height: 20.scaled)
+                    .frame(width: Self.markSide.scaled, height: Self.markSide.scaled)
                     // The window's title carries the name for VoiceOver, the Window menu and
                     // Mission Control, so the name, the folder and the mark stay out of it.
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .calmFont(size: 13.5, weight: .medium)
+                    .calmFont(size: 15, weight: .medium)
                     .foregroundStyle(style.primary)
                     .truncationMode(.tail)
                     .accessibilityHidden(true)
@@ -96,14 +100,14 @@ struct SessionTitleView: View {
                             // The card's worktree line, at this line's size.
                             HStack(spacing: 4.scaled) {
                                 Image(systemName: "arrow.triangle.branch")
-                                    .calmFont(size: 10, weight: .medium)
+                                    .calmFont(size: 11, weight: .medium)
                                 Text(worktree)
                             }
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("worktree \(worktree)")
                         }
                     }
-                    .calmFont(size: 11)
+                    .calmFont(size: 12)
                     .foregroundStyle(style.tertiary)
                 }
             }

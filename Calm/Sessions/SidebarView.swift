@@ -559,12 +559,15 @@ struct GroupMark: View {
     let style: SidebarStyle
     /// Clicking a project's mark swaps it for another (an easter egg, FEATURES.md → F2).
     var shuffle: () -> Void = {}
+    /// The mark's side at the standard interface size: 20 in the sidebar, larger in the title strip.
+    /// The folder and scratch glyphs grow with it.
+    var side: CGFloat = 20
 
     var body: some View {
         switch project.kind {
         case .project:
             let identicon = Identicon(name: project.name, seed: project.markSeed)
-            IdenticonTile(identicon: identicon, style: style)
+            IdenticonTile(identicon: identicon, style: style, side: side)
                 // A new view per mark, so the old one crossfades into the new.
                 .id(identicon)
                 .transition(.opacity)
@@ -573,11 +576,11 @@ struct GroupMark: View {
                 .accessibilityLabel("Project")
         case .directory:
             Image(systemName: "folder")
-                .calmFont(size: 12)
+                .calmFont(size: 12 * side / 20)
                 .accessibilityLabel("Folder")
         case .scratch:
             Image(systemName: "square.dashed")
-                .calmFont(size: 12)
+                .calmFont(size: 12 * side / 20)
                 .accessibilityLabel("Scratch")
         }
     }

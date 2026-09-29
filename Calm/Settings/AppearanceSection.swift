@@ -60,6 +60,20 @@ struct AppearanceSection: View {
                 SessionCardsPicker(selection: windowOptions.sessionCardSize, preview: sizePreview, style: style) {
                     windowOptions.setSessionCardSize($0)
                 }
+                .padding(.bottom, 16.scaled)
+                // With it on, the chosen size is the largest the cards get: they step down when the
+                // sessions don't fit and back up when they do.
+                SettingsGroup(style: style) {
+                    SettingsRow(title: "Shrink cards to fit", symbol: "rectangle.compress.vertical", style: style) {
+                        Toggle(
+                            "Shrink cards to fit",
+                            isOn: Binding(get: { windowOptions.sessionCardsFit }, set: { windowOptions.setSessionCardsFit($0) }),
+                        )
+                        .toggleStyle(CalmSwitchStyle(style: style))
+                        .labelsHidden()
+                    }
+                }
+                .help("When the sessions don't fit the sidebar, cards step down from the size above; they grow back when there's room")
                 .padding(.bottom, 32.scaled)
             }
             SettingsGroup(style: style) {

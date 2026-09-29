@@ -34,6 +34,7 @@ extension MainWindowController {
             style: style,
             showsFooter: manager.settings.sidebarFooter,
             cardSize: manager.settings.sessionCardSize,
+            fitsCards: manager.settings.sessionCardsFit,
             onSelect: { [weak self] id in self?.select(id) },
             onClose: { [weak self] id in self?.requestCloseSession(id) },
             onNewSession: { [weak self] in self?.newSession() },

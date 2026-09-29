@@ -72,6 +72,12 @@ public extension CalmSettings {
         bool("sidebar.footer", default: true)
     }
 
+    /// The cards shrink below the chosen size when the sessions don't fit the sidebar, and grow
+    /// back when they do (`SessionCardFit`). Off unless asked for.
+    var sessionCardsFit: Bool {
+        bool("session-cards-fit", default: false)
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {

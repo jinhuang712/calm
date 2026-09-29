@@ -126,6 +126,8 @@ struct SidebarView: View {
     /// in the body: the settings aren't observed, so when saving one rebuilt the sidebar with
     /// nothing else changed, SwiftUI kept the old cards until something it watches moved.
     let cardSize: CalmSettings.SessionCardSize
+    /// Shrink to fit: `cardSize` is the largest the cards get, not the only size.
+    let fitsCards: Bool
     let onSelect: (Session.ID) -> Void
     let onClose: (Session.ID) -> Void
     let onNewSession: () -> Void
@@ -145,8 +147,19 @@ struct SidebarView: View {
         footerChoice ?? showsFooter
     }
 
+    @State private var fitting = SidebarCardFit()
+
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
+
+    /// The size the cards are drawn at, below `cardSize` while shrinking to fit.
+    private var shownCardSize: CalmSettings.SessionCardSize {
+        fitting.size(largest: cardSize, fitting: fitsCards)
+    }
+
+    private func refit() {
+        fitting.refit(manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
+    }
 
     private var selectedSessionID: Session.ID? {
         manager.workspace.selectedLayout?.focusedSessionID
@@ -182,9 +195,14 @@ struct SidebarView: View {
                 // No room of its own at the foot: the footer's handle strip, or the strip along the
                 // bottom edge when it's hidden, is the gap.
                 // A new card size eases every card to its height.
-                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: cardSize)
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownCardSize)
             }
             .scrollIndicators(.never)
+            .onScrollGeometryChange(for: SidebarCardFit.Geometry.self, of: SidebarCardFit.Geometry.init) { _, geometry in
+                fitting.measured(geometry, manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
+            }
+            .onChange(of: cardSize) { refit() }
+            .onChange(of: fitsCards) { refit() }
 
             if footerShown {
                 footer
@@ -393,7 +411,7 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                size: cardSize, isHovered: hoveredSessionID == session.id,
+                size: shownCardSize, isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
             )
         } else {

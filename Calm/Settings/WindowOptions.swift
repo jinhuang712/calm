@@ -12,6 +12,7 @@ final class WindowOptionsModel {
     private(set) var motion = CalmSettings.MotionLevel.full
     private(set) var interfaceSize = CalmSettings.InterfaceSize.standard
     private(set) var sessionCardSize = CalmSettings.SessionCardSize.full
+    private(set) var sessionCardsFit = false
 
     func refresh() {
         let settings = SessionManager.shared.settings
@@ -20,6 +21,7 @@ final class WindowOptionsModel {
         motion = settings.motion
         interfaceSize = settings.interfaceSize
         sessionCardSize = settings.sessionCardSize
+        sessionCardsFit = settings.sessionCardsFit
     }
 
     func setBackground(_ value: CalmSettings.WindowBackground) {
@@ -56,6 +58,13 @@ final class WindowOptionsModel {
         save("session-cards", value == .full ? nil : value.rawValue, reloadsTerminal: false)
     }
 
+    /// The cards shrink below the chosen size when the sessions don't fit the sidebar.
+    func setSessionCardsFit(_ value: Bool) {
+        guard value != sessionCardsFit else { return }
+        sessionCardsFit = value
+        save("session-cards-fit", value ? "true" : nil, reloadsTerminal: false)
+    }
+
     /// `set:<key>=<value>` in self-tests goes through here, like a click.
     func set(_ key: String, _ value: String) {
         switch key {
@@ -64,6 +73,7 @@ final class WindowOptionsModel {
         case "motion": CalmSettings.MotionLevel(rawValue: value).map(setMotion)
         case "ui-size": CalmSettings.InterfaceSize(rawValue: value).map(setInterfaceSize)
         case "session-cards": CalmSettings.SessionCardSize(rawValue: value).map(setSessionCardSize)
+        case "session-cards-fit": Bool(value).map(setSessionCardsFit)
         default: break
         }
     }

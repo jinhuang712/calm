@@ -107,6 +107,11 @@ struct CalmSettingsWritingTests {
         #expect(try String(contentsOf: url, encoding: .utf8).contains("footer") == false)
     }
 
+    @Test func `shrinking the cards to fit is off unless set`() {
+        #expect(CalmSettings(text: "").sessionCardsFit == false)
+        #expect(CalmSettings(text: "session-cards-fit = true\n").sessionCardsFit)
+    }
+
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {
         let text = "# mine\ntheme = \"Sage\"\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n"
         #expect(CalmSettings.removing("theme", in: text) == "# mine\nmotion = \"reduced\"\n\n[agents]\ntheme = \"kept\"\nsound = true\n")

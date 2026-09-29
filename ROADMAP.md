@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** none open. M0 to M7 are all built and self-tested headless. What is left is the author's real use (M3's week of work with agents; the "Left" notes under M4 to M7), the other agents' gaps (OpenCode search indexing in M4 and OpenCode resume and fork in M7) and the *Later* list. The dogfooding day (M1.12) was skipped by the author on 2026-09-29.
+**Current milestone:** none open. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4 and M7 (2026-09-30). What is left: Copy Cell in Claude Code's full-screen view, which failed in that use (M5); a VoiceOver pass and a new user's first minute (M6); OpenCode's gaps (search indexing in M4, resume and fork in M7, a plugin in M3); and the *Later* list.
 
 ## How to read this
 
@@ -18,13 +18,13 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | Milestone | Delivers | Features | Depends on | Status |
 |---|---|---|---|---|
 | **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
-| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | 🟨 |
+| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ✅ |
 | **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ (grouping revised after real use: projects, folders, scratch) |
-| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | 🟨 |
-| **M4** Recall | search across every agent's history | F7 | M2 | 🟨 |
+| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ✅ |
+| **M4** Recall | search across every agent's history | F7 | M2 | ✅ |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | 🟨 |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
-| **M7** Session actions | rename, resume, fork | F12 | M3, M4 | 🟨 |
+| **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
 
@@ -51,7 +51,7 @@ An empty Calm app, built from a clean clone with one command, with GhosttyKit bu
 
 ---
 
-## M1 — A plain terminal (F1) 🟨
+## M1 — A plain terminal (F1) ✅
 
 Calm works as a normal terminal: no sessions or agents yet, just a fast, correct terminal.
 
@@ -66,10 +66,10 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
 - [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
 - [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
-- [ ] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Skipped by the author (2026-09-29), so M1 stays 🟨 by the rule above. Automated self-tests pass (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
+- [x] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Done by the author's real use (2026-09-30): Calm has been their only terminal since 2026-09-29, and the small things found went in as fixes. Automated self-tests pass too (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
 
 **Exit criteria**
-- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker. *Not checked: the day was skipped.*
+- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker. *Met (the author, 2026-09-30).*
 
 ---
 
@@ -94,7 +94,7 @@ The core model arrives: sessions grouped under projects, restored after quitting
 
 ---
 
-## M3 — Attention (F4, F5, F6, F13) 🟨
+## M3 — Attention (F4, F5, F6, F13) ✅
 
 Calm knows what every agent is doing and interrupts only when one needs you.
 
@@ -116,11 +116,11 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.
 - No *needs you* is missed.
 
-*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Left: an OpenCode plugin (blocked on its shared service), and the week of real use.*
+*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Exit criteria met in the author's real use (2026-09-30): no clicking through sessions to find a waiting agent, and no missed *needs you*. It was four days of heavy agent work rather than a week, which the author judged enough. Left: an OpenCode plugin (blocked on its shared service).*
 
 ---
 
-## M4 — Recall (F7) 🟨
+## M4 — Recall (F7) ✅
 
 Any past conversation, across every agent, is one search away.
 
@@ -135,7 +135,7 @@ Any past conversation, across every agent, is one search away.
 **Exit criteria**
 - "Which session talked about X?" is answered with one search, most of the time.
 
-*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Left: the author's real use to confirm the exit criterion, and OpenCode's SQLite history (not indexed yet: OpenCode 2 keeps it in `session_v2` and `session_message`, and the database wrapper now lives in `CalmSQLite` where `CalmAgents` can use it).*
+*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Exit criterion met in the author's real use (2026-09-30). Left: OpenCode's SQLite history (not indexed yet: OpenCode 2 keeps it in `session_v2` and `session_message`, and the database wrapper now lives in `CalmSQLite` where `CalmAgents` can use it).*
 
 ---
 
@@ -154,7 +154,7 @@ Agent output is easy to act on.
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.
 
-*Status: every task is built and self-tested headless. Left: the author's real use to confirm the exit criterion, and changed-file diffs in the viewer (FEATURES.md → Later).*
+*Status: every task is built and self-tested headless. Left: **Copy Cell in Claude Code's full-screen view**, which failed in the author's real use (2026-09-30): ⌥-double-click copied the wrong text, and right-click offers no Copy Cell while a program takes the mouse. Opening paths and the viewer weren't reported either way. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
 
 ---
 
@@ -185,11 +185,11 @@ Calm looks right out of the box, and making it yours takes a minute.
 - A new user can make Calm look right in under a minute without editing files.
 - The settings screen fits the budget in GOALS.md (F11's window options are over it; FEATURES.md → F11).
 
-*Status: every task is built and self-tested headless. Left: a real look at glass and the Settings page on screen (headless snapshots can't show the window server's blur, or SwiftUI's blur in the preview), a VoiceOver pass, and the exit criteria with a new user.*
+*Status: every task is built and self-tested headless. Glass and the Settings page checked on screen by the author (2026-09-30), which headless snapshots can't show. Left: a VoiceOver pass, and the exit criteria with a new user.*
 
 ---
 
-## M7 — Session actions (F12) 🟨
+## M7 — Session actions (F12) ✅
 
 Conversations can be renamed, resumed and forked.
 
@@ -202,7 +202,7 @@ Conversations can be renamed, resumed and forked.
 **Exit criteria**
 - Resuming or forking a conversation is one right-click.
 
-*Status: built and self-tested headless with stand-in conversations; the commands are logged, not run, so no real agent was started. Left: running a resume and a fork with each real agent (it uses your accounts), and OpenCode's resume and fork.*
+*Status: built and self-tested headless with stand-in conversations. Resume and fork worked with a real agent in the author's use (2026-09-30), which meets the exit criterion; not every agent was checked one by one. Left: OpenCode's resume and fork.*
 
 ---
 

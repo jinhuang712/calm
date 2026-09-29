@@ -136,10 +136,10 @@ A fast, correct terminal on libghostty.
 
 **Settings:** 2 — editor (auto-detected: VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode; or any application, chosen in Settings → General with Choose Application…, or `editor = "…"` in config.toml, a name or an `.app` path; an application that isn't one of those opens the file but not at the line); where paths open (Calm's viewer or editor, default viewer: `open-paths = "editor"` to change it).
 
-## F9 — Copy Cell ✅
+## F9 — Copy Cell 🚧
 
 - Copies the text of one cell of a table drawn with box characters (`│ ─ ┼` and similar), instead of whole rows.
-- Triggered by **⌥-double-click** or right-click → **Copy Cell** (the menu shows only where the program doesn't take the mouse).
+- Triggered by **⌥-double-click** or right-click → **Copy Cell** (the menu shows only where the program doesn't take the mouse). Known gap: in Claude Code's full-screen view, ⌥-double-click copies the wrong text (found in real use, 2026-09-30; cause not yet known), and there is no right-click menu there, since Claude Code takes the mouse.
 - Wrapped lines inside the cell are joined, and padding is trimmed, giving one clean string.
 - Falls back to normal word selection when the click is not inside a drawn table.
 - Works with box-drawn tables (with or without rules between rows), markdown pipe tables, and Chinese text.

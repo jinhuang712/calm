@@ -21,6 +21,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private var peekWasEnabled = false
     private lazy var switcher = SessionSwitcher(controller: self)
     private lazy var arrivalCard = ArrivalCard(container: container)
+    lazy var closePrompt = ClosePrompt(container: container)
     lazy var linkTag = LinkTag(container: container)
     lazy var fileViewer = FileViewer(container: container)
     lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
@@ -134,6 +135,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
+        closePrompt.dismiss()
         updatePages()
         // A new, reopened or closed-into session isn't the one a file was opened over.
         closeViewer(unlessOver: manager.workspace.selectedLayout?.focusedSessionID)
@@ -265,16 +267,23 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     private func closeSession(_ id: Session.ID) {
         guard let layout = manager.workspace.layout(containing: id) else { return }
+        closePrompt.dismiss()
         let workspace = workspaces[layout.id]
         if let pane = manager.panes[id] {
             workspace?.detach(pane)
         }
+        let shown = manager.workspace.selectedLayoutID
         manager.closeSession(id)
-        if manager.workspace.layout(containing: layout.focusedSessionID) == nil || workspace?.orderedPanes.isEmpty == true {
+        // The workspace goes with its layout. (`layout` is the copy from before the close, whose
+        // focused session is the one just closed when it was the focused pane: asking about it
+        // rebuilt the whole workspace after every such close, and nothing could animate.)
+        if !manager.workspace.layouts.contains(where: { $0.id == layout.id }) || workspace?.orderedPanes.isEmpty == true {
             workspace?.removeFromSuperview()
             workspaces[layout.id] = nil
         }
-        showSelectedLayout(animated: true)
+        // Closing a pane of the split on screen leaves its layout in place, and the panes fold
+        // and grow themselves; fading the whole area in would blink over that.
+        showSelectedLayout(animated: manager.workspace.selectedLayoutID != shown)
     }
 
     // MARK: Appearance
@@ -306,6 +315,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
         workspaces.values.forEach { $0.dividerColor = divider }
+        updateDim()
         // The welcome page, the main area's page and Settings take the chrome's colors too (they
         // settle after they first show).
         updatePages()
@@ -498,7 +508,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     /// ⌘W (Close Session, or the user's own close_surface binding).
     func surfaceRequestsClose(_ view: TerminalSurfaceView, needsConfirm: Bool) {
         // A confirmation already up takes the key; another ⌘W doesn't stack a second one.
-        guard window?.attachedSheet == nil else { return }
+        guard window?.attachedSheet == nil, !closePrompt.isShowing else { return }
         // ⌘W closes what's in front first: Settings, search or a file, never the session behind it.
         if settingsPage.isShowing {
             hideSettings()
@@ -517,6 +527,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         let agent = manager.workspace.session(id)?.agent?.kind
         guard processRunning || agent != nil, let window else {
             closeSession(id)
+            return
+        }
+        // In a split the question sits on the pane it is about: a sheet on the window says what
+        // would end, not which pane it is (UIUX.md → Split panes).
+        if let workspace = selectedWorkspace, let pane = workspace.askablePane(id) {
+            closePrompt.ask(about: pane, in: workspace, agentName: agent?.displayName, style: sidebarStyle) { [weak self] in
+                self?.closeSession(id)
+            }
             return
         }
         let alert = NSAlert()
@@ -565,6 +583,18 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     func surfaceAppearanceDidChange(_ view: TerminalSurfaceView) {
         if view === focusedPane {
             applyAppearance()
+        } else {
+            // A receding pane's veil is the color it has behind its text.
+            updateDim()
+        }
+    }
+
+    /// Tells each workspace which pane its layout's focus is on, so the others recede, and has
+    /// the veils take the panes' current colors.
+    func updateDim() {
+        for (id, workspace) in workspaces {
+            workspace.setFocused(manager.workspace.layouts.first { $0.id == id }?.focusedSessionID)
+            workspace.refreshVeils(animated: true)
         }
     }
 

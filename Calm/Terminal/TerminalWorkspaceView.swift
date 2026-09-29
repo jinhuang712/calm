@@ -10,6 +10,15 @@ final class TerminalWorkspaceView: NSView {
     private(set) var zoomedPane: UUID?
     /// The dotted lines under links that open, above the panes (they can't take subviews).
     private let linkMarks = LinkMarksView()
+    /// The veils over the panes that recede in a split, above the panes and their marks
+    /// (TerminalWorkspaceView+Dim).
+    let veils = VeilsView()
+    var veilViews: [UUID: VeilView] = [:]
+    /// The pane the layout's focus is on: the others recede. Not the first responder, so a
+    /// question on another pane, or the window losing focus, leaves the dim as it is.
+    var focusedID: UUID?
+    /// The pane a close question is on: while it is up the others almost go.
+    var askedID: UUID?
 
     var dividerColor = NSColor(white: 1, alpha: 0.08) {
         didSet { dividers.forEach { $0.color = dividerColor } }
@@ -47,6 +56,7 @@ final class TerminalWorkspaceView: NSView {
     /// Takes a pane out of the layout without ending its surface (the session manager does that).
     func detach(_ pane: TerminalSurfaceView) {
         guard let tree else { return }
+        foldAway(pane, in: tree)
         if zoomedPane == pane.id {
             zoomedPane = nil
         }
@@ -54,7 +64,11 @@ final class TerminalWorkspaceView: NSView {
         pane.removeFromSuperview()
         self.tree = tree.removing(pane.id)
         if self.tree != nil {
-            layoutPanes(animated: true)
+            // The panes that stay take their final frames at once, and the closed pane's ghost
+            // folds away over them (foldAway): the terminal is resized once, not on every step of
+            // a glide, and nothing depends on AppKit's frame animation, which stalls when the
+            // close comes from a deferred callback rather than an event.
+            layoutPanes(animated: false)
         }
     }
 
@@ -161,6 +175,7 @@ final class TerminalWorkspaceView: NSView {
         if let pane = subview as? TerminalSurfaceView {
             pane.links.onChange = nil
             linkMarks.remove(pane.id)
+            veilViews.removeValue(forKey: pane.id)?.removeFromSuperview()
         }
         super.willRemoveSubview(subview)
     }
@@ -172,6 +187,11 @@ final class TerminalWorkspaceView: NSView {
             addSubview(linkMarks, positioned: .above, relativeTo: subviews[lastPane])
         }
         linkMarks.frame = bounds
+        // The veils lie over the marks, so a receding pane's marks recede with its text.
+        if (subviews.firstIndex(of: veils) ?? -1) < (subviews.firstIndex(of: linkMarks) ?? 0) {
+            addSubview(veils, positioned: .above, relativeTo: linkMarks)
+        }
+        veils.frame = bounds
         for pane in panes.values {
             if animated {
                 pane.resetLinkMarks() // the pane is about to change size; its text will move
@@ -196,10 +216,13 @@ final class TerminalWorkspaceView: NSView {
             for (id, frame) in frames {
                 guard let pane = self.panes[id] else { continue }
                 pane.isHidden = false
+                let veil = self.veilView(for: id)
                 if animated {
                     pane.animator().frame = frame
+                    veil.animator().frame = frame
                 } else {
                     pane.frame = frame
+                    veil.frame = frame
                 }
             }
             if let zoomed = self.zoomedPane {
@@ -218,6 +241,7 @@ final class TerminalWorkspaceView: NSView {
         } else {
             apply()
         }
+        refreshVeils(animated: animated)
         rebuildDividers(tree)
     }
 

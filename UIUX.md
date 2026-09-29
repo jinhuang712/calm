@@ -178,6 +178,15 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 - An empty field lists the most recent sessions.
 - The current project's sessions rank slightly higher.
 
+## Split panes
+
+With more than one pane on screen, the one you're in must be plain to see, and so must the one ⌘W is about to close. Neither is said with a border ("no rings around panes") or a name; the panes themselves say it.
+
+- **The pane you're in is the bright one.** The others recede to 0.6 of their strength: a veil of the terminal's own background (the color along the pane's top edge, so a full-screen app that paints its own, OpenCode, fades into that), fading in and out over 0.16 s. It follows the layout's focused session, not the keyboard focus, so a question on another pane, or Calm losing focus, leaves it as it is. A lone pane is never dimmed. The value is Calm's own and fixed: the engine draws no such dim, and Ghostty's `unfocused-split-opacity` (0.9 in the author's config, a 10% dim that could not be seen) is not read.
+- **⌘W on a pane with something running** (an agent, or a process Ghostty can see) puts the question in the middle of that pane: a small card in the sidebar's colors, "Claude Code is running here" (or "Something is running here") over "Closing the session ends it.", with **Keep** (esc) and **Close** (↵), Close the filled one. While it is up the other panes fade to 0.22 and the asked pane steps back to 0.5, so the card and the pane it stands on are what's left. Nothing carries the session's name: where the card stands is the answer. Return closes; Esc keeps; any other key, or a click outside the card, keeps and goes through; another ⌘W does nothing. It also goes away when the layout changes or the pane ends by itself. The same question comes from Close Session in the right-click menu and the ⋯ menu. An unsplit session keeps the window sheet ("Close this session?"), since the whole area is the pane.
+- **A pane at a plain prompt closes at once**, with no question.
+- **A closed pane folds away.** The panes that stay take their final frames at once, and a still picture of the closed pane's last frame shrinks and fades over them, toward the edge it shared with the pane that takes its room (0.22 s), so the eye follows where it went. With Reduce Motion it just goes.
+
 ## Color
 
 - Soft palettes only in the built-in set: low contrast between text and background (roughly 6:1 to 11:1), low saturation, and bright white only a step above the text. The default, Calm, is neutral and neither black nor white; each other theme is a direction of its own (a hue, a depth), never a tint of another.
@@ -217,7 +226,7 @@ Smooth, fluid motion is part of what makes Calm feel calm. Motion is on by defau
 
 | Motion | Behavior |
 |---|---|
-| Splits | new panes grow into place and closed panes fold away |
+| Splits | new panes grow into place; a closed pane folds away toward the pane that takes its room, over panes already in their final place (0.22 s); the panes that don't have focus fade in and out with it (0.16 s) |
 | Sidebar | when hidden, it peeks in over the terminal as the pointer reaches the window's left edge, and slides away shortly after the pointer leaves it |
 | Session switching | hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom (⌃⇧Tab goes up, both wrap), over small live previews; release ⌃ to settle on the chosen one. While ⌃ is held, ← and → move too, Return settles and esc closes without switching. A quick ⌃Tab goes straight to the next session down without showing anything |
 | Session cards | cards slide between projects; state changes cross-fade; the recap updates without jumping. The agent's mark moves while it works and settles once when the work ends (see Agent marks). A new card size eases every card to its height (0.25 s), and so does a smaller card growing a line for something that waits for you |

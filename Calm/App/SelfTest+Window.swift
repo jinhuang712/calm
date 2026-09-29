@@ -192,6 +192,12 @@
             case "confirm_sheet":
                 // What Return does on a confirmation (a headless window is never key)
                 window?.attachedSheet?.defaultButtonCell?.performClick(nil)
+            case "confirm_prompt":
+                // What Return does on the question a split's pane asks
+                closePrompt.answerForTesting(close: true)
+            case "keep_prompt":
+                // What Esc does on it
+                closePrompt.answerForTesting(close: false)
             case let name where name.hasPrefix("rename:"):
                 focusedPane.map { rename($0.id, to: String(name.dropFirst(7))) }
             case "rename_begin":

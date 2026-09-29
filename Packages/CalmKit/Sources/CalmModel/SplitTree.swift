@@ -152,6 +152,21 @@ public indirect enum SplitTree<Leaf: Hashable & Sendable>: Hashable, Sendable {
         }
     }
 
+    /// Where a pane folds to when it closes: a sliver along the edge it shares with its sibling,
+    /// the pane that takes its room, so the eye follows where it went. Nil for a lone pane or one
+    /// that isn't in the tree.
+    public func collapsedFrame(of target: Leaf, in frame: Frame = Frame(x: 0, y: 0, width: 1, height: 1)) -> Frame? {
+        guard case let .split(axis, ratio, first, second) = self else { return nil }
+        let (a, b) = Self.divide(frame, axis: axis, ratio: ratio)
+        if first == .leaf(target) {
+            return Self.sliver(of: a, axis: axis, atEnd: true)
+        }
+        if second == .leaf(target) {
+            return Self.sliver(of: b, axis: axis, atEnd: false)
+        }
+        return first.collapsedFrame(of: target, in: a) ?? second.collapsedFrame(of: target, in: b)
+    }
+
     // MARK: Navigation
 
     /// The nearest pane in `direction` from `origin`, judged by pane centers.
@@ -192,6 +207,16 @@ public indirect enum SplitTree<Leaf: Hashable & Sendable>: Hashable, Sendable {
                 Frame(x: frame.x, y: frame.y, width: frame.width, height: firstHeight),
                 Frame(x: frame.x, y: frame.y + firstHeight, width: frame.width, height: frame.height - firstHeight),
             )
+        }
+    }
+
+    /// `frame` squeezed to nothing along `axis`, at its far edge (`atEnd`) or its near one.
+    static func sliver(of frame: Frame, axis: Axis, atEnd: Bool) -> Frame {
+        switch axis {
+        case .horizontal:
+            Frame(x: atEnd ? frame.x + frame.width : frame.x, y: frame.y, width: 0, height: frame.height)
+        case .vertical:
+            Frame(x: frame.x, y: atEnd ? frame.y + frame.height : frame.y, width: frame.width, height: 0)
         }
     }
 

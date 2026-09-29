@@ -27,6 +27,23 @@ enum Motion {
         layer.add(fade, forKey: "calm.fade")
     }
 
+    /// Takes a layer-backed view to `alpha`, gliding from where it is now. Presentation-only like
+    /// `fadeIn`: the value is final at once, so a glide that never runs leaves the right alpha.
+    static func fade(_ view: NSView, to alpha: CGFloat, duration: TimeInterval) {
+        let from = view.layer?.presentation()?.opacity ?? Float(view.alphaValue)
+        view.alphaValue = alpha
+        guard let layer = view.layer else { return }
+        // A glide still running toward some other value would play out and snap back.
+        layer.removeAnimation(forKey: "calm.glide")
+        guard !isReduced, duration > 0, from != Float(alpha) else { return }
+        let glide = CABasicAnimation(keyPath: "opacity")
+        glide.fromValue = from
+        glide.toValue = Float(alpha)
+        glide.duration = duration
+        glide.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(glide, forKey: "calm.glide")
+    }
+
     /// Fades a view out and removes it. Removal is timed, not tied to an animation
     /// completion, so an overlay can never linger invisibly and take clicks.
     static func fadeOutAndRemove(_ view: NSView, duration: TimeInterval) {

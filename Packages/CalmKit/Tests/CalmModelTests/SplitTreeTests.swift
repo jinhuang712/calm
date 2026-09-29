@@ -80,4 +80,29 @@ struct SplitTreeTests {
         #expect(tree.neighbor(of: "a", toward: .left) == nil)
         #expect(tree.neighbor(of: "c", toward: .down) == nil)
     }
+
+    /// Same layout as above: a on the left, b over c on the right.
+    @Test func `a closing pane folds toward the edge it shares with its sibling`() {
+        let tree = Tree.leaf("a")
+            .splitting("a", direction: .right, with: "b")
+            .splitting("b", direction: .down, with: "c")
+        // a's sibling is the b-over-c column to its right: a folds into its own right edge.
+        #expect(tree.collapsedFrame(of: "a") == .init(x: 0.5, y: 0, width: 0, height: 1))
+        // b's sibling c is below: b folds into its bottom edge.
+        #expect(tree.collapsedFrame(of: "b") == .init(x: 0.5, y: 0.5, width: 0.5, height: 0))
+        // c's sibling b is above: c folds into its top edge.
+        #expect(tree.collapsedFrame(of: "c") == .init(x: 0.5, y: 0.5, width: 0.5, height: 0))
+    }
+
+    @Test func `a lone or unknown pane has nowhere to fold`() {
+        #expect(Tree.leaf("a").collapsedFrame(of: "a") == nil)
+        let tree = Tree.leaf("a").splitting("a", direction: .right, with: "b")
+        #expect(tree.collapsedFrame(of: "zzz") == nil)
+    }
+
+    @Test func `folding follows the ratio of the split`() {
+        let tree = Tree.split(.vertical, ratio: 0.25, first: .leaf("a"), second: .leaf("b"))
+        #expect(tree.collapsedFrame(of: "a") == .init(x: 0, y: 0.25, width: 1, height: 0))
+        #expect(tree.collapsedFrame(of: "b") == .init(x: 0, y: 0.25, width: 1, height: 0))
+    }
 }

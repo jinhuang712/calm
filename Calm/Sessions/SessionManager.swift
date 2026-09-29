@@ -174,15 +174,20 @@ final class SessionManager {
 
     // MARK: Panes
 
-    /// The pane for a session, creating it (and attaching its persistent shell) if needed.
-    func pane(for sessionID: Session.ID, host: TerminalSurfaceHost?) -> TerminalSurfaceView? {
+    /// The pane for a session, creating it (and attaching its persistent shell) if needed. `size`
+    /// is the pane's size in the layout, when known, so its shell starts at that size.
+    func pane(for sessionID: Session.ID, host: TerminalSurfaceHost?, size: NSSize? = nil) -> TerminalSurfaceView? {
         if let existing = panes[sessionID] {
             existing.host = host
             return existing
         }
         guard let session = workspace.session(sessionID) else { return nil }
-        Trace.note("pane \(Trace.id(sessionID)): attaching")
         var options = TerminalSurfaceOptions.session
+        options.size = size
+        // Starts at the saved text size too, rather than setting it once the shell runs, which
+        // resized the terminal of a program that had just read it. libghostty counts this size
+        // as the user's, so a config reload keeps it (engine patch 0013).
+        options.fontSize = workspace.fontSize ?? 0
         options.workingDirectory = session.workingDirectory
         if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
             options.command = command
@@ -196,10 +201,8 @@ final class SessionManager {
         }
         options.environment.merge(AgentIntegrations.environment(settings: settings)) { current, _ in current }
         let pane = TerminalSurfaceView(id: session.id, options: options)
+        Trace.note("pane \(Trace.id(sessionID)): attaching at \(pane.gridSize)")
         pane.host = host
-        if let fontSize = workspace.fontSize {
-            pane.setFontSize(fontSize)
-        }
         panes[session.id] = pane
         return pane
     }

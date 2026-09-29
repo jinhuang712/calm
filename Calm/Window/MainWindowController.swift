@@ -66,6 +66,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         super.init(window: window)
         window.delegate = self
         buildLayout()
+        // The saved frame before the first panes, which start at their size in it.
+        restoreFrame()
         showSelectedLayout(animated: false)
         applyAppearance()
         switcher.install()
@@ -185,11 +187,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             view.topAnchor.constraint(equalTo: mainArea.topAnchor),
             view.bottomAnchor.constraint(equalTo: mainArea.bottomAnchor),
         ])
-        var panes: [UUID: TerminalSurfaceView] = [:]
-        for id in layout.tree.leaves {
-            panes[id] = manager.pane(for: id, host: self)
-        }
-        view.restore(tree: layout.tree, panes: panes)
+        // Laid out before its panes exist, so each starts at its size: a program reattached
+        // through zmx (Claude Code after a restart) otherwise first got a placeholder's 41×13,
+        // then the real size, and its screen came back with most of its footer blank.
+        window?.contentView?.layoutSubtreeIfNeeded()
+        view.restore(tree: layout.tree) { manager.pane(for: $0, host: self, size: $1) }
         workspaces[layout.id] = view
         return view
     }
@@ -661,7 +663,6 @@ final class TerminalWindowManager: TerminalEngineDelegate {
         }
         let controller = MainWindowController(manager: SessionManager.shared)
         mainController = controller
-        controller.restoreFrame()
         controller.showAndFocus()
         controller.restoreFullScreen()
         return controller

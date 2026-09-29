@@ -1,0 +1,97 @@
+Subject: a surface's command starts at the surface's real size
+
+The embedded apprt started every surface at 800x600 pixels and the config's
+font size, and the command started with that grid. The host's real size (and
+an inherited font size) arrived after, as a resize the IO thread coalesces for
+25 ms. A program that reads its size on start saw the placeholder grid first:
+a session manager's client (zmx) reattaching to a running program passed it
+on, and the program (Claude Code) redrew for 41x13, then for the real size.
+Its reflowed screen and its own idea of the screen no longer matched, and its
+footer was left blank except the cells it changed later.
+
+The surface config now takes the size in pixels, when the host knows it, and
+the inherited font size is applied before the surface starts. Both are optional:
+zero keeps the old behavior. Resetting the font size still goes back to the
+configured size, and the inherited size counts as set by hand: a config change
+(the conditional theme following the host's color scheme, which a host sets
+right after creating the surface) otherwise put the configured size back.
+
+Calm's own patch (not from thdxg/ghostty).
+
+diff --git a/include/ghostty.h b/include/ghostty.h
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -518,6 +518,8 @@
+   const char* initial_input;
+   bool wait_after_command;
+   ghostty_surface_context_e context;
++  uint32_t width_px;
++  uint32_t height_px;
+ } ghostty_surface_config_s;
+ 
+ typedef struct {
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -499,6 +499,13 @@
+ 
+         /// Context for the new surface
+         context: apprt.surface.NewSurfaceContext = .window,
++
++        /// The size of the surface in pixels, if the host already knows it.
++        /// The command starts with the grid this size gives, instead of the
++        /// grid of a placeholder size that the first resize then replaces.
++        /// Zero means unknown: 800x600 until the host sets the size.
++        width_px: u32 = 0,
++        height_px: u32 = 0,
+     };
+ 
+     pub fn init(self: *Surface, app: *App, opts: Options) !void {
+@@ -511,7 +518,10 @@
+                 .x = @floatCast(opts.scale_factor),
+                 .y = @floatCast(opts.scale_factor),
+             },
+-            .size = .{ .width = 800, .height = 600 },
++            .size = if (opts.width_px > 0 and opts.height_px > 0)
++                .{ .width = opts.width_px, .height = opts.height_px }
++            else
++                .{ .width = 800, .height = 600 },
+             .cursor_pos = .{ .x = -1, .y = -1 },
+         };
+ 
+@@ -612,6 +622,14 @@
+             config.@"wait-after-command" = true;
+         }
+ 
++        // If our options requested a specific font-size, start with it. Set
++        // after the surface starts, it resized the command's terminal right
++        // after the command had read its size.
++        const configured_font_size = config.@"font-size";
++        if (opts.font_size != 0) {
++            config.@"font-size" = opts.font_size;
++        }
++
+         // Initialize our surface right away. We're given a view that is
+         // ready to use.
+         try self.core_surface.init(
+@@ -623,11 +641,16 @@
+         );
+         errdefer self.core_surface.deinit();
+ 
+-        // If our options requested a specific font-size, set that.
++        // Resetting the font size still goes back to the configured size.
++        self.core_surface.config.original_font_size = configured_font_size;
++
++        // The requested size counts as set by hand, like one set with a
++        // binding, so a config change keeps it. The host's first color
++        // scheme is one: the conditional state changes, the config is
++        // rebuilt from its steps without the requested size, and the
++        // surface went back to the configured size, resizing the command.
+         if (opts.font_size != 0) {
+-            var font_size = self.core_surface.font_size;
+-            font_size.points = opts.font_size;
+-            try self.core_surface.setFontSize(font_size);
++            self.core_surface.font_size_adjusted = true;
+         }
+     }
+ 

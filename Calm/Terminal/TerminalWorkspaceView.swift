@@ -25,9 +25,14 @@ final class TerminalWorkspaceView: NSView {
 
     // MARK: Structure
 
-    /// Rebuilds the view from a saved layout.
-    func restore(tree: SplitTree<UUID>, panes: [UUID: TerminalSurfaceView]) {
-        let present = panes.filter { tree.contains($0.key) }
+    /// Rebuilds the view from a saved layout, making each pane at its size in the view (so lay
+    /// the view out first): a pane's shell starts at the size it's made with.
+    func restore(tree: SplitTree<UUID>, makePane: (UUID, NSSize?) -> TerminalSurfaceView?) {
+        let frames = paneFrames(tree)
+        var present: [UUID: TerminalSurfaceView] = [:]
+        for id in tree.leaves {
+            present[id] = makePane(id, frames[id]?.size)
+        }
         guard !present.isEmpty else { return }
         var pruned: SplitTree<UUID>? = tree
         for id in tree.leaves where present[id] == nil {

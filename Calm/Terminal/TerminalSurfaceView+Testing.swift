@@ -44,13 +44,6 @@
             return sent
         }
 
-        /// Columns × rows as libghostty sees them.
-        var gridSizeForTesting: String {
-            guard let surface else { return "none" }
-            let size = ghostty_surface_size(surface)
-            return "\(size.columns)x\(size.rows)"
-        }
-
         /// One row's height in the frame's pixels.
         var cellHeightPixelsForTesting: Int {
             guard let surface else { return 0 }

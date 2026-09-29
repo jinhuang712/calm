@@ -34,35 +34,6 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint, whole: Bool)
 }
 
-/// How a new surface should start.
-struct TerminalSurfaceOptions {
-    /// A Calm session's pane. Every session lives in the one main window, so libghostty
-    /// treats it like a split (for inherited settings).
-    static var session: TerminalSurfaceOptions {
-        TerminalSurfaceOptions(context: GHOSTTY_SURFACE_CONTEXT_SPLIT)
-    }
-
-    var workingDirectory: String?
-    var command: String?
-    var fontSize: Float = 0
-    var context: ghostty_surface_context_e = GHOSTTY_SURFACE_CONTEXT_WINDOW
-    var environment: [String: String] = [:]
-
-    /// Starts from the parent's settings (font size, working directory), as libghostty computes them.
-    @MainActor
-    static func inheriting(from parent: TerminalSurfaceView?, context: ghostty_surface_context_e) -> TerminalSurfaceOptions {
-        var options = TerminalSurfaceOptions(context: context)
-        guard let parent, let surface = parent.surface else { return options }
-        let inherited = ghostty_surface_inherited_config(surface, context)
-        options.fontSize = inherited.font_size
-        if let directory = inherited.working_directory {
-            // libghostty allocates this and offers no way to free it; copy and leave it (tiny, per split).
-            options.workingDirectory = String(cString: directory)
-        }
-        return options
-    }
-}
-
 /// One terminal pane, backed by a libghostty surface.
 ///
 /// libghostty turns this view into a layer-hosting view and renders into it from its own
@@ -124,7 +95,7 @@ final class TerminalSurfaceView: NSView {
     init(id: UUID = UUID(), options: TerminalSurfaceOptions) {
         self.id = id
         // A non-zero frame so the renderer's layer starts with real bounds.
-        super.init(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
+        super.init(frame: NSRect(origin: .zero, size: options.size ?? NSSize(width: 800, height: 600)))
         installEventMonitor()
         createSurface(options)
         updateTrackingAreas()
@@ -157,6 +128,12 @@ final class TerminalSurfaceView: NSView {
         config.scale_factor = Double(NSScreen.main?.backingScaleFactor ?? 2)
         config.font_size = options.fontSize
         config.context = options.context
+        if let size = options.size, size.width > 0, size.height > 0 {
+            // In pixels as `sizeDidChange` computes them, so the layout's first size is no change.
+            config.width_px = UInt32(size.width * config.scale_factor)
+            config.height_px = UInt32(size.height * config.scale_factor)
+            contentSize = size
+        }
 
         var env = options.environment
         // The status contract (DESIGNS.md → Attention): hooks run `$CALM_CLI status …`, which
@@ -330,6 +307,13 @@ final class TerminalSurfaceView: NSView {
     }
 
     // MARK: Sizing
+
+    /// Columns × rows as libghostty sees them: `145x44`.
+    var gridSize: String {
+        guard let surface else { return "none" }
+        let size = ghostty_surface_size(surface)
+        return "\(size.columns)x\(size.rows)"
+    }
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)

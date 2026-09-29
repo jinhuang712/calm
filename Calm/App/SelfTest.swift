@@ -48,10 +48,10 @@
                    let window = pane?.window ?? TerminalWindowManager.shared.focusedController?.window {
                     let parts = size.split(separator: "x").compactMap { Double($0) }
                     if parts.count == 2 {
-                        let before = pane.map { "\($0.gridSizeForTesting)" } ?? "none"
+                        let before = pane.map { "\($0.gridSize)" } ?? "none"
                         window.setContentSize(NSSize(width: parts[0], height: parts[1]))
                         try? await Task.sleep(for: .seconds(0.4))
-                        log("resize \(size): grid \(before) → \(pane.map { "\($0.gridSizeForTesting)" } ?? "none")")
+                        log("resize \(size): grid \(before) → \(pane.map { "\($0.gridSize)" } ?? "none")")
                     }
                 }
                 if let after = env["CALM_SELFTEST_AFTER"], !after.isEmpty {
@@ -99,7 +99,7 @@
                     chain.append("\(type(of: current))(alpha \(current.alphaValue), hidden \(current.isHidden))")
                     view = current.superview
                 }
-                log("focused pane \(pane.frame.size) grid \(pane.gridSizeForTesting) in window \(pane.window != nil): " + chain
+                log("focused pane \(pane.frame.size) grid \(pane.gridSize) in window \(pane.window != nil): " + chain
                     .joined(separator: " < "))
                 let layer = pane.layer
                 let surface = (layer?.contents as? IOSurface).map { "IOSurface \($0.width)x\($0.height)px" } ?? "none"

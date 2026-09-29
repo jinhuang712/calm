@@ -29,9 +29,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var welcomePage = WelcomePage(container: container)
     lazy var settingsPage = SettingsPage(container: container)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
-    /// Off until the saved frame is back, so restoring it isn't taken for the user leaving the
-    /// screen-filling state that is about to be restored (see `restoreFrame`).
-    var tracksFill = false
+    /// Off until the saved size is back, so restoring it isn't taken for the user leaving the
+    /// filled or full-screen state that is about to be restored (see `restoreFrame`).
+    var tracksWindowState = false
 
     /// The name AppKit saves the window's frame under.
     static let frameName = "CalmMainWindow"
@@ -657,6 +657,7 @@ final class TerminalWindowManager: TerminalEngineDelegate {
         mainController = controller
         controller.restoreFrame()
         controller.showAndFocus()
+        controller.restoreFullScreen()
         return controller
     }
 

@@ -164,6 +164,18 @@ final class SessionManager {
         }
     }
 
+    /// Whether the window was left in full screen, so the next launch enters it again.
+    var windowWasFullScreen: Bool {
+        workspace.windowFullScreen == true
+    }
+
+    /// Called as the window settles into, or out of, full screen.
+    func windowFullScreenDidChange(_ fullScreen: Bool) {
+        if workspace.noteWindowFullScreen(fullScreen) {
+            scheduleSave()
+        }
+    }
+
     // MARK: Sessions
 
     @discardableResult

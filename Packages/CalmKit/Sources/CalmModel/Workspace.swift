@@ -232,6 +232,10 @@ public struct Workspace: Codable, Hashable, Sendable {
     /// maximize), nil otherwise. The size it had before is the window frame AppKit autosaves,
     /// which stays at the windowed size while the window is zoomed (FEATURES.md → F1).
     public var windowFilled: Bool?
+    /// True when the window was last left in full screen, nil otherwise. Kept apart from
+    /// `windowFilled`: the window under full screen may be filled too, and leaving full screen
+    /// goes back to it (FEATURES.md → F1).
+    public var windowFullScreen: Bool?
 
     public init() {}
 
@@ -595,6 +599,15 @@ public extension Workspace {
         let value = filled ? true : nil
         guard value != windowFilled else { return false }
         windowFilled = value
+        return true
+    }
+
+    /// Records whether the window is now in full screen (false is stored as nil). Returns
+    /// whether that changed.
+    mutating func noteWindowFullScreen(_ fullScreen: Bool) -> Bool {
+        let value = fullScreen ? true : nil
+        guard value != windowFullScreen else { return false }
+        windowFullScreen = value
         return true
     }
 }

@@ -128,9 +128,15 @@
             return true
         }
 
-        /// Session actions (F12), grouping (F2) and restart (F3) for self-tests.
+        /// Session actions (F12), grouping (F2), restart (F3) and the window's state (F1) for self-tests.
         private func performSessionActionForTesting(_ action: String) -> Bool {
             switch action {
+            case "window_state":
+                // Where the window is and whether it's in full screen, at this moment.
+                if let window {
+                    let state = "frame \(window.frame), full screen \(window.styleMask.contains(.fullScreen))"
+                    FileHandle.standardError.write(Data("calm-selftest: window \(state)\n".utf8))
+                }
             case "restart":
                 // Calm → Restart Calm. The Calm that comes back has no test drivers, so it never
                 // snapshots or quits: whoever runs this stops it (not with selftest.sh, whose

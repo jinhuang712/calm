@@ -39,6 +39,21 @@ struct LinkTests {
         #expect(Link.candidates(for: "a b c d e f g").count == 5)
     }
 
+    @Test func `a sentence's closing punctuation is tried away after the path`() {
+        // "…open notes/index.html." — the terminal's pattern takes the full stop as part of the path.
+        #expect(Link.candidates(for: "/tmp/scratch/index.html.") == ["/tmp/scratch/index.html.", "/tmp/scratch/index.html"])
+        #expect(Link.candidates(for: "src/main.swift:12.") == ["src/main.swift:12.", "src/main.swift:12"])
+        #expect(Link.candidates(for: "~/notes.md!?") == ["~/notes.md!?", "~/notes.md"])
+        // The whole text still comes first, so a name that ends in dots keeps working.
+        #expect(Link.candidates(for: "../..").first == "../..")
+        // Together with the trailing words.
+        #expect(Link.candidates(for: "~/dev/apps and then.") == [
+            "~/dev/apps and then.", "~/dev/apps and then", "~/dev/apps and", "~/dev/apps",
+        ])
+        // Nothing left after stripping is not a candidate.
+        #expect(Link.candidates(for: "...") == ["..."])
+    }
+
     @Test func `editor arguments put the cursor at the line`() {
         #expect(Editor.vscode.arguments(file: "/a.swift", line: 42, column: 7) == ["-g", "/a.swift:42:7"])
         #expect(Editor.cursor.arguments(file: "/a.swift", line: nil, column: nil) == ["-g", "/a.swift"])

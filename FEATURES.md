@@ -117,7 +117,7 @@ A fast, correct terminal on libghostty.
 - File paths open in Calm's viewer (F10) or in the user's editor at the line.
 
 - A path that isn't there relative to the session's folder is tried against its project's folder (agents often print repository-relative paths); if it's nowhere, a small note says so.
-- A path the terminal ran on into the words after it ("~/dev/apps and then") opens as the path.
+- A path the terminal ran on into the words after it ("~/dev/apps and then") opens as the path, and so does one that ends a sentence ("open notes/index.html."): the closing full stop, comma or `?` is not part of the name.
 - **At rest**, every link on screen that opens (a URL, or a file or folder that's there) has a faint dotted line under it, including one the terminal wrapped onto the next row. Rows that change lose their marks at once and get them back when the text holds still, so marks never trail scrolling or streaming output. Programs that take the mouse (vim, htop, an agent's full-screen view) get none: their screens are redrawn too often for marks to hold still.
 - **Holding ⌘** over a link shows a small tag just under it (above it at the pane's bottom): the file's name and line, its folder, and what a click does ("Open in viewer", "Open in Cursor", "Open in browser", "Open in Finder", or "Not found" before you click). An image's tag shows its thumbnail. The tag goes away when ⌘ or the pointer leaves the link, or on typing, clicking or scrolling.
 - **In programs that take the mouse** (vim, htop, Claude Code's full-screen view) a link under ⌘ is still Calm's: the same underline and tag on hover, and a ⌘-click opens it without the program seeing the click (a program can't see ⌘ anyway). Away from a link, ⌘-click reaches the program as before.

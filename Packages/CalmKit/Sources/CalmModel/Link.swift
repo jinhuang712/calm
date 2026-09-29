@@ -48,18 +48,35 @@ public enum Link: Equatable, Sendable {
 
     /// What to try for a link's text, longest first. The terminal lets a path run on across single
     /// spaces (for folders with spaces in their names), which also sweeps up the words after a
-    /// plain path ("~/dev/apps and then"); those are dropped one at a time, a few at most.
+    /// plain path ("~/dev/apps and then"); those are dropped one at a time, a few at most. Its
+    /// pattern also counts a sentence's closing `.` as part of a path ("see notes/a.md."), so each
+    /// try is followed by itself without trailing punctuation. Whole text first: a name may end in
+    /// a dot (`..`), and the file check decides.
     public static func candidates(for text: String) -> [String] {
-        var candidates = [text]
+        var tries = [text]
         var rest = text
-        while candidates.count < 5, let space = rest.lastIndex(of: " ") {
+        while tries.count < 5, let space = rest.lastIndex(of: " ") {
             rest = String(rest[..<space])
             if !rest.isEmpty, !rest.hasSuffix(" ") {
-                candidates.append(rest)
+                tries.append(rest)
+            }
+        }
+        var candidates: [String] = []
+        for text in tries {
+            candidates.append(text)
+            var bare = Substring(text)
+            while let last = bare.last, sentencePunctuation.contains(last) {
+                bare = bare.dropLast()
+            }
+            if !bare.isEmpty, bare.count != text.count {
+                candidates.append(String(bare))
             }
         }
         return candidates
     }
+
+    /// What can end a sentence after a path; the terminal's pattern counts most of it as part of the path.
+    private static let sentencePunctuation: Set<Character> = [".", ",", ";", ":", "!", "?"]
 }
 
 /// Editors Calm can open a file in at a line, and how each takes the position. In detection

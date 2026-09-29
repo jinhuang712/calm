@@ -10,8 +10,8 @@ Calm's terminal engine is built from Ghostty's source. The link pattern in
 Packages/CalmKit/Sources/CalmModel/LinkMatcher.swift is adapted from Ghostty's src/config/url.zig,
 and LinkMatcherTests use some of its test cases.
 
-Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/ghostty), the
-Ghostty fork Macterm builds on, MIT License (Ghostty's, above). Applied unchanged to the engine;
+Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/ghostty), a
+Ghostty fork, MIT License (Ghostty's, above). Applied unchanged to the engine;
 see scripts/ghostty-patches. Patches from 0007 on are Calm's own changes to Ghostty's source.
 
 zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.

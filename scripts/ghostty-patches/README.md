@@ -4,8 +4,8 @@
 `scripts/ghostty.env`, in name order, before building GhosttyKit. They give Calm smooth
 scrolling, which upstream Ghostty doesn't have yet (see DESIGNS.md → Motion in the terminal).
 
-0005 and 0006 are taken unchanged from [thdxg/ghostty](https://github.com/thdxg/ghostty), the Ghostty fork
-Macterm builds on, where they live in `.github/downstream/`. Like Ghostty, that fork is MIT
+0005 and 0006 are taken unchanged from [thdxg/ghostty](https://github.com/thdxg/ghostty), a Ghostty fork,
+where they live in `.github/downstream/`. Like Ghostty, that fork is MIT
 licensed (Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors); the patches are the
 fork's author's work. See `NOTICE`.
 

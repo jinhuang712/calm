@@ -30,17 +30,6 @@ Build **Calm Terminal**, a native macOS terminal designed for supervising CLI ag
 
 Developers on macOS who run several CLI coding agents in parallel every day and want less stress doing it. The first user is the author.
 
-## Why not an existing app
-
-| App | Why it doesn't fit |
-|---|---|
-| **Warp** | Built around its own AI agent and cloud features; heavy, and its look is hard to make calm |
-| **cmux** | Has the agent features, but grew into a platform (browser, cloud VMs, iOS, feeds) with an overwhelming settings screen |
-| **Otty** | Closest in spirit and look, but closed source |
-| **Ghostty, iTerm2** | Excellent terminals, not designed for supervising agents |
-
-Calm takes the engine (libghostty), learns from all of these, and focuses on one thing: helping one person supervise many agents calmly.
-
 ## Approach
 
 A fresh codebase in Swift on libghostty, written from scratch around our own model (projects → sessions → panes, with attention as a first-class concept). Ghostty's own macOS app (MIT) is the reference for known pitfalls; code from other projects is never copied.

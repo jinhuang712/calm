@@ -82,6 +82,11 @@ enum MainMenu {
             menu.addItem(terminalItem(title, "new_split:\(direction)", key: key, mods: [.command, .option]))
         }
         menu.addItem(.separator())
+        // Leaving a split without ending its session; the icon on a pane and dragging it to the
+        // sidebar do the same. No key of its own: something you do rarely.
+        menu.addItem(actionItem("Take Pane Out of Split", #selector(TerminalMenuTarget.takePaneOutOfSplit(_:)), key: ""))
+        menu.addItem(actionItem("Unsplit All", #selector(TerminalMenuTarget.unsplitAll(_:)), key: ""))
+        menu.addItem(.separator())
         menu.addItem(terminalItem("Close Session", "close_surface", key: "w"))
         return menu
     }
@@ -161,6 +166,8 @@ enum MainMenu {
             "jumpToWaitingSession",
             "showArrivalCard",
             "searchSessions",
+            "takePaneOutOfSplit",
+            "unsplitAll",
         ]
         if targeted.contains(where: { selector.description.hasPrefix($0) }) {
             item.target = TerminalMenuTarget.shared
@@ -242,11 +249,26 @@ final class TerminalMenuTarget: NSObject {
     @objc func toggleCommandPalette(_: Any?) {
         TerminalWindowManager.shared.focusedController?.toggleCommandPalette()
     }
+
+    /// Shell → Take Pane Out of Split: the pane you're in becomes a session of its own.
+    @objc func takePaneOutOfSplit(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.takeOutFocusedPane()
+    }
+
+    /// Shell → Unsplit All: the pane you're in stays, every other is a session of its own.
+    @objc func unsplitAll(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.unsplitAll()
+    }
 }
 
 extension TerminalMenuTarget: NSMenuItemValidation {
-    /// Reopen Closed Session waits until a session has been closed.
+    /// Reopen Closed Session waits until a session has been closed; the two that leave a split wait
+    /// for a split.
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
-        item.action == #selector(reopenClosedSession(_:)) ? SessionManager.shared.canReopenClosedSession : true
+        switch item.action {
+        case #selector(reopenClosedSession(_:)): SessionManager.shared.canReopenClosedSession
+        case #selector(takePaneOutOfSplit(_:)), #selector(unsplitAll(_:)): TerminalWindowManager.shared.focusedController?.isInSplit == true
+        default: true
+        }
     }
 }

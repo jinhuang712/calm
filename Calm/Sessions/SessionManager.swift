@@ -265,6 +265,34 @@ final class SessionManager {
         return session
     }
 
+    /// Puts an existing session beside another, in that one's layout (the model does the work;
+    /// this keeps it saved and tells attention the session is now the one in front).
+    @discardableResult
+    func joinSession(_ id: Session.ID, beside target: Session.ID, direction: SplitTree<Session.ID>.Direction) -> Bool {
+        guard workspace.join(id, beside: target, direction: direction) else { return false }
+        AttentionCenter.shared.sessionVisited(id)
+        scheduleSave()
+        return true
+    }
+
+    /// A pane leaves its split and is a session of its own; nothing ends.
+    @discardableResult
+    func takeOutSession(_ id: Session.ID) -> Bool {
+        guard workspace.takeOut(id) else { return false }
+        scheduleSave()
+        return true
+    }
+
+    /// Every pane of the layout but the focused one gets a layout of its own.
+    @discardableResult
+    func unsplitLayout(_ layoutID: PaneLayout.ID) -> [Session.ID] {
+        let freed = workspace.unsplit(layoutID)
+        if !freed.isEmpty {
+            scheduleSave()
+        }
+        return freed
+    }
+
     /// A scratch session (⌘⇧N) in a new hidden folder of its own, on top of the sidebar.
     func newScratchSession() -> Session? {
         do {

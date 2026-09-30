@@ -66,6 +66,15 @@ struct SplitDropTests {
         #expect(tree.neighborAfterRemoving("a") == "b")
     }
 
+    @Test func `a pane knows how the split it is in divides`() {
+        // a sits beside the b-over-c column; b and c are stacked.
+        #expect(tree.parentAxis(of: "a") == .horizontal)
+        #expect(tree.parentAxis(of: "b") == .vertical)
+        #expect(tree.parentAxis(of: "c") == .vertical)
+        #expect(Tree.leaf("a").parentAxis(of: "a") == nil)
+        #expect(tree.parentAxis(of: "zzz") == nil)
+    }
+
     @Test func `a lone or unknown pane has no neighbor`() {
         #expect(Tree.leaf("a").neighborAfterRemoving("a") == nil)
         #expect(tree.neighborAfterRemoving("zzz") == nil)

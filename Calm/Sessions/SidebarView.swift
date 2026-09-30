@@ -232,6 +232,7 @@ struct SidebarView: View {
             actions.addProjects(folders)
             return !folders.isEmpty
         }
+        .onDrop(of: [Self.sessionType], isTargeted: nil, perform: dropSession)
         .environment(\.colorScheme, style.isDark ? .dark : .light)
     }
 
@@ -298,6 +299,7 @@ struct SidebarView: View {
                     sessionView(session)
                         .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
                         .onTapGesture { onSelect(session.id) }
+                        .dragSession(session.id, enabled: editing.renamingSessionID != session.id)
                         .contextMenu {
                             SessionMenu(
                                 session: session, manager: manager, actions: actions,
@@ -420,11 +422,13 @@ struct SidebarView: View {
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
                 size: shownCardSize, isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
+                inView: manager.workspace.sessionsInView.contains(session.id),
             )
         } else {
             SessionRow(
                 session: session, isSelected: session.id == selectedSessionID, style: style,
                 isHovered: hoveredSessionID == session.id,
+                inView: manager.workspace.sessionsInView.contains(session.id),
             )
         }
     }
@@ -564,6 +568,8 @@ struct SidebarActions {
     let keepScratch: (Session.ID) -> Void
     let copy: (Session.ID, SessionCopy) -> Void
     let openFolder: (Session.ID) -> Void
+    /// Takes a pane out of its split: the session stays, on its own.
+    let takeOut: (Session.ID) -> Void
 }
 
 /// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.

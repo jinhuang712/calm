@@ -64,6 +64,7 @@ extension MainWindowController {
             keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
             copy: { [weak self] id, copy in self?.copy(copy, of: id) },
             openFolder: { [weak self] id in self?.openFolder(of: id) },
+            takeOut: { [weak self] id in self?.takeOutPane(id) },
         )
     }
 

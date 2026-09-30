@@ -24,6 +24,14 @@ extension TerminalWorkspaceView {
         refreshVeils(animated: true)
     }
 
+    /// The pane `id` is being dragged out of the split and is over the sidebar, where letting go
+    /// takes it out (or, with nil, it isn't): it all but goes, so the drag says what it will do.
+    func setLeaving(_ id: UUID?) {
+        guard leavingID != id else { return }
+        leavingID = id
+        refreshVeils(animated: true)
+    }
+
     /// The pane `id` when a question can sit on it: the window is split and the pane is on screen.
     func askablePane(_ id: UUID) -> TerminalSurfaceView? {
         guard hasSplits, let pane = panes[id], !pane.isHidden else { return nil }
@@ -53,11 +61,12 @@ extension TerminalWorkspaceView {
             veil.color = pane.topEdgeColor ?? pane.effectiveBackgroundColor ?? .black
             let strength = PaneDim.veil(
                 isFocused: !focusIsHere || id == focusedID, hasSplits: splits,
-                isAsked: id == askedID, asking: askedID != nil,
+                isAsked: id == askedID, asking: askedID != nil, isLeaving: id == leavingID,
             )
             Motion.fade(veil, to: strength, duration: animated ? Self.veilDuration : 0)
         }
         refreshClearing(animated: animated)
+        refreshHandles(animated: animated)
     }
 
     /// The question's clearing lies over the asked pane, in that pane's own colors, and is gone

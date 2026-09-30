@@ -21,9 +21,53 @@ final class TerminalWorkspaceView: NSView {
     var focusedID: UUID?
     /// The pane a close question is on: while it is up the others almost go.
     var askedID: UUID?
+    /// The pane being dragged out of the split, while it is over the sidebar: it all but goes.
+    var leavingID: UUID?
+
+    /// The split icons, above the veils (TerminalWorkspaceView+Handles).
+    let handles = HandlesView()
+    var handleViews: [UUID: SplitHandleView] = [:]
+    /// The pane the pointer is on, for its icon.
+    var hoveredID: UUID?
+    /// The pane whose icon's menu is open or which is being dragged by its icon: its icon stays.
+    var busyHandleID: UUID?
+    var handleMonitor: Any?
+    /// Whether the chrome is dark: the icons and their tiles are drawn in white, or in black.
+    var handleIsDark = true {
+        didSet { handleViews.values.forEach { $0.isDark = handleIsDark } }
+    }
+
+    /// The icon was clicked: the window controller has the menu (the pane is already focused).
+    var onHandleClick: ((UUID, SplitHandleView) -> Void)?
+    /// The icon is being dragged: the window controller says how it looks and what letting go does.
+    var onHandleDrag: ((UUID) -> NSDraggingItem?)?
+    var onHandleDragMoved: ((UUID, NSPoint) -> Void)?
+    var onHandleDragEnded: ((UUID) -> Void)?
+    /// A session was dropped beside pane `target`, on `direction`'s side of it.
+    var onSessionDrop: ((SessionDrag, UUID, SplitTree<UUID>.Direction) -> Bool)?
+    /// Where a dragged session would land, drawn as a dotted outline (TerminalWorkspaceView+SessionDrop).
+    var landing: LandingView?
 
     var dividerColor = NSColor(white: 1, alpha: 0.08) {
         didSet { dividers.forEach { $0.color = dividerColor } }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        // Sessions dragged from the sidebar, or by a pane's icon, land here; the panes themselves
+        // take files and text, never this type.
+        registerForDraggedTypes([Self.sessionDragType])
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("not supported")
+    }
+
+    deinit {
+        MainActor.assumeIsolated {
+            removeHandleMonitor()
+        }
     }
 
     /// Visual gap between panes, in points. The divider's grab area is wider.
@@ -178,6 +222,13 @@ final class TerminalWorkspaceView: NSView {
             pane.links.onChange = nil
             linkMarks.remove(pane.id)
             veilViews.removeValue(forKey: pane.id)?.removeFromSuperview()
+            handleViews.removeValue(forKey: pane.id)?.removeFromSuperview()
+            if hoveredID == pane.id {
+                hoveredID = nil
+            }
+            if busyHandleID == pane.id {
+                busyHandleID = nil
+            }
         }
         super.willRemoveSubview(subview)
     }
@@ -194,6 +245,12 @@ final class TerminalWorkspaceView: NSView {
             addSubview(veils, positioned: .above, relativeTo: linkMarks)
         }
         veils.frame = bounds
+        // The icons lie over the veils and the question's clearing: a receding pane's icon stays as
+        // quiet as it is, and the clearing never covers it.
+        if (subviews.firstIndex(of: handles) ?? -1) < (subviews.firstIndex(of: veils) ?? 0) {
+            addSubview(handles, positioned: .above, relativeTo: veils)
+        }
+        handles.frame = bounds
         for pane in panes.values {
             if animated {
                 pane.resetLinkMarks() // the pane is about to change size; its text will move
@@ -219,12 +276,16 @@ final class TerminalWorkspaceView: NSView {
                 guard let pane = self.panes[id] else { continue }
                 pane.isHidden = false
                 let veil = self.veilView(for: id)
+                let handle = self.handleView(for: id)
+                let corner = Self.handleFrame(in: frame)
                 if animated {
                     pane.animator().frame = frame
                     veil.animator().frame = frame
+                    handle.animator().frame = corner
                 } else {
                     pane.frame = frame
                     veil.frame = frame
+                    handle.frame = corner
                 }
             }
             if let zoomed = self.zoomedPane {

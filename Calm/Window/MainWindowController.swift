@@ -12,7 +12,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     let mainArea = NSView()
     private(set) var sidebarHost: NSHostingView<SidebarView>?
     var titleHost: SessionTitleHost?
-    private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
+    var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     /// ⌘P's palette while it's up (MainWindowController+Palette).
     var paletteHost: NSView?
     /// ⌘K's panel and model while it's up (MainWindowController+Search).
@@ -50,7 +50,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         return manager.panes[layout.focusedSessionID]
     }
 
-    private var selectedWorkspace: TerminalWorkspaceView? {
+    var selectedWorkspace: TerminalWorkspaceView? {
         manager.workspace.selectedLayout.flatMap { workspaces[$0.id] }
     }
 
@@ -194,9 +194,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
     }
 
-    private func makeWorkspace(for layout: PaneLayout) -> TerminalWorkspaceView {
+    @discardableResult
+    func makeWorkspace(for layout: PaneLayout) -> TerminalWorkspaceView {
         let view = TerminalWorkspaceView()
         view.wantsLayer = true
+        wireSplitInteractions(view)
         view.translatesAutoresizingMaskIntoConstraints = false
         mainArea.addSubview(view)
         NSLayoutConstraint.activate([
@@ -357,7 +359,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         titleHost?.rootView = makeTitle(style: style)
         let strength = AccessibilitySettings.increaseContrast ? 2.5 : 1
         let divider = style.isDark ? NSColor(white: 1, alpha: 0.08 * strength) : NSColor(white: 0, alpha: 0.1 * strength)
-        workspaces.values.forEach { $0.dividerColor = divider }
+        for value in workspaces.values {
+            value.dividerColor = divider
+            value.handleIsDark = style.isDark
+        }
         updateDim()
         // The welcome page, the main area's page and Settings take the chrome's colors too (they
         // settle after they first show).

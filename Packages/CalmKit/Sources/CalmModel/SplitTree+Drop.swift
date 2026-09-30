@@ -51,6 +51,16 @@ public extension SplitTree {
         }
     }
 
+    /// How the split that holds `target` divides its area: side by side (`.horizontal`) or stacked
+    /// (`.vertical`). The pane's icon draws the line the same way. Nil for a lone pane.
+    func parentAxis(of target: Leaf) -> Axis? {
+        guard case let .split(axis, _, first, second) = self else { return nil }
+        if first == .leaf(target) || second == .leaf(target) {
+            return axis
+        }
+        return first.parentAxis(of: target) ?? second.parentAxis(of: target)
+    }
+
     /// The pane that takes `target`'s room when it leaves: the first pane of its sibling. Nil for a
     /// lone pane or one that isn't in the tree. (What closing a pane refocuses today is the first
     /// pane of the whole layout, which can be the far side of the window.)

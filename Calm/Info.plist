@@ -35,5 +35,18 @@
 	<string>Copyright © 2026 Jin Huang. Apache-2.0.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Calm session</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.jinhuang.calm.session</string>
+		</dict>
+	</array>
 </dict>
 </plist>

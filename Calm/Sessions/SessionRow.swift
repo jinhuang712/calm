@@ -9,6 +9,9 @@ struct SessionRow: View {
     let style: SidebarStyle
     /// The pointer rests on the row: a long name glides to its end.
     var isHovered = false
+    /// On screen beside the session you're in, in a split: lifted like the selected row, with no
+    /// ring (UIUX.md → Split panes).
+    var inView = false
 
     var body: some View {
         HStack(spacing: 10.scaled) {
@@ -31,7 +34,7 @@ struct SessionRow: View {
             RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
         )
-        .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(isSelected ? style.selectionLift : .clear))
+        .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(isSelected || inView ? style.selectionLift : .clear))
         .overlay(
             RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .strokeBorder(isSelected ? style.selectionEdge : .clear, lineWidth: SidebarStyle.selectionRingWidth),

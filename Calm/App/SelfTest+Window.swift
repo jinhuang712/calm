@@ -142,13 +142,13 @@
                 FileHandle.standardError.write(Data("calm-selftest: \(searchModel?.descriptionForTesting ?? "search: not open")\n".utf8))
                 return true
             default:
-                return performPaletteActionForTesting(action) || performFocusActionForTesting(action)
+                return performPaletteActionForTesting(action) || performSplitActionForTesting(action)
             }
         }
 
         /// Which split has the focus: real clicks and a real ⌘W, and a log of who thinks it has the keyboard.
         /// Also whether anyone can see the window.
-        private func performFocusActionForTesting(_ action: String) -> Bool {
+        func performFocusActionForTesting(_ action: String) -> Bool {
             switch action {
             case "window_unseen", "window_seen":
                 // As if the window were covered, or back in view (WindowPresence).

@@ -89,6 +89,13 @@ targets:
         # Tells libghostty it was launched from the desktop, so new shells start in the home folder.
         LSEnvironment:
           GHOSTTY_MAC_LAUNCH_SOURCE: app
+        # What a session carries when it is dragged onto a split or out of one (SessionDrag). Its own
+        # type, so the terminal panes, which take dropped text and files, never mistake it for one.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.jinhuang.calm.session
+            UTTypeDescription: Calm session
+            UTTypeConformsTo:
+              - public.data
     entitlements:
       path: Calm/Calm.entitlements
       properties:

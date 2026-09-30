@@ -19,6 +19,9 @@ struct SessionCard: View {
     /// longer than the window can wait): the card keeps its saved size but says nothing about
     /// the state, so nothing shown is wrong. UIUX.md → Restoring.
     var isConfirming = false
+    /// On screen beside the session you're in, in a split: lifted like the selected card, with no
+    /// ring (UIUX.md → Split panes).
+    var inView = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: (size == .full ? 6 : 4).scaled) {
@@ -53,7 +56,7 @@ struct SessionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Self.shape.fill(background))
         // Under the card's own fill, so the selected card comes out lighter than the rest.
-        .background(Self.shape.fill(isSelected ? style.selectionLift : .clear))
+        .background(Self.shape.fill(isSelected || inView ? style.selectionLift : .clear))
         .overlay(Self.shape.strokeBorder(border, lineWidth: SidebarStyle.selectionRingWidth))
         .contentShape(Rectangle())
         .help(tooltip)

@@ -5,11 +5,12 @@
 #   ./install.sh --no-cli            # skip the `calm` link (Calm's own shells have $CALM_CLI anyway)
 #   ./install.sh --restart           # also quit a running Calm and open the new one
 #
-# A running Calm is left alone: the new app takes its place on disk, and it starts the next time
-# Calm opens. The running one keeps the code it launched with (macOS keeps a replaced file's
-# pages until the process ends), and what it reads later (themes, the viewer, zmx) stays
-# compatible. --restart quits it and opens the new one; quitting only detaches shells (zmx keeps
-# them alive), so that's safe from inside Calm too.
+# A running Calm isn't quit, but it is out of date once the new app is on disk. Until it
+# restarts, its shells can lose access to Documents, Desktop and Downloads ("Operation not
+# permitted", seen 2026-10-01; to macOS every ad-hoc build is a new app). So restart soon:
+# Calm → Restart Calm, or --restart here, which quits it and opens the new one. Quitting only
+# detaches shells (zmx keeps them alive), so that's safe from inside Calm too. What the old
+# Calm reads in the meantime (themes, the viewer, zmx) stays compatible.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")" && pwd)"
@@ -20,7 +21,7 @@ bin_dir="$HOME/.local/bin"
 link_cli=1
 restart=0
 
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -103,7 +104,7 @@ if [[ $was_running -eq 1 && $restart -eq 1 ]]; then
   open "$target"
   step "$installed"
 elif [[ $was_running -eq 1 ]]; then
-  step "$installed The running Calm is untouched; the new one starts next time you open Calm, or with Calm → Restart Calm."
+  step "$installed Restart Calm soon (Calm → Restart Calm): until then the running one is out of date, and its shells can lose access to Documents, Desktop and Downloads."
 else
   step "$installed"
 fi

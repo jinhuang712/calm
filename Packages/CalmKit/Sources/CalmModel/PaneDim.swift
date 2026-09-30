@@ -10,6 +10,17 @@ public enum PaneDim {
     /// ...and the asked pane steps back a little, so the question stands out on it.
     public static let askedOpacity = 0.5
 
+    /// The clearing the question stands in: a vignette of the asked pane's own background, all but
+    /// solid in the middle, where the words are, and gone at the edges, so the terminal text
+    /// behind the words does not show through them. `opacity` is the background's, at `location`
+    /// along the radius (0 the center, 1 the edge).
+    public static let clearing: [(location: Double, opacity: Double)] = [
+        (0, 0.98), (0.5, 0.95), (0.76, 0.6), (1, 0),
+    ]
+
+    /// How far the clearing reaches, as fractions of the pane's width and height.
+    public static let clearingReach = (width: 0.66, height: 0.56)
+
     /// How opaque the veil over one pane is, in the terminal's own background color: 0 leaves the
     /// pane as it is. A lone pane is never dimmed. `asked` is the pane a close question is on.
     public static func veil(isFocused: Bool, hasSplits: Bool, isAsked: Bool, asking: Bool) -> Double {

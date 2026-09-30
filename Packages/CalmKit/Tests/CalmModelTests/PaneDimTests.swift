@@ -13,6 +13,21 @@ struct PaneDimTests {
         #expect(abs(veil - (1 - PaneDim.unfocusedOpacity)) < 1e-9)
     }
 
+    @Test func `the clearing is solid in the middle and gone at the edge`() {
+        let stops = PaneDim.clearing
+        #expect(stops.first?.location == 0)
+        #expect(stops.last?.location == 1)
+        #expect(stops.last?.opacity == 0)
+        // Nearly solid where the words are, so terminal text can't show through them.
+        #expect((stops.first?.opacity ?? 0) >= 0.95)
+        // Locations climb and the background only ever thins out, so there is no ring.
+        for (before, after) in zip(stops, stops.dropFirst()) {
+            #expect(before.location < after.location)
+            #expect(before.opacity >= after.opacity)
+        }
+        #expect(PaneDim.clearingReach.width > 0 && PaneDim.clearingReach.height > 0)
+    }
+
     @Test func `while a pane is asked about the others almost go and it steps back a little`() {
         let others = PaneDim.veil(isFocused: false, hasSplits: true, isAsked: false, asking: true)
         let asked = PaneDim.veil(isFocused: false, hasSplits: true, isAsked: true, asking: true)

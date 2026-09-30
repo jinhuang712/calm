@@ -1,10 +1,12 @@
 import AppKit
+import CalmModel
 import SwiftUI
 
-/// The question ⌘W asks when something runs in a pane of a split (UIUX.md → Split panes): a small
-/// card in the middle of that pane. A sheet on the window says what would end but not which pane
-/// it is; where this card stands is the answer, and the workspace dims the other panes while it's
-/// up. Return closes, Esc keeps; any other key, or a click elsewhere, keeps and goes through.
+/// The question ⌘W asks when something runs in a pane of a split (UIUX.md → Split panes): words
+/// in the middle of that pane, on a clearing of its own background. A sheet on the window says
+/// what would end but not which pane it is; where these words stand is the answer, and the
+/// workspace dims the other panes while it's up. Return closes, Esc keeps; any other key, or a
+/// click elsewhere, keeps and goes through.
 @MainActor
 final class ClosePrompt {
     private weak var container: NSView?
@@ -24,11 +26,11 @@ final class ClosePrompt {
     /// Asks about `pane`, with the split's other panes dimmed while the question is up. Calls
     /// `close` if the answer is Close.
     func ask(
-        about pane: TerminalSurfaceView, in workspace: TerminalWorkspaceView, agentName: String?, style: SidebarStyle,
+        about pane: TerminalSurfaceView, in workspace: TerminalWorkspaceView, agent: AgentKind?, style: SidebarStyle,
         close: @escaping () -> Void,
     ) {
         workspace.setAsked(pane.id)
-        show(over: pane, agentName: agentName, style: style) { [weak workspace] closes in
+        show(over: pane, agent: agent, style: style) { [weak workspace] closes in
             workspace?.setAsked(nil)
             if closes {
                 close()
@@ -38,7 +40,7 @@ final class ClosePrompt {
 
     /// Puts the question on `pane`. `then` gets true for Close and false for Keep, once, however
     /// the question ends.
-    private func show(over pane: NSView, agentName: String?, style: SidebarStyle, then finish: @escaping (Bool) -> Void) {
+    private func show(over pane: NSView, agent: AgentKind?, style: SidebarStyle, then finish: @escaping (Bool) -> Void) {
         dismiss()
         guard let container, pane.window != nil else {
             finish(false)
@@ -46,13 +48,14 @@ final class ClosePrompt {
         }
         self.finish = finish
         let view = ClosePromptView(
-            agentName: agentName, style: style,
+            agent: agent, style: style,
             onClose: { [weak self] in self?.answer(close: true) },
             onKeep: { [weak self] in self?.answer(close: false) },
         )
         let controller = NSHostingController(rootView: view)
         let host = controller.view
-        let size = controller.sizeThatFits(in: CGSize(width: 360, height: CGFloat.greatestFiniteMagnitude))
+        // Narrow enough for its pane, so the line wraps in a small one instead of running out of it.
+        let size = controller.sizeThatFits(in: CGSize(width: min(360, pane.bounds.width - 32), height: CGFloat.greatestFiniteMagnitude))
         let paneFrame = pane.convert(pane.bounds, to: container)
         host.frame = NSRect(x: paneFrame.midX - size.width / 2, y: paneFrame.midY - size.height / 2, width: size.width, height: size.height)
         hostController = controller
@@ -119,71 +122,5 @@ final class ClosePrompt {
         let finish = finish
         self.finish = nil
         finish?(close)
-    }
-}
-
-struct ClosePromptView: View {
-    let agentName: String?
-    let style: SidebarStyle
-    let onClose: () -> Void
-    let onKeep: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2.scaled) {
-            Text("\(agentName ?? "Something") is running here")
-                .calmFont(size: 13, weight: .medium)
-                .foregroundStyle(style.primary)
-            Text("Closing the session ends it.")
-                .calmFont(size: 12)
-                .foregroundStyle(style.secondary)
-            HStack(spacing: 8.scaled) {
-                Spacer(minLength: 0)
-                PromptButton(title: "Keep", key: "esc", isDefault: false, style: style, action: onKeep)
-                PromptButton(title: "Close", key: "↵", isDefault: true, style: style, action: onClose)
-            }
-            .padding(.top, 10.scaled)
-        }
-        .padding(.horizontal, 16.scaled)
-        .padding(.vertical, 13.scaled)
-        .fixedSize()
-        .background(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).fill(style.background))
-        .overlay(RoundedRectangle(cornerRadius: 12.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.3)))
-        .shadow(color: .black.opacity(style.isDark ? 0.35 : 0.12), radius: 10, y: 4)
-        .padding(14)
-        .environment(\.colorScheme, style.isDark ? .dark : .light)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(agentName ?? "A process") is running in this pane. Close the session?")
-    }
-}
-
-private struct PromptButton: View {
-    let title: String
-    let key: String
-    let isDefault: Bool
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovered = false
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
-        Button(action: action) {
-            HStack(spacing: 6.scaled) {
-                Text(title)
-                    .calmFont(size: 12.5, weight: isDefault ? .medium : nil)
-                    .foregroundStyle(isDefault ? style.primary : style.secondary)
-                Text(key)
-                    .calmFont(size: 11)
-                    .foregroundStyle(style.tertiary)
-            }
-            .padding(.horizontal, 11.scaled)
-            .padding(.vertical, 4.scaled)
-            // Closing is the one filled button; keeping is outlined. Neither is a state's color.
-            .background(shape.fill(isDefault ? style.selection : .clear))
-            .background(shape.fill(hovered ? style.selection : .clear))
-            .overlay(shape.strokeBorder(style.tertiary.opacity(isDefault ? 0.45 : 0.3)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
     }
 }

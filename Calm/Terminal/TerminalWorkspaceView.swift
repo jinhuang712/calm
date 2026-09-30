@@ -14,6 +14,8 @@ final class TerminalWorkspaceView: NSView {
     /// (TerminalWorkspaceView+Dim).
     let veils = VeilsView()
     var veilViews: [UUID: VeilView] = [:]
+    /// The soft space the close question stands in, over the asked pane's veil (made when first needed).
+    var clearing: ClearingView?
     /// The pane the layout's focus is on: the others recede. Not the first responder, so a
     /// question on another pane, or the window losing focus, leaves the dim as it is.
     var focusedID: UUID?

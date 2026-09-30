@@ -537,7 +537,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // In a split the question sits on the pane it is about: a sheet on the window says what
         // would end, not which pane it is (UIUX.md → Split panes).
         if let workspace = selectedWorkspace, let pane = workspace.askablePane(id) {
-            closePrompt.ask(about: pane, in: workspace, agentName: agent?.displayName, style: sidebarStyle) { [weak self] in
+            closePrompt.ask(about: pane, in: workspace, agent: agent, style: sidebarStyle) { [weak self] in
                 self?.closeSession(id)
             }
             return

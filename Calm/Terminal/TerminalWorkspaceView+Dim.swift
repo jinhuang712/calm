@@ -57,6 +57,26 @@ extension TerminalWorkspaceView {
             )
             Motion.fade(veil, to: strength, duration: animated ? Self.veilDuration : 0)
         }
+        refreshClearing(animated: animated)
+    }
+
+    /// The question's clearing lies over the asked pane, in that pane's own colors, and is gone
+    /// when nothing is asked.
+    private func refreshClearing(animated: Bool) {
+        let duration = animated ? Self.veilDuration : 0
+        guard let id = askedID, let veil = veilViews[id] else {
+            if let clearing {
+                Motion.fade(clearing, to: 0, duration: duration)
+            }
+            return
+        }
+        let clearing = clearing ?? ClearingView()
+        self.clearing = clearing
+        // Added last each time: a pane made since would otherwise put its veil over it.
+        veils.addSubview(clearing)
+        clearing.frame = veil.frame
+        clearing.color = veil.color
+        Motion.fade(clearing, to: 1, duration: duration)
     }
 
     // MARK: Fold
@@ -148,6 +168,46 @@ final class GhostView: NSView {
 final class VeilsView: NSView {
     override var isFlipped: Bool {
         true
+    }
+
+    override func hitTest(_: NSPoint) -> NSView? {
+        nil
+    }
+}
+
+/// The clearing (PaneDim.clearing): the asked pane's background thickening toward its middle, so
+/// the question's words stand on a calm ground instead of on the terminal text.
+@MainActor
+final class ClearingView: NSView {
+    var color = NSColor.black {
+        didSet { updateColors() }
+    }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        alphaValue = 0
+        if let gradient = layer as? CAGradientLayer {
+            gradient.type = .radial
+            gradient.startPoint = CGPoint(x: 0.5, y: 0.5)
+            // A radial gradient reaches as far from its start as the end point is, on each axis.
+            gradient.endPoint = CGPoint(x: 0.5 + PaneDim.clearingReach.width, y: 0.5 + PaneDim.clearingReach.height)
+            gradient.locations = PaneDim.clearing.map { NSNumber(value: $0.location) }
+        }
+        updateColors()
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("not supported")
+    }
+
+    override func makeBackingLayer() -> CALayer {
+        CAGradientLayer()
+    }
+
+    private func updateColors() {
+        (layer as? CAGradientLayer)?.colors = PaneDim.clearing.map { color.withAlphaComponent($0.opacity).cgColor }
     }
 
     override func hitTest(_: NSPoint) -> NSView? {

@@ -28,6 +28,14 @@ struct PaneDimTests {
         #expect(PaneDim.clearingReach.width > 0 && PaneDim.clearingReach.height > 0)
     }
 
+    @Test func `a pane being dragged out of the split all but goes`() {
+        let leaving = PaneDim.veil(isFocused: true, hasSplits: true, isAsked: false, asking: false, isLeaving: true)
+        #expect(abs(leaving - (1 - PaneDim.leavingOpacity)) < 1e-9)
+        // More than the panes that merely recede, and nothing for a lone pane.
+        #expect(leaving > PaneDim.veil(isFocused: false, hasSplits: true, isAsked: false, asking: false))
+        #expect(PaneDim.veil(isFocused: true, hasSplits: false, isAsked: false, asking: false, isLeaving: true) == 0)
+    }
+
     @Test func `while a pane is asked about the others almost go and it steps back a little`() {
         let others = PaneDim.veil(isFocused: false, hasSplits: true, isAsked: false, asking: true)
         let asked = PaneDim.veil(isFocused: false, hasSplits: true, isAsked: true, asking: true)

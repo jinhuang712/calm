@@ -21,10 +21,18 @@ public enum PaneDim {
     /// How far the clearing reaches, as fractions of the pane's width and height.
     public static let clearingReach = (width: 0.66, height: 0.56)
 
+    /// A pane being dragged out of the split, while it is over the sidebar: it all but goes, the
+    /// way a card you are about to drop somewhere else does.
+    public static let leavingOpacity = 0.16
+
     /// How opaque the veil over one pane is, in the terminal's own background color: 0 leaves the
-    /// pane as it is. A lone pane is never dimmed. `asked` is the pane a close question is on.
-    public static func veil(isFocused: Bool, hasSplits: Bool, isAsked: Bool, asking: Bool) -> Double {
+    /// pane as it is. A lone pane is never dimmed. `asked` is the pane a close question is on;
+    /// `isLeaving` the pane being dragged out of the split.
+    public static func veil(isFocused: Bool, hasSplits: Bool, isAsked: Bool, asking: Bool, isLeaving: Bool = false) -> Double {
         guard hasSplits else { return 0 }
+        if isLeaving {
+            return 1 - leavingOpacity
+        }
         if asking {
             return 1 - (isAsked ? askedOpacity : othersWhileAskingOpacity)
         }

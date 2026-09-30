@@ -58,8 +58,9 @@ struct JSONLTail: Sequence {
         private let skipLimit: Int
         /// Where the bytes not yet read end.
         private var position: UInt64
-        /// The end of a line whose start is still unread.
-        private var carry = Data()
+        /// The end of a line whose start is still unread, in file order: a line longer than a
+        /// block arrives a block at a time, and its pieces are joined once, when its start is read.
+        private var carry: [Data] = []
         /// Passing over a line that is too long (or unfinished): drop bytes until its newline.
         private var skipping: Bool
         /// Complete lines read but not handed out, oldest first.
@@ -108,6 +109,12 @@ struct JSONLTail: Sequence {
         }
 
         /// Reads the block before what was read last and queues the lines it completes.
+        ///
+        /// Only this block can hold newlines (what is carried is the rest of one line), so only
+        /// it is searched, with `memchr`. Joining each block to the carried bytes and splitting
+        /// the lot again made a long line quadratic, and Data's own searches go a byte at a time:
+        /// a transcript with a few pasted screenshots near its end (lines of 0.5–0.7 MB, 2.9 MB
+        /// of them) took 44 ms a read, read again every time the agent wrote (2026-09-30).
         private func fill() -> Bool {
             guard let handle, position > 0, skipped <= skipLimit else { return false }
             let size = Swift.min(Self.blockSize, position)
@@ -116,35 +123,73 @@ struct JSONLTail: Sequence {
                   let chunk = try? handle.read(upToCount: Int(size)), !chunk.isEmpty
             else { return false }
 
-            var data: Data
+            var newlines = Self.newlines(in: chunk)
+            var end = chunk.endIndex
             if skipping {
                 // Everything after this block's last newline belongs to the line being dropped.
-                guard let newline = chunk.lastIndex(of: 0x0A) else {
+                guard let last = newlines.popLast() else {
                     skipped += chunk.count
                     return true
                 }
-                skipped += chunk.endIndex - newline - 1
+                skipped += chunk.endIndex - last - 1
                 skipping = false
-                data = chunk[chunk.startIndex ..< newline]
-            } else {
-                data = chunk + carry
+                end = last
             }
-            var segments = data.split(separator: 0x0A, omittingEmptySubsequences: false)
-            if position > 0, !segments.isEmpty {
-                // The first segment is the end of a line that starts in an earlier block.
-                let first = segments.removeFirst()
-                if first.count > maxLine {
-                    skipped += first.count
+            // The pieces between newlines, oldest first; the last one runs on into the carry.
+            let starts = [chunk.startIndex] + newlines.map { $0 + 1 }
+            let ends = newlines + [end]
+            let pieces = zip(starts, ends).map { chunk[$0 ..< $1] }
+            let carried = carry
+            carry = []
+            var completed: [Data] = []
+            let first: [Data]
+            if pieces.count == 1 {
+                first = [pieces[0]] + carried
+            } else {
+                first = [pieces[0]]
+                completed.append(contentsOf: pieces[1 ..< pieces.count - 1])
+                completed.append(Self.joined([pieces[pieces.count - 1]] + carried))
+            }
+            if position > 0 {
+                // The first piece is the end of a line that starts in an earlier block.
+                let length = first.reduce(0) { $0 + $1.count }
+                if length > maxLine {
+                    skipped += length
                     skipping = true
-                    carry = Data()
                 } else {
-                    carry = Data(first)
+                    carry = first
                 }
             } else {
-                carry = Data()
+                completed.insert(Self.joined(first), at: 0)
             }
-            lines.append(contentsOf: segments.filter { !$0.isEmpty })
+            lines.append(contentsOf: completed.filter { !$0.isEmpty })
             return true
+        }
+
+        /// Where the newlines are in `data`, as its indices, in order.
+        private static func newlines(in data: Data) -> [Int] {
+            data.withUnsafeBytes { raw -> [Int] in
+                guard let base = raw.baseAddress else { return [] }
+                var found: [Int] = []
+                var offset = 0
+                while offset < raw.count, let hit = memchr(base + offset, 0x0A, raw.count - offset) {
+                    let index = base.distance(to: UnsafeRawPointer(hit))
+                    found.append(data.startIndex + index)
+                    offset = index + 1
+                }
+                return found
+            }
+        }
+
+        private static func joined(_ pieces: [Data]) -> Data {
+            if pieces.count == 1 {
+                return pieces[0]
+            }
+            var line = Data(capacity: pieces.reduce(0) { $0 + $1.count })
+            for piece in pieces {
+                line.append(piece)
+            }
+            return line
         }
     }
 }

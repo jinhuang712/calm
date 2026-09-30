@@ -131,6 +131,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         Motion.animateLayout(of: container) {
             sidebarWidth.constant = hidden ? Self.sidebarWidth : 0
         }
+        // With no session chosen, the page carries the ways to start while the sidebar is away.
+        updateNoSessionPage()
     }
 
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.

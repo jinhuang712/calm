@@ -146,8 +146,11 @@ extension MainWindowController {
             return
         }
         let background = TerminalEngine.shared.config?.backgroundColor ?? NSColor(white: 0.15, alpha: 1)
+        // Read here and passed in: the settings aren't observed, and folding the footer or hiding
+        // the sidebar comes back through here (applyAppearance, toggleSidebar).
+        let footerShown = manager.settings.sidebarFooter && (sidebarWidth?.constant ?? 0) > 0
         noSessionPage.show(
-            manager: manager, style: sidebarStyle, background: background,
+            manager: manager, style: sidebarStyle, background: background, sidebarFooterShown: footerShown,
             actions: NoSessionView.Actions(open: { [weak self] id in self?.select(id) }, welcome: welcomeActions),
         )
     }

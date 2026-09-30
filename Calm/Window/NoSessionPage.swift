@@ -20,11 +20,16 @@ final class NoSessionPage {
         host != nil
     }
 
-    func show(manager: SessionManager, style: SidebarStyle, background: NSColor, actions: NoSessionView.Actions) {
+    func show(
+        manager: SessionManager, style: SidebarStyle, background: NSColor, sidebarFooterShown: Bool, actions: NoSessionView.Actions,
+    ) {
         // One model per showing: the search starts fresh, and refreshes the index, each time.
         let model = self.model ?? NoSessionModel()
         self.model = model
-        let view = NoSessionView(manager: manager, model: model, style: style, background: Color(nsColor: background), actions: actions)
+        let view = NoSessionView(
+            manager: manager, model: model, style: style, background: Color(nsColor: background), actions: actions,
+            sidebarFooterShown: sidebarFooterShown,
+        )
         if let host {
             host.rootView = view
             return

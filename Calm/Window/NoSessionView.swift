@@ -15,6 +15,8 @@ struct NoSessionView: View {
     let style: SidebarStyle
     let background: Color
     let actions: Actions
+    /// The sidebar's footer is on screen (not folded away, the sidebar not hidden).
+    var sidebarFooterShown = true
 
     @FocusState private var cardsFocused: Bool
 
@@ -28,8 +30,11 @@ struct NoSessionView: View {
                 waitingPage(waiting)
                     .transition(.opacity)
             case .lists:
-                WelcomeView(model: model.welcome, style: style, background: background, actions: actions.welcome, placement: .mainArea)
-                    .transition(.opacity)
+                WelcomeView(
+                    model: model.welcome, style: style, background: background, actions: actions.welcome,
+                    placement: .mainArea, sidebarFooterShown: sidebarFooterShown,
+                )
+                .transition(.opacity)
             }
         }
         .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.2), value: model.content == .lists)

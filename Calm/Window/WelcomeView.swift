@@ -29,6 +29,13 @@ struct WelcomeView: View {
     let background: Color
     let actions: Actions
     var placement = Placement.window
+    /// Beside the sidebar: whether its footer, with the three ways to start, is on screen. Folded
+    /// away, or with the sidebar hidden, the page shows the hint line in its place.
+    var sidebarFooterShown = true
+
+    private var showsHintLine: Bool {
+        placement == .window || !sidebarFooterShown
+    }
 
     @FocusState private var fieldFocused: Bool
     @State private var caret: TextSelection?
@@ -51,9 +58,13 @@ struct WelcomeView: View {
                     WelcomeMark(clock: model.clock, isDark: style.isDark, side: 60)
                         .padding(.bottom, 60.scaled)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if showsHintLine {
+                        HintLine(style: style, actions: actions)
+                            .padding(.bottom, 34.scaled)
+                    }
                 case (.lists, _):
                     listsPage(width: proxy.size.width, stacked: stacked)
-                    if placement == .window {
+                    if showsHintLine {
                         HintLine(style: style, actions: actions)
                             .padding(.bottom, 34.scaled)
                     }
@@ -166,10 +177,10 @@ struct WelcomeView: View {
         }
         .frame(width: contentWidth)
         // Over the window: the title strip's height and a little more, so the mark stands level with
-        // the search panel's top edge, and room below for the hint line. The main area already
-        // starts under the strip, and has no hint line.
+        // the search panel's top edge. The main area already starts under the strip. Room below
+        // for the hint line when there is one.
         .padding(.top, placement == .window ? CalmWindow.titleStripHeight + 8.scaled : 64.scaled)
-        .padding(.bottom, (placement == .window ? 84 : 32).scaled)
+        .padding(.bottom, (showsHintLine ? 84 : 32).scaled)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 

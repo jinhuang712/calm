@@ -315,9 +315,19 @@ final class SessionManager {
     }
 
     func select(_ id: Session.ID) {
-        workspace.select(id)
+        show(id)
         AttentionCenter.shared.sessionVisited(id)
         scheduleSave()
+    }
+
+    /// Selects `id`. A collapsed group holding it opens the way a click on its header opens it;
+    /// otherwise the change is left as it was (the selection ring doesn't need the slide).
+    private func show(_ id: Session.ID) {
+        if workspace.isInCollapsedGroup(id) {
+            Motion.animate(.easeInOut(duration: 0.18)) { workspace.select(id) }
+        } else {
+            workspace.select(id)
+        }
     }
 
     /// The focused session and its state, for `LeavingCalm`.
@@ -345,7 +355,7 @@ final class SessionManager {
 
     func setFocused(_ sessionID: Session.ID) {
         guard let layout = workspace.layout(containing: sessionID), layout.focusedSessionID != sessionID else { return }
-        workspace.select(sessionID)
+        show(sessionID)
         AttentionCenter.shared.sessionVisited(sessionID)
         scheduleSave()
     }

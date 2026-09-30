@@ -387,11 +387,6 @@ public struct Workspace: Codable, Hashable, Sendable {
         }
     }
 
-    public mutating func setCollapsed(_ projectID: Project.ID, _ collapsed: Bool) {
-        guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
-        projects[index].isCollapsed = collapsed
-    }
-
     /// Gives a project the mark `seed` makes instead of the one its name gives.
     public mutating func setMarkSeed(_ projectID: Project.ID, _ seed: UInt64) {
         guard let index = projects.firstIndex(where: { $0.id == projectID }) else { return }
@@ -425,6 +420,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         let layout = PaneLayout(tree: .leaf(session.id), focusedSessionID: session.id)
         layouts.append(layout)
         selectedLayoutID = layout.id
+        reveal(session.id)
         return session
     }
 
@@ -443,6 +439,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         sessions.append(session)
         layouts[layoutIndex].tree = layouts[layoutIndex].tree.splitting(existing, direction: direction, with: session.id)
         layouts[layoutIndex].focusedSessionID = session.id
+        reveal(session.id)
         return session
     }
 
@@ -566,9 +563,9 @@ public struct Workspace: Codable, Hashable, Sendable {
         sessions[index].state = state
     }
 
-    /// Selects the layout that shows `sessionID` and focuses the session in it. The session
-    /// being left settles: a finished one stays *done* while you read it, and goes quiet once
-    /// you move on.
+    /// Selects the layout that shows `sessionID` and focuses the session in it, opening its group
+    /// if it was collapsed. The session being left settles: a finished one stays *done* while you
+    /// read it, and goes quiet once you move on.
     public mutating func select(_ sessionID: Session.ID) {
         guard let index = layouts.firstIndex(where: { $0.tree.contains(sessionID) }) else { return }
         if let left = selectedLayout?.focusedSessionID, left != sessionID {
@@ -576,6 +573,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         }
         layouts[index].focusedSessionID = sessionID
         selectedLayoutID = layouts[index].id
+        reveal(sessionID)
     }
 
     /// The user has seen a session and moved on (to another session, or away from Calm).

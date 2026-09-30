@@ -178,6 +178,69 @@ struct WorkspaceTests {
         #expect(workspace.session(second.id)?.state == .idle)
     }
 
+    @Test func `selecting a session opens its collapsed group and leaves the other groups alone`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
+        workspace.setCollapsed(first.projectID, true)
+        workspace.setCollapsed(second.projectID, true)
+        #expect(workspace.isInCollapsedGroup(first.id))
+        workspace.select(first.id)
+        #expect(workspace.project(first.projectID)?.isCollapsed == false)
+        #expect(workspace.project(second.projectID)?.isCollapsed == true)
+        #expect(!workspace.isInCollapsedGroup(first.id))
+    }
+
+    @Test func `collapsing the group you are in keeps it collapsed until another session is opened`() {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = workspace.newSession(in: "/dev/apps/pinax", gitRoot: gitRoot)
+        workspace.setCollapsed(second.projectID, true)
+        #expect(workspace.selectedLayout?.focusedSessionID == second.id)
+        #expect(workspace.project(second.projectID)?.isCollapsed == true)
+        workspace.select(first.id)
+        #expect(workspace.project(second.projectID)?.isCollapsed == true)
+        workspace.select(second.id)
+        #expect(workspace.project(second.projectID)?.isCollapsed == false)
+    }
+
+    @Test func `a new session opens the collapsed group it lands in`() {
+        var workspace = Workspace()
+        let project = workspace.addProject(path: "/dev/apps/calm")
+        let folder = workspace.newSession(in: "/tmp/scratch", gitRoot: gitRoot)
+        workspace.setCollapsed(project.id, true)
+        workspace.setCollapsed(folder.projectID, true)
+
+        workspace.newSession(in: "/dev/apps/calm", placement: .project(project.id), gitRoot: gitRoot)
+        #expect(workspace.project(project.id)?.isCollapsed == false)
+
+        workspace.newSession(in: "/tmp/scratch", gitRoot: gitRoot)
+        #expect(workspace.project(folder.projectID)?.isCollapsed == false)
+    }
+
+    @Test func `a split opens the collapsed group it lands in`() throws {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        workspace.setCollapsed(first.projectID, true)
+        let split = workspace.splitSession(first.id, direction: .right, in: "/dev/apps/calm", gitRoot: gitRoot)
+        let second = try #require(split)
+        #expect(workspace.project(second.projectID)?.isCollapsed == false)
+    }
+
+    @Test func `focusing a pane of a split opens its collapsed group`() throws {
+        var workspace = Workspace()
+        let first = workspace.newSession(in: "/dev/apps/calm", gitRoot: gitRoot)
+        let split = workspace.splitSession(first.id, direction: .right, in: "/dev/apps/pinax", gitRoot: gitRoot)
+        let second = try #require(split)
+        workspace.setCollapsed(first.projectID, true)
+        workspace.setCollapsed(second.projectID, true)
+        #expect(workspace.selectedLayout?.focusedSessionID == second.id)
+        workspace.select(first.id)
+        #expect(workspace.selectedLayout?.focusedSessionID == first.id)
+        #expect(workspace.project(first.projectID)?.isCollapsed == false)
+        #expect(workspace.project(second.projectID)?.isCollapsed == true)
+    }
+
     @Test func `sessions keep creation order in the sidebar`() {
         var workspace = Workspace()
         workspace.addProject(path: "/dev/apps/calm")

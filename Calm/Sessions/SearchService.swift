@@ -58,12 +58,15 @@ enum SearchService {
         }
     }
 
+    /// The most results one search returns; a list that holds this many may have more.
+    static let resultLimit = 30
+
     static func search(_ query: String, currentProject: String? = nil, refreshing: Bool = true) -> [SearchResult] {
         guard let index else { return [] }
         if refreshing {
             _ = index.update(home: home)
         }
-        return index.search(query, limit: 30, currentProject: currentProject)
+        return index.search(query, limit: resultLimit, currentProject: currentProject)
     }
 
     /// `calm search` over the socket.

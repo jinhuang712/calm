@@ -236,7 +236,7 @@ struct WelcomeView: View {
     @ViewBuilder
     private func columns(stacked: Bool) -> some View {
         if stacked {
-            ResultScroller(selected: model.selected) {
+            ResultScroller(selected: model.selected, order: model.walk) {
                 VStack(alignment: .leading, spacing: 22.scaled) {
                     if model.showsSessions {
                         section(.sessions, scrolls: false)
@@ -266,7 +266,7 @@ struct WelcomeView: View {
                 // it's offered, which left New project… far below a short list, and rows are all
                 // one height, so their count says whether they fit.
                 if scrolls, rowCount(column) > Self.rowsBeforeScrolling {
-                    ResultScroller(selected: model.selected) { rows(column) }
+                    ResultScroller(selected: model.selected, order: model.targets(in: column)) { rows(column) }
                         .frame(maxHeight: Self.listHeight.scaled)
                 } else {
                     rows(column)
@@ -292,7 +292,9 @@ struct WelcomeView: View {
             Text(title.uppercased())
             Spacer(minLength: 4)
             if searching {
-                Text("\(count)").monospacedDigit()
+                // A search stops at its limit, so a full list says "30+", not a count it doesn't know.
+                let capped = column == .sessions && count >= SearchService.resultLimit
+                Text(capped ? "\(count)+" : "\(count)").monospacedDigit()
             }
         }
         .calmFont(size: 12, weight: .semibold)
@@ -360,8 +362,16 @@ struct WelcomeView: View {
 /// A scrolling list that scrolls to the selected row and fades out at the bottom while there is more.
 private struct ResultScroller<Content: View>: View {
     let selected: WelcomeModel.Target?
+    /// The rows inside, in the order the arrow keys walk them.
+    let order: [WelcomeModel.Target]
     @ViewBuilder let content: Content
     @State private var moreBelow = false
+
+    /// About one row: the fade hints at more below without covering a row the keys are on.
+    /// (Computed: a generic type can't store a static.)
+    private static var fadeHeight: CGFloat {
+        54
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -375,19 +385,23 @@ private struct ResultScroller<Content: View>: View {
                 moreBelow = more
             }
             .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0),
-                        .init(color: .black, location: moreBelow ? 0.72 : 1),
-                        .init(color: moreBelow ? .clear : .black, location: 1),
-                    ],
-                    startPoint: .top, endPoint: .bottom,
-                )
+                VStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: moreBelow ? Self.fadeHeight.scaled : 0)
+                }
             }
             .animation(Motion.isReduced ? nil : .easeOut(duration: 0.2), value: moreBelow)
-            .onChange(of: selected) {
-                if let selected {
-                    proxy.scrollTo(selected)
+            .onChange(of: selected) { old, new in
+                guard let new else { return }
+                proxy.scrollTo(new)
+                // Then the row past it in the direction of travel, so the chosen row keeps a row of
+                // room and never sits under the fade (scrolling only as far as needed: one row).
+                guard let index = order.firstIndex(of: new) else { return }
+                let goingDown = old.flatMap { order.firstIndex(of: $0) }.map { $0 < index } ?? false
+                let beyond = goingDown ? index + 1 : index - 1
+                if order.indices.contains(beyond) {
+                    proxy.scrollTo(order[beyond])
                 }
             }
         }

@@ -13,26 +13,26 @@ struct SessionMenu: View {
     let onClose: () -> Void
 
     var body: some View {
+        let available = SessionActionSet(session)
         Button("Rename…", action: onRename)
-        if MainWindowController.resumeCommand(for: session) != nil, let kind = session.resumableConversation?.kind {
+        if let kind = available.resumes {
             Button("Resume \(kind.displayName) Conversation") { actions.resume(session.id) }
         }
-        if MainWindowController.forkCommand(for: session) != nil {
+        if available.forks {
             Button("Fork into New Split") { actions.fork(session.id, .split) }
             Button("Fork into New Tab") { actions.fork(session.id, .tab) }
         }
-        let copies = SessionCopy.allCases.filter { $0.text(for: session) != nil }
-        if !copies.isEmpty {
+        if !available.copies.isEmpty {
             Divider()
-            ForEach(copies, id: \.self) { copy in
+            ForEach(available.copies, id: \.self) { copy in
                 Button(copy.menuTitle) { actions.copy(session.id, copy) }
             }
-            if !session.isScratch {
-                Button("Reveal in Finder") { actions.reveal(session.id) }
+            if available.opensFolder {
+                Button("Open in Finder") { actions.openFolder(session.id) }
             }
         }
         Divider()
-        if session.isScratch {
+        if available.keepsAsProject {
             Button("Keep as Project…") { actions.keepScratch(session.id) }
         } else {
             let projects = manager.workspace.orderedProjects.filter { $0.kind == .project && $0.id != session.projectID }

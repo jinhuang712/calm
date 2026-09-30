@@ -103,6 +103,12 @@ final class AttentionCenter: NSObject {
         deliverDue()
     }
 
+    /// The user marked a session seen without going there: its notification no longer applies, but
+    /// nothing else should pause, since they didn't move.
+    func sessionSeen(_ id: Session.ID) {
+        withdraw(id)
+    }
+
     // MARK: Delivery
 
     private func enqueue(_ message: String?, state: SessionState?, for id: Session.ID) {

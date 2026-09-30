@@ -63,7 +63,7 @@ Calm works as a normal terminal: no sessions or agents yet, just a fast, correct
 - [x] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
 - [x] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
 - [x] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
-- [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut.
+- [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut. *Reworked 2026-09-30: it now lists what Calm does that has no key everyone knows, by category, each row one-shot (FEATURES.md → Command palette).*
 - [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
 - [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
 - [x] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Done by the author's real use (2026-09-30): Calm has been their only terminal since 2026-09-29, and the small things found went in as fixes. Automated self-tests pass too (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*

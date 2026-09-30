@@ -3,14 +3,14 @@ import Testing
 
 struct CommandMatcherTests {
     let commands = [
-        TerminalCommand(title: "Split Right", detail: "Split the terminal to the right.", action: "new_split:right", shortcut: "⌘D"),
-        TerminalCommand(title: "Split Down", detail: "Split the terminal down.", action: "new_split:down", shortcut: "⇧⌘D"),
-        TerminalCommand(title: "Clear Screen", detail: "Clear the screen and scrollback.", action: "clear_screen", shortcut: "⌘K"),
-        TerminalCommand(title: "New Tab", detail: "Open a new tab.", action: "new_tab", shortcut: "⌘T"),
+        PaletteCommand(id: "split-right", title: "Split Right", detail: "Split the terminal to the right.") {},
+        PaletteCommand(id: "split-down", title: "Split Down", detail: "Split the terminal down.") {},
+        PaletteCommand(id: "clear", title: "Clear Screen", detail: "Clear the screen and scrollback.") {},
+        PaletteCommand(id: "tab", title: "New Tab", detail: "Open a new tab.") {},
     ]
 
     @Test func `an empty query keeps every command in order`() {
-        #expect(CommandMatcher.filter(commands, query: "  ") == commands)
+        #expect(CommandMatcher.filter(commands, query: "  ").map(\.id) == commands.map(\.id))
     }
 
     @Test func `substring matches rank by position`() {
@@ -30,13 +30,18 @@ struct CommandMatcherTests {
         #expect(tab.first == "New Tab")
     }
 
-    @Test func `no match returns nothing`() {
-        #expect(CommandMatcher.filter(commands, query: "zzz").isEmpty)
+    /// "split" is a scattered subsequence of this sentence (s-p-l-i-t across "mouse … reported …
+    /// terminal applications"), and used to put the row on screen.
+    @Test func `scattered letters don't match a description`() {
+        let mouse = PaletteCommand(
+            id: "mouse", title: "Toggle Mouse Reporting",
+            detail: "Toggle whether mouse events are reported to terminal applications.",
+        ) {}
+        #expect(CommandMatcher.filter([mouse], query: "split").isEmpty)
+        #expect(CommandMatcher.filter([mouse], query: "events are").map(\.title) == ["Toggle Mouse Reporting"])
     }
 
-    @Test func `unsupported actions are hidden`() {
-        #expect(!TerminalConfig.isSupported("check_for_updates"))
-        #expect(!TerminalConfig.isSupported("prompt_surface_title"))
-        #expect(TerminalConfig.isSupported("new_split:right"))
+    @Test func `no match returns nothing`() {
+        #expect(CommandMatcher.filter(commands, query: "zzz").isEmpty)
     }
 }

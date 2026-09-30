@@ -549,6 +549,43 @@ final class SessionManager {
         scheduleSave()
     }
 
+    /// Folds or unfolds every group in the sidebar.
+    func setAllCollapsed(_ collapsed: Bool) {
+        Motion.animate(.easeInOut(duration: 0.18)) {
+            workspace.setAllCollapsed(collapsed)
+        }
+        scheduleSave()
+    }
+
+    /// Chooses no session: the main area shows what waits, or search (`NoSessionPage`).
+    func deselect() {
+        Motion.animate(.easeInOut(duration: 0.25)) {
+            workspace.deselect()
+        }
+        scheduleSave()
+    }
+
+    /// Settles every finished session the user hasn't opened, and withdraws their notifications.
+    func markDoneSeen() {
+        let current = workspace.selectedLayout?.focusedSessionID
+        var seen: [Session.ID] = []
+        Motion.animate(.easeInOut(duration: 0.25)) {
+            seen = workspace.markDoneSeen(except: current)
+        }
+        seen.forEach { AttentionCenter.shared.sessionSeen($0) }
+        scheduleSave()
+    }
+
+    /// Gives every pane of the layout a session of its own in the sidebar (`Workspace.unsplit`).
+    @discardableResult
+    func unsplit(_ layoutID: PaneLayout.ID) -> [PaneLayout] {
+        let apart = workspace.unsplit(layoutID)
+        if !apart.isEmpty {
+            scheduleSave()
+        }
+        return apart
+    }
+
     /// The easter egg: a project's mark, clicked, becomes another, kept across launches.
     func shuffleMark(_ projectID: Project.ID) {
         Motion.animate(.easeInOut(duration: 0.2)) {

@@ -142,7 +142,7 @@
                 FileHandle.standardError.write(Data("calm-selftest: \(searchModel?.descriptionForTesting ?? "search: not open")\n".utf8))
                 return true
             default:
-                return performFocusActionForTesting(action)
+                return performPaletteActionForTesting(action) || performFocusActionForTesting(action)
             }
         }
 
@@ -228,12 +228,13 @@
                     moveScratchFolder(of: session.id, from: folder, to: URL(filePath: String(keep.dropFirst(13))))
                 }
             case let conversation where conversation.hasPrefix("conversation:"):
-                // conversation:<agent>:<id>: a stand-in for an agent conversation that ended in
-                // the focused session (no agent is started)
-                let parts = conversation.split(separator: ":").map(String.init)
-                if parts.count == 3, let kind = AgentKind(rawValue: parts[1]), let id = focusedPane?.id {
+                // conversation:<agent>:<id>[:<transcript path>]: a stand-in for an agent conversation
+                // that ended in the focused session (no agent is started)
+                let parts = conversation.split(separator: ":", maxSplits: 3).map(String.init)
+                if parts.count >= 3, let kind = AgentKind(rawValue: parts[1]), let id = focusedPane?.id {
                     manager.setLastConversationForTesting(id, AgentConversation(
-                        kind: kind, agentSessionID: parts[2], transcriptPath: "/tmp/\(parts[2]).jsonl", title: "A past conversation",
+                        kind: kind, agentSessionID: parts[2], transcriptPath: parts.count > 3 ? parts[3] : "/tmp/\(parts[2]).jsonl",
+                        title: "A past conversation",
                     ))
                 }
             case let run where run.hasPrefix("agent_run:"):
@@ -516,7 +517,7 @@
         /// is): the focused terminal first, then the menu item with that equivalent. The item's
         /// action is performed directly: a headless (accessory) app has no live menu bar, so
         /// `NSMenu.performKeyEquivalent` matches the item but doesn't dispatch it.
-        private func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = .command) {
+        func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = .command) {
             guard let window, let event = NSEvent.keyEvent(
                 with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: window.windowNumber, context: nil, characters: characters,

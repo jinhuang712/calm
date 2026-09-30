@@ -573,7 +573,7 @@ struct SidebarActions {
     let followFolder: (Session.ID) -> Void
     let keepScratch: (Session.ID) -> Void
     let copy: (Session.ID, SessionCopy) -> Void
-    let reveal: (Session.ID) -> Void
+    let openFolder: (Session.ID) -> Void
 }
 
 /// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.

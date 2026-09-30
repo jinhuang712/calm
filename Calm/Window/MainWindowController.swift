@@ -13,7 +13,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private(set) var sidebarHost: NSHostingView<SidebarView>?
     var titleHost: SessionTitleHost?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
-    private var paletteHost: NSView?
+    /// ⌘P's palette while it's up (MainWindowController+Palette).
+    var paletteHost: NSView?
     /// ⌘K's panel and model while it's up (MainWindowController+Search).
     var searchHost: NSView?
     var searchModel: SearchModel?
@@ -235,6 +236,34 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
     }
 
+    /// Chooses no session, so the main area shows what waits for a look, or search (`NoSessionPage`),
+    /// as when the session in front is closed. Nothing closes; every session keeps running.
+    func goToWelcomePage() {
+        guard let left = manager.workspace.selectedLayout?.focusedSessionID else { return }
+        hideSettings()
+        closeViewer()
+        arrivalCard.noteLeft(left)
+        manager.deselect()
+        showSelectedLayout(animated: true)
+    }
+
+    /// Gives every pane of the split on screen a session of its own in the sidebar. Nothing
+    /// closes: each pane keeps its shell and moves to a workspace view of its own.
+    func unsplit() {
+        guard let layout = manager.workspace.selectedLayout, layout.tree.leaves.count > 1 else { return }
+        let old = workspaces[layout.id]
+        let apart = manager.unsplit(layout.id)
+        // Each new layout gets its view at once, which moves its pane over. A pane in no view
+        // would sit loose until its session was chosen. The view of the layout that held them
+        // all goes last, empty.
+        for layout in apart {
+            workspaces[layout.id] = nil
+            _ = makeWorkspace(for: layout)
+        }
+        old?.removeFromSuperview()
+        showSelectedLayout(animated: false)
+    }
+
     /// The arrival card for the focused session, if an agent runs there (⌘⇧I recalls it).
     func showArrivalCard() {
         guard let layout = manager.workspace.selectedLayout, let session = manager.workspace.session(layout.focusedSessionID),
@@ -329,53 +358,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         if settingsPage.isShowing {
             settingsPage.restyle(style: style, background: background, actions: settingsActions)
         }
-    }
-
-    // MARK: Command palette
-
-    var isShowingCommandPalette: Bool {
-        paletteHost != nil
-    }
-
-    func toggleCommandPalette() {
-        if isShowingCommandPalette {
-            hideCommandPalette()
-        } else {
-            showCommandPalette()
-        }
-    }
-
-    private func showCommandPalette() {
-        guard paletteHost == nil else { return }
-        let commands = (focusedPane?.config ?? TerminalEngine.shared.config)?.commands ?? []
-        let isDark = window?.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let view = CommandPaletteView(
-            commands: commands,
-            isDark: isDark,
-            onRun: { [weak self] command in
-                self?.hideCommandPalette()
-                self?.focusedPane?.perform(command.action)
-            },
-            onDismiss: { [weak self] in self?.hideCommandPalette() },
-        )
-        let host = NSHostingView(rootView: view)
-        host.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(host)
-        NSLayoutConstraint.activate([
-            host.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            host.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            host.topAnchor.constraint(equalTo: container.topAnchor),
-            host.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-        paletteHost = host
-        window?.makeFirstResponder(host)
-    }
-
-    private func hideCommandPalette() {
-        guard let host = paletteHost else { return }
-        paletteHost = nil
-        host.removeFromSuperview()
-        refocus()
     }
 
     // MARK: TerminalSurfaceHost

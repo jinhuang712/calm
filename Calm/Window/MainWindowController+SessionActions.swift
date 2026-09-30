@@ -61,7 +61,7 @@ extension MainWindowController {
             followFolder: { [weak self] id in self?.manager.followFolder(id) },
             keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
             copy: { [weak self] id, copy in self?.copy(copy, of: id) },
-            reveal: { [weak self] id in self?.revealFolder(of: id) },
+            openFolder: { [weak self] id in self?.openFolder(of: id) },
         )
     }
 
@@ -89,21 +89,35 @@ extension MainWindowController {
     /// Puts what `copy` names for `id` on the pasteboard, with a quiet note by the pointer.
     func copy(_ copy: SessionCopy, of id: Session.ID) {
         guard let session = manager.workspace.session(id), let text = copy.text(for: session) else { return }
+        put(text, note: copy.copiedNote)
+    }
+
+    /// Text on the pasteboard, with a quiet note by the pointer.
+    func put(_ text: String, note: String) {
         let pasteboard = NSPasteboard.calm
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
-        let pointer = window.map { container.convert($0.mouseLocationOutsideOfEventStream, from: nil) }
-        CopyToast.show(copy.copiedNote, at: pointer ?? NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+        if Headless.isOn {
+            FileHandle.standardError.write(Data("calm-selftest: copied (\(note)): \(text.debugDescription)\n".utf8))
+        }
+        showNote(note)
     }
 
-    /// Shows the session's folder in Finder. Headless self-tests log it instead of opening a window.
-    func revealFolder(of id: Session.ID) {
+    /// A quiet note by the pointer, which fades by itself.
+    func showNote(_ note: String) {
+        let pointer = window.map { container.convert($0.mouseLocationOutsideOfEventStream, from: nil) }
+        CopyToast.show(note, at: pointer ?? NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+    }
+
+    /// Opens the session's folder in Finder, showing what is in it (like `open .`). Headless
+    /// self-tests log it instead of opening a window.
+    func openFolder(of id: Session.ID) {
         guard let session = manager.workspace.session(id), !session.isScratch else { return }
         if Headless.isOn {
-            FileHandle.standardError.write(Data("calm-selftest: would reveal \(session.workingDirectory)\n".utf8))
+            FileHandle.standardError.write(Data("calm-selftest: would open folder \(session.workingDirectory)\n".utf8))
             return
         }
-        NSWorkspace.shared.activateFileViewerSelecting([URL(filePath: session.workingDirectory)])
+        NSWorkspace.shared.open(URL(filePath: session.workingDirectory))
     }
 
     func rename(_ id: Session.ID, to name: String?) {

@@ -68,6 +68,15 @@ final class ThemePickerModel {
         TerminalEngine.shared.reloadConfig(soft: false)
     }
 
+    /// A theme other than the one in force, for Randomize Theme (⌘P). Never the user's own Ghostty
+    /// colors: those are a choice to keep, not one of Calm's to land on by chance. Nil when Calm
+    /// has no other theme.
+    static func randomChoice(
+        among choices: [Choice], excluding selectedID: String, using generator: inout some RandomNumberGenerator,
+    ) -> Choice? {
+        choices.filter { $0.id != selectedID && $0.id != ghosttyID }.randomElement(using: &generator)
+    }
+
     private static func preview(_ colors: CalmTheme.Colors) -> Preview {
         let color = { (hex: String?) in hex.flatMap(NSColor.init(hex:)) }
         let background = color(colors.background) ?? .black

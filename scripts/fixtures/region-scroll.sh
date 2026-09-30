@@ -3,7 +3,7 @@
 # views stream an answer or scroll back, inside one synchronized update per step. The rows below
 # the region stand for the prompt and never move.
 #
-#   bash scripts/fixtures/region-scroll.sh [rows per step] [steps] [hint] [repaint] [burst]
+#   bash scripts/fixtures/region-scroll.sh [rows per step] [steps] [hint] [repaint] [burst] [rest]
 #
 # A positive step moves the content up, as an answer streams in; a negative one moves it down, as
 # when scrolling back. By default each step scrolls the region (DECSTBM with SU or SD) and paints
@@ -14,17 +14,22 @@
 # scrolled back, in a magenta box (#ff00ff) the motion probe can count (`--motion-color`). With
 # `burst`, steps come in pairs a few milliseconds apart, as Claude Code's do under a trackpad flick
 # (a wheel step and its follow-up, 5 ms apart, in a capture), so the renderer takes both scrolls in
-# one frame.
+# one frame. With `rest`, steps come 0.4 s apart instead of 0.1 s, so each comes to rest before the
+# next, as when you scroll back a notch at a time.
+#
+# The cursor is hidden, as Claude Code hides it: a visible one moves with every step, which keeps
+# the cursor glide's animation loop drawing every frame for a second after each move.
 #
 # Used by the smooth-scroll self-tests (DESIGNS.md → Motion in the terminal). Rows get bars of
 # different lengths so no two look alike, which lets the motion probe tell shifts apart.
 set -eu
-step=3 steps=20 hint="" repaint="" burst="" numbers=0
+step=3 steps=20 hint="" repaint="" burst="" pause=0.1 numbers=0
 for arg in "$@"; do
   case "$arg" in
     hint) hint=1 ;;
     repaint) repaint=1 ;;
     burst) burst=1 ;;
+    rest) pause=0.4 ;;
     "") ;;
     *) if ((numbers == 0)); then step=$arg; else steps=$arg; fi; numbers=$((numbers + 1)) ;;
   esac
@@ -47,7 +52,7 @@ draw_hint() {
   printf '\033[%d;%dH\033[48;2;255;0;255m\033[38;2;255;255;255m Jump to bottom (click) \033[0m' "$bottom" "$hint_x"
 }
 
-printf '\033[?1049h\033[H\033[2J'
+printf '\033[?1049h\033[?25l\033[H\033[2J'
 for ((row = top; row <= bottom; row++)); do draw "$row" $((first + row - top)); done
 [[ -n "$hint" ]] && draw_hint
 printf '\033[%d;1H> prompt' $((rows - 1))
@@ -70,8 +75,8 @@ for ((index = 0; index < steps; index++)); do
   [[ -n "$hint" ]] && draw_hint
   printf '\033[?2026l'
   # A burst sends every other step right behind the one before.
-  if [[ -n "$burst" ]] && ((index % 2 == 0)); then sleep 0.004; else sleep 0.1; fi
+  if [[ -n "$burst" ]] && ((index % 2 == 0)); then sleep 0.004; else sleep "$pause"; fi
 done
 
 sleep 2
-printf '\033[?1049l'
+printf '\033[?25h\033[?1049l'

@@ -1,0 +1,274 @@
+Subject: Region scroll animations draw a frame once the content has moved a pixel
+
+0005 eases a region scroll (Claude Code's full-screen view, less, an editor) with a 45 ms time
+constant and draws a frame at every refresh until the content is under half a pixel from rest.
+For the second half of the way it moves less than a pixel a frame: at 120 Hz a 3-row scroll
+(102 px) draws 29 frames, and in the last 14 of them the content moves under a pixel each, frames
+that look alike yet each cost a draw, a present and a pass of the compositor, with the display
+link kept running.
+
+A region scroll's next frame is now due once its content has moved `region_anim_step_px` (1 px)
+since the last drawn frame, or when it comes to rest if that is sooner (`regionAnimStepSeconds`),
+and a refresh with nothing due draws nothing (`animationFrameDue`). While frames are due at every
+refresh the display link runs as before; once they come further apart it stops
+(`animationWantsVsync`), and the renderer thread's animation timer draws each frame when it is
+due. The curve is the same: each frame shows the content where the ease has it at that moment,
+and the scroll comes to rest when it did before. At 120 Hz the 3-row scroll draws 20 frames
+instead of 29 (the Zig test's simulation), the longest gap 50 ms, before the last pixel. A scroll
+that joins one in flight starts its ease when it comes, not at the last drawn frame, which in the
+tail can be 50 ms ago (`catchUpRegionAnims`).
+
+Each drawn frame also asked for the next: 0005's tick rebuilds the region uniforms, which sets
+`cells_rebuilt`, after the draw has cleared it, so while a region animated every refresh redrew
+and the display link never paused. The tick now leaves the flag as the draw left it; the uniforms
+and ghost rows it rebuilds go into the frame being drawn.
+
+Measured in Calm (headless Debug app, M5 Pro, 2026-09-30, the engine with and without this patch
+interleaved, three rounds): a recording of Claude Code streaming an answer (full-screen view, 77
+one-row scrolls in 36 s) presented 817-819 frames in 20 s before and 639-658 after, and Calm used
+84-90 million instructions a second before and 65-74 after (-20%), with 435-514 interrupt wakeups
+a second before and 321-350 after. The frames that differ from the one before stay about as
+many: 494-496 before, 482-487 after.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005–0015.
+Zig tests: `zig build test -Dtest-filter=regionAnimStepSeconds`.
+
+diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -65,6 +65,22 @@
+         .cursor => focused and
+             (if (ms_since_cursor_change) |ms| ms < cursor_animation_ms else false),
+     };
++}
++
++/// A region scroll draws its next frame once its content has moved this many
++/// pixels since the last one, and always the frame it comes to rest in. Its
++/// ease slows below a pixel a frame for the second half of its way, where a
++/// frame at every refresh drew the content less than a pixel from the last.
++const region_anim_step_px: f64 = 1;
++
++/// Seconds a region scroll animation with `shift` pixels left, easing with
++/// time constant `tau` seconds, takes to move `region_anim_step_px` more, or
++/// to come to rest (under half a pixel) if that is nearer. 0 once at rest.
++fn regionAnimStepSeconds(shift: f64, tau: f64) f64 {
++    const left = @abs(shift);
++    if (left < 0.5) return 0;
++    const next = @max(left - region_anim_step_px, 0.499);
++    return tau * @log(left / next);
+ }
+ 
+ /// Where the frame on screen draws each animating region, for the surface
+@@ -2150,15 +2166,7 @@
+             // Custom shaders animate by redrawing on a fixed cadence,
+             // gated by configuration, focus and (for `cursor`) how
+             // recently the cursor or the focus changed.
+-            const shader_delay: ?u64 = shader: {
+-                if (!self.has_custom_shaders) break :shader null;
+-                const mode = self.config.custom_shader_animation;
+-                const since: ?u64 = if (mode == .cursor) self.msSinceCursorChange() else null;
+-                break :shader if (shaderAnimates(mode, self.focused, since))
+-                    draw_interval_ms
+-                else
+-                    null;
+-            };
++            const shader_delay: ?u64 = if (self.shaderAnimating()) draw_interval_ms else null;
+ 
+             // Kitty animations tick during updateFrame; between
+             // updates the deadline is absolute on the animation
+@@ -2177,11 +2185,16 @@
+                 break :kitty @max(next -| now_ms, draw_interval_ms);
+             };
+ 
+-            // Region scroll animations decay every draw while any is
+-            // in flight; the shift is recomputed from the clock in
+-            // drawFrame, so a draw wake is all they need.
+-            const draw_delay: ?u64 = if (self.region_anims.items.len > 0)
+-                draw_interval_ms
++            // Region scroll animations decay with the clock, recomputed in
++            // drawFrame, so a draw wake is all they need; the next is due
++            // once the content has moved a pixel (`regionAnimDueIn`): at
++            // the refresh rate while it moves fast, less often as it slows.
++            const region_delay: ?u64 = if (self.regionAnimDueIn()) |due|
++                @max(draw_interval_ms, @as(u64, @intFromFloat(@ceil(@max(due, 0) * 1000))))
++            else
++                null;
++            const draw_delay: ?u64 = if (region_delay) |r|
++                (if (shader_delay) |s| @min(r, s) else r)
+             else
+                 shader_delay;
+ 
+@@ -2195,6 +2208,53 @@
+             if (draw_delay) |s| return .{ .delay_ms = s, .kind = .draw };
+ 
+             return null;
++        }
++
++        /// Whether a custom shader animates now: by configuration, focus
++        /// and (for `cursor`) how recently the cursor or the focus changed.
++        fn shaderAnimating(self: *const Self) bool {
++            if (!self.has_custom_shaders) return false;
++            const mode = self.config.custom_shader_animation;
++            const since: ?u64 = if (mode == .cursor) self.msSinceCursorChange() else null;
++            return shaderAnimates(mode, self.focused, since);
++        }
++
++        /// Half a refresh: a region frame due that soon is drawn now, so a
++        /// frame due at a vsync isn't missed for a clock read a little early.
++        const region_anim_slack_s: f64 = 0.004;
++
++        /// Seconds from now until a region scroll animation next needs a
++        /// frame (it has moved `region_anim_step_px` since the last drawn
++        /// one, or comes to rest), 0 or less when due; null without one.
++        fn regionAnimDueIn(self: *const Self) ?f64 {
++            if (self.region_anims.items.len == 0) return null;
++            var soonest = std.math.inf(f64);
++            for (self.region_anims.items) |*anim| {
++                soonest = @min(soonest, regionAnimStepSeconds(anim.shift, region_anim_tau_s));
++            }
++            // Not drawn yet: its first frame is due.
++            const tick = self.region_anim_tick orelse return 0;
++            const now: std.Io.Timestamp = .now(global.io(), .awake);
++            const since: f64 = @as(f64, @floatFromInt(@max(tick.durationTo(now).nanoseconds, 0))) /
++                std.time.ns_per_s;
++            return soonest - since;
++        }
++
++        /// Whether an animation needs a frame at every refresh, so the
++        /// display link runs for it. A slowing region scroll needs fewer, and
++        /// the renderer thread's timer draws them with the link stopped.
++        fn animationWantsVsync(self: *const Self) bool {
++            const wake = self.animationWake() orelse return false;
++            return wake.delay_ms <= draw_interval_ms;
++        }
++
++        /// Whether an animation would show something new in a frame drawn
++        /// now: a custom shader's or a Kitty animation's at every draw, as
++        /// before, and a region scroll's once it is due (`regionAnimDueIn`).
++        fn animationFrameDue(self: *const Self) bool {
++            if (self.shaderAnimating() or self.kitty_animation_next_ms != null) return true;
++            const due = self.regionAnimDueIn() orelse return false;
++            return due <= region_anim_slack_s;
+         }
+ 
+         /// How long ago the cursor or the focus last changed, in
+@@ -2324,6 +2384,11 @@
+                 }
+                 if (self.region_anims.items.len == 0) self.region_anim_tick = null;
+             }
++
++            // A scroll that joins an animation in flight starts its ease now,
++            // not at the last drawn frame, which in a slow tail can be 50 ms
++            // ago (see `region_anim_step_px`).
++            if (self.pending_region_scrolls.items.len > 0) self.catchUpRegionAnims();
+ 
+             const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
+             const cols: usize = self.cells.size.columns;
+@@ -2483,6 +2548,18 @@
+                     break;
+                 }
+             }
++        }
++
++        /// Move the region scroll animations in flight to where they are
++        /// now, without drawing; the next drawn frame takes them on from
++        /// here.
++        fn catchUpRegionAnims(self: *Self) void {
++            const last = self.region_anim_tick orelse return;
++            const now: std.Io.Timestamp = .now(global.io(), .awake);
++            self.region_anim_tick = now;
++            const dt_ns: f64 = @floatFromInt(@max(last.durationTo(now).nanoseconds, 0));
++            const factor = @exp(-(dt_ns / std.time.ns_per_s) / region_anim_tau_s);
++            for (self.region_anims.items) |*anim| anim.shift *= factor;
+         }
+ 
+         /// Advance the region scroll animations to now. Called once per
+@@ -2514,7 +2591,12 @@
+             if (self.region_anims.items.len == 0) self.region_anim_tick = null;
+ 
+             self.pruneGhosts();
++            // The frame being drawn takes the new uniforms and ghost rows, so
++            // they ask for no frame after it; otherwise each frame of an
++            // animation made the next refresh draw one (`animationFrameDue`).
++            const rebuilt = self.cells_rebuilt;
+             self.rebuildRegionUniforms();
++            self.cells_rebuilt = rebuilt;
+         }
+ 
+         /// Write the animations into the uniforms and rebuild the ghost
+@@ -2770,8 +2852,9 @@
+             const should_run =
+                 // Non-visible windows never vsync
+                 self.visible and
+-                // Only vsync if we have cell changes or animation
+-                (self.cells_rebuilt or self.animationWake() != null);
++                // Only vsync if we have cell changes or animation that
++                // needs every refresh (a slowing region scroll doesn't)
++                (self.cells_rebuilt or self.animationWantsVsync());
+ 
+             if (should_run) {
+                 if (!display_link.isRunning()) {
+@@ -3309,13 +3392,15 @@
+             // Conditions under which we need to draw the frame, otherwise we
+             // don't need to since the previous frame should be identical.
+             //
+-            // While any animation is in progress (a pending animation wake)
+-            // every draw must actually render.
++            // An animation renders when it has something new to show: a
++            // region scroll that hasn't moved a pixel since the last frame
++            // skips this one, and the resync below stops the display link
++            // once it no longer needs every refresh.
+             const needs_redraw =
+                 size_changed or
+                 swap_chain_rebuilt or
+                 self.cells_rebuilt or
+-                self.animationWake() != null or
++                self.animationFrameDue() or
+                 sync;
+ 
+             if (!needs_redraw) {
+@@ -6216,3 +6301,44 @@
+     try testing.expect(shaderAnimates(.always, false, null));
+     try testing.expect(!shaderAnimates(.false, true, 0));
+ }
++
++test "regionAnimStepSeconds: a pixel's move, soon while fast, later as it slows" {
++    const testing = std.testing;
++    const tau = 0.045;
++    // 102 px left moves a pixel in well under a refresh.
++    try testing.expect(regionAnimStepSeconds(102, tau) < 0.001);
++    // 5 px left: tau * ln(5 / 4), about 10 ms.
++    try testing.expectApproxEqAbs(tau * @log(5.0 / 4.0), regionAnimStepSeconds(5, tau), 1e-12);
++    // Under 1.5 px left the next frame is the one it comes to rest in.
++    try testing.expectApproxEqAbs(tau * @log(1.2 / 0.499), regionAnimStepSeconds(1.2, tau), 1e-12);
++    // Scrolling back (a negative shift) the same; at rest, nothing to wait for.
++    try testing.expectEqual(regionAnimStepSeconds(5, tau), regionAnimStepSeconds(-5, tau));
++    try testing.expectEqual(@as(f64, 0), regionAnimStepSeconds(0.3, tau));
++}
++
++test "regionAnimStepSeconds: a 3-row scroll draws a quarter to a half fewer frames" {
++    const testing = std.testing;
++    const tau = 0.045;
++    const vsync = 1.0 / 120.0;
++    // Today: a frame at every refresh until it comes to rest.
++    var every: u32 = 0;
++    var s: f64 = 102;
++    while (@abs(s) >= 0.5) : (every += 1) s *= @exp(-vsync / tau);
++    // Now: a refresh draws only when a frame is due, within half a refresh.
++    var shift: f64 = 102;
++    var last: f64 = 0;
++    var t: f64 = 0;
++    var drawn: u32 = 0;
++    while (true) {
++        t += vsync;
++        if (regionAnimStepSeconds(shift, tau) - (t - last) > 0.004) continue;
++        shift *= @exp(-(t - last) / tau);
++        last = t;
++        drawn += 1;
++        if (@abs(shift) < 0.5) break;
++    }
++    try testing.expect(drawn * 4 <= every * 3);
++    try testing.expect(drawn * 2 >= every);
++    // It comes to rest when it did before, within two refreshes.
++    try testing.expect(@abs(t - @as(f64, @floatFromInt(every)) * vsync) <= 2 * vsync);
++}

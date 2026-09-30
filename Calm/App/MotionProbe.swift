@@ -20,6 +20,10 @@
             var frameInterval = 0.0
             /// Frames read, changed or not: well above the frame rate, or frames were missed.
             var samples = 0
+            /// Frames libghostty presented, alike or not: how often the presented surface changed
+            /// (the swap chain draws each frame into the next of its surfaces). A frame that moved
+            /// the content by less than a pixel can look like the one before it and still cost a draw.
+            var presents = 0
             /// With a watched color: the most pixel rows showing it in one frame, and how many
             /// frames showed it on more than one row's height (something drawn twice).
             var colorRows: Int?
@@ -56,7 +60,7 @@
             var summary: String {
                 "motion: \(frames) frames, \(shifts.count) moved, \(inPlace) changed in place; cell \(cellHeight)px; "
                     + "moving frames every \(frameInterval.formatted(.number.precision(.fractionLength(1)))) ms "
-                    + "(\(samples) samples); "
+                    + "(\(samples) samples, \(presents) presented); "
                     + "moves off whole rows: \(offRow)/\(shifts.count); "
                     + (colorRows.map {
                         "color rows: max \($0) px, frames over one row: \(colorFramesOver) "
@@ -171,10 +175,15 @@
             let framesDirectory = ProcessInfo.processInfo.environment["CALM_SELFTEST_MOTION_FRAMES"]
                 .flatMap { $0.isEmpty ? nil : $0 }
             var frames: [(time: ContinuousClock.Instant, profile: [Float])] = []
+            var lastSurface: ObjectIdentifier?
             while ContinuousClock.now < end {
                 if let surface = pane.presentedFrameForTesting,
                    let profile = rowProfile(of: surface, columns: columns, rows: rows) {
                     report.samples += 1
+                    if ObjectIdentifier(surface) != lastSurface {
+                        report.presents += lastSurface == nil ? 0 : 1
+                        lastSurface = ObjectIdentifier(surface)
+                    }
                     if profile != frames.last?.profile {
                         frames.append((ContinuousClock.now, profile))
                         // With a frames directory, each of the first few frames is kept as a

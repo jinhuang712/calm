@@ -42,6 +42,11 @@
             #expect(report.summary.contains("moves off whole rows: 2/4"))
         }
 
+        @Test func `the report says how many frames were presented, alike or not`() {
+            let report = MotionProbe.Report(frames: 2, samples: 40, presents: 5)
+            #expect(report.summary.contains("(40 samples, 5 presented)"))
+        }
+
         @Test func `a cell rectangle reads as columns and rows`() throws {
             let cells = try #require(MotionProbe.Cells("0,1,12,30"))
             #expect(cells.columns == 0 ... 12)

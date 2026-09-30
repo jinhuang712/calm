@@ -19,37 +19,54 @@ struct SessionTitleView: View {
     let manager: SessionManager
     let style: SidebarStyle
     let actions: SidebarActions
+    /// The files column's model: the readout's numbers, and whether the column is already up.
+    let files: FilesModel
+    /// The folder the files column would show for the focused session (its project, or a scratch
+    /// session's folder).
+    let filesRoot: () -> String?
     let onRename: (Session.ID) -> Void
     let onClose: (Session.ID) -> Void
     /// Gets the window title whenever it changes.
     var onChange: (String) -> Void = { _ in }
     /// Gets the ⋯ button's frame, so the host takes clicks there and nowhere else.
     var onMenuFrame: (CGRect) -> Void = { _ in }
+    /// Gets the readout's frame (nil once it goes), keyed by the view that draws it.
+    var onReadoutFrame: (UUID, CGRect?) -> Void = { _, _ in }
     @State private var menuHovered = false
+
+    /// What the files readout follows: the project, and whether an agent is working in it.
+    private struct Watch: Equatable {
+        var root: String?
+        var working: Bool
+    }
 
     var body: some View {
         let strip = strip
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
         let worktree = session?.worktreeName
+        // The readout gives way to the column: it shows the same numbers.
+        let summary = files.isShown ? nil : files.summary
+        let watch = Watch(root: filesRoot(), working: session?.state == .working)
         HStack(spacing: 8.scaled) {
             Group {
-                // The worktree joins the folder line and shows whole or not at all: the name and
-                // the folder come first, so a long one never trades for it. (Two explicit
-                // children: ViewThatFits mustn't get an empty one.)
-                if let worktree {
-                    ViewThatFits(in: .horizontal) {
-                        titleBlock(strip: strip, title: title, worktree: worktree)
-                        titleBlock(strip: strip, title: title, worktree: nil)
-                    }
-                } else {
-                    titleBlock(strip: strip, title: title, worktree: nil)
+                // The worktree and the readout join the title's lines and show whole or not at
+                // all: the name and the folder come first, so a long one never trades for them,
+                // and the readout goes before the worktree does (which worktree you're in is
+                // part of where you are; the count is news). Four explicit children:
+                // ViewThatFits mustn't get an empty or optional one.
+                ViewThatFits(in: .horizontal) {
+                    titleRow(strip: strip, title: title, worktree: worktree, summary: summary)
+                    titleRow(strip: strip, title: title, worktree: worktree, summary: nil)
+                    titleRow(strip: strip, title: title, worktree: nil, summary: summary)
+                    titleRow(strip: strip, title: title, worktree: nil, summary: nil)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .animation(nil, value: strip.folder)
             .animation(nil, value: strip.title)
             .animation(nil, value: worktree)
+            .animation(nil, value: summary)
             if let session {
                 menu(for: session)
             }
@@ -61,6 +78,25 @@ struct SessionTitleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .coordinateSpace(.named("titleStrip"))
         .onChange(of: title, initial: true) { _, title in onChange(title) }
+        // The project's changes are read again when it changes and when an agent starts or stops
+        // working in it (files.watchSummary).
+        .onChange(of: watch, initial: true) { _, watch in files.watchSummary(of: watch.root, working: watch.working) }
+    }
+
+    /// The title block with, at the right of the strip's room, the readout when there is one.
+    private func titleRow(
+        strip: (folder: String?, title: String?),
+        title: String,
+        worktree: String?,
+        summary: ChangeSummary?,
+    ) -> some View {
+        HStack(spacing: 0) {
+            titleBlock(strip: strip, title: title, worktree: worktree)
+            Spacer(minLength: summary == nil ? 0 : 8.scaled)
+            if let summary {
+                ChangeReadoutView(summary: summary, style: style, action: actions.toggleFiles, onFrame: onReadoutFrame)
+            }
+        }
     }
 
     /// The group's mark and the two lines of text: the name, then the folder with the worktree
@@ -147,16 +183,72 @@ struct SessionTitleView: View {
     }
 }
 
-/// Hosts the title. It takes clicks only on the ⋯ button, so the strip under the rest of it
-/// still drags the window and its double-click still reaches CalmWindow.
+/// "3 changed +58 −6": what the project's work has changed, plain text at the strip's right in the
+/// look of the worktree label, there for the moment you want to know what the agent did. It is
+/// also how a new user finds the files column: under the pointer the words swap for
+/// "Show Files ⌘\" (both laid out at once, so nothing moves), and a click opens the column. It
+/// goes once the column is up, which shows the same numbers, and when nothing changed.
+private struct ChangeReadoutView: View {
+    let summary: ChangeSummary
+    let style: SidebarStyle
+    let action: () -> Void
+    let onFrame: (UUID, CGRect?) -> Void
+    @State private var hovered = false
+    /// Keys this view's frame, so one variant of the row going can't erase the frame of the one
+    /// that took its place.
+    @State private var id = UUID()
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .trailing) {
+                HStack(spacing: 6.scaled) {
+                    Text(summary.headline)
+                    if let lines = summary.lines {
+                        LineCountsLabel(lines: lines, size: 11.5, style: style)
+                    }
+                }
+                .opacity(hovered ? 0 : 1)
+                HStack(spacing: 7.scaled) {
+                    Text("Show Files")
+                    KeyCaps(keys: ["⌘", "\\"], style: style)
+                }
+                .opacity(hovered ? 1 : 0)
+            }
+            .calmFont(size: 12)
+            .foregroundStyle(hovered ? style.primary : style.tertiary)
+            .padding(.horizontal, 8.scaled)
+            .frame(height: 26.scaled)
+            .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(hovered ? style.selection : .clear))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .onHover { hovered = $0 }
+        .accessibilityLabel(summary.spoken)
+        .accessibilityHint("Shows the files column")
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("titleStrip")) } action: { onFrame(id, $0) }
+        .onDisappear { onFrame(id, nil) }
+    }
+}
+
+/// Hosts the title. It takes clicks only on its controls (the ⋯ button and the files readout), so
+/// the strip under the rest of it still drags the window and its double-click still reaches
+/// CalmWindow.
 final class SessionTitleHost: NSHostingView<SessionTitleView> {
     /// The button's frame in this view's own space, top left origin, as SwiftUI reports it.
     var menuFrame = CGRect.zero
+    /// The readout's frames, one per view that draws it (normally one, or none).
+    private var readoutFrames: [UUID: CGRect] = [:]
+
+    func setReadoutFrame(_ frame: CGRect?, for id: UUID) {
+        readoutFrames[id] = frame
+    }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = convert(point, from: superview)
-        let y = isFlipped ? local.y : bounds.height - local.y
-        return menuFrame.contains(CGPoint(x: local.x, y: y)) ? super.hitTest(point) : nil
+        let spot = CGPoint(x: local.x, y: isFlipped ? local.y : bounds.height - local.y)
+        let onControl = menuFrame.contains(spot) || readoutFrames.values.contains { $0.contains(spot) }
+        return onControl ? super.hitTest(point) : nil
     }
 }
 
@@ -195,11 +287,14 @@ extension MainWindowController {
     func makeTitle(style: SidebarStyle) -> SessionTitleView {
         SessionTitleView(
             manager: manager, style: style, actions: sessionActions,
+            files: filesColumn.model,
+            filesRoot: { [weak self] in self?.focusedProjectPath },
             onRename: { [weak self] id in self?.beginRename(id) },
             onClose: { [weak self] id in self?.requestCloseSession(id) },
             // The window's title stays hidden (titleVisibility), but the system still shows it.
             onChange: { [weak self] title in self?.window?.title = title.isEmpty ? BuildVariant.appName : title },
             onMenuFrame: { [weak self] frame in self?.titleHost?.menuFrame = frame },
+            onReadoutFrame: { [weak self] id, frame in self?.titleHost?.setReadoutFrame(frame, for: id) },
         )
     }
 }

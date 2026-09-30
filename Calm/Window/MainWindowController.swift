@@ -88,6 +88,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
                 self?.applyAppearance()
             }
         }
+        // Files may have changed while Calm was behind another app: the title's readout looks again.
+        NotificationCenter.default
+            .addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.filesColumn.model.refreshSummary()
+                }
+            }
     }
 
     @available(*, unavailable)

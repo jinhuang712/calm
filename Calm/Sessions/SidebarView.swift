@@ -133,6 +133,8 @@ struct SidebarView: View {
     let onNewSession: () -> Void
     let onNewProject: () -> Void
     let editing: SidebarEditing
+    /// Observed: the footer's Files row reads Hide Files while the column is on screen.
+    let files: FilesModel
     let actions: SidebarActions
     @State private var draftName = ""
     @FocusState private var nameFieldFocused: Bool
@@ -469,8 +471,9 @@ struct SidebarView: View {
             .accessibilityLabel("Restoring sessions")
     }
 
-    /// The three ways to start something, one row each with its shortcut, so the corner reads at
-    /// a glance and every target is a full row.
+    /// The three ways to start something and the files column, one row each with its shortcut, so
+    /// the corner reads at a glance and every target is a full row. The Files row is how a new
+    /// user learns the column (and ⌘\) exists.
     private var footer: some View {
         VStack(spacing: 0) {
             // Above the line, so the handle never covers a row. Empty until the pointer is over the
@@ -481,6 +484,13 @@ struct SidebarView: View {
                 footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
                 footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
                 footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
+                footerRow(
+                    files.isShown ? "Hide Files" : "Show Files",
+                    symbol: "folder",
+                    keys: ["⌘", "\\"],
+                    on: files.isShown,
+                    action: actions.toggleFiles,
+                )
             }
             .padding(.horizontal, 12.scaled)
             .padding(.top, 10.scaled)
@@ -513,46 +523,24 @@ struct SidebarView: View {
         .frame(height: 16.scaled)
     }
 
-    private func footerRow(_ title: String, symbol: String, keys: [String], action: @escaping () -> Void) -> some View {
+    /// `on` is a row that stands for something showing now (the files column): its tile and words
+    /// stay lit, as the selected card stays lifted.
+    private func footerRow(_ title: String, symbol: String, keys: [String], on: Bool = false, action: @escaping () -> Void) -> some View {
         FooterButton(style: style, help: "\(title) (\(keys.joined()))", action: action) {
             HStack(spacing: 11.scaled) {
                 Image(systemName: symbol)
                     .calmFont(size: 14)
                     .frame(width: 28.scaled, height: 28.scaled)
-                    .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.primary.opacity(0.055)))
+                    .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.primary.opacity(on ? 0.11 : 0.055)))
                 Text(title)
                     .calmFont(size: 14)
+                    .foregroundStyle(on ? AnyShapeStyle(style.primary) : AnyShapeStyle(.foreground))
                 Spacer(minLength: 4)
                 KeyCaps(keys: keys, style: style)
             }
             .padding(.horizontal, 8.scaled)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-/// A shortcut drawn as small key caps (⌘ T), the way the menu bar would print it but calmer.
-struct KeyCaps: View {
-    let keys: [String]
-    let style: SidebarStyle
-    /// The welcome page's bigger caps.
-    var large = false
-
-    var body: some View {
-        HStack(spacing: (large ? 4 : 3).scaled) {
-            ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
-                Text(key)
-                    .calmFont(size: large ? 12 : 11.5)
-                    .foregroundStyle(style.tertiary)
-                    .frame(minWidth: (large ? 24 : 20).scaled, minHeight: (large ? 24 : 20).scaled)
-                    .padding(.horizontal, (key.count > 1 ? 4 : 0).scaled)
-                    .background(
-                        RoundedRectangle(cornerRadius: (large ? 6 : 5).scaled, style: .continuous)
-                            .fill(style.primary.opacity(0.06)),
-                    )
-            }
-        }
-        .accessibilityHidden(true)
     }
 }
 
@@ -565,6 +553,8 @@ struct SidebarActions {
     /// Shows or hides the sidebar's footer (saved in config.toml, applied in every window).
     let showFooter: (Bool) -> Void
     let search: () -> Void
+    /// Shows or hides the files column (⌘\): the footer's Files row and the title strip's readout.
+    let toggleFiles: () -> Void
     let newSessionIn: (Project) -> Void
     let addProjects: ([URL]) -> Void
     let makeProject: (Project.ID) -> Void

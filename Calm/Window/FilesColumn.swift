@@ -25,6 +25,58 @@ final class FilesModel {
     var onOpen: (String) -> Void = { _ in }
     private var loading: Task<Void, Never>?
 
+    /// Whether the column is on screen. The sidebar's footer row reads Hide Files while it is, and
+    /// the title strip's readout gives way to it: the column shows the same numbers.
+    var isShown = false
+    /// What the project has changed, for the title strip's readout (FEATURES.md → F10). Nil for a
+    /// clean project, a plain folder, or before the first reading. The open column keeps it
+    /// current from its own listing; while it's away `watchSummary` does.
+    private(set) var summary: ChangeSummary?
+    @ObservationIgnored private var summaryRoot: String?
+    @ObservationIgnored private var summaryTask: Task<Void, Never>?
+    @ObservationIgnored private var summaryTimer: Timer?
+
+    /// Follows the focused session's project for the readout. `working` is whether its agent is
+    /// at work, when files change under it: then the changes are read again every few seconds.
+    /// Otherwise they're read when the project changes, when a turn ends (the title calls this
+    /// again as `working` flips) and when Calm comes forward (`refreshSummary`).
+    func watchSummary(of root: String?, working: Bool) {
+        if root != summaryRoot {
+            summaryRoot = root
+            summary = nil
+        }
+        setPollingSummary(working && summaryIsReadable)
+        refreshSummary()
+    }
+
+    /// macOS asks before anything reads Desktop, Documents or Downloads themselves. Opening the
+    /// column is that ask, so the readout leaves a session sitting in one of them alone.
+    private var summaryIsReadable: Bool {
+        summaryRoot.map { !GuardedFolders.paths().contains($0) } ?? false
+    }
+
+    /// Reads the changes again, unless the open column is about to.
+    func refreshSummary() {
+        guard !isShown, summaryIsReadable, let root = summaryRoot else { return }
+        summaryTask?.cancel()
+        summaryTask = Task { [weak self] in
+            let found = await Task.detached(priority: .utility) { FilesListing.readSummary(root) }.value
+            guard !Task.isCancelled, let self, summaryRoot == root, !isShown else { return }
+            summary = found
+        }
+    }
+
+    private func setPollingSummary(_ on: Bool) {
+        if on, summaryTimer == nil {
+            summaryTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refreshSummary() }
+            }
+        } else if !on {
+            summaryTimer?.invalidate()
+            summaryTimer = nil
+        }
+    }
+
     /// Opens a file of the tree (a path relative to `root`) in the viewer.
     func open(_ path: String) {
         guard let root else { return }
@@ -54,8 +106,7 @@ final class FilesModel {
 
     /// Every line the changes add and remove, when git could count any.
     var totals: LineCounts? {
-        let counted = changes.compactMap(\.lines)
-        return counted.isEmpty ? nil : counted.reduce(LineCounts(added: 0, deleted: 0), +)
+        LineCounts.total(changes.compactMap(\.lines))
     }
 
     /// The column's heading. A scratch session's folder name is Calm's business.
@@ -87,6 +138,9 @@ final class FilesModel {
             nodes = FileNode.tree(paths: listing.paths, changes: listing.changes, unread: listing.unread)
             branch = listing.branch
             changes = ChangedFile.list(changes: listing.changes, lines: listing.lines)
+            // The readout reads what the open column found, and is right when it closes.
+            summaryRoot = root
+            summary = ChangeSummary(changes: listing.changes, lines: listing.lines)
         }
     }
 }
@@ -109,9 +163,26 @@ enum FilesListing {
     static func read(_ root: String, opened: Set<String> = []) -> Result {
         guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return walk(root, opened: opened) }
         var result = Result()
-        let prefixPath = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
         result.paths = (git(["ls-files", "-co", "--exclude-standard", "-z"], in: root) ?? "")
             .split(separator: "\0").map(String.init)
+        readChanges(into: &result, prefix: prefix, in: root)
+        result.branch = git(["branch", "--show-current"], in: root)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result
+    }
+
+    /// Only what changed, for the title strip's readout while the column is away: the same
+    /// answer the column's Changes gives, without listing the tree. Nil outside a repository (a
+    /// plain folder has no changes to report, and isn't walked for this).
+    static func readSummary(_ root: String) -> ChangeSummary? {
+        guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return nil }
+        var result = Result()
+        readChanges(into: &result, prefix: prefix, in: root)
+        return ChangeSummary(changes: result.changes, lines: result.lines)
+    }
+
+    /// The changes and their lines, relative to `root`.
+    private static func readChanges(into result: inout Result, prefix: String, in root: String) {
+        let prefixPath = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
         // Status paths are relative to the repository; the tree is relative to `root`.
         for (path, change) in GitChange.parse(porcelain: git(["status", "--porcelain=v1", "-z", "-uall"], in: root) ?? "")
             where path.hasPrefix(prefixPath) {
@@ -121,12 +192,11 @@ enum FilesListing {
         // relative to `root`, like the tree's. A repository without commits has no HEAD: no counts.
         result.lines = LineCounts.parse(numstat: git(["diff", "--numstat", "-z", "--relative", "HEAD"], in: root) ?? "")
         countUntracked(&result, in: root)
-        result.branch = git(["branch", "--show-current"], in: root)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return result
     }
 
     /// `git diff` leaves untracked files out; every line of one is added. Bounded, since this
-    /// runs every 5 seconds while the column is shown: files up to 512 KB, 4 MB in all.
+    /// runs every 5 seconds while the column is shown (and every 8 for the title strip's readout
+    /// while an agent works): files up to 512 KB, 4 MB in all.
     private static func countUntracked(_ result: inout Result, in root: String) {
         var budget = 4 << 20
         let base = URL(filePath: root, directoryHint: .isDirectory)
@@ -251,6 +321,7 @@ final class FilesColumn {
     func toggle(project: String?, isScratch: Bool, in container: NSView) {
         guard let widthConstraint else { return }
         let show = !isShown
+        model.isShown = show
         if show {
             model.follow(project, isScratch: isScratch, force: true)
             // Changes appear while the column is open; reading a repository's listing is cheap.
@@ -263,6 +334,8 @@ final class FilesColumn {
         } else {
             timer?.invalidate()
             timer = nil
+            // The readout comes back with what the column last knew, and looks again.
+            model.refreshSummary()
         }
         Motion.animateLayout(of: container) {
             widthConstraint.constant = show ? Self.width : 0
@@ -379,7 +452,8 @@ struct FilesColumnView: View {
 }
 
 /// `+64 −31`, in the sage of *done* and the muted red of *failed*; a side with nothing is left out.
-private struct LineCountsLabel: View {
+/// The title strip's readout draws its totals the same way.
+struct LineCountsLabel: View {
     let lines: LineCounts
     let size: CGFloat
     let style: SidebarStyle

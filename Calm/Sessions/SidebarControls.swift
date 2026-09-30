@@ -81,3 +81,29 @@ struct GroupControlLabel: View {
             .onHover { hovering = $0 }
     }
 }
+
+/// A shortcut drawn as small key caps (⌘ T), the way the menu bar would print it but calmer.
+/// (Moved here from SidebarView.swift, which had reached its file-length limit.)
+struct KeyCaps: View {
+    let keys: [String]
+    let style: SidebarStyle
+    /// The welcome page's bigger caps.
+    var large = false
+
+    var body: some View {
+        HStack(spacing: (large ? 4 : 3).scaled) {
+            ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
+                Text(key)
+                    .calmFont(size: large ? 12 : 11.5)
+                    .foregroundStyle(style.tertiary)
+                    .frame(minWidth: (large ? 24 : 20).scaled, minHeight: (large ? 24 : 20).scaled)
+                    .padding(.horizontal, (key.count > 1 ? 4 : 0).scaled)
+                    .background(
+                        RoundedRectangle(cornerRadius: (large ? 6 : 5).scaled, style: .continuous)
+                            .fill(style.primary.opacity(0.06)),
+                    )
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}

@@ -44,7 +44,7 @@ struct PaletteCommandsTests {
     private func rows(for session: Session, calls: Box<Calls> = Box(Calls())) -> SessionRows {
         let menu = SidebarActions(
             rename: { _, _ in }, resume: { _ in }, fork: { calls.value.forks.append(($0, $1)) }, newScratchSession: {},
-            showFooter: { _ in }, search: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in },
+            showFooter: { _ in }, search: {}, toggleFiles: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in },
             removeProject: { _ in }, move: { _, _ in }, followFolder: { _ in }, keepScratch: { calls.value.kept.append($0) },
             copy: { _, _ in }, openFolder: { calls.value.folders.append($0) },
         )

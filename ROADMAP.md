@@ -151,6 +151,7 @@ Agent output is easy to act on.
 - [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
 - [x] **M5.6 CLI:** `calm open <file>`.
 - [x] **M5.7 Link marks and tag:** a faint dotted line under every link that opens, and a tag beside the one under ⌘ (what it is, where, what a click does; thumbnails for images). *Built: libghostty's own link pattern in CalmModel, tested against Ghostty's cases; marks only on still text; soft-wrapped links joined; links a program cut across rows itself (an agent's full-screen view) joined by `HardWrap` for ⌘-click, tag, underline and marks.*
+- [x] **M5.8 Finding the files column:** nothing in the window said the column existed; only ⌘\\ and View → Toggle Files reached it. *Built (2026-10-01): a fourth sidebar-footer row, Show Files ⌘\\ (Hide Files while up), and a readout at the title strip's right, `3 changed +58 −6`, that swaps to `Show Files ⌘\` under the pointer and opens the column. Picked by the author from local mockups (footer row, plus the readout from the strip-button / strip-readout / footer-row round). `ChangeSummary` tested in CalmModel; headless self-tests on scratch repositories (changed, clean, plain folder, open column, a live edit, narrow window at the largest size). Not seen on a real screen; the hover swap isn't reachable headless.*
 
 **Exit criteria**
 - Copying a table cell, opening a path at a line and viewing a file each take one action.

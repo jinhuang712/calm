@@ -40,6 +40,7 @@ extension MainWindowController {
             onNewSession: { [weak self] in self?.newSession() },
             onNewProject: { [weak self] in self?.chooseNewProject() },
             editing: sidebarEditing,
+            files: filesColumn.model,
             actions: sessionActions,
         )
     }
@@ -53,6 +54,7 @@ extension MainWindowController {
             newScratchSession: { [weak self] in self?.newScratchSession() },
             showFooter: { [weak self] shown in self?.setSidebarFooter(shown) },
             search: { [weak self] in self?.toggleSearch() },
+            toggleFiles: { [weak self] in self?.toggleFiles() },
             newSessionIn: { [weak self] project in self?.newSession(in: project) },
             addProjects: { [weak self] urls in self?.addProjects(urls) },
             makeProject: { [weak self] id in self?.manager.makeProject(id) },

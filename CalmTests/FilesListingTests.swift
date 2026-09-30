@@ -159,4 +159,56 @@ struct FilesListingTests {
         #expect(listing.changes == ["a.txt": .untracked])
         #expect(listing.lines == ["a.txt": LineCounts(added: 1, deleted: 0)]) // counted by Calm, not git
     }
+
+    // MARK: The title strip's readout
+
+    @Test func `the readout's summary says what the column's Changes list, for a repository subfolder`() throws {
+        let repo = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: repo) }
+        for path in ["app/README.md", "app/gone.txt", "other/x.txt"] {
+            try touch(path, in: repo)
+        }
+        try git(["init", "-q", "-b", "main"], in: repo)
+        try git(["add", "-A"], in: repo)
+        try git(["commit", "-qm", "init"], in: repo)
+        try Data("changed\nlines\n".utf8).write(to: URL(filePath: repo).appending(path: "app/README.md")) // +2 −1
+        try FileManager.default.removeItem(atPath: repo + "/app/gone.txt") // −1
+        try touch("app/notes.txt", in: repo) // +1, untracked
+        try touch("other/new.txt", in: repo) // outside the folder: not counted
+
+        let summary = try #require(FilesListing.readSummary(repo + "/app"))
+        #expect(summary.count == 3)
+        #expect(summary.lines == LineCounts(added: 3, deleted: 2))
+        // The same answer the column gives from a full read.
+        let listing = FilesListing.read(repo + "/app")
+        #expect(summary == ChangeSummary(changes: listing.changes, lines: listing.lines))
+    }
+
+    @Test func `a clean repository has no summary`() throws {
+        let repo = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: repo) }
+        try touch("a.txt", in: repo)
+        try git(["init", "-q", "-b", "main"], in: repo)
+        try git(["add", "-A"], in: repo)
+        try git(["commit", "-qm", "init"], in: repo)
+        #expect(FilesListing.readSummary(repo) == nil)
+    }
+
+    @Test func `a folder that isn't a repository has no summary, and isn't walked for one`() throws {
+        let folder = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: folder) }
+        try touch("a.txt", in: folder)
+        #expect(FilesListing.readSummary(folder) == nil)
+        #expect(FilesListing.readSummary(folder + "/missing") == nil)
+    }
+
+    @Test func `a repository without commits reports its files, counted by Calm`() throws {
+        let repo = try scratch()
+        defer { try? FileManager.default.removeItem(atPath: repo) }
+        try touch("a.txt", in: repo)
+        try git(["init", "-q", "-b", "main"], in: repo)
+        let summary = try #require(FilesListing.readSummary(repo))
+        #expect(summary.count == 1)
+        #expect(summary.lines == LineCounts(added: 1, deleted: 0))
+    }
 }

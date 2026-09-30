@@ -15,6 +15,37 @@ struct AppIconStateTests {
     }
 }
 
+struct DockSightTests {
+    @Test func `the Dock is seen until the displays sleep, and again once they wake`() {
+        var sight = DockSight()
+        #expect(sight.isSeen)
+        sight.apply(.displaysSlept)
+        #expect(!sight.isSeen)
+        sight.apply(.displaysWoke)
+        #expect(sight.isSeen)
+    }
+
+    @Test func `waking the displays behind another user's session keeps it unseen`() {
+        var sight = DockSight()
+        sight.apply(.sessionLeft)
+        sight.apply(.displaysSlept)
+        sight.apply(.displaysWoke)
+        #expect(!sight.isSeen)
+        sight.apply(.sessionReturned)
+        #expect(sight.isSeen)
+    }
+
+    @Test func `a repeated change changes nothing more`() {
+        var sight = DockSight()
+        sight.apply(.displaysWoke)
+        #expect(sight.isSeen)
+        sight.apply(.displaysSlept)
+        sight.apply(.displaysSlept)
+        sight.apply(.displaysWoke)
+        #expect(sight.isSeen)
+    }
+}
+
 struct AppIconFrameTests {
     @Test func `at rest the ring is open and the cursor sits just past its end`() {
         let places = AppIconFrame.still.places

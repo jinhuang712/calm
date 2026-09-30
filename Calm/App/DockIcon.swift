@@ -22,6 +22,8 @@ final class DockIcon {
     private var drawn: (frame: AppIconFrame, dark: Bool)?
     private var appearanceObservation: NSKeyValueObservation?
     private var motionObserver: NSObjectProtocol?
+    private var sight = DockSight()
+    private var sightObservers: [NSObjectProtocol] = []
 
     func start() {
         appearanceObservation = NSApp.observe(\.effectiveAppearance) { _, _ in
@@ -36,7 +38,28 @@ final class DockIcon {
         ) { _ in
             MainActor.assumeIsolated { DockIcon.shared.tick() }
         }
+        followSight()
         followSessions()
+    }
+
+    /// Nobody sees the Dock while the displays sleep or another user's session is in front, so
+    /// the icon draws nothing then: a chase left running overnight drew 8 frames a second for no
+    /// one. On return the next tick draws where the motion is by then.
+    private func followSight() {
+        let changes: [(Notification.Name, DockSight.Change)] = [
+            (NSWorkspace.screensDidSleepNotification, .displaysSlept),
+            (NSWorkspace.screensDidWakeNotification, .displaysWoke),
+            (NSWorkspace.sessionDidResignActiveNotification, .sessionLeft),
+            (NSWorkspace.sessionDidBecomeActiveNotification, .sessionReturned),
+        ]
+        sightObservers = changes.map { name, change in
+            NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated {
+                    DockIcon.shared.sight.apply(change)
+                    DockIcon.shared.tick()
+                }
+            }
+        }
     }
 
     /// Re-reads the sessions' states whenever the workspace changes.
@@ -51,6 +74,11 @@ final class DockIcon {
     }
 
     private func tick() {
+        guard sight.isSeen else {
+            timer?.invalidate()
+            timer = nil
+            return
+        }
         let now = CACurrentMediaTime()
         let reduced = Motion.isReduced
         // In whole steps: each frame is a new picture sent to the Dock, and at its size the ease

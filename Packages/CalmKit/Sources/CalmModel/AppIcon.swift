@@ -165,6 +165,33 @@ public struct AppIconFrame: Sendable, Equatable {
     }
 }
 
+/// Whether anyone can see the Dock: not while the displays sleep, nor while another user's session
+/// is in front (fast user switching). The drawn icon stops drawing then; its frames are a function
+/// of time, so it picks up where it would have been.
+public struct DockSight: Sendable, Equatable {
+    public enum Change: Sendable {
+        case displaysSlept, displaysWoke, sessionLeft, sessionReturned
+    }
+
+    private var displaysAsleep = false
+    private var sessionAway = false
+
+    public init() {}
+
+    public var isSeen: Bool {
+        !displaysAsleep && !sessionAway
+    }
+
+    public mutating func apply(_ change: Change) {
+        switch change {
+        case .displaysSlept: displaysAsleep = true
+        case .displaysWoke: displaysAsleep = false
+        case .sessionLeft: sessionAway = true
+        case .sessionReturned: sessionAway = false
+        }
+    }
+}
+
 /// Moves the icon from state to state over time (UIUX.md → App icon): the chase starts at once;
 /// when work stops, the cursor carries on to its resting place and takes the last step slowly
 /// (the settle), then the icon turns into the new state. Pure: frames are a function of time.

@@ -3,18 +3,26 @@ import SwiftUI
 
 /// Shrink to fit (Settings → Appearance → Session cards; UIUX.md → Session cards): the
 /// sidebar's cards step down from the chosen size when its sessions don't fit without
-/// scrolling, and back up when they do. `SessionCardFit` decides; this measures the list and
-/// guesses the cards' heights at the other sizes.
+/// scrolling, and back up when they do. `SessionCardFit` decides; this measures the list,
+/// guesses the cards' heights at the other sizes, and looks again when a wait after a step down
+/// ends.
 @MainActor
 @Observable
 final class SidebarCardFit {
-    private(set) var fit = SessionCardFit()
+    /// The size the cards are drawn at while fitting. The only observed state, so the sidebar
+    /// redraws when the size changes and not on every measurement.
+    private(set) var shown = CalmSettings.SessionCardSize.full
+    /// Everything the fit keeps between measurements (what overflowed, how short guesses were,
+    /// when it stepped down). Kept after every measurement, whether or not the size changed.
+    @ObservationIgnored private var model: SessionCardFit?
     /// The list's height and the room it has, as last laid out.
     @ObservationIgnored private var geometry: Geometry?
     /// For its first moment the sidebar settles without motion, so a launch with many sessions
     /// comes up at its size instead of shrinking in front of you.
     @ObservationIgnored private var settled = false
     @ObservationIgnored private var settling: Task<Void, Never>?
+    /// A look once the cards may step back up: nothing else may change by then to trigger one.
+    @ObservationIgnored private var recheck: Task<Void, Never>?
 
     struct Geometry: Equatable {
         let list: CGFloat
@@ -28,8 +36,8 @@ final class SidebarCardFit {
 
     /// The size to draw: the chosen one, or smaller while shrinking to fit.
     func size(largest: CalmSettings.SessionCardSize, fitting: Bool) -> CalmSettings.SessionCardSize {
-        guard fitting, fit.size.rank > largest.rank else { return largest }
-        return fit.size
+        guard fitting, shown.rank > largest.rank else { return largest }
+        return shown
     }
 
     func measured(
@@ -48,9 +56,9 @@ final class SidebarCardFit {
 
     func refit(manager: SessionManager, renaming: Session.ID?, largest: CalmSettings.SessionCardSize, fitting: Bool) {
         guard fitting else {
-            if fit.size != largest {
-                fit = SessionCardFit(size: largest)
-            }
+            model = nil
+            recheck?.cancel()
+            show(largest)
             return
         }
         guard let geometry, geometry.list > 0, geometry.room > 0 else { return }
@@ -58,20 +66,37 @@ final class SidebarCardFit {
         let open = workspace.orderedProjects.filter { !$0.isCollapsed }
         let cards = open.flatMap { workspace.sessions(in: $0.id) }.filter { $0.agent != nil && $0.id != renaming }
         let scale = Double(InterfaceScale.shared.factor)
-        var next = fit
-        let changed = next.update(
+        let now = ProcessInfo.processInfo.systemUptime
+        var model = model ?? SessionCardFit(size: largest)
+        let before = model.size
+        model.update(
             largest: largest, measured: Double(geometry.list), room: Double(geometry.room),
             cards: { size in scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: size) } },
-            contents: Self.contents(cards, open: open.count, room: geometry.room, scale: scale),
+            contents: Self.contents(cards, open: open.count, room: geometry.room, scale: scale), now: now,
         )
-        guard changed else { return }
-        Trace.note("cards fit: \(fit.size.rawValue) → \(next.size.rawValue), list \(Int(geometry.list)) in \(Int(geometry.room))")
+        self.model = model
+        recheck?.cancel()
+        if let at = model.growsAgain(after: now) {
+            recheck = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(at - now + 0.1))
+                guard !Task.isCancelled else { return }
+                self?.refit(manager: manager, renaming: renaming, largest: largest, fitting: fitting)
+            }
+        }
+        if model.size != before {
+            Trace.note("cards fit: \(before.rawValue) → \(model.size.rawValue), list \(Int(geometry.list)) in \(Int(geometry.room))")
+        }
+        show(model.size)
+    }
+
+    private func show(_ size: CalmSettings.SessionCardSize) {
+        guard size != shown else { return }
         if settled {
-            fit = next
+            shown = size
         } else {
             var quiet = Transaction()
             quiet.disablesAnimations = true
-            withTransaction(quiet) { fit = next }
+            withTransaction(quiet) { shown = size }
         }
     }
 

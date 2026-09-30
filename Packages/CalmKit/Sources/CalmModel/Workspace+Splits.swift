@@ -1,7 +1,8 @@
 import Foundation
 
 /// Sessions and the splits they're shown in (UIUX.md → Split panes). A split is only where
-/// sessions are displayed together: bringing one in, or taking one out, ends nothing.
+/// sessions are displayed together: bringing one in, or taking one out, ends nothing. (Undoing a
+/// whole split is `unsplit`, in Workspace+Palette.)
 public extension Workspace {
     /// Puts an existing session on `direction`'s side of `target`, in `target`'s layout, and shows
     /// that layout with the joined session in focus. The session leaves the layout it was in; if
@@ -50,18 +51,6 @@ public extension Workspace {
         }
         layouts.append(PaneLayout(tree: .leaf(id), focusedSessionID: id))
         return true
-    }
-
-    /// Undoes a split entirely: the pane in focus stays on the layout, every other gets one of its
-    /// own. Returns the sessions let go, in reading order; none for a layout of one.
-    @discardableResult
-    mutating func unsplit(_ layoutID: PaneLayout.ID) -> [Session.ID] {
-        guard let index = layouts.firstIndex(where: { $0.id == layoutID }), layouts[index].tree.leaves.count > 1 else { return [] }
-        let kept = layouts[index].focusedSessionID
-        let freed = layouts[index].tree.leaves.filter { $0 != kept }
-        layouts[index].tree = .leaf(kept)
-        layouts.append(contentsOf: freed.map { PaneLayout(tree: .leaf($0), focusedSessionID: $0) })
-        return freed
     }
 
     /// The sessions on screen together: every pane of the layout shown, while it has more than

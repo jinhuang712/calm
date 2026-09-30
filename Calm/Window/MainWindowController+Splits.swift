@@ -67,23 +67,6 @@ extension MainWindowController {
         }
     }
 
-    /// Undoes the split on screen: the pane you're in stays, every other is a session of its own.
-    func unsplitAll() {
-        guard let layout = manager.workspace.selectedLayout, layout.tree.leaves.count > 1 else { return }
-        closePrompt.dismiss()
-        for id in layout.tree.leaves where id != layout.focusedSessionID {
-            if let pane = manager.panes[id] {
-                workspaces[layout.id]?.detach(pane)
-            }
-        }
-        for id in manager.unsplitLayout(layout.id) {
-            if let own = manager.workspace.layout(containing: id) {
-                makeWorkspace(for: own)
-            }
-        }
-        showSelectedLayout(animated: false)
-    }
-
     // MARK: The workspace's end of it
 
     /// Hooks a workspace's icons and its drops up to this window.
@@ -185,6 +168,6 @@ extension MainWindowController {
     }
 
     @objc private func unsplitFromMenu(_: NSMenuItem) {
-        unsplitAll()
+        unsplit()
     }
 }

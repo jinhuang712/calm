@@ -28,7 +28,7 @@
                     takeOutPane(id)
                 }
             case "unsplit":
-                unsplitAll()
+                unsplit()
             case "join" where parts.count == 4:
                 if let index = Int(parts[1]), manager.workspace.sessions.indices.contains(index), let target = paneID(parts[2]),
                    let side = direction(parts[3]) {

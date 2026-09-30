@@ -283,16 +283,6 @@ final class SessionManager {
         return true
     }
 
-    /// Every pane of the layout but the focused one gets a layout of its own.
-    @discardableResult
-    func unsplitLayout(_ layoutID: PaneLayout.ID) -> [Session.ID] {
-        let freed = workspace.unsplit(layoutID)
-        if !freed.isEmpty {
-            scheduleSave()
-        }
-        return freed
-    }
-
     /// A scratch session (⌘⇧N) in a new hidden folder of its own, on top of the sidebar.
     func newScratchSession() -> Session? {
         do {

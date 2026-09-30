@@ -146,7 +146,7 @@ struct WorkspaceSplitTests {
 
     // MARK: Unsplitting
 
-    @Test func `unsplitting leaves the pane you're in and gives every other its own layout`() throws {
+    @Test func `unsplitting a split made by joining keeps the pane you're in on screen and frees the rest`() throws {
         let trio = try makeTrio()
         var workspace = trio.workspace
         let a = trio.a
@@ -155,8 +155,8 @@ struct WorkspaceSplitTests {
         let joined = workspace.join(c, beside: b, direction: .down) // a | (b over c); focus on c
         #expect(joined)
         let split = try #require(workspace.selectedLayout?.id)
-        let freed = workspace.unsplit(split)
-        #expect(freed == [a, b])
+        let apart = workspace.unsplit(split)
+        #expect(apart.map(\.focusedSessionID) == [a, b, c])
         #expect(workspace.selectedLayout?.id == split)
         #expect(workspace.selectedLayout?.tree == .leaf(c))
         for id in [a, b] {
@@ -164,15 +164,6 @@ struct WorkspaceSplitTests {
         }
         #expect(workspace.layouts.count == 3)
         #expect(workspace.sessions.count == 3)
-    }
-
-    @Test func `a layout of one has nothing to unsplit`() throws {
-        let trio = try makeTrio()
-        var workspace = trio.workspace
-        let c = trio.c
-        let alone = try #require(workspace.layout(containing: c)?.id)
-        let freed = workspace.unsplit(alone)
-        #expect(freed.isEmpty)
     }
 
     // MARK: What the sidebar lights up

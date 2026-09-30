@@ -257,7 +257,7 @@ final class TerminalMenuTarget: NSObject {
 
     /// Shell → Unsplit All: the pane you're in stays, every other is a session of its own.
     @objc func unsplitAll(_: Any?) {
-        TerminalWindowManager.shared.focusedController?.unsplitAll()
+        TerminalWindowManager.shared.focusedController?.unsplit()
     }
 }
 

@@ -67,9 +67,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window.setFrameAutosaveName(Self.frameName)
         super.init(window: window)
         window.delegate = self
-        buildLayout()
-        // The saved frame before the first panes, which start at their size in it.
+        // The saved frame, filled again if it was left filled, before anything is laid out: the
+        // first panes start at their size in it, and the sidebar's first layout isn't in a
+        // smaller window (in the saved windowed frame, Shrink cards to fit stepped the cards
+        // down, and they didn't all come back in the filled window).
         restoreFrame()
+        buildLayout()
         showSelectedLayout(animated: false)
         applyAppearance()
         switcher.install()

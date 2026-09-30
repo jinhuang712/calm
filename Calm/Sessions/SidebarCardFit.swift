@@ -12,8 +12,9 @@ final class SidebarCardFit {
     /// The size the cards are drawn at while fitting. The only observed state, so the sidebar
     /// redraws when the size changes and not on every measurement.
     private(set) var shown = CalmSettings.SessionCardSize.full
-    /// Everything the fit keeps between measurements (what overflowed, how short guesses were,
-    /// when it stepped down). Kept after every measurement, whether or not the size changed.
+    /// Everything the fit keeps between measurements (how tall each size was drawn, how short
+    /// guesses were, when and in what room it stepped down). Kept after every measurement,
+    /// whether or not the size changed.
     @ObservationIgnored private var model: SessionCardFit?
     /// The list's height and the room it has, as last laid out.
     @ObservationIgnored private var geometry: Geometry?
@@ -64,7 +65,8 @@ final class SidebarCardFit {
         guard let geometry, geometry.list > 0, geometry.room > 0 else { return }
         let workspace = manager.workspace
         let open = workspace.orderedProjects.filter { !$0.isCollapsed }
-        let cards = open.flatMap { workspace.sessions(in: $0.id) }.filter { $0.agent != nil && $0.id != renaming }
+        let rows = open.flatMap { workspace.sessions(in: $0.id) }
+        let cards = rows.filter { $0.agent != nil && $0.id != renaming }
         let scale = Double(InterfaceScale.shared.factor)
         let now = ProcessInfo.processInfo.systemUptime
         var model = model ?? SessionCardFit(size: largest)
@@ -72,7 +74,10 @@ final class SidebarCardFit {
         model.update(
             largest: largest, measured: Double(geometry.list), room: Double(geometry.room),
             cards: { size in scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: size) } },
-            contents: Self.contents(cards, open: open.count, room: geometry.room, scale: scale), now: now,
+            contents: Self.contents(
+                rows: rows, cards: cards, groups: workspace.orderedProjects.count, open: open.count, scale: scale,
+            ),
+            now: now,
         )
         self.model = model
         recheck?.cancel()
@@ -107,10 +112,14 @@ final class SidebarCardFit {
         )
     }
 
-    /// What the fit depends on: which cards show and what they hold, and the room. A size that
-    /// overflowed is tried again only once this changes.
-    private static func contents(_ cards: [Session], open: Int, room: CGFloat, scale: Double) -> Int {
+    /// What the list's height depends on besides the card size: the rows, what the cards hold,
+    /// the groups and the interface size. A size drawn with the same contents is as tall again.
+    private static func contents(rows: [Session], cards: [Session], groups: Int, open: Int, scale: Double) -> Int {
         var hasher = Hasher()
+        // Shell rows and a card being renamed are rows of their own height.
+        for row in rows {
+            hasher.combine(row.id)
+        }
         for card in cards {
             hasher.combine(card.id)
             hasher.combine(card.state)
@@ -118,8 +127,8 @@ final class SidebarCardFit {
             hasher.combine(card.agent?.tail?.progress?.total ?? 0)
             hasher.combine(card.worktreeName)
         }
+        hasher.combine(groups)
         hasher.combine(open)
-        hasher.combine(Int(room.rounded()))
         hasher.combine(scale)
         return hasher.finalize()
     }

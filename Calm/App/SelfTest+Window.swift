@@ -358,10 +358,13 @@
                     switch target {
                     case let .session(id): "session \((id as NSString).lastPathComponent)"
                     case let .project(id): "project \(model.projects.first { $0.id == id }?.name ?? "?")"
+                    case .newProject: "new project"
                     }
                 }
                 let selected = model.selected.flatMap { model.walk.firstIndex(of: $0) }.map(String.init) ?? "none"
-                let line = "welcome: content \(model.content), query \"\(model.query)\", selected \(selected), rows \(rows)"
+                // A sheet is the folder picker New project… opens.
+                let line = "welcome: content \(model.content), query \"\(model.query)\", selected \(selected), rows \(rows), "
+                    + "sheet \(window?.attachedSheet != nil)"
                 FileHandle.standardError.write(Data("calm-selftest: \(line)\n".utf8))
             default:
                 return false

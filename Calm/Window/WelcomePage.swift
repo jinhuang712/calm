@@ -72,11 +72,13 @@ final class WelcomeModel {
     enum Target: Hashable {
         case session(String)
         case project(Project.ID)
+        /// The last row of the projects: New project…, what ⌘O does.
+        case newProject
 
         var column: Column {
             switch self {
             case .session: .sessions
-            case .project: .projects
+            case .project, .newProject: .projects
             }
         }
     }
@@ -172,7 +174,8 @@ final class WelcomeModel {
     func targets(in column: Column) -> [Target] {
         switch column {
         case .sessions: showsSessions ? sessions.map { .session($0.id) } : []
-        case .projects: showsProjects ? shownProjects.map { .project($0.id) } : []
+        // New project… stays at the end while searching too: a project that isn't there is one to make.
+        case .projects: showsProjects ? shownProjects.map { .project($0.id) } + [.newProject] : []
         }
     }
 
@@ -226,6 +229,8 @@ final class WelcomeModel {
             if let project = projects.first(where: { $0.id == id }) {
                 actions.newSessionIn(project)
             }
+        case .newProject?:
+            actions.newProject()
         case nil:
             break
         }

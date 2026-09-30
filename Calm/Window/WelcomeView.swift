@@ -42,6 +42,11 @@ struct WelcomeView: View {
 
     /// The tallest a list gets before it scrolls: six rows.
     private static let listHeight: CGFloat = 334
+    private static let rowsBeforeScrolling = 6
+
+    private func rowCount(_ column: WelcomeModel.Column) -> Int {
+        column == .projects ? model.shownProjects.count : model.sessions.count
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -256,11 +261,24 @@ struct WelcomeView: View {
     private func section(_ column: WelcomeModel.Column, scrolls: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8.scaled) {
             header(column)
-            if scrolls {
-                ResultScroller(selected: model.selected) { rows(column) }
-                    .frame(maxHeight: Self.listHeight.scaled)
-            } else {
-                rows(column)
+            VStack(spacing: 2.scaled) {
+                // Six rows or fewer stand as they are; more scroll. A scroll view takes all the height
+                // it's offered, which left New project… far below a short list, and rows are all
+                // one height, so their count says whether they fit.
+                if scrolls, rowCount(column) > Self.rowsBeforeScrolling {
+                    ResultScroller(selected: model.selected) { rows(column) }
+                        .frame(maxHeight: Self.listHeight.scaled)
+                } else {
+                    rows(column)
+                }
+                // Under the list rather than in it, so a long list never scrolls it out of view.
+                if column == .projects {
+                    WelcomeNewProjectRow(isSelected: model.selected == .newProject, style: style) {
+                        model.selected = .newProject
+                        actions.newProject()
+                    }
+                    .id(WelcomeModel.Target.newProject)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -509,6 +527,46 @@ private struct WelcomeProjectRow: View {
         .onHover { hovering = $0 }
         .help(project.path)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The projects' last row: New project…, drawn like the sidebar footer's row of the same name at the
+/// list's size (a plus on a project mark's tile, the shortcut as key caps), so the column says where
+/// a new project comes from. A row, so ↑ ↓ reach it and ↵ opens the folder picker.
+private struct WelcomeNewProjectRow: View {
+    let isSelected: Bool
+    let style: SidebarStyle
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12.scaled) {
+                Image(systemName: "plus")
+                    .calmFont(size: 13, weight: .medium)
+                    .foregroundStyle(style.secondary)
+                    .frame(width: 30.scaled, height: 30.scaled)
+                    .background(RoundedRectangle(cornerRadius: 9.scaled, style: .continuous).fill(style.primary.opacity(0.06)))
+                Text("New project…")
+                    .calmFont(size: 13.5)
+                    .foregroundStyle(style.primary.opacity(0.84))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                KeyCaps(keys: ["⌘", "O"], style: style)
+            }
+            .padding(.horizontal, 12.scaled)
+            .frame(maxWidth: .infinity, minHeight: 54.scaled, maxHeight: 54.scaled, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(rowFill(
+                style,
+                selected: isSelected,
+                hovering: hovering,
+            )))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("New Project (⌘O)")
+        .accessibilityLabel("New project")
     }
 }
 

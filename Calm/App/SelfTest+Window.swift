@@ -126,9 +126,24 @@
             case "ctrl_release":
                 postKey(.flagsChanged, keyCode: 59, characters: "", flags: [])
             default:
-                return performFocusActionForTesting(action)
+                return performSearchActionForTesting(action)
             }
             return true
+        }
+
+        /// ⌘K's keys, straight to its model (a headless window is never key):
+        /// `search_key:down|up|tab|shift_tab|right|left|enter`; `search_state` logs what it shows
+        /// (groups, counts, rows with their lines, the selection).
+        private func performSearchActionForTesting(_ action: String) -> Bool {
+            switch action {
+            case let key where key.hasPrefix("search_key:"):
+                return searchKeyForTesting(String(key.dropFirst(11)))
+            case "search_state":
+                FileHandle.standardError.write(Data("calm-selftest: \(searchModel?.descriptionForTesting ?? "search: not open")\n".utf8))
+                return true
+            default:
+                return performFocusActionForTesting(action)
+            }
         }
 
         /// Which split has the focus: real clicks and a real ⌘W, and a log of who thinks it has the keyboard.
@@ -601,6 +616,24 @@
                 }
             }
             return nil
+        }
+
+        private func searchKeyForTesting(_ key: String) -> Bool {
+            guard let model = searchModel else { return false }
+            switch key {
+            case "down": model.step(1)
+            case "up": model.step(-1)
+            case "tab": model.jump(1)
+            case "shift_tab": model.jump(-1)
+            case "right": return model.choose(.less)
+            case "left": return model.choose(.more)
+            case "enter":
+                if let item = model.activate() {
+                    openSearchResult(item)
+                }
+            default: return false
+            }
+            return true
         }
 
         /// Searches, waits for results, and opens the first, as Enter would.

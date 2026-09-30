@@ -25,13 +25,19 @@ struct SearchPerformanceTests {
             format: "perf: full index %.1f s (%d files, %d messages), idle update %.0f ms (%d changed), index %.1f MB",
             fullSeconds, first.filesSeen, counts.messages, idleSeconds * 1000, again.filesUpdated, Double(bytes) / 1_000_000,
         ))
-        for query in ["zmx", "worktree", "sidebar notif", "终端", "审核记录", "配置文件", ""] {
+        for query in ["zmx", "worktree", "sidebar notif", "终端", "审核记录", "配置文件", "", "d", "the"] {
             start = Date()
             let results = index.search(query)
+            let first = Date().timeIntervalSince(start)
+            // What ⌘K asks for: every match, with the messages behind it, and group names.
+            start = Date()
+            let panel = index.search(query, limit: 5000, groupName: { ($0 as NSString?)?.lastPathComponent }, lines: true)
             print(String(
-                format: "perf: query %@ → %d sessions in %.1f ms",
+                format: "perf: query %@ → %d sessions in %.1f ms; ⌘K: %d with lines in %.1f ms",
                 "\"\(query)\"",
                 results.count,
+                first * 1000,
+                panel.count,
                 Date().timeIntervalSince(start) * 1000,
             ))
         }

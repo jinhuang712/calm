@@ -671,9 +671,7 @@ struct IdenticonTile: View {
     var side: CGFloat = 20
 
     var body: some View {
-        let hue = identicon.hue
-        let pixels = Color(hue: hue, saturation: style.isDark ? 0.38 : 0.42, brightness: style.isDark ? 0.78 : 0.62)
-        let tile = Color(hue: hue, saturation: 0.18, brightness: style.isDark ? 0.26 : 0.93)
+        let (pixels, tile) = Self.colors(of: identicon, style: style)
         Canvas { context, size in
             // Whole points per cell, so the pixels stay crisp instead of blurring across two: 3 at
             // the standard interface size, growing with the tile.

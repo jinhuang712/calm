@@ -51,7 +51,7 @@ enum SearchQuery {
     /// before the match, so the match stays on screen when the row truncates the rest.
     static func snippet(_ text: String, around term: String, before: Int = 28, after: Int = 160) -> String {
         let flat = text.split(whereSeparator: \.isNewline).joined(separator: " ")
-        guard let range = flat.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) else {
+        guard let range = SearchMatch.firstRange(of: term, in: flat) else {
             return String(flat.prefix(after))
         }
         var start = flat.index(range.lowerBound, offsetBy: -before, limitedBy: flat.startIndex) ?? flat.startIndex
@@ -62,5 +62,21 @@ enum SearchQuery {
         let prefix = start > flat.startIndex ? "…" : ""
         let suffix = end < flat.endIndex ? "…" : ""
         return prefix + flat[start ..< range.lowerBound] + "\u{2}" + flat[range] + "\u{3}" + flat[range.upperBound ..< end] + suffix
+    }
+
+    /// The stretch of `text` (one line) that holds the first match of each of `terms`, with
+    /// `margin` characters either side, opening on a whole word: all a row's line can show of a
+    /// long message.
+    static func excerpt(_ text: String, around terms: [String], margin: Int = 240) -> (text: String, cutBefore: Bool) {
+        let ranges = terms.compactMap { SearchMatch.firstRange(of: $0, in: text) }
+        guard let first = ranges.map(\.lowerBound).min(), let last = ranges.map(\.upperBound).max() else {
+            return (String(text.prefix(margin * 2)), false)
+        }
+        var start = text.index(first, offsetBy: -margin, limitedBy: text.startIndex) ?? text.startIndex
+        if start > text.startIndex, let space = text[start ..< first].firstIndex(of: " ") {
+            start = text.index(after: space)
+        }
+        let end = text.index(last, offsetBy: margin, limitedBy: text.endIndex) ?? text.endIndex
+        return (String(text[start ..< end]), start > text.startIndex)
     }
 }

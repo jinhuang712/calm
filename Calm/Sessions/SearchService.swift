@@ -69,6 +69,28 @@ enum SearchService {
         return index.search(query, limit: resultLimit, currentProject: currentProject)
     }
 
+    /// ⌘K's answer: every matching session with the messages behind its matches, each with the
+    /// group it's shown under; with nothing typed, the most recent, for the switcher to pick from.
+    /// A word naming a group counts as found in all of it ("calm scroll").
+    static func searchPanel(
+        _ query: String,
+        grouping: SearchGrouping,
+        currentProject: String?,
+        refreshing: Bool,
+    ) -> [(result: SearchResult, group: SearchGroup)] {
+        guard let index else { return [] }
+        if refreshing {
+            _ = index.update(home: home)
+        }
+        let typed = !query.allSatisfy(\.isWhitespace)
+        // Every match, so each group's count is true: an index holds a few thousand sessions.
+        let results = index.search(
+            query, limit: typed ? 5000 : 300, currentProject: currentProject,
+            groupName: { grouping.group(for: $0).name }, lines: typed,
+        )
+        return results.map { ($0, grouping.group(for: $0.directory)) }
+    }
+
     /// `calm search` over the socket.
     static func respond(to request: ControlRequest) -> ControlResponse {
         guard index != nil else { return .failure("The search index isn't available.") }

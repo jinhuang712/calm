@@ -14,7 +14,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     var titleHost: SessionTitleHost?
     private var workspaces: [PaneLayout.ID: TerminalWorkspaceView] = [:]
     private var paletteHost: NSView?
-    private var searchHost: NSView?
+    /// ⌘K's panel and model while it's up (MainWindowController+Search).
+    var searchHost: NSView?
+    var searchModel: SearchModel?
     private(set) var sidebarWidth: NSLayoutConstraint?
     private(set) var peek: SidebarPeek?
     /// The peek's state before Settings covered the window.
@@ -367,65 +369,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         ])
         paletteHost = host
         window?.makeFirstResponder(host)
-    }
-
-    // MARK: Search
-
-    /// ⌘K: search every session (FEATURES.md → F7).
-    func toggleSearch(query: String = "") {
-        if searchHost != nil {
-            hideSearch()
-            return
-        }
-        let project = manager.workspace.selectedLayout
-            .flatMap { manager.workspace.session($0.focusedSessionID) }
-            .flatMap { manager.workspace.project($0.projectID)?.path }
-        let isDark = window?.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let view = SearchPanelView(
-            model: SearchPanelModel(query: query, currentProject: project),
-            isDark: isDark,
-            onOpen: { [weak self] item in self?.openSearchResult(item) },
-            onDismiss: { [weak self] in self?.hideSearch() },
-        )
-        let host = NSHostingView(rootView: view)
-        host.frame = container.bounds
-        host.autoresizingMask = [.width, .height]
-        container.addSubview(host, positioned: .above, relativeTo: nil)
-        searchHost = host
-        Motion.fadeIn(host, duration: 0.12)
-        window?.makeFirstResponder(host)
-    }
-
-    private func hideSearch() {
-        guard let host = searchHost else { return }
-        searchHost = nil
-        Motion.fadeOutAndRemove(host, duration: 0.1)
-        refocus()
-    }
-
-    /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session.
-    /// A conversation whose transcript the agent deleted can't be resumed: it gets a plain new
-    /// session in its folder.
-    func openSearchResult(_ item: SearchPanelModel.Item) {
-        hideSearch()
-        if let id = item.openSession {
-            select(id)
-            return
-        }
-        let result = item.result
-        let command = result.transcriptDeleted ? nil : Agents.adapter(for: result.agent)?
-            .resumeCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath)
-        guard command != nil || result.transcriptDeleted else { return }
-        var directory = FileManager.default.homeDirectoryForCurrentUser.path
-        if let folder = result.directory, FileManager.default.fileExists(atPath: folder) {
-            directory = folder
-        }
-        hideSettings()
-        let session = manager.newSession(in: directory)
-        showSelectedLayout(animated: true)
-        if let command {
-            runAgentCommand(command, in: manager.panes[session.id])
-        }
     }
 
     private func hideCommandPalette() {

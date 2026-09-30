@@ -131,6 +131,7 @@ Any past conversation, across every agent, is one search away.
 - [x] **M4.5 CLI:** `calm search <text>`.
 - [x] **M4.6 Search panel:** ⌘K, live results, jump to an open session or resume a closed one.
 - [x] **M4.7 Performance:** measure query time and index size on the author's full history, and set targets from the results.
+- [x] **M4.8 Search, grouped:** ⌘K grouped like the sidebar, every typed word shown and marked in every result, counts per group, five more at a time, written-out times, a session card's type sizes. *Built (2026-09-30), from local mockups the author refined one decision at a time; checked headless against a copy of the real index (dark, light, Largest interface size, opening and folding a group). Not seen: the keys (⇥, → ←) and the pointer staying on "more" in a key window, since headless windows are never key; open sessions' marks and counts against real open sessions (unit-tested only).*
 
 **Exit criteria**
 - "Which session talked about X?" is answered with one search, most of the time.

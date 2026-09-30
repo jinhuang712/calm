@@ -17,6 +17,9 @@ public struct SearchResult: Sendable, Equatable {
     /// The agent deleted the transcript (Claude Code does after 30 days), so the conversation
     /// can be found but no longer resumed.
     public var transcriptDeleted = false
+    /// The messages that hold the words searched for, one per word at most (each word's best
+    /// match), when the search was asked for them.
+    public var lines: [Line] = []
 
     public static let matchStart: Character = "\u{2}"
     public static let matchEnd: Character = "\u{3}"
@@ -103,6 +106,8 @@ public final class SearchIndex: @unchecked Sendable {
         CREATE VIRTUAL TABLE IF NOT EXISTS messages USING fts5(text, file_id UNINDEXED, role UNINDEXED, tokenize = 'trigram');
         INSERT OR REPLACE INTO meta (key, value) VALUES ('schema', '\(Self.schemaVersion)');
         """)
+        // Short terms match where a word starts (SearchMatch); SQL's LIKE can't say where.
+        try database.addPredicate("calm_word_start") { text, term in SearchMatch.contains(text, term) }
     }
 
     // MARK: Updating
@@ -440,7 +445,18 @@ public final class SearchIndex: @unchecked Sendable {
 
     /// Sessions matching every term of `query` (anywhere in the session), best first. An empty
     /// query lists the most recent sessions.
-    public func search(_ query: String, limit: Int = 20, currentProject: String? = nil, now: Date = Date()) -> [SearchResult] {
+    ///
+    /// `groupName` names the group a folder's sessions are shown under (a project's name): a term
+    /// it holds counts as found in every session there, so "calm scroll" finds what was said about
+    /// scrolling in calm. `lines` also brings back the messages that hold the words.
+    public func search(
+        _ query: String,
+        limit: Int = 20,
+        currentProject: String? = nil,
+        groupName: ((String?) -> String?)? = nil,
+        lines: Bool = false,
+        now: Date = Date(),
+    ) -> [SearchResult] {
         queue.sync {
             let terms = SearchQuery.terms(in: query)
             let sessions = loadSessions()
@@ -450,25 +466,27 @@ public final class SearchIndex: @unchecked Sendable {
                     .prefix(limit)
                     .map { $0.result(snippet: $0.firstPrompt ?? "", score: 0) }
             }
-            // Per term: the best match in each session.
+            // Per term: the best match in each session, and the sessions whose group it names.
             var perTerm: [[Int64: Match]] = []
             for term in terms {
                 perTerm.append(matches(for: term))
             }
-            var candidates = Set(perTerm[0].keys)
-            for matches in perTerm.dropFirst() {
-                candidates.formIntersection(matches.keys)
+            let named = namedSessions(terms, sessions: sessions, groupName: groupName)
+            var candidates = Set(perTerm[0].keys).union(named[0])
+            for (matches, named) in zip(perTerm, named).dropFirst() {
+                candidates.formIntersection(Set(matches.keys).union(named))
             }
             let best = perTerm.map { matches in matches.values.map(\.rank).min() ?? 0 }
             var scored: [(id: Int64, score: Double)] = []
             for id in candidates {
                 guard let session = sessions[id] else { continue }
+                // A term found only in the group's name adds nothing to the relevance.
                 let relevance = zip(perTerm, best).map { matches, best in
-                    SearchRanking.relevance(rank: matches[id]?.rank ?? 0, best: best)
+                    matches[id].map { SearchRanking.relevance(rank: $0.rank, best: best) } ?? 0
                 }.reduce(0, +) / Double(terms.count)
                 let score = SearchRanking.score(
                     relevance: relevance,
-                    titleMatches: terms.allSatisfy { session.title?.localizedCaseInsensitiveContains($0) == true },
+                    titleMatches: terms.allSatisfy { term in session.title.map { SearchMatch.contains($0, term) } ?? false },
                     lastActive: session.lastActive,
                     inCurrentProject: currentProject
                         .map { project in session.directory.map { WorkspacePath.isInside($0, folder: project) } ?? false } ?? false,
@@ -479,10 +497,19 @@ public final class SearchIndex: @unchecked Sendable {
             // Snippets only for what's shown: the matching message, cut to start just before
             // the first term, so a one-line row always shows the match.
             return scored.sorted { $0.score > $1.score }.prefix(limit).compactMap { id, score in
-                guard let session = sessions[id], let match = perTerm[0][id] else { return nil }
-                var text = ""
-                try? database.query("SELECT text FROM messages WHERE rowid = ?", [.integer(match.message)]) { text = $0.text(0) ?? "" }
-                return session.result(snippet: SearchQuery.snippet(text, around: terms[0]), score: score)
+                guard let session = sessions[id] else { return nil }
+                var result: SearchResult
+                if let index = perTerm.firstIndex(where: { $0[id] != nil }), let match = perTerm[index][id] {
+                    var text = ""
+                    try? database.query("SELECT text FROM messages WHERE rowid = ?", [.integer(match.message)]) { text = $0.text(0) ?? "" }
+                    result = session.result(snippet: SearchQuery.snippet(text, around: terms[index]), score: score)
+                } else {
+                    result = session.result(snippet: session.firstPrompt ?? "", score: score)
+                }
+                if lines {
+                    result.lines = evidence(Set(perTerm.compactMap { $0[id]?.message }), terms: terms)
+                }
+                return result
             }
         }
     }
@@ -494,10 +521,21 @@ public final class SearchIndex: @unchecked Sendable {
     }
 
     /// The best-ranked message per session for one term: FTS5 for three characters or more,
-    /// and a LIKE scan below that (trigrams can't match shorter text).
+    /// and a LIKE scan below that (trigrams can't match shorter text), kept to where a word
+    /// starts for letters and digits (SearchMatch).
     private func matches(for term: String) -> [Int64: Match] {
         var matches: [Int64: Match] = [:]
-        if term.count >= 3 {
+        if SearchMatch.startsWords(term) {
+            try? database.query(
+                "SELECT file_id, rowid FROM messages WHERE text LIKE ? ESCAPE '\\' AND calm_word_start(text, ?) LIMIT 5000",
+                [.text(SearchQuery.likePattern(term)), .text(term)],
+            ) { row in
+                let id = row.integer(0)
+                if matches[id] == nil {
+                    matches[id] = Match(rank: 0, message: row.integer(1))
+                }
+            }
+        } else if term.count >= 3 {
             let sql = """
             SELECT file_id, bm25(messages), rowid FROM messages WHERE messages MATCH ?
             ORDER BY bm25(messages) LIMIT 5000
@@ -562,6 +600,47 @@ public final class SearchIndex: @unchecked Sendable {
             try? database.query("SELECT count(*) FROM files") { sessions = Int($0.integer(0)) }
             try? database.query("SELECT count(*) FROM messages") { messages = Int($0.integer(0)) }
             return (sessions, messages)
+        }
+    }
+}
+
+// MARK: What a search brings back
+
+extension SearchIndex {
+    /// Per term, the sessions whose group's name holds it.
+    private func namedSessions(_ terms: [String], sessions: [Int64: Session], groupName: ((String?) -> String?)?) -> [Set<Int64>] {
+        guard let groupName else { return terms.map { _ in [] } }
+        var names: [String?: String?] = [:]
+        func name(_ directory: String?) -> String? {
+            if let known = names[directory] {
+                return known
+            }
+            let found = groupName(directory)
+            names[directory] = found
+            return found
+        }
+        return terms.map { term in
+            Set(sessions.compactMap { id, session in
+                name(session.directory).map { SearchMatch.contains($0, term) } == true ? id : nil
+            })
+        }
+    }
+
+    /// The messages behind the matches, in the order they were said, each on one line and cut to
+    /// the stretch around the words, with the terms it holds.
+    private func evidence(_ messages: Set<Int64>, terms: [String]) -> [SearchResult.Line] {
+        messages.sorted().compactMap { rowid in
+            var text = ""
+            var role = TranscriptMessage.Role.user
+            try? database.query("SELECT text, role FROM messages WHERE rowid = ?", [.integer(rowid)]) { row in
+                text = row.text(0) ?? ""
+                role = row.text(1).flatMap(TranscriptMessage.Role.init(rawValue:)) ?? .user
+            }
+            let flat = text.split(whereSeparator: \.isNewline).joined(separator: " ")
+            let held = terms.filter { SearchMatch.contains(flat, $0) }
+            guard !held.isEmpty else { return nil }
+            let excerpt = SearchQuery.excerpt(flat, around: held)
+            return SearchResult.Line(id: rowid, role: role, text: excerpt.text, cutBefore: excerpt.cutBefore, terms: held)
         }
     }
 }

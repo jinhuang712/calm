@@ -112,8 +112,13 @@ A fast, correct terminal on libghostty.
 ## F7 — Search all sessions ✅
 
 - **⌘K**, or the **Search sessions** field at the top of the sidebar, opens a search box over every past and present session of Claude Code, Codex, OpenCode and pi.
-- Results are sessions, not lines: agent, project, title, last active time and the matching snippet.
-- **Enter** jumps to the session if it is open; otherwise it resumes the conversation in a new session in its folder (home if the folder is gone).
+- Results are sessions, not lines, grouped the way the sidebar groups them (a project you made, Scratch, or the folder's repository), the group you're in first and the others in the order of their best match. Every project is searched: the one you're in only comes first.
+- **Every word you typed is shown and marked** in every result: in the title, in the group's name, or in the lines under the title, which are the fewest messages (three at most) that hold the words, each cut to a line around them, with the stretch between two far-apart words left out. A line you wrote starts with the prompt's chevron; the agent's have none.
+- **One or two letters match where a word starts** ("d" finds *Draft*, not the d in *hardware*); from three on, anywhere. Chinese matches anywhere at any length. A word can also name a group: "calm scroll" finds what was said about scrolling in calm.
+- With results in more than one group, each shows a few (three of yours, two of the others) and the rest wait behind **"13 more in calm"**, which shows five more at a time and stays where it is; once a group is open, **Show less** folds it back (so does the chevron on its header). A group just one over its share shows it.
+- A group's header counts what it holds, in three numbers at most: open in Calm and doing something, open and idle, and past (on the project's own tile). A session open in Calm shows its state's mark where a past one says how long ago ("4 minutes ago", "yesterday", then the date).
+- With nothing typed, the panel is a switcher: the sessions you could pick back up (open ones are in the sidebar already), four of your group's and two of each other's, most recent first.
+- **Enter** jumps to the session if it is open; otherwise it resumes the conversation in a new session in its folder (home if the folder is gone). ↑ ↓ move, ⇥ and ⇧⇥ jump between groups, → and ← choose between a group's more and Show less, Esc closes.
 - History outlives the agents' cleanup: a conversation stays searchable after its agent deletes the transcript (Claude Code does after 30 days). Claude Code conversations deleted before Calm indexed them are found through the prompts in `~/.claude/history.jsonl`. These can't be resumed; Enter opens a new session in their folder.
 - Searches what the user and agents wrote; skips tool output and file dumps.
 - Works for English and Chinese text.

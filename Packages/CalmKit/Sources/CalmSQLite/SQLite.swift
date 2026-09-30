@@ -81,6 +81,45 @@ package final class SQLiteDatabase {
         }
     }
 
+    /// Adds `name(a, b)`, a SQL function of two texts that is 1 when `test` says yes and 0
+    /// otherwise: for what SQL can't say itself (where a word starts, for the search index).
+    package func addPredicate(_ name: String, _ test: @escaping (String, String) -> Bool) throws {
+        let box = Unmanaged.passRetained(Predicate(test)).toOpaque()
+        // SQLite owns the box from here and releases it through the last callback, also when
+        // adding the function fails. The callbacks can't capture, so they find it by pointer.
+        let result = sqlite3_create_function_v2(
+            handle, name, 2, SQLITE_UTF8 | SQLITE_DETERMINISTIC, box,
+            { context, count, values in
+                guard let context, count == 2, let values,
+                      let first = sqlite3_value_text(values[0]), let second = sqlite3_value_text(values[1]),
+                      let pointer = sqlite3_user_data(context)
+                else {
+                    sqlite3_result_int(context, 0)
+                    return
+                }
+                let predicate = Unmanaged<Predicate>.fromOpaque(pointer).takeUnretainedValue()
+                sqlite3_result_int(context, predicate.test(String(cString: first), String(cString: second)) ? 1 : 0)
+            },
+            nil, nil,
+            { pointer in
+                if let pointer {
+                    Unmanaged<Predicate>.fromOpaque(pointer).release()
+                }
+            },
+        )
+        guard result == SQLITE_OK else {
+            throw Failure.statement(String(cString: sqlite3_errmsg(handle)), sql: "function \(name)")
+        }
+    }
+
+    private final class Predicate {
+        let test: (String, String) -> Bool
+
+        init(_ test: @escaping (String, String) -> Bool) {
+            self.test = test
+        }
+    }
+
     package var lastInsertedRowID: Int64 {
         sqlite3_last_insert_rowid(handle)
     }

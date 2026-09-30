@@ -234,6 +234,52 @@ struct SearchIndexTests {
         #expect(fixture.index.search("", now: now).map(\.directory) == ["/work/new", "/work/old"])
     }
 
+    @Test func `one or two letters match only where a word starts`() throws {
+        let fixture = Fixture()
+        try fixture.write(".claude/projects/-a/inside.jsonl", [Self.claudeUser("the hardware is fine")])
+        try fixture.write(".claude/projects/-b/start.jsonl", [Self.claudeUser("the arrow keys (arrows) move")])
+        fixture.index.update(home: fixture.home)
+        // "ar" is inside "hardware", and starts "arrow".
+        #expect(fixture.index.search("ar").map(\.snippet) == ["the \u{2}ar\u{3}row keys (arrows) move"])
+        #expect(fixture.index.search("AR").count == 1)
+        // From three letters on, anywhere counts.
+        #expect(fixture.index.search("dwa").count == 1)
+    }
+
+    @Test func `results bring the messages that hold each word`() throws {
+        let fixture = try makeFixture()
+        let result = try #require(fixture.index.search("zmx sidebar", lines: true).first)
+        #expect(result.lines.map(\.terms) == [["zmx"], ["sidebar"]])
+        #expect(result.lines.map(\.text) == ["how does zmx keep shells alive?", "and the sidebar notifications?"])
+        #expect(result.lines.allSatisfy { $0.role == .user && !$0.cutBefore })
+        let agent = try #require(fixture.index.search("daemon", lines: true).first?.lines.first)
+        #expect(agent.role == .agent)
+        // Asked for nothing, it brings nothing.
+        #expect(fixture.index.search("zmx").first?.lines.isEmpty == true)
+    }
+
+    @Test func `a word naming the group counts as found in all of it`() throws {
+        let fixture = try makeFixture()
+        let name: (String?) -> String? = { $0.map { ($0 as NSString).lastPathComponent } }
+        // One's folder is …/src/app: "app" isn't said in it, but names its group.
+        #expect(fixture.index.search("app zmx", groupName: name).map(\.title) == ["zmx persistence"])
+        #expect(fixture.index.search("site zmx", groupName: name).isEmpty)
+        #expect(fixture.index.search("app", groupName: name).count == 1)
+        // Without names, words only match what was said.
+        #expect(fixture.index.search("app zmx").isEmpty)
+        let lines = try #require(fixture.index.search("app zmx", groupName: name, lines: true).first?.lines)
+        #expect(lines.map(\.terms) == [["zmx"]])
+    }
+
+    @Test func `excerpts keep the stretch around the words`() {
+        let text = String(repeating: "filler ", count: 100) + "first word here " + String(repeating: "middle ", count: 10) + "second one"
+        let excerpt = SearchQuery.excerpt(text, around: ["first", "second"], margin: 20)
+        #expect(excerpt.cutBefore)
+        #expect(excerpt.text.hasPrefix("filler filler"))
+        #expect(excerpt.text.hasSuffix("second one"))
+        #expect(SearchQuery.excerpt("short first", around: ["first"]) == ("short first", false))
+    }
+
     @Test func `ranking helpers`() {
         #expect(SearchRanking.relevance(rank: -2, best: -4) == 0.5)
         #expect(SearchRanking.relevance(rank: 0, best: 0) == 1)

@@ -8,6 +8,7 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     // MARK: Key events
 
     override func keyDown(with event: NSEvent) {
+        host?.surfaceDidReceiveInput(self)
         updateCellOutline([]) // typing puts it away, as it does a link's tag
         guard let surface else {
             interpretKeyEvents([event])
@@ -122,7 +123,10 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     /// Cmd- and ctrl-keys arrive here before `keyDown`. Terminal bindings win; everything
     /// else first goes through the menus, and comes back to the terminal if nothing took it.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard event.type == .keyDown, isFocused, let surface else { return false }
+        // Only the pane that has the keyboard answers: AppKit offers a key equivalent to every view
+        // in turn, and the first to take it wins.
+        guard event.type == .keyDown, isFocused, window?.firstResponder === self, let surface else { return false }
+        host?.surfaceDidReceiveInput(self)
 
         var key = event.terminalKeyEvent(GHOSTTY_ACTION_PRESS)
         let isBinding = (event.characters ?? "").withCString { pointer in

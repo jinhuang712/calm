@@ -512,8 +512,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // A confirmation already up takes the key; another ⌘W doesn't stack a second one. (On the
         // pane's question it takes the question back: ClosePrompt sees the key first, this covers
         // a close that arrives another way.)
-        guard window?.attachedSheet == nil else { return }
-        guard !closePrompt.isShowing else { return closePrompt.dismiss() }
+        traceFocus("close requested", view)
+        guard window?.attachedSheet == nil, !closePrompt.isShowing else { return closePrompt.dismiss() }
         // ⌘W closes what's in front first: Settings, search or a file, never the session behind it.
         if settingsPage.isShowing {
             hideSettings()
@@ -585,6 +585,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // a pane is consumed by that pane's own monitor, which the question never hears: it used
         // to stay up over the old pane, with its ⌘W swallowed, so the new pane couldn't be closed.
         closePrompt.dismiss()
+        traceFocus("focus arrived", view)
         manager.setFocused(view.id)
         applyAppearance()
     }

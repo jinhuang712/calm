@@ -123,6 +123,38 @@
             case "ctrl_release":
                 postKey(.flagsChanged, keyCode: 59, characters: "", flags: [])
             default:
+                return performFocusActionForTesting(action)
+            }
+            return true
+        }
+
+        /// Which split has the focus: real clicks and a real ⌘W, and a log of who thinks it has the keyboard.
+        private func performFocusActionForTesting(_ action: String) -> Bool {
+            switch action {
+            case let pane where pane.hasPrefix("click_pane:"):
+                // click_pane:<n>: a real click in the middle of the n-th split (reading order),
+                // through the app's event handling, so the panes' own mouse monitors see it
+                clickPaneForTesting(Int(pane.dropFirst(11)) ?? 0)
+            case "real_cmd_w":
+                // ⌘W as the window gets it from the keyboard: down the view hierarchy, then the menus
+                if let window, let event = NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, characters: "w", charactersIgnoringModifiers: "w",
+                    isARepeat: false, keyCode: 13,
+                ) {
+                    window.sendEvent(event)
+                }
+            case let pane where pane.hasPrefix("desync:"):
+                // desync:<n>: the model puts the focus on the n-th split while the keyboard stays where it
+                // is, the state a key or a ⌘W must not be able to leave the window in
+                if let index = Int(pane.dropFirst(7)), let leaves = manager.workspace.selectedLayout?.tree.leaves,
+                   leaves.indices.contains(index) {
+                    manager.setFocused(leaves[index])
+                    applyAppearance()
+                }
+            case "who":
+                whoHasFocusForTesting()
+            default:
                 return performSessionActionForTesting(action)
             }
             return true
@@ -478,6 +510,31 @@
             }
             FileHandle.standardError
                 .write(Data("calm-selftest: ⌘\(characters): terminal \(terminalTookIt), menu item \(menuItem ?? "none")\n".utf8))
+        }
+
+        private func clickPaneForTesting(_ index: Int) {
+            guard let window, let leaves = manager.workspace.selectedLayout?.tree.leaves, leaves.indices.contains(index),
+                  let pane = manager.panes[leaves[index]] else { return }
+            let center = pane.convert(NSPoint(x: pane.bounds.midX, y: pane.bounds.midY), to: nil)
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                guard let event = NSEvent.mouseEvent(
+                    with: type, location: center, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1,
+                ) else { continue }
+                NSApp.sendEvent(event)
+            }
+        }
+
+        /// Per split, in reading order: whether the pane is the window's first responder, whether it
+        /// believes it is focused, and whether the model has the focus on it.
+        private func whoHasFocusForTesting() {
+            guard let layout = manager.workspace.selectedLayout else { return }
+            let lines = layout.tree.leaves.enumerated().map { index, id in
+                let pane = manager.panes[id]
+                let responder = window?.firstResponder === pane
+                return "\(index): responder \(responder) focused \(pane?.isFocused ?? false) model \(id == layout.focusedSessionID)"
+            }
+            FileHandle.standardError.write(Data("calm-selftest: who \(lines.joined(separator: "; "))\n".utf8))
         }
 
         private func pressSplitArrowForTesting(_ direction: String) {

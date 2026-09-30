@@ -18,6 +18,8 @@ protocol TerminalSurfaceHost: AnyObject {
     func surfaceRequestsClose(_ view: TerminalSurfaceView, needsConfirm: Bool)
     func surfaceTitleDidChange(_ view: TerminalSurfaceView)
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView)
+    /// A key went to this pane: the sidebar, the dim and the title strip must say this pane has the focus.
+    func surfaceDidReceiveInput(_ view: TerminalSurfaceView)
     func surfaceAppearanceDidChange(_ view: TerminalSurfaceView)
     func surfaceRequestsCommandPalette(_ view: TerminalSurfaceView)
     func surfaceChildExited(_ view: TerminalSurfaceView)
@@ -435,14 +437,18 @@ final class TerminalSurfaceView: NSView {
         if accepted {
             suppressNextLeftMouseUp = false
             cellGesture = nil
-            syncFocus()
+            syncFocus(resigning: true)
         }
         return accepted
     }
 
-    func syncFocus() {
+    /// `resigning`: called from `resignFirstResponder`, where the window still names this pane as
+    /// its first responder. Reading that kept the pane "focused" after focus moved on (until the
+    /// window next changed key state), so two panes believed they had the keyboard and either
+    /// could answer ⌘W.
+    func syncFocus(resigning: Bool = false) {
         // A headless self-test's window never becomes key (it would take the user's typing).
-        let shouldFocus = (window?.isKeyWindow == true || Headless.isOn) && window?.firstResponder === self
+        let shouldFocus = !resigning && (window?.isKeyWindow == true || Headless.isOn) && window?.firstResponder === self
         guard let surface, shouldFocus != focused else { return }
         focused = shouldFocus
         ghostty_surface_set_focus(surface, shouldFocus)

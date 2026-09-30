@@ -31,7 +31,8 @@ struct SearchPanelView: View {
     private static let width: CGFloat = 680
     /// The most the list takes before it scrolls: about nine rows with their lines.
     private static let listHeight: CGFloat = 560
-    private static let space = "search-results"
+    /// Read in geometry closures, which run off the main actor.
+    private nonisolated static let space = "search-results"
 
     private struct ScrollState: Equatable {
         var offset: CGFloat = 0

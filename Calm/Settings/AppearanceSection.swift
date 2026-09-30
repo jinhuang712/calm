@@ -62,18 +62,25 @@ struct AppearanceSection: View {
                 }
                 .padding(.bottom, 16.scaled)
                 // With it on, the chosen size is the largest the cards get: they step down when the
-                // sessions don't fit and back up when they do.
+                // sessions don't fit and back up when they do. Its name can't say that, so the row
+                // has its one line of help.
+                let canShrink = windowOptions.sessionCardSize.smaller != nil
                 SettingsGroup(style: style) {
-                    SettingsRow(title: "Shrink cards to fit", symbol: "rectangle.compress.vertical", style: style) {
+                    SettingsRow(
+                        title: "Shrink cards to fit", note: SessionCardsPicker.fitNote(windowOptions.sessionCardSize),
+                        symbol: "rectangle.compress.vertical", style: style,
+                    ) {
                         Toggle(
                             "Shrink cards to fit",
                             isOn: Binding(get: { windowOptions.sessionCardsFit }, set: { windowOptions.setSessionCardsFit($0) }),
                         )
                         .toggleStyle(CalmSwitchStyle(style: style))
                         .labelsHidden()
+                        // At Minimal there's nothing smaller: the switch keeps its state but rests.
+                        .disabled(!canShrink)
+                        .opacity(canShrink ? 1 : 0.45)
                     }
                 }
-                .help("When the sessions don't fit the sidebar, cards step down from the size above; they grow back when there's room")
                 .padding(.bottom, 32.scaled)
             }
             SettingsGroup(style: style) {

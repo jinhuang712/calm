@@ -33,6 +33,13 @@ struct SessionCardsPicker: View {
         }
     }
 
+    /// The Shrink cards to fit row's line: what the switch does from the size chosen above, the
+    /// largest the cards get with it on.
+    static func fitNote(_ size: CalmSettings.SessionCardSize) -> String {
+        guard size.smaller != nil else { return "Minimal is the smallest size, so there's nothing to step down to." }
+        return "Cards step down from \(label(size)) when the sessions don't fit, and back when there's room."
+    }
+
     static func summary(_ size: CalmSettings.SessionCardSize) -> String {
         switch size {
         case .full: "every line"

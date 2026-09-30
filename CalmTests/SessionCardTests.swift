@@ -73,6 +73,13 @@ struct SessionCardTests {
         }
     }
 
+    @Test func `the shrink to fit line names the size the cards come back to`() {
+        #expect(SessionCardsPicker.fitNote(.full) == "Cards step down from Full when the sessions don't fit, and back when there's room.")
+        #expect(SessionCardsPicker.fitNote(.compact).contains("from Compact"))
+        // Nothing smaller than Minimal: the line says so instead of promising a step.
+        #expect(!SessionCardsPicker.fitNote(.minimal).contains("step down from"))
+    }
+
     @Test func `a finished turn says how many shells it left running`() {
         #expect(SessionCard.shellsLine(0) == nil)
         #expect(SessionCard.shellsLine(-1) == nil)

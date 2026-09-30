@@ -8,6 +8,7 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - [FEATURES.md](FEATURES.md) — exact behavior of each feature.
 - [DESIGNS.md](DESIGNS.md) — architecture, module boundaries, open decisions.
 - [UIUX.md](UIUX.md) — states, motion, color, settings.
+- [CLI.md](CLI.md) — every `calm` command, built and planned.
 - [ROADMAP.md](ROADMAP.md) — what is built and what is left; don't start a *Later* item without asking.
 
 ## Principles

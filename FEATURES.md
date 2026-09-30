@@ -212,6 +212,8 @@ A quick, read-only look at the repository without leaving Calm.
 
 ## F13 — `calm` command-line tool ✅
 
+What is built, below. Every command in full, with the planned ones: [CLI.md](CLI.md).
+
 - `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line). With no argument, the current folder.
 - `calm list` — list sessions: project, title, state, agent and folder.
 - `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.

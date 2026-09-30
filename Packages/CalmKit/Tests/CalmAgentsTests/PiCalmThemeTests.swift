@@ -130,4 +130,20 @@ struct PiCalmThemeTests {
         #expect(source.contains("timer = setTimeout(wearCalm, 150);"))
         #expect(!source.contains("await "))
     }
+
+    @Test func `the extension sets Calm's theme again after pi puts its own back`() {
+        let source = PiAdapter.extensionSource
+        // /reload, /new, /resume and /fork end in pi's applyFromSettings() just after session_start:
+        // look again for a while, and only set the theme where pi's has taken Calm's place.
+        #expect(source.contains("    wearCalm();\n    wearCalmAgain();\n"))
+        #expect(source.contains(#"if (ui?.theme?.name !== "calm") wearCalm();"#))
+        #expect(source.contains("if (++ticks >= 200) clearInterval(settling);"))
+        #expect(source.contains("settling.unref();"))
+        // A throwing check in a timer would take pi down with it.
+        #expect(source.contains("try {\n        if (ui?.theme?.name"))
+        // A reload runs the file again; the watcher of the run before must not stay behind.
+        #expect(source.contains(#"pi.on("session_shutdown", () => {"#))
+        #expect(source.contains("watcher?.close();"))
+        #expect(source.contains("if (watcher) return;"))
+    }
 }

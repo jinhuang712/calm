@@ -210,7 +210,13 @@ public extension PiAdapter {
     /// extension builds pi's theme object from the file with the class of the theme in use and
     /// sets that, which isn't saved, and which pi leaves alone when the terminal's colors or
     /// appearance change (`reapplyForTerminal`). pi doesn't watch an object's file, so the
-    /// extension watches `themes/` and sets the theme again when Calm rewrites it.
+    /// extension watches `themes/` and sets the theme again when Calm rewrites it. `/reload`,
+    /// `/new`, `/resume` and `/fork` emit `session_start` and then call
+    /// `themeController.applyFromSettings()`, which puts the setting's theme back a few
+    /// milliseconds later (seen on 0.99.1: `dark` 10 ms after `session_start`), so for two
+    /// seconds after each `session_start` the extension looks every 10 ms and sets Calm's again
+    /// where pi's has taken its place. It stops its watcher at `session_shutdown`, because a
+    /// reload runs the file again.
     internal static let extensionSource = """
     // \(AgentSetup.marker): reports this pi session's state to Calm and dresses it in Calm's theme, only inside Calm.
     // Delete this file (or use Calm → Agents… → Disconnect) to stop.
@@ -257,21 +263,46 @@ public extension PiAdapter {
           ui.setTheme(new current.constructor(fg, bg, current.mode, { name: "calm", appearance: file.appearance }));
         } catch {}
       };
-      let watching = false;
+      // /reload, /new, /resume and /fork all end in pi putting its own theme back, a few
+      // milliseconds after session_start (0.99.1: themeController.applyFromSettings()), so
+      // look again for a moment and set Calm's wherever pi's has taken its place.
+      let settling: any;
+      const wearCalmAgain = () => {
+        clearInterval(settling);
+        let ticks = 0;
+        settling = setInterval(() => {
+          try {
+            if (ui?.theme?.name !== "calm") wearCalm();
+          } catch {}
+          if (++ticks >= 200) clearInterval(settling);
+        }, 10);
+        settling.unref();
+      };
+      let watcher: any;
       let timer: any;
       pi.on("session_start", (_event: any, ctx: any) => {
         if (!ctx?.hasUI) return;
         ui = ctx.ui;
         wearCalm();
-        if (watching) return;
-        watching = true;
+        wearCalmAgain();
+        if (watcher) return;
         try {
-          watch(themes, (_type: string, name: string | null) => {
+          watcher = watch(themes, (_type: string, name: string | null) => {
             if (name && name !== "calm.json") return;
             clearTimeout(timer);
             timer = setTimeout(wearCalm, 150);
-          }).unref();
+          });
+          watcher.unref();
         } catch {}
+      });
+      // A reload runs this file again; the watcher of this run would stay behind.
+      pi.on("session_shutdown", () => {
+        clearInterval(settling);
+        clearTimeout(timer);
+        try {
+          watcher?.close();
+        } catch {}
+        watcher = undefined;
       });
       let outcome = "completed";
       // A prompt holds the agent up only during a run. Outside one it is the user's own doing

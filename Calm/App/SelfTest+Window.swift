@@ -129,8 +129,12 @@
         }
 
         /// Which split has the focus: real clicks and a real ⌘W, and a log of who thinks it has the keyboard.
+        /// Also whether anyone can see the window.
         private func performFocusActionForTesting(_ action: String) -> Bool {
             switch action {
+            case "window_unseen", "window_seen":
+                // As if the window were covered, or back in view (WindowPresence).
+                WindowPresence.shared.forceForTesting(visible: action == "window_seen")
             case let pane where pane.hasPrefix("click_pane:"):
                 // click_pane:<n>: a real click in the middle of the n-th split (reading order),
                 // through the app's event handling, so the panes' own mouse monitors see it

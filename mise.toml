@@ -42,6 +42,11 @@ description = "Run all tests"
 depends = ["generate"]
 run = "scripts/xcode.sh test"
 
+[tasks.perf]
+description = "Check what Calm costs at rest: headless runs held to a budget (about 2 minutes)"
+depends = ["build"]
+run = "scripts/perf-check.py"
+
 [tasks.run]
 description = "Build and launch the app"
 depends = ["build"]

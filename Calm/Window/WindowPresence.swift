@@ -20,11 +20,27 @@ final class WindowPresence {
     }
 
     func windowOcclusionDidChange(_ window: NSWindow) {
+        #if DEBUG
+            if isForcedForTesting {
+                return
+            }
+        #endif
         let visible = Self.isVisible(window.occlusionState, headless: Headless.isOn)
         if visible != isVisible {
             isVisible = visible
         }
     }
+
+    #if DEBUG
+        private var isForcedForTesting = false
+
+        /// Self-tests (`calm.window_unseen`, `calm.window_seen`): a headless window never
+        /// changes its occlusion, so the check of what an unseen window costs sets it.
+        func forceForTesting(visible: Bool) {
+            isForcedForTesting = true
+            isVisible = visible
+        }
+    #endif
 }
 
 extension MainWindowController {

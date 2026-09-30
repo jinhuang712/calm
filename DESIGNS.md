@@ -255,6 +255,10 @@ Known limits:
 
 - A terminal can't carry image data, but agents attach an image from its path. So `TerminalClipboard.plainText` pastes files as their shell-escaped paths, text as text, and an image with neither (a screenshot) as the path of a PNG it saves in `$TMPDIR/calm-pasted-images`, a temporary folder so macOS clears old pastes. A drop onto a pane goes through the same function.
 
+## Text input
+
+- `TerminalSurfaceView+Keyboard` is the pane's `NSTextInputClient`, the one door for input methods, System Dictation, voice input methods and the emoji picker. Committed text is sent to the program as typed keys, never as a paste. Two answers matter to voice input, and both went wrong at first (dictation and 豆包's voice input did nothing, 2026-09-30): `selectedRange()` never says `{NSNotFound, 0}` (it reads as "no insertion point", and dictation won't start), so with no selection it is the empty range at 0; and `insertText` doesn't need a key event in flight, because a voice engine commits from its own callback, after the key that started it. `DictationInputTests` checks both. Headless runs can't drive real dictation or a voice input method, so what they do with these answers is checked by hand.
+
 ## Window
 
 - **Hidden sessions don't render:** every session keeps its panes alive, but only the layout on screen draws frames. `PaneVisibility` (unit-tested) keeps the two reasons apart: the pane's layout being the one shown (`restorePaneVisibility`, the session switcher) and the window being visible (`didChangeOcclusionState`); the pane draws only when both hold, and libghostty hears only when that answer changes. With one flag for both, the window coming back into view (another Space, uncovered, unminimized) woke every hidden session's pane until the next session switch: about 2 GB of frame buffers at once with eight sessions open (measured 2026-09-30).

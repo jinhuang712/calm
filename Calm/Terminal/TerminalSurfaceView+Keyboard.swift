@@ -239,9 +239,13 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     }
 
     func selectedRange() -> NSRange {
-        guard let surface else { return NSRange(location: NSNotFound, length: 0) }
+        // Never `{NSNotFound, 0}`: that says "no insertion point", and System Dictation and voice
+        // tools then decline to start. We keep no text storage to index, so an empty range at 0
+        // is the caret (Ghostty answers the same).
+        let caret = NSRange(location: 0, length: 0)
+        guard let surface else { return caret }
         var text = ghostty_text_s()
-        guard ghostty_surface_read_selection(surface, &text) else { return NSRange(location: NSNotFound, length: 0) }
+        guard ghostty_surface_read_selection(surface, &text) else { return caret }
         defer { ghostty_surface_free_text(surface, &text) }
         return NSRange(location: Int(text.offset_start), length: Int(text.offset_len))
     }
@@ -295,7 +299,8 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
     }
 
     func insertText(_ string: Any, replacementRange _: NSRange) {
-        guard NSApp.currentEvent != nil else { return }
+        // No check for a current key event: dictation and voice input methods commit from their own
+        // callbacks, after the key that started them, and their text was being dropped here.
         var text = switch string {
         case let attributed as NSAttributedString: attributed.string
         case let plain as String: plain
@@ -322,8 +327,9 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
         unmarkText()
         if keyTextAccumulator != nil {
             keyTextAccumulator?.append(text)
-        } else {
-            // Dictation, the emoji picker, or an input method committing by mouse.
+        } else if !text.isEmpty {
+            // Dictation, the emoji picker, or an input method committing by mouse. (An empty commit
+            // only clears the marked text above; sent on, it would be a key press with no text.)
             sendCommittedText(text, action: GHOSTTY_ACTION_PRESS)
         }
     }

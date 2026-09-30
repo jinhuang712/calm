@@ -509,8 +509,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     /// ⌘W (Close Session, or the user's own close_surface binding).
     func surfaceRequestsClose(_ view: TerminalSurfaceView, needsConfirm: Bool) {
-        // A confirmation already up takes the key; another ⌘W doesn't stack a second one.
-        guard window?.attachedSheet == nil, !closePrompt.isShowing else { return }
+        // A confirmation already up takes the key; another ⌘W doesn't stack a second one. (On the
+        // pane's question it takes the question back: ClosePrompt sees the key first, this covers
+        // a close that arrives another way.)
+        guard window?.attachedSheet == nil else { return }
+        guard !closePrompt.isShowing else { return closePrompt.dismiss() }
         // ⌘W closes what's in front first: Settings, search or a file, never the session behind it.
         if settingsPage.isShowing {
             hideSettings()
@@ -578,6 +581,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     }
 
     func surfaceDidBecomeFocused(_ view: TerminalSurfaceView) {
+        // The question is about a pane, so focus arriving anywhere ends it. A click that focuses
+        // a pane is consumed by that pane's own monitor, which the question never hears: it used
+        // to stay up over the old pane, with its ⌘W swallowed, so the new pane couldn't be closed.
+        closePrompt.dismiss()
         manager.setFocused(view.id)
         applyAppearance()
     }

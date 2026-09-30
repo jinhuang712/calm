@@ -91,8 +91,10 @@ final class ClosePrompt {
                 answer(close: false)
                 return nil
             }
-            // Another ⌘W doesn't stack a second question, or answer this one.
+            // ⌘W again takes the question back. The key is used up: it must not reach the menu
+            // and ask again.
             if held == .command, event.charactersIgnoringModifiers == "w" {
+                answer(close: false)
                 return nil
             }
             answer(close: false)

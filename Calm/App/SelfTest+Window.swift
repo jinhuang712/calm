@@ -198,6 +198,9 @@
             case "keep_prompt":
                 // What Esc does on it
                 closePrompt.answerForTesting(close: false)
+            case "focus_next":
+                // ⌘]: the next split gets the focus, as a click on it would give it
+                focusedPane.map { _ = surface($0, requestsFocus: .next) }
             case let name where name.hasPrefix("rename:"):
                 focusedPane.map { rename($0.id, to: String(name.dropFirst(7))) }
             case "rename_begin":

@@ -114,6 +114,26 @@ extension CodexAdapter: TranscriptReading {
         return sawRecord ? tail : nil
     }
 
+    public var readsLastReply: Bool {
+        true
+    }
+
+    public func lastReply(of transcript: URL) -> String? {
+        for record in JSONLTail(transcript) {
+            guard let payload = record["payload"] as? [String: Any] else { continue }
+            let text: String? = switch (record["type"] as? String, payload["type"] as? String) {
+            case (_, "task_complete"?): payload["last_agent_message"] as? String
+            case ("response_item"?, "message"?) where payload["role"] as? String == "assistant":
+                Self.texts(of: payload).joined(separator: "\n\n")
+            default: nil
+            }
+            if let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+                return text
+            }
+        }
+        return nil
+    }
+
     private static func texts(of payload: [String: Any]) -> [String] {
         let blocks = payload["content"] as? [[String: Any]] ?? []
         return blocks.compactMap { block in

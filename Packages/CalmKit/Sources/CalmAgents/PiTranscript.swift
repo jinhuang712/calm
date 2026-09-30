@@ -59,6 +59,19 @@ extension PiTranscript {
         return tail
     }
 
+    /// The newest assistant message with text, as pi wrote it.
+    static func lastReply(of transcript: URL) -> String? {
+        for record in JSONLTail(transcript) where record["type"] as? String == "message" {
+            let message = record["message"] as? [String: Any] ?? [:]
+            guard message["role"] as? String == "assistant" else { continue }
+            let text = texts(of: message).joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty {
+                return text
+            }
+        }
+        return nil
+    }
+
     private static func title(_ value: Any?) -> String? {
         guard let text = (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
         return text
@@ -92,5 +105,13 @@ extension PiAdapter: TranscriptReading {
 
     public func readTail(of transcript: URL, agentSessionID _: String?, home _: URL) -> TranscriptTail? {
         PiTranscript.readTail(of: transcript)
+    }
+
+    public var readsLastReply: Bool {
+        true
+    }
+
+    public func lastReply(of transcript: URL) -> String? {
+        PiTranscript.lastReply(of: transcript)
     }
 }

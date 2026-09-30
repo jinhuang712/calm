@@ -91,6 +91,20 @@ extension ClaudeCodeAdapter: TranscriptReading {
         return tail
     }
 
+    public var readsLastReply: Bool {
+        true
+    }
+
+    public func lastReply(of transcript: URL) -> String? {
+        for record in JSONLTail(transcript) where record["type"] as? String == "assistant" {
+            let text = Self.texts(of: record).joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty {
+                return text
+            }
+        }
+        return nil
+    }
+
     /// `/Users/me/src/app` → `-Users-me-src-app`: every character that isn't a letter or digit
     /// becomes a hyphen.
     static func projectFolder(for path: String) -> String {

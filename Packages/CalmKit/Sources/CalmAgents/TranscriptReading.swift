@@ -13,11 +13,25 @@ public protocol TranscriptReading: AgentAdapter {
     /// Files whose size or modification time changing means the transcript changed. A database
     /// in write-ahead mode grows its `-wal` file while the database file itself stays put.
     func changeMarkers(of transcript: URL) -> [URL]
+    /// Whether `lastReply` can answer for this agent.
+    var readsLastReply: Bool { get }
+    /// The agent's newest message as it wrote it, for copying. `readTail` keeps only a recap, cut
+    /// to a line with its Markdown stripped, which is no use pasted somewhere else. Nil when the
+    /// transcript holds no message; read when asked, never kept.
+    func lastReply(of transcript: URL) -> String?
 }
 
 public extension TranscriptReading {
     func changeMarkers(of transcript: URL) -> [URL] {
         [transcript]
+    }
+
+    var readsLastReply: Bool {
+        false
+    }
+
+    func lastReply(of _: URL) -> String? {
+        nil
     }
 }
 

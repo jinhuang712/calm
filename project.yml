@@ -79,7 +79,7 @@ targets:
         # "Calm Dev" in Debug (below), so the menu bar, the Dock and notifications name the dev build.
         CFBundleName: $(APP_DISPLAY_NAME)
         CFBundleDisplayName: $(APP_DISPLAY_NAME)
-        CFBundleShortVersionString: "0.0.1"
+        CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "26.0"
         LSApplicationCategoryType: public.app-category.developer-tools

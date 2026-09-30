@@ -4,9 +4,22 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status:** pre-alpha. See the [roadmap](ROADMAP.md) for what works so far.
+> **Status: 0.1.0, a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). There is no download for now: Calm is built from source.
 
-## Build from source
+## What it does
+
+- **Shows which session needs you.** Every session in the sidebar says whether its agent is working, needs you, is done or failed, for Claude Code, Codex, OpenCode and pi. Only *needs you* ever notifies.
+- **Keeps sessions alive.** Quitting Calm detaches your shells instead of killing them; relaunching brings back every session, split and running agent.
+- **Groups by project, by itself.** Sessions file under the project or folder they work in; scratch sessions (⌘⇧N) are for throwaway work.
+- **Finds any past conversation.** ⌘K searches every agent's history; a past conversation can be resumed, or forked into a new split.
+- **Is comfortable to read in.** ⌘-click opens a path at its line, ⌥-click copies a table cell, and a files column and viewer show what an agent changed.
+- **Is quiet by default.** Soft themes, gentle motion and very few settings.
+
+Exact behavior is in [FEATURES.md](FEATURES.md).
+
+## Install
+
+Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 
 Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 
@@ -17,9 +30,29 @@ mise run build                                 # or: mise run run
 mise run test
 ```
 
-The first `setup` builds Ghostty's engine from source and takes a while; later runs reuse the cached build.
+The first `setup` builds Ghostty's engine from source and takes a few minutes; later runs reuse the cached build.
 
 To install, `./install.sh` builds a Release copy into `/Applications` and links the `calm` command into `~/.local/bin` (`--help` for options). A running Calm isn't quit; the new version starts the next time you open Calm, or when you choose Calm → Restart Calm, which is worth doing soon, because until then the running Calm is out of date and its shells can lose access to Documents, Desktop and Downloads. `--restart` quits and reopens it instead (your shells stay alive either way).
+
+### Good to know
+
+- **A build you make yourself is signed ad hoc**, so to macOS every install is a new app: it asks again for access to Desktop, Documents and Downloads after each one. A Developer ID signed and notarized download, which keeps those answers across updates, comes later (see the end of [ROADMAP.md](ROADMAP.md)).
+- **Agents need no setup to be seen.** Calm detects them from their process. To get their exact state (a question waiting, a turn finished), connect their hooks from **Calm → Agents…**; each one asks first and can be undone.
+- **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code makes no network requests, and there is no update check yet. The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
+
+## Known limits
+
+- Apple silicon and macOS 26 or later only.
+- Built from source only, for now.
+- Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → Themes).
+- OpenCode's plugin, which reports its state, has not had real use yet.
+- A window left in full screen came back filled but not in full screen once in six test launches; the cause isn't known.
+- Links: a link a program sets with OSC 8 gets no dotted mark, and a few shapes of link that a program cut across lines aren't joined.
+- There is no VoiceOver pass (the labels that exist stay, but it isn't a goal).
+
+## Reporting a problem
+
+Open an [issue](https://github.com/jinhuang712/calm/issues). **⌘P → Dump Logs** writes a text file with Calm's version, settings and each session's state, and only ids, states and counts: never a folder, a title or a word anyone wrote, so it is safe to attach.
 
 ## Documents
 

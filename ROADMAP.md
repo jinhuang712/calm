@@ -219,7 +219,7 @@ Conversations can be renamed, resumed and forked.
 
 ## Later
 
-- Release: Developer ID signing, notarization, Sparkle updates, a Homebrew cask, public launch.
+- Release, beyond 0.1.0. 0.1.0 is a source-only public preview (CHANGELOG.md). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle updates and a Homebrew cask. Before the first download: the licenses of what Ghostty's engine links in (its own dependencies), and whether the pi mark may be shipped (NOTICE says its site states no license).
 - Changed-file diffs in the viewer.
 - Copy an attach command, to reach a session over SSH from another device.
 - Spotlight integration (semantic index on macOS 27+).

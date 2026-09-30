@@ -68,7 +68,13 @@ struct AgentLogo: View {
     private var mark: some View {
         if let art, let paths = MarkPaths.paths(for: agent, art: art) {
             // Still while nobody can see the window (WindowPresence).
-            if !Motion.isReduced, WindowPresence.shared.isVisible, state == .working || finishedAt != nil {
+            if !Motion.isReduced, WindowPresence.shared.isVisible, state == .working, finishedAt == nil,
+               art.motion == .frames, let frames = art.frames {
+                // A working frames loop plays in Core Animation (MarkFramesLoop); the settling
+                // after it, and the other motions, still pose in a timeline.
+                MarkFramesLoop(frames: frames, size: side)
+                    .frame(width: side, height: side)
+            } else if !Motion.isReduced, WindowPresence.shared.isVisible, state == .working || finishedAt != nil {
                 // 30 frames a second is plenty for marks this small, and costs half as much.
                 TimelineView(.animation(minimumInterval: 1 / 30)) { context in
                     MarkDrawing(
@@ -244,52 +250,32 @@ struct ShimmerText: View {
     /// The light itself: white on a dark background; on a light one a white band would read as
     /// the letters fading, so a deeper version of the color crosses instead.
     let highlight: Color
-    @State private var isCrossing = Self.phase(at: Date.now.timeIntervalSinceReferenceDate) != nil
 
-    private static let period = 2.6
+    static let period = 2.6
     /// The share of each period the light takes to cross; it rests for the rest.
-    private static let crossing = 0.6
+    static let crossing = 0.6
+
+    #if DEBUG
+        /// `CALM_SELFTEST_SHIMMER_PHASE=0.5`: the light held at one place, so self-tests can
+        /// snapshot and compare it (snapshots draw a layer's model, not its animation).
+        static let heldPhase = ProcessInfo.processInfo.environment["CALM_SELFTEST_SHIMMER_PHASE"].flatMap(Double.init)
+    #else
+        static let heldPhase: Double? = nil
+    #endif
 
     var body: some View {
         if Motion.isReduced || !WindowPresence.shared.isVisible {
             Text(text).foregroundStyle(color)
         } else {
-            Group {
-                if isCrossing {
-                    TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-                        Text(text)
-                            .foregroundStyle(color)
-                            .overlay {
-                                if let phase = Self.phase(at: context.date.timeIntervalSinceReferenceDate) {
-                                    GeometryReader { geometry in
-                                        LinearGradient(colors: [.clear, highlight, .clear], startPoint: .leading, endPoint: .trailing)
-                                            .frame(width: geometry.size.width * 0.5)
-                                            .offset(x: (phase * 1.5 - 0.5) * geometry.size.width)
-                                    }
-                                    .mask(Text(text))
-                                }
-                            }
-                    }
-                } else {
-                    // While the light rests the line is still, so nothing redraws it.
-                    Text(text).foregroundStyle(color)
+            // The light is a Core Animation band (ShimmerBand), masked to the letters here. A
+            // timeline drawing it had SwiftUI redraw the whole sidebar 30 times a second while
+            // it crossed, and moving the mark alone left half the cost (2026-09-30).
+            Text(text)
+                .foregroundStyle(color)
+                .overlay {
+                    ShimmerBand(highlight: highlight)
+                        .mask(Text(text))
                 }
-            }
-            .task { await followCrossings() }
-        }
-    }
-
-    /// Runs the timeline only while the light crosses: a timeline ticking through the rest
-    /// redrew an unchanged line (40% of the time). At both ends of a crossing the band is outside
-    /// the text, so the switch can't be seen; waking just after the change keeps it so.
-    private func followCrossings() async {
-        while !Task.isCancelled {
-            let now = Date.now.timeIntervalSinceReferenceDate
-            let crossing = Self.phase(at: now) != nil
-            if crossing != isCrossing {
-                isCrossing = crossing
-            }
-            try? await Task.sleep(for: .seconds(Self.untilChange(at: now) + 0.005), tolerance: .milliseconds(5))
         }
     }
 
@@ -297,12 +283,6 @@ struct ShimmerText: View {
     static func phase(at time: TimeInterval) -> Double? {
         let cycle = MarkMotion.fraction(time, of: period)
         return cycle < crossing ? cycle / crossing : nil
-    }
-
-    /// Seconds from `time` until the light next starts or stops crossing.
-    static func untilChange(at time: TimeInterval) -> TimeInterval {
-        let cycle = MarkMotion.fraction(time, of: period)
-        return (cycle < crossing ? crossing - cycle : 1 - cycle) * period
     }
 }
 

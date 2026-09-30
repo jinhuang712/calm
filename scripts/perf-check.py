@@ -11,7 +11,8 @@ well above what a run costs today and well below what the regressions it guards 
   (`custom-shader-animation = true`, before engine patch 0014) made this 940 wakeups a second.
 - unseen: three working agents with the window out of sight. Their marks and the working light
   ticking anyway (before WindowPresence) cost about 300 M instructions a second.
-- seen: the same three agents in view, measured without a budget, to watch the trend.
+- seen: the same three agents in view. Their marks and the working light drawn by SwiftUI
+  timelines (before they became Core Animation layers) cost about 310 M instructions a second.
 
 Usage: scripts/perf-check.py [scenario ...]   (after `mise run build`; about 35 s a scenario)
 Exits 1 if any budget is exceeded.
@@ -43,7 +44,7 @@ three_agents = ",".join([
 SCENARIOS = {
     "idle": ("true", "calm.new_session", (40, 60)),
     "unseen": (agent, three_agents + ",calm.window_unseen", (40, 80)),
-    "seen": (agent, three_agents, None),
+    "seen": (agent, three_agents, (40, 80)),
 }
 
 

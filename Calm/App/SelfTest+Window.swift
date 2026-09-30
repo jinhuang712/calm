@@ -44,6 +44,9 @@
             case let text where text.hasPrefix("type:"):
                 // type:<command>: run a command in the focused session, so one run can set up several
                 focusedPane?.typeForTesting(String(text.dropFirst(5)))
+            case "layer_motion":
+                // Whether the Core Animation marks and lights keep to the wall clock (logged).
+                Task { @MainActor in await LayerMotionProbe.run(in: window?.contentView) }
             case "toggle_sidebar":
                 toggleSidebar()
             case "toggle_files":

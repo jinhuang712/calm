@@ -53,7 +53,9 @@ final class DockIcon {
     private func tick() {
         let now = CACurrentMediaTime()
         let reduced = Motion.isReduced
-        let frame = reduced ? AppIconMotion.stillFrame(for: motion.state) : motion.frame(at: now)
+        // In whole steps: each frame is a new picture sent to the Dock, and at its size the ease
+        // between places doesn't show (8 frames a second instead of 16).
+        let frame = reduced ? AppIconMotion.stillFrame(for: motion.state) : motion.frame(at: now, wholeSteps: true)
         draw(frame.rounded)
         if reduced || motion.isStill(at: now) {
             timer?.invalidate()

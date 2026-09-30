@@ -213,13 +213,17 @@ public struct AppIconMotion: Sendable, Equatable {
         state = newState
     }
 
-    public func frame(at time: TimeInterval) -> AppIconFrame {
+    /// `wholeSteps`: the chase jumps from place to place instead of easing between them, which
+    /// halves the frames it draws (8 a second rather than 16); the Dock uses it, where the ease is
+    /// too small to see and every frame goes to the Dock as a new picture. The settle keeps its ease.
+    public func frame(at time: TimeInterval, wholeSteps: Bool = false) -> AppIconFrame {
         var head = 0.0
         if let runStart {
             if let settle, time >= settle.at {
                 head = settle.from + (settle.to - settle.from) * Self.easeOut((time - settle.at) / Self.lastStep)
             } else {
-                head = Self.step(Self.placesPerSecond * (time - runStart))
+                let position = Self.placesPerSecond * (time - runStart)
+                head = wholeSteps ? position.rounded(.down) : Self.step(position)
             }
         }
         return AppIconFrame(busy: busy.value(at: time), head: head, done: done.value(at: time), failed: failed.value(at: time))

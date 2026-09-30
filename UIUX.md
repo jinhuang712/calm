@@ -153,7 +153,7 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 | State | When | Icon |
 |---|---|---|
 | idle | nothing below | the mark, still: the app's own icon, in the user's icon style |
-| running | any session is working | the chase: the cursor cell runs around the ring, a lap in 1.5 s. It holds on each place and steps to the next, and the opening travels just ahead of it. A four-cell trail follows the cursor, and the ring steps back to 60%, so the motion reads at Dock size |
+| running | any session is working | the chase: the cursor cell runs around the ring, a lap in 1.5 s. It holds on each place and jumps to the next, as a terminal spinner does (the welcome page's larger mark eases between them), and the opening travels just ahead of it. A four-cell trail follows the cursor, and the ring steps back to 60%, so the motion reads at Dock size |
 | done | a session is done and not yet visited | the ring closes, and the cursor cell turns sage |
 | failed | a session failed and not yet visited | the ring loses its warmth to grey, and the cursor cell turns muted red |
 

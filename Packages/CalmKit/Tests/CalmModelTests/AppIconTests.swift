@@ -60,6 +60,34 @@ struct AppIconMotionTests {
         #expect(!motion.isStill(at: 11))
     }
 
+    @Test func `in whole steps the chase jumps between places, 8 frames a second instead of 16`() {
+        var motion = AppIconMotion()
+        motion.show(.running, at: 0)
+        // Mid-step: eased, the cursor is between places; in whole steps it hasn't left yet.
+        #expect(motion.frame(at: 1.1).head > 8 && motion.frame(at: 1.1).head < 9)
+        #expect(motion.frame(at: 1.1, wholeSteps: true).head == 8)
+        // It arrives at the same moment either way.
+        #expect(motion.frame(at: 1.125, wholeSteps: true).head == 9)
+        #expect(motion.frame(at: 1.125).head == 9)
+        /// Frames that differ at 30 ticks a second, over 3 s of the steady chase.
+        func drawn(wholeSteps: Bool) -> Int {
+            let heads = (30 ..< 120).map { motion.frame(at: Double($0) / 30, wholeSteps: wholeSteps).rounded.head }
+            return zip(heads, heads.dropFirst()).count(where: { $0 != $1 }) + 1
+        }
+        #expect(drawn(wholeSteps: false) == 48)
+        #expect(drawn(wholeSteps: true) == 24)
+    }
+
+    @Test func `in whole steps the settle still eases the last step`() {
+        var motion = AppIconMotion()
+        motion.show(.running, at: 0)
+        motion.show(.done, at: 1)
+        #expect(motion.frame(at: 1.375, wholeSteps: true).head == 11)
+        let halfway = motion.frame(at: 1.6, wholeSteps: true).head
+        #expect(halfway > 11 && halfway < 12)
+        #expect(motion.frame(at: 1.825, wholeSteps: true).head == 12)
+    }
+
     @Test func `when work is done the cursor settles at rest, then the ring closes`() {
         var motion = AppIconMotion()
         motion.show(.running, at: 0)

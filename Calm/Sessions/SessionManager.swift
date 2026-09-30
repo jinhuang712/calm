@@ -320,12 +320,20 @@ final class SessionManager {
         scheduleSave()
     }
 
-    /// Calm lost focus: the session on screen has been seen, so a finished one settles.
-    func settleOnScreen() {
-        guard let id = workspace.selectedLayout?.focusedSessionID, let state = workspace.session(id)?.state,
-              state.afterVisit() != state else { return }
+    /// The focused session and its state, for `LeavingCalm`.
+    var onScreen: LeavingCalm.OnScreen? {
+        guard let id = workspace.selectedLayout?.focusedSessionID, let state = workspace.session(id)?.state else {
+            return nil
+        }
+        return LeavingCalm.OnScreen(sessionID: id, state: state)
+    }
+
+    /// The user left Calm (`LeavingCalm`): the session they saw there has been read, so a
+    /// finished one settles.
+    func settle(left: LeavingCalm.OnScreen) {
+        guard left.state.afterVisit() != left.state else { return }
         Motion.animate(.easeInOut(duration: 0.25)) {
-            workspace.settle(id)
+            workspace.settle(left.sessionID)
         }
         scheduleSave()
     }

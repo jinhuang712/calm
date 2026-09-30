@@ -17,6 +17,7 @@ final class AttentionCenter: NSObject {
     private var keyMonitor: Any?
     private var observers: [NSObjectProtocol] = []
     private var authorization: Task<Bool, Never>?
+    private var leaving = LeavingCalm(calmIsActive: true)
 
     /// Self-tests and unit tests never touch the real notification center: the first request
     /// would show the user a permission prompt. They log what would be delivered instead.
@@ -30,12 +31,13 @@ final class AttentionCenter: NSObject {
             self?.queue.noteTyping(at: Date())
             return event
         }
+        leaving = LeavingCalm(calmIsActive: NSApp.isActive)
         let center = NotificationCenter.default
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated {
-                    if name == NSApplication.didResignActiveNotification {
-                        SessionManager.shared.settleOnScreen()
+                    if name == NSApplication.didBecomeActiveNotification {
+                        AttentionCenter.shared.leaving.calmCameForward()
                     }
                     let attention = AttentionCenter.shared
                     attention.queue.noteFocusChange(at: Date())
@@ -46,12 +48,35 @@ final class AttentionCenter: NSObject {
                 }
             })
         }
+        // Calm losing the front isn't enough to have left it: a menu-bar tool in front for a
+        // moment isn't leaving, so the app that comes forward decides (LeavingCalm).
+        observers.append(NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main,
+        ) { note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            let processID = app?.processIdentifier
+            let regular = app?.activationPolicy == .regular
+            MainActor.assumeIsolated {
+                AttentionCenter.shared.appCameForward(processID: processID, regular: regular)
+            }
+        })
         if Self.deliversNotifications {
             UNUserNotificationCenter.current().delegate = self
         }
     }
 
     // MARK: Inputs
+
+    /// An app came to the front; `regular` when it has a Dock icon. Leaving Calm for it settles
+    /// the session the user saw there, as going to another session does.
+    func appCameForward(processID: pid_t?, regular: Bool) {
+        let manager = SessionManager.shared
+        if processID == ProcessInfo.processInfo.processIdentifier {
+            leaving.calmCameForward()
+        } else if let left = leaving.appCameForward(regular: regular, onScreen: manager.onScreen) {
+            manager.settle(left: left)
+        }
+    }
 
     func apply(_ effect: AttentionEffect, for id: Session.ID) {
         switch effect {

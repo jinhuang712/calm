@@ -81,7 +81,7 @@ A fast, correct terminal on libghostty.
   2. If the user is not looking at that session, a macOS notification is delivered **at the next natural pause** (not while the user is typing in another pane).
 - The notification reads like a note: a mark for the state and the session's name (✋ needs you, ✅ done, ⚠️ failed), then one or two lines of what the agent said, cleaned of Markdown. It doesn't name the project or the agent (UIUX.md → Notifications).
 - Clicking the notification jumps to the session. **⌘⇧A** jumps to the session that has waited longest.
-- **done** and **failed** notify only if you opt in (Settings → Agents). They show in the sidebar until you've been to the session and moved on: arriving keeps them while you read, and going to another session, or leaving Calm, settles them to idle.
+- **done** and **failed** notify only if you opt in (Settings → Agents). They show in the sidebar until you've been to the session and moved on: arriving keeps them while you read, and going to another session, or leaving Calm, settles them to idle. Leaving Calm means going to another app, one with a Dock icon: a menu-bar tool that takes the front for a moment (a screenshot tool such as Snipaste, a clipboard manager, Spotlight) is used over Calm, so coming back from it leaves the card as it was; going on from it to another app counts.
 - A **needs you** is never dropped: if delivery is deferred, it waits, and it stays visible in the sidebar until handled.
 - The Dock icon shows the whole app's state:
   - **running:** a quiet chase around Calm's mark while any session is working;

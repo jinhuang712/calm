@@ -31,7 +31,6 @@ final class TerminalWorkspaceView: NSView {
     var hoveredID: UUID?
     /// The pane whose icon's menu is open or which is being dragged by its icon: its icon stays.
     var busyHandleID: UUID?
-    var handleMonitor: Any?
     /// Whether the chrome is dark: the icons and their tiles are drawn in white, or in black.
     var handleIsDark = true {
         didSet { handleViews.values.forEach { $0.isDark = handleIsDark } }
@@ -62,12 +61,6 @@ final class TerminalWorkspaceView: NSView {
     @available(*, unavailable)
     required init?(coder _: NSCoder) {
         fatalError("not supported")
-    }
-
-    deinit {
-        MainActor.assumeIsolated {
-            removeHandleMonitor()
-        }
     }
 
     /// Visual gap between panes, in points. The divider's grab area is wider.

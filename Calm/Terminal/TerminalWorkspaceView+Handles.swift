@@ -68,40 +68,24 @@ extension TerminalWorkspaceView {
 
     // MARK: Pointer
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        if window == nil {
-            removeHandleMonitor()
-        } else {
-            installHandleMonitor()
-        }
+    /// Which pane the pointer is on, for the icon that shows on hover: a tracking area over the
+    /// whole view, which the panes in front of it don't hide (they keep their own for the links).
+    /// Not a window-wide event monitor: a window only sends mouse-moved events to monitors when
+    /// it asks for them, and Calm's doesn't.
+    override func updateTrackingAreas() {
+        trackingAreas.filter { $0.owner === self }.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil,
+        ))
+        super.updateTrackingAreas()
     }
 
-    /// Which pane the pointer is on, for the icon that shows on hover. A monitor rather than a
-    /// tracking area: the panes are in front and own the pointer, and they must keep getting it.
-    private func installHandleMonitor() {
-        guard handleMonitor == nil else { return }
-        handleMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .mouseExited]) { [weak self] event in
-            let incoming = UncheckedSendable(event)
-            return MainActor.assumeIsolated { () -> UncheckedSendable<NSEvent?> in
-                self?.pointerMoved(incoming.value)
-                return UncheckedSendable(incoming.value)
-            }.value
-        }
+    override func mouseMoved(with event: NSEvent) {
+        setHovered(hasSplits ? paneID(at: convert(event.locationInWindow, from: nil)) : nil)
     }
 
-    func removeHandleMonitor() {
-        if let handleMonitor {
-            NSEvent.removeMonitor(handleMonitor)
-        }
-        handleMonitor = nil
-    }
-
-    private func pointerMoved(_ event: NSEvent) {
-        guard let window, event.window === window, !isHiddenOrHasHiddenAncestor, hasSplits else {
-            return setHovered(nil)
-        }
-        setHovered(paneID(at: convert(window.mouseLocationOutsideOfEventStream, from: nil)))
+    override func mouseExited(with _: NSEvent) {
+        setHovered(nil)
     }
 
     /// The pane under `point` (this view's coordinates), if it is on screen.
@@ -250,8 +234,10 @@ final class SplitHandleView: NSView, NSDraggingSource {
         onClick?(self)
     }
 
+    /// A move, which the workspace answers to; and a copy, which is all a SwiftUI drop target (the
+    /// sidebar's) proposes: a source that allowed only a move would be refused there.
     nonisolated func draggingSession(_: NSDraggingSession, sourceOperationMaskFor _: NSDraggingContext) -> NSDragOperation {
-        .move
+        [.move, .copy]
     }
 
     nonisolated func draggingSession(_: NSDraggingSession, movedTo screenPoint: NSPoint) {

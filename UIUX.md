@@ -163,6 +163,16 @@ While Calm runs, the Dock icon shows how the work is going, one state at a time:
 - The welcome page draws this same mark with the same view, so it is always the real icon, and gives it two motions of its own, an arrival and a breathing cursor, that never mean *working* (see Welcome page).
 - No badges and no bouncing.
 
+### The dev build
+
+The Debug build ("Calm Dev": what `mise run run` and the self-tests launch) is set apart from the installed one in three small ways you can see, and one you can't, so the two are never taken for each other. Nothing else differs: themes, states, layout and motion are the shipped ones, so what is tested is what is installed.
+
+- **Icon:** the same mark, the same states and motion, on a cool lavender tile, with violet where the shipped icon is warm (ring, center, cursor, glow). Violet because no state uses it: working is blue, done sage, needs you amber, failed red. Done and failed keep their colors. The welcome page's mark takes it too, since it is the same drawing.
+- **Name:** "Calm Dev" in the menu bar, the Dock, notifications, the About panel, the Calm menu's items ("Quit Calm Dev") and the window's title when no session is open.
+- **DEV tag:** plain small capitals (11 pt, tracked, semibold) in the icon's violet, at the right end of the strip above the sidebar's search field, level with the traffic lights. No box, and nothing else in the chrome takes the color.
+
+The fourth is its own bundle identifier, `com.jinhuang.calm.dev` (the installed Calm's is `com.jinhuang.calm`). macOS keeps a Calm pinned in the Dock apart from the dev build running beside it, and the dev build has its own defaults (the window's saved frame), notification settings and privacy grants, which it asks for again the first time. Its state folder and control socket are still the installed Calm's, so the two still can't run at once.
+
 ## Arrival card
 
 - Appears at the top of the pane when switching into an agent session, only when it adds something: the sidebar is hidden (its card would say the same) and the session had activity since the user left it. ⌘⇧I shows it any time.

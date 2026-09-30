@@ -282,19 +282,50 @@ final class DockIconView: NSView {
         var shadow: RGB
         var shadowAlpha: Double
 
-        static let dark = Palette(
-            top: RGB(0x2C2723), bottom: RGB(0x1B1815), tile: RGB(0x24201C),
-            ring: RGB(0xCEA081), ringWeight: 0.45, grey: RGB(0x8B8580),
-            center: RGB(0xCEA081), cursor: RGB(0xF3D9BD), done: RGB(0xAED6AE), failed: RGB(0xE39A90),
-            glow: RGB(0xF6DCC0), glowDone: RGB(0xB5DBB5), glowFailed: RGB(0xE8A59C),
-            shadow: .black, shadowAlpha: 0.28,
+        static var dark: Palette {
+            BuildVariant.isDev ? dev.dark : shipped.dark
+        }
+
+        static var light: Palette {
+            BuildVariant.isDev ? dev.light : shipped.light
+        }
+
+        static let shipped = (
+            dark: Palette(
+                top: RGB(0x2C2723), bottom: RGB(0x1B1815), tile: RGB(0x24201C),
+                ring: RGB(0xCEA081), ringWeight: 0.45, grey: RGB(0x8B8580),
+                center: RGB(0xCEA081), cursor: RGB(0xF3D9BD), done: RGB(0xAED6AE), failed: RGB(0xE39A90),
+                glow: RGB(0xF6DCC0), glowDone: RGB(0xB5DBB5), glowFailed: RGB(0xE8A59C),
+                shadow: .black, shadowAlpha: 0.28,
+            ),
+            light: Palette(
+                top: RGB(0xFCFAF7), bottom: RGB(0xEBE4DB), tile: RGB(0xF3EEE8),
+                ring: RGB(0xC6AC97), ringWeight: 1, grey: RGB(0xBAB4AE),
+                center: RGB(0x8F5F3C), cursor: RGB(0xD98A4E), done: RGB(0x5A9160), failed: RGB(0xB35A50),
+                glow: RGB(0xF0A868), glowDone: RGB(0x9FD0A2), glowFailed: RGB(0xEBA59C),
+                shadow: RGB(0x3A2A1C), shadowAlpha: 0.18,
+            ),
         )
-        static let light = Palette(
-            top: RGB(0xFCFAF7), bottom: RGB(0xEBE4DB), tile: RGB(0xF3EEE8),
-            ring: RGB(0xC6AC97), ringWeight: 1, grey: RGB(0xBAB4AE),
-            center: RGB(0x8F5F3C), cursor: RGB(0xD98A4E), done: RGB(0x5A9160), failed: RGB(0xB35A50),
-            glow: RGB(0xF0A868), glowDone: RGB(0x9FD0A2), glowFailed: RGB(0xEBA59C),
-            shadow: RGB(0x3A2A1C), shadowAlpha: 0.18,
+
+        /// The dev build's icon (BuildVariant): the same mark on a cool tile, with violet where the
+        /// shipped one is warm. Violet because no state uses it (working is blue, done sage,
+        /// needs you amber, failed red); done and failed keep their colors, so the icon's states
+        /// still read the same. Matches AppIconDev.icon (scripts/app-icon.py); change them together.
+        static let dev = (
+            dark: Palette(
+                top: RGB(0x25232F), bottom: RGB(0x16151D), tile: RGB(0x1E1C26),
+                ring: RGB(0xB8A8E8), ringWeight: 0.45, grey: RGB(0x86848E),
+                center: RGB(0xB8A8E8), cursor: RGB(0xE3DAF8), done: RGB(0xAED6AE), failed: RGB(0xE39A90),
+                glow: RGB(0xE6DCFA), glowDone: RGB(0xB5DBB5), glowFailed: RGB(0xE8A59C),
+                shadow: .black, shadowAlpha: 0.28,
+            ),
+            light: Palette(
+                top: RGB(0xF9F8FD), bottom: RGB(0xE6E3F0), tile: RGB(0xEFEDF6),
+                ring: RGB(0xB9B0D0), ringWeight: 1, grey: RGB(0xB4B2BC),
+                center: RGB(0x5E4C8F), cursor: RGB(0x7C5FD3), done: RGB(0x5A9160), failed: RGB(0xB35A50),
+                glow: RGB(0xA98BF0), glowDone: RGB(0x9FD0A2), glowFailed: RGB(0xEBA59C),
+                shadow: RGB(0x2A2440), shadowAlpha: 0.18,
+            ),
         )
     }
 }

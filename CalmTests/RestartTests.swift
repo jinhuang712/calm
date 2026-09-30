@@ -8,8 +8,9 @@ struct RestartTests {
     @MainActor
     @Test func `the Restart item sits just above Quit, with no shortcut to hit by mistake`() throws {
         let appMenu = try #require(MainMenu.make().items.first?.submenu)
-        let index = try #require(appMenu.items.firstIndex { $0.title == "Restart Calm" })
-        #expect(appMenu.items[index + 1].title == "Quit Calm")
+        let name = BuildVariant.appName
+        let index = try #require(appMenu.items.firstIndex { $0.title == "Restart \(name)" })
+        #expect(appMenu.items[index + 1].title == "Quit \(name)")
         #expect(appMenu.items[index].keyEquivalent.isEmpty)
         #expect(appMenu.items[index].target === TerminalMenuTarget.shared)
     }

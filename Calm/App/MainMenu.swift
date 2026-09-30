@@ -23,8 +23,9 @@ enum MainMenu {
     }
 
     private static func appMenu() -> NSMenu {
-        let menu = NSMenu(title: "Calm")
-        menu.addItem(withTitle: "About Calm", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let name = BuildVariant.appName
+        let menu = NSMenu(title: name)
+        menu.addItem(withTitle: "About \(name)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         menu.addItem(.separator())
         let settings = NSMenuItem(title: "Settings…", action: #selector(TerminalMenuTarget.showSettings(_:)), keyEquivalent: ",")
         settings.target = TerminalMenuTarget.shared
@@ -35,7 +36,7 @@ enum MainMenu {
         menu.addItem(.separator())
         menu.addItem(terminalItem("Reload Configuration", "reload_config", key: ",", mods: [.command, .shift]))
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Hide Calm", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        menu.addItem(withTitle: "Hide \(name)", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthers = menu.addItem(
             withTitle: "Hide Others",
             action: #selector(NSApplication.hideOtherApplications(_:)),
@@ -44,12 +45,12 @@ enum MainMenu {
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(.separator())
         // No shortcut: a restart is rare, and one key away from ⌘Q it would be easy to hit by mistake.
-        let restart = NSMenuItem(title: "Restart Calm", action: #selector(TerminalMenuTarget.restart(_:)), keyEquivalent: "")
+        let restart = NSMenuItem(title: "Restart \(name)", action: #selector(TerminalMenuTarget.restart(_:)), keyEquivalent: "")
         restart.target = TerminalMenuTarget.shared
         // AppKit gives Hide and Quit their symbols; this one sits with Quit, so it gets one too.
         restart.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
         menu.addItem(restart)
-        menu.addItem(withTitle: "Quit Calm", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit \(name)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         return menu
     }
 

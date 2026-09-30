@@ -171,6 +171,11 @@ struct SidebarView: View {
             // this is the only gap; counting both left a hole above the search field.
             // As tall as the window's title strip, so the search field and the terminal start level.
             Color.clear.frame(height: CalmWindow.titleStripHeight)
+                .overlay(alignment: .trailing) {
+                    if BuildVariant.isDev {
+                        DevTag(isDark: style.isDark)
+                    }
+                }
             searchField
                 .padding(.horizontal, 14.scaled)
                 .padding(.bottom, 18.scaled)

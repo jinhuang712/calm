@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Writes Calm's app icon, Calm/Resources/AppIcon.icon (an Icon Composer document).
+"""Writes Calm's app icons, Calm/Resources/AppIcon.icon and AppIconDev.icon (Icon Composer documents).
 
 The mark is a 5 x 5 grid of cells: an open ring of ten, a still center, and the cursor cell
 just past the ring's end (UIUX.md -> App icon). One layer per part, each with a light and a
 dark color, so the Finder and the Dock follow the system appearance. Liquid Glass is turned
 off: the mark is flat on purpose.
+
+AppIconDev is the Debug build's icon (Calm/App/BuildVariant.swift): the same mark on a cool
+tile, violet where the shipped one is warm, so the dev build is never taken for the installed one.
 
 The same geometry and colors are drawn at runtime for the Dock's working, done and failed
 states (Calm/App/DockIcon.swift); change them together.
@@ -16,7 +19,7 @@ Check the result with Icon Composer's ictool (see DESIGNS.md -> App icon).
 import json
 from pathlib import Path
 
-OUT = Path("Calm/Resources/AppIcon.icon")
+RESOURCES = Path("Calm/Resources")
 
 # The design is drawn on an 824-point tile; an Icon Composer canvas is the tile itself, 1024.
 SCALE = 1024 / 824
@@ -39,6 +42,22 @@ DARK = {
     "ring": "#705a49", "center": "#cea081", "cursor": "#f3d9bd",
 }
 
+# The dev icon. Violet, because no state uses it (working is blue, done sage, needs you amber,
+# failed red). Its dark ring is #b8a8e8 at 45% over the tile #1e1c26.
+LIGHT_DEV = {
+    "top": "#f9f8fd", "bottom": "#e6e3f0",
+    "ring": "#b9b0d0", "center": "#5e4c8f", "cursor": "#7c5fd3", "glow": "#a98bf0",
+}
+DARK_DEV = {
+    "top": "#25232f", "bottom": "#16151d",
+    "ring": "#635b7d", "center": "#b8a8e8", "cursor": "#e3daf8",
+}
+
+VARIANTS = {
+    "AppIcon": (LIGHT, DARK),
+    "AppIconDev": (LIGHT_DEV, DARK_DEV),
+}
+
 
 def srgb(hex_color: str) -> str:
     r, g, b = (int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
@@ -57,13 +76,13 @@ def cells_svg(cells) -> str:
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">' + "".join(rects) + "</svg>\n"
 
 
-def glow_svg() -> str:
+def glow_svg(light: dict) -> str:
     # A soft warm light behind the cursor cell, on the light icon only. It keeps its own colors:
     # a layer fill would flatten the fade into a disc.
     row, col = CURSOR[0]
     cx = (ORIGIN + col * PITCH + CELL / 2) * SCALE
     cy = (ORIGIN + row * PITCH + CELL / 2) * SCALE
-    color = LIGHT["glow"]
+    color = light["glow"]
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">'
         f'<defs><radialGradient id="g"><stop offset="0" stop-color="{color}" stop-opacity="0.45"/>'
@@ -94,28 +113,29 @@ def gradient(colors: dict) -> dict:
     }
 
 
-def main() -> None:
-    assets = OUT / "Assets"
+def write_icon(name: str, light: dict, dark: dict) -> None:
+    out = RESOURCES / f"{name}.icon"
+    assets = out / "Assets"
     assets.mkdir(parents=True, exist_ok=True)
     (assets / "ring.svg").write_text(cells_svg(RING))
     (assets / "center.svg").write_text(cells_svg(CENTER))
     (assets / "cursor.svg").write_text(cells_svg(CURSOR))
-    (assets / "glow.svg").write_text(glow_svg())
+    (assets / "glow.svg").write_text(glow_svg(light))
 
     icon = {
         "fill-specializations": [
-            {"value": gradient(LIGHT)},
-            {"appearance": "dark", "value": gradient(DARK)},
+            {"value": gradient(light)},
+            {"appearance": "dark", "value": gradient(dark)},
         ],
         "groups": [
             {
                 "name": "Mark",
                 # Front to back.
                 "layers": [
-                    layer("Cursor", "cursor.svg", LIGHT["cursor"], DARK["cursor"]),
+                    layer("Cursor", "cursor.svg", light["cursor"], dark["cursor"]),
                     glow_layer(),
-                    layer("Center", "center.svg", LIGHT["center"], DARK["center"]),
-                    layer("Ring", "ring.svg", LIGHT["ring"], DARK["ring"]),
+                    layer("Center", "center.svg", light["center"], dark["center"]),
+                    layer("Ring", "ring.svg", light["ring"], dark["ring"]),
                 ],
                 "lighting": "combined",
                 "specular": False,
@@ -125,8 +145,13 @@ def main() -> None:
         ],
         "supported-platforms": {"squares": "shared"},
     }
-    (OUT / "icon.json").write_text(json.dumps(icon, indent=2) + "\n")
-    print(f"wrote {OUT}")
+    (out / "icon.json").write_text(json.dumps(icon, indent=2) + "\n")
+    print(f"wrote {out}")
+
+
+def main() -> None:
+    for name, (light, dark) in VARIANTS.items():
+        write_icon(name, light, dark)
 
 
 if __name__ == "__main__":

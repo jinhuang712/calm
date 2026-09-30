@@ -59,11 +59,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !shellsSurvive, TerminalEngine.shared.needsConfirmQuit else { return .terminateNow }
         let alert = NSAlert()
         if Restart.isRequested {
-            alert.messageText = "Restart Calm?"
+            alert.messageText = "Restart \(BuildVariant.appName)?"
             alert.informativeText = "Processes are still running in some terminals. Restarting ends them."
             alert.addButton(withTitle: "Restart")
         } else {
-            alert.messageText = "Quit Calm?"
+            alert.messageText = "Quit \(BuildVariant.appName)?"
             alert.informativeText = "Processes are still running in some terminals."
             alert.addButton(withTitle: "Quit")
         }

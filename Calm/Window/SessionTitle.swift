@@ -198,7 +198,7 @@ extension MainWindowController {
             onRename: { [weak self] id in self?.beginRename(id) },
             onClose: { [weak self] id in self?.requestCloseSession(id) },
             // The window's title stays hidden (titleVisibility), but the system still shows it.
-            onChange: { [weak self] title in self?.window?.title = title.isEmpty ? "Calm" : title },
+            onChange: { [weak self] title in self?.window?.title = title.isEmpty ? BuildVariant.appName : title },
             onMenuFrame: { [weak self] frame in self?.titleHost?.menuFrame = frame },
         )
     }

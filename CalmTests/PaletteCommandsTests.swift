@@ -125,7 +125,8 @@ struct PaletteCommandsTests {
         let session = running(.claudeCode)
         // The card's menu and ⌘P call the same actions.
         let menu = SidebarActions(
-            rename: { _, _ in }, resume: { _ in }, fork: { _, _ in }, newScratchSession: {}, showFooter: { _ in }, search: {},
+            rename: { _, _ in }, resume: { _ in }, fork: { _, _ in }, newScratchSession: {},
+            newAgentSession: { _ in }, chooseNewSessionAgent: {}, showFooter: { _ in }, search: {},
             toggleFiles: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in }, removeProject: { _ in },
             move: { _, _ in }, followFolder: { _ in }, keepScratch: { _ in }, copy: { _, _ in }, openFolder: { _ in }, takeOut: { _ in },
             restart: { restarted.append($0) }, cancelRestart: { kept.append($0) },

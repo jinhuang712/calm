@@ -9,7 +9,7 @@ import Foundation
 struct SessionActionSet {
     /// The agent whose ended conversation can be resumed in this shell.
     let resumes: AgentKind?
-    /// The running agent that can be restarted on its conversation (⌘P only).
+    /// The running agent that can be restarted on its conversation.
     let restarts: AgentKind?
     let forks: Bool
     let copies: [SessionCopy]
@@ -29,6 +29,14 @@ struct SessionActionSet {
         opensFolder = !session.isScratch && !copies.isEmpty
         keepsAsProject = session.isScratch
         transcriptFile = Self.transcriptFile(of: session)
+    }
+
+    /// The restart item's words, the same in the menu and ⌘P: what choosing it does now.
+    nonisolated static func restartTitle(_ kind: AgentKind, state: SessionState, pending: Bool) -> String {
+        if pending {
+            return "Don't Restart \(kind.displayName)"
+        }
+        return SessionManager.isMidTurn(state) ? "Restart \(kind.displayName) After This Turn" : "Restart \(kind.displayName)"
     }
 
     private static func transcriptFile(of session: Session) -> String? {

@@ -77,8 +77,6 @@ extension MainWindowController {
                 rename: { [weak self] in self?.beginRename(session.id) },
                 copyLastReply: { [weak self] id in self?.copyLastReply(of: id) },
                 openTranscript: { [weak self] id in self?.openTranscript(of: id) },
-                restart: { [weak self] id in self?.restartAgent(in: id) },
-                cancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
                 restartPending: manager.restarts[session.id] == .afterTurn,
             ))
         } ?? SessionRows()

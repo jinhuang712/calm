@@ -122,22 +122,32 @@ struct PaletteCommandsTests {
         var restarted: [UUID] = []
         var kept: [UUID] = []
         let session = running(.claudeCode)
+        // The card's menu and ⌘P call the same actions.
         let menu = SidebarActions(
             rename: { _, _ in }, resume: { _ in }, fork: { _, _ in }, newScratchSession: {}, showFooter: { _ in }, search: {},
             toggleFiles: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in }, removeProject: { _ in },
             move: { _, _ in }, followFolder: { _ in }, keepScratch: { _ in }, copy: { _, _ in }, openFolder: { _ in }, takeOut: { _ in },
+            restart: { restarted.append($0) }, cancelRestart: { kept.append($0) },
         )
         let idle = PaletteCommand.session(session, menu: menu, palette: PaletteSessionActions(
-            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in }, restart: { restarted.append($0) },
+            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in },
         ))
         try #require(idle.agent.first { $0.title == "Restart Claude Code" }).run()
         #expect(restarted == [session.id])
         let waiting = PaletteCommand.session(session, menu: menu, palette: PaletteSessionActions(
-            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in }, cancelRestart: { kept.append($0) }, restartPending: true,
+            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in }, restartPending: true,
         ))
         #expect(!waiting.agent.contains { $0.title == "Restart Claude Code" })
         try #require(waiting.agent.first { $0.title == "Don't Restart Claude Code" }).run()
         #expect(kept == [session.id])
+    }
+
+    @Test func `the restart item says what choosing it does now`() {
+        #expect(SessionActionSet.restartTitle(.claudeCode, state: .idle, pending: false) == "Restart Claude Code")
+        #expect(SessionActionSet.restartTitle(.claudeCode, state: .done, pending: false) == "Restart Claude Code")
+        #expect(SessionActionSet.restartTitle(.claudeCode, state: .working, pending: false) == "Restart Claude Code After This Turn")
+        #expect(SessionActionSet.restartTitle(.claudeCode, state: .needsYou, pending: false) == "Restart Claude Code After This Turn")
+        #expect(SessionActionSet.restartTitle(.claudeCode, state: .working, pending: true) == "Don't Restart Claude Code")
     }
 
     @Test func `an agent Calm can't quit cleanly, or one not yet probed, has no restart`() {

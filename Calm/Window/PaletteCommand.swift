@@ -103,8 +103,6 @@ struct PaletteSessionActions {
     let rename: @MainActor () -> Void
     let copyLastReply: @MainActor (Session.ID) -> Void
     let openTranscript: @MainActor (Session.ID) -> Void
-    var restart: @MainActor (Session.ID) -> Void = { _ in }
-    var cancelRestart: @MainActor (Session.ID) -> Void = { _ in }
     /// The session's agent is waiting for its turn to end to restart.
     var restartPending = false
 }
@@ -131,12 +129,12 @@ extension PaletteCommand {
         if let kind = available.resumes {
             rows.agent.append(PaletteCommand(.resume, title: "Resume \(kind.displayName) Conversation") { menu.resume(id) })
         }
-        // Only here and on the title strip's update hint: restarting isn't an everyday action.
         if let kind = available.restarts {
+            let title = SessionActionSet.restartTitle(kind, state: session.state, pending: palette.restartPending)
             if palette.restartPending {
-                rows.agent.append(PaletteCommand(.cancelRestart, title: "Don't Restart \(kind.displayName)") { palette.cancelRestart(id) })
+                rows.agent.append(PaletteCommand(.cancelRestart, title: title) { menu.cancelRestart(id) })
             } else {
-                rows.agent.append(PaletteCommand(.restartAgent, title: "Restart \(kind.displayName)") { palette.restart(id) })
+                rows.agent.append(PaletteCommand(.restartAgent, title: title) { menu.restart(id) })
             }
         }
         if available.transcriptFile != nil {

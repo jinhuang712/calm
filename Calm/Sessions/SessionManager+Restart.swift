@@ -15,8 +15,8 @@ enum RestartPhase: Equatable {
 /// Restarting an agent on its conversation (FEATURES.md → F12, DESIGNS.md → Agents → Restart):
 /// after an update, so the session runs the new version and carries on where it was. The agent
 /// is asked to quit with its adapter's signal; once its process is gone, the command that starts
-/// it again with the same options on the same conversation is typed into its shell. ⌘P and the
-/// title strip's update hint call it; nothing restarts by itself.
+/// it again with the same options on the same conversation is typed into its shell. The session's
+/// menu, ⌘P and the title strip's update hint call it; nothing restarts by itself.
 extension SessionManager {
     /// The agent that a restart would start again here: one running, whose conversation is known
     /// and whose adapter knows how to quit it.

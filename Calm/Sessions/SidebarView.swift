@@ -571,6 +571,10 @@ struct SidebarActions {
     let openFolder: (Session.ID) -> Void
     /// Takes a pane out of its split: the session stays, on its own.
     let takeOut: (Session.ID) -> Void
+    /// Restarts the agent on its conversation (now, or after its turn), and takes back a restart
+    /// still waiting (FEATURES.md → F12).
+    var restart: (Session.ID) -> Void = { _ in }
+    var cancelRestart: (Session.ID) -> Void = { _ in }
 }
 
 /// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.

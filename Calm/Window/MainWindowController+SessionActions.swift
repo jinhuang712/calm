@@ -65,6 +65,8 @@ extension MainWindowController {
             copy: { [weak self] id, copy in self?.copy(copy, of: id) },
             openFolder: { [weak self] id in self?.openFolder(of: id) },
             takeOut: { [weak self] id in self?.takeOutPane(id) },
+            restart: { [weak self] id in self?.restartAgent(in: id) },
+            cancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
         )
     }
 

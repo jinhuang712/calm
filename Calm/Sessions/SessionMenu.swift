@@ -18,6 +18,18 @@ struct SessionMenu: View {
         if let kind = available.resumes {
             Button("Resume \(kind.displayName) Conversation") { actions.resume(session.id) }
         }
+        // Resume's place while the agent runs: the two never show together.
+        if let kind = available.restarts {
+            let pending = manager.restarts[session.id] == .afterTurn
+            Button(SessionActionSet.restartTitle(kind, state: session.state, pending: pending)) {
+                if pending {
+                    actions.cancelRestart(session.id)
+                } else {
+                    actions.restart(session.id)
+                }
+            }
+            .disabled(manager.restarts[session.id] == .restarting)
+        }
         if available.forks {
             Button("Fork into New Split") { actions.fork(session.id, .split) }
             Button("Fork into New Tab") { actions.fork(session.id, .tab) }

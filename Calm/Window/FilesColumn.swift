@@ -292,6 +292,11 @@ final class FilesColumn {
         (widthConstraint?.constant ?? 0) > 0
     }
 
+    /// What the column takes from the window now: 0 while it's away.
+    var shownWidth: CGFloat {
+        widthConstraint?.constant ?? 0
+    }
+
     init(onOpen: @escaping (String) -> Void) {
         let model = model
         model.onOpen = onOpen
@@ -318,7 +323,9 @@ final class FilesColumn {
         return host
     }
 
-    func toggle(project: String?, isScratch: Bool, in container: NSView) {
+    /// `alongside` runs inside the column's layout animation, after its width is set (the window
+    /// widening to keep the terminal's room).
+    func toggle(project: String?, isScratch: Bool, in container: NSView, alongside: () -> Void = {}) {
         guard let widthConstraint else { return }
         let show = !isShown
         model.isShown = show
@@ -339,6 +346,7 @@ final class FilesColumn {
         }
         Motion.animateLayout(of: container) {
             widthConstraint.constant = show ? Self.width : 0
+            alongside()
         }
     }
 

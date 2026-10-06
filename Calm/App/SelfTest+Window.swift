@@ -188,7 +188,7 @@
             case "window_state":
                 // Where the window is and whether it's in full screen, at this moment.
                 if let window {
-                    let state = "frame \(window.frame), full screen \(window.styleMask.contains(.fullScreen))"
+                    let state = "frame \(window.frame), min \(window.minSize), full screen \(window.styleMask.contains(.fullScreen))"
                     FileHandle.standardError.write(Data("calm-selftest: window \(state)\n".utf8))
                 }
             case "restart":

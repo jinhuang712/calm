@@ -1,8 +1,61 @@
 import AppKit
 
+/// How narrow the window can get (UIUX.md → Layout): the sidebar and the files column as they are,
+/// and room for the terminal beside them, never more than the screen holds.
+enum WindowMinimum {
+    /// The terminal's least room at the standard interface size. With the sidebar shown that makes
+    /// 720 pt, half of a 13-inch MacBook Air's screen (1440 or 1470 pt), so two windows still tile
+    /// side by side; and the title strip always has room for the find field and the group's mark.
+    static let terminalWidth: CGFloat = 400
+    static let height: CGFloat = 320
+
+    /// `sidebar` and `files` are their widths as shown (0 when hidden), `scale` the interface size.
+    static func width(sidebar: CGFloat, files: CGFloat, scale: CGFloat, screenWidth: CGFloat?) -> CGFloat {
+        let width = sidebar + files + terminalWidth * scale
+        guard let screenWidth else { return width }
+        return min(width, screenWidth)
+    }
+
+    /// `frame` widened to `width` when it is narrower, kept on `screen` by moving it left; nil when
+    /// it is wide enough already.
+    static func widened(_ frame: NSRect, to width: CGFloat, on screen: NSRect?) -> NSRect? {
+        guard frame.width < width else { return nil }
+        var frame = frame
+        frame.size.width = width
+        if let screen, frame.maxX > screen.maxX {
+            frame.origin.x = max(screen.minX, screen.maxX - width)
+        }
+        return frame
+    }
+}
+
 /// The window's size across launches (FEATURES.md → F1): AppKit saves the windowed frame, and
 /// Calm adds whether the window was left filling the screen, or in full screen.
 extension MainWindowController {
+    /// Sets the window's narrowest to what the sidebar and the files column take now, plus the
+    /// terminal's room, and widens a window that is narrower than that: a panel opening, a larger
+    /// interface size, or a saved frame from before there was a minimum. Called from inside a
+    /// panel's layout animation, the widening moves with the panel.
+    func updateMinimumSize() {
+        guard let window, let sidebarWidth else { return }
+        // Before the window is first on screen it has no screen; the main one is where it opens.
+        let screen = (window.screen ?? NSScreen.main)?.visibleFrame
+        let width = WindowMinimum.width(
+            sidebar: sidebarWidth.constant, files: filesColumn.shownWidth,
+            scale: InterfaceScale.shared.factor, screenWidth: screen?.width,
+        )
+        window.minSize = NSSize(width: width, height: WindowMinimum.height)
+        // Full screen has the whole screen already, and can't be resized.
+        guard !window.styleMask.contains(.fullScreen),
+              let frame = WindowMinimum.widened(window.frame, to: width, on: screen)
+        else { return }
+        window.setFrame(frame, display: true)
+    }
+
+    func windowDidChangeScreen(_: Notification) {
+        updateMinimumSize()
+    }
+
     /// Brings the window back as the user left it: the frame AppKit saved, then filling the
     /// screen again if it was left that way.
     func restoreFrame() {

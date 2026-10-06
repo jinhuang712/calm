@@ -66,7 +66,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         window.titleVisibility = .hidden
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        window.minSize = NSSize(width: 560, height: 320)
+        // The narrowest follows the sidebar and the files column (updateMinimumSize, once laid out).
+        window.minSize = NSSize(width: WindowMinimum.terminalWidth, height: WindowMinimum.height)
         window.setFrameAutosaveName(Self.frameName)
         super.init(window: window)
         window.delegate = self
@@ -143,6 +144,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         peek?.isEnabled = !hidden
         Motion.animateLayout(of: container) {
             sidebarWidth.constant = hidden ? Self.sidebarWidth : 0
+            updateMinimumSize()
         }
         // With no session chosen, the page carries the ways to start while the sidebar is away.
         updateNoSessionPage()
@@ -353,6 +355,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
         peek?.width = Self.sidebarWidth
         filesColumn.updateWidth()
+        updateMinimumSize()
         filesColumn.model.style = style
         window.appearance = NSAppearance(named: style.isDark ? .darkAqua : .aqua)
         sidebarHost?.rootView = makeSidebar(style: style)

@@ -7,7 +7,9 @@ extension MainWindowController {
 
     /// ⌘\: the focused session's project files.
     func toggleFiles() {
-        filesColumn.toggle(project: focusedProjectPath, isScratch: focusedSession?.isScratch == true, in: container)
+        filesColumn.toggle(project: focusedProjectPath, isScratch: focusedSession?.isScratch == true, in: container) {
+            updateMinimumSize()
+        }
     }
 
     #if DEBUG

@@ -179,7 +179,7 @@ A quick, read-only look at the repository without leaving Calm.
   - **Finding it:** nothing else in the window names the column, so two things do. The sidebar's footer has a fourth row beside the ways to start, **Show Files ⌘\\** (**Hide Files** while the column is up), which teaches the key in the place Calm already teaches keys. And while the project has uncommitted changes, the title strip says so at its right, in plain text: `3 changed +58 −6`. Under the pointer the words become `Show Files ⌘\` in the same place, and a click opens the column. The readout goes while the column is up (its header and Changes show the same numbers) and is absent for a clean project, a folder that isn't a git repository, and a session sitting in Desktop, Documents or Downloads themselves (macOS would ask). It looks again when you come to a session, when an agent starts or stops working in it, when Calm comes forward, and every 8 seconds while an agent works. Picked by the author from local mockups (2026-09-30): the footer row, plus B's readout.
   - A ⌘\\ keybinding in the user's own Ghostty config wins over Calm's, and so does a global shortcut such as 1Password's autofill (⌘\\ by default; see UIUX.md → Keyboard); Toggle Files stays in the View menu.
 - **Viewer:** opening a viewable file (Markdown, HTML, PDF, images; code with syntax highlighting) **covers the main area** where the session was. **Esc** returns to the session exactly as it was; the session keeps running underneath. The viewer stays on the main area as the sidebar and files column open and close, and going to another session (a click, ⌘1…9, ⌃Tab, search, a new session) closes it.
-- Files open from the tree, from ⌘-click (F8), or from `calm open <file>` (also `file:line`, which highlights that line).
+- Files open from the tree, from ⌘-click (F8), or from `calm open <file>` (also `file:line`, which highlights that line in code).
 - **Open in Editor** opens the file in the editor, at the line it was opened at.
 - No editing, creating, renaming or diffing.
 
@@ -230,13 +230,13 @@ A quick, read-only look at the repository without leaving Calm.
 
 What is built, below. Every command in full, with the planned ones: [CLI.md](CLI.md).
 
-- `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line). With no argument, the current folder.
+- `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line in code). With no argument, the current folder.
 - `calm list` — list sessions: project, title, state, agent and folder.
 - `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.
 - `calm status <state> [message]` — report agent state; this is the contract any agent's hooks can call. `--agent <name>`, `--transcript <file>` and `--agent-session <id>` say which agent and which of its conversations this is, for agents that can't send a hook payload (pi's extension does). Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm hook <agent>` — read an agent's hook payload on stdin and report its state; Calm's Claude Code plugin runs `calm hook claude-code`. Safe in any terminal, like `status`.
 - `calm notify <message>` — show a notification for the current session.
-- Talks to the running app over a local socket. `open` and `list` start Calm if it isn't running.
+- Talks to the running app over a local socket. `open` and `list` start Calm if it isn't running: the Calm the CLI came with.
 
 **Settings:** none.
 

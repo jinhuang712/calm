@@ -29,7 +29,7 @@ Status: ✅ built and working as described · 📝 planned, not built. Where a p
 
 - **Exit codes:** 0 done; 1 failed, with the reason on stderr; 64 wrong usage.
 - **Output** is plain text, one record per line. Color, bold and state marks only when printing to a terminal. Every command that prints data (`list`, `status`, `search`, `show`, `doctor`) takes `--json`: one JSON document with a `"v": 1` field, so a script can tell when its shape changes.
-- **Starting Calm.** `calm`, `open` and `list` start Calm when it isn't running and wait up to 5 seconds for it. `search`, `show` and `trace` work without it, reading files directly. `doctor` reports that it isn't running. The hook commands and `notify` never start it.
+- **Starting Calm.** `calm`, `open` and `list` start Calm when it isn't running and wait up to 5 seconds for it. The Calm they start is the app the CLI came with (so a copy installed elsewhere, or a Debug build, starts itself), and only for the standard socket: when `CALM_SOCKET` names another one (a self-test's), that Calm can't be started from here, and they say it isn't running. `search`, `show` and `trace` work without it, reading files directly. `doctor` reports that it isn't running. The hook commands and `notify` never start it.
 - **Two kinds of id.**
   - A *session id* names a session open in Calm: the first 8 hex digits of its id, the same ones the trace and zmx names use. A full id works too.
   - A *conversation id* names an agent's conversation: the agent's own id, the one **Copy Session ID** gives and the agent's resume command takes.
@@ -52,7 +52,7 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 
 #### `calm open file <path>[:line]`
 
-- Shows the file in Calm's viewer, over the session you're looking at. `:line` highlights that line and centers it.
+- Shows the file in Calm's viewer, over the session you're looking at. In code, `:line` highlights that line and centers it; Markdown shows rendered, without line numbers.
 - Always the viewer, even with `open-paths = "editor"` in config.toml: showing the file in Calm is the point of this command, and your editor has a command of its own.
 - A file the viewer can't show (a kind it doesn't know, or over 5 MB) opens in your editor at that line instead.
 - Fails for a missing file, and for a folder: "That's a folder: use `calm open session` or `calm open project`."
@@ -125,6 +125,8 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 
 - Searches every agent's past conversations. One result per conversation, best first: when it was last active, its agent, project and title, then the matching text on the next line, indented, with the matches in bold.
 - Goes through the running Calm, or reads the index itself when Calm isn't running (bringing it up to date first).
+- When Calm answers with an error, it says so and exits 1, rather than search the index behind its back: a Calm older than the CLI says to update it.
+- When Calm is running but hasn't answered after 15 seconds (a cold index can take it that long), it says so and reads the index itself.
 - *Built:* the above, 20 results. *Planned:* each result's conversation id (for `calm show`), `--limit` and `--json`.
 
 ### `calm show <conversation> [--prompts] [--all] [--json]` 📝
@@ -207,7 +209,7 @@ It needs one new request from the app: its process id, bundle path, version and 
 
 ## For agents' hooks ✅
 
-Listed apart at the end of `calm --help`, since people rarely type them. Both never fail the agent: outside a Calm session or with Calm not running they do nothing and exit 0, they never start Calm, and they give up on the socket after 1 second (`scripts/cli-hook-check.sh` checks this).
+Listed apart at the end of `calm --help`, since people rarely type them. Both never fail the agent: outside a Calm session or with Calm not running they do nothing and exit 0, they never start Calm, and they give up on the socket after 1 second (`scripts/cli-hook-check.sh` checks this). `hook` also gives up on its input after 1 second, so a hook runner that leaves stdin open can't hold the agent, and reports nothing for a payload over 16 MB.
 
 ### `calm status <state> [message] [--agent <name>] [--agent-session <id>] [--transcript <file>] [--session <id>]`
 

@@ -29,19 +29,28 @@ status and notify act on $CALM_SESSION_ID (or --session <id>). Outside Calm, or 
 Calm isn't running, they do nothing and exit 0, so hooks are safe in any terminal.
 """
 
-func fail(_ message: String, code: Int32 = 1) -> Never {
+func warn(_ message: String) {
     FileHandle.standardError.write(Data("calm: \(message)\n".utf8))
+}
+
+func fail(_ message: String, code: Int32 = 1) -> Never {
+    warn(message)
     exit(code)
 }
 
-/// Sends a request, starting Calm first if it isn't running.
+/// Sends a request, starting Calm first if it isn't running (the Calm this CLI came with, and
+/// only for the standard socket: `CalmLaunch`).
 func send(_ request: ControlRequest) -> ControlResponse {
     do {
         return try ControlClient.send(request)
-    } catch ControlClient.ClientError.notRunning {
+    } catch let error as ControlClient.ClientError {
+        guard case .notRunning = error else { fail("\(error)") }
+        let executable = Bundle.main.executableURL ?? URL(filePath: CommandLine.arguments[0])
+        guard let openArguments = CalmLaunch.openArguments(executable: executable, socketPath: ControlProtocol.defaultSocketPath)
+        else { fail("\(error)") }
         let launcher = Process()
         launcher.executableURL = URL(filePath: "/usr/bin/open")
-        launcher.arguments = ["-g", "-b", "com.jinhuang.calm"]
+        launcher.arguments = openArguments
         try? launcher.run()
         launcher.waitUntilExit()
         for _ in 0 ..< 50 {
@@ -61,7 +70,7 @@ func report(_ request: ControlRequest) -> Never {
     guard request.session != nil else { exit(0) }
     guard let response = try? ControlClient.send(request, timeout: 1) else { exit(0) }
     if !response.ok, let error = response.error {
-        FileHandle.standardError.write(Data("calm: \(error)\n".utf8))
+        warn(error)
     }
     exit(0)
 }
@@ -76,24 +85,15 @@ func sessionAndWords(_ words: [String]) -> (session: String?, words: [String]) {
     return (parsed.session, parsed.words)
 }
 
-/// One session per result: when, which agent, project, title, then the matching text.
-func printSearchHits(_ hits: [ControlResponse.SearchHit]) {
-    let styled = isatty(STDOUT_FILENO) == 1
-    let bold = styled ? "\u{1B}[1m" : ""
-    let dim = styled ? "\u{1B}[2m" : ""
-    let reset = styled ? "\u{1B}[0m" : ""
-    for hit in hits {
-        let age = Date().timeIntervalSince1970 - hit.lastActive
-        let when = age < 3600 ? "\(max(Int(age / 60), 0))m" : age < 86400 ? "\(Int(age / 3600))h" : "\(Int(age / 86400))d"
-        let project = hit.directory.map { ($0 as NSString).lastPathComponent } ?? "-"
-        print("\(dim)\(when)\t\(hit.agent)\t\(project)\(reset)\t\(bold)\(hit.title)\(reset)")
-        let snippet = hit.snippet
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\u{2}", with: bold)
-            .replacingOccurrences(of: "\u{3}", with: reset)
-        if !snippet.isEmpty {
-            print("    \(snippet)")
-        }
+/// Calm isn't there to ask: read the index directly, bringing it up to date first.
+func searchIndex(_ query: String) -> [ControlResponse.SearchHit] {
+    guard let index = try? SearchIndex() else { fail("couldn't open the search index") }
+    index.update()
+    return index.search(query, limit: 20).map { result in
+        ControlResponse.SearchHit(
+            title: result.title, agent: result.agent.displayName, directory: result.directory,
+            lastActive: result.lastActive.timeIntervalSince1970, snippet: result.snippet, transcript: result.transcriptPath,
+        )
     }
 }
 
@@ -107,7 +107,7 @@ case "list", "ls":
     let response = send(ControlRequest(cmd: .list))
     guard response.ok else { fail(response.error ?? "failed") }
     for session in response.sessions ?? [] {
-        print("\(session.project)\t\(session.title)\t\(session.state)\t\(session.agent ?? "-")\t\(session.directory)")
+        print(CLIOutput.line(for: session))
     }
 case "open":
     let target = arguments.count > 1 ? arguments[1] : FileManager.default.currentDirectoryPath
@@ -128,8 +128,7 @@ case "hook":
     // Called by agents' hooks on every event: read the payload, report, never fail the agent.
     guard arguments.count > 1, let reporter = Agents.hookReporter(named: arguments[1]) else { exit(0) }
     let (session, _) = sessionAndWords([])
-    let payload = FileHandle.standardInput.readData(ofLength: 4_000_000)
-    guard let hook = reporter.hookReport(from: payload) else { exit(0) }
+    guard let payload = HookInput.read(), let hook = reporter.hookReport(from: payload) else { exit(0) }
     report(ControlRequest(
         cmd: .status, session: session, state: hook.state.reportName, message: hook.message,
         agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
@@ -137,21 +136,24 @@ case "hook":
     ))
 case "search", "s":
     let query = arguments.dropFirst().joined(separator: " ")
-    var hits: [ControlResponse.SearchHit]
-    if let response = try? ControlClient.send(ControlRequest(cmd: .search, query: query), timeout: 15), response.ok {
-        hits = response.results ?? []
-    } else {
-        // Calm isn't running: read the index directly, bringing it up to date first.
-        guard let index = try? SearchIndex() else { fail("couldn't open the search index") }
-        index.update()
-        hits = index.search(query, limit: 20).map { result in
-            ControlResponse.SearchHit(
-                title: result.title, agent: result.agent.displayName, directory: result.directory,
-                lastActive: result.lastActive.timeIntervalSince1970, snippet: result.snippet, transcript: result.transcriptPath,
-            )
+    // A long wait is allowed: a cold index takes Calm more than ten seconds to search.
+    let answer = Result { try ControlClient.send(ControlRequest(cmd: .search, query: query), timeout: 15) }
+    let hits: [ControlResponse.SearchHit]
+    switch SearchRoute.from(answer) {
+    case let .results(found):
+        hits = found
+    case let .refused(error):
+        fail(error)
+    case let .index(notice):
+        if let notice {
+            warn(notice)
         }
+        hits = searchIndex(query)
     }
-    printSearchHits(hits)
+    let styled = isatty(STDOUT_FILENO) == 1
+    for hit in hits {
+        CLIOutput.lines(for: hit, now: .now, styled: styled).forEach { print($0) }
+    }
 case "notify":
     let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
     guard !words.isEmpty else { fail("give a message", code: 64) }

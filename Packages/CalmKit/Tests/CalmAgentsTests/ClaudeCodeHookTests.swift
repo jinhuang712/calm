@@ -47,6 +47,19 @@ struct ClaudeCodeHookTests {
         #expect(report.message == "Nothing looks broken. Two things on that card are easy to misread. the state; the title")
     }
 
+    /// A long reply (5 MB held the hook for 3 s) is read only as far as its recap needs: the
+    /// recap is the same as the whole reply's.
+    @Test func `a long reply gets the recap the whole of it gives`() throws {
+        let reply = "Fixed the parser. The rest is the log, as asked.\n\n```\n" + String(repeating: "log line\n", count: 1000) + "```\n"
+            + String(repeating: "Line of the log that goes on and on. ", count: 6000)
+        #expect(reply.count > ClaudeCodeAdapter.recapSource * 5)
+        let report = try #require(adapter.hookReport(from: payload(["hook_event_name": "Stop", "last_assistant_message": reply])))
+
+        #expect(report.state == .done)
+        #expect(report.message == MessageText.recap(reply))
+        #expect(report.message?.hasPrefix("Fixed the parser. The rest is the log, as asked. Line of the log") == true)
+    }
+
     /// What someone is asked to allow is the command itself: never Markdown, never rewritten.
     @Test func `a permission request keeps its command as it is`() throws {
         let command = "find . -name '*.py' -o -name '*.js'\n# then\necho `date` | sort **/dist"

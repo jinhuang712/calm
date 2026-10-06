@@ -10,6 +10,11 @@ public enum ControlProtocol {
         if let override = ProcessInfo.processInfo.environment["CALM_SOCKET"], !override.isEmpty {
             return override
         }
+        return standardSocketPath
+    }
+
+    /// Where a Calm started without `CALM_SOCKET` listens.
+    public static var standardSocketPath: String {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appending(path: "Calm/calm.sock").path
     }

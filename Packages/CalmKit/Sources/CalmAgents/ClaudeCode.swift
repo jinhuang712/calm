@@ -74,6 +74,13 @@ extension ClaudeCodeAdapter: HookReporting {
         }
     }
 
+    /// How much of a reply a hook reads for its recap. The recap is the first 280 columns of what
+    /// is left once code, tables and headings are dropped, and making it from a whole reply of a
+    /// megabyte held the Stop hook, and so Claude, for most of a second (5 MB: 3 s). Only a reply
+    /// that opens with this much code or table could lose words, and the transcript tail's recap
+    /// reads it whole.
+    static let recapSource = 32000
+
     public func hookReport(from payload: Data) -> HookReport? {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -83,7 +90,7 @@ extension ClaudeCodeAdapter: HookReporting {
         func report(_ state: SessionState, _ message: String? = nil, prose: Bool = false, shells: Int = 0) -> HookReport {
             HookReport(
                 state: state,
-                message: prose ? MessageText.recap(message) : HookReport.recap(message),
+                message: prose ? MessageText.recap(message.map { String($0.prefix(Self.recapSource)) }) : HookReport.recap(message),
                 agentSessionID: hook.sessionId,
                 transcriptPath: hook.transcriptPath,
                 backgroundShells: shells,

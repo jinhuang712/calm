@@ -91,6 +91,11 @@ struct HookInputTests {
             close(writer)
         }
 
-        #expect(HookInput.read(from: reader, timeLimit: 30) == payload)
+        // How long the read took says which way it gave up, if it did: at the limit (the writer
+        // stalled) or at once (an error, such as another test closing this test's descriptor).
+        let start = ProcessInfo.processInfo.systemUptime
+        let read = HookInput.read(from: reader, timeLimit: 30)
+        let waited = ProcessInfo.processInfo.systemUptime - start
+        #expect(read == payload, "read for \(String(format: "%.2f", waited)) s")
     }
 }

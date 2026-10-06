@@ -16,6 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A runner is not a Mac on a desk (fewer cores, a 1x display, system events in flight), and
+      # tests have failed here for that. Printed first, so such a failure is read, not guessed.
+      - name: Runner
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+          xcodebuild -version
+          swift -e 'import AppKit; for s in NSScreen.screens { print("screen \(Int(s.frame.width))x\(Int(s.frame.height)) at \(s.backingScaleFactor)x") }' || true
+
       - uses: jdx/mise-action@v2
         with:
           install: true
@@ -46,13 +55,23 @@ jobs:
           key: ${{ steps.ghosttykit-cache.outputs.cache-primary-key }}
 
       - name: Fetch zmx
+        id: zmx
         run: mise run zmx
 
+      # From here on a red step doesn't hide the ones after it: lint, the package's tests and the
+      # app's tests each report, so one run shows every failure instead of the first.
       - name: Lint
         run: mise run lint
 
       - name: Build
+        id: build
+        if: ${{ !cancelled() && steps.zmx.outcome == 'success' }}
         run: mise run build
 
-      - name: Test
-        run: mise run test
+      - name: Test packages
+        if: ${{ !cancelled() }}
+        run: scripts/xcode.sh test-packages
+
+      - name: Test app
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/xcode.sh test-app

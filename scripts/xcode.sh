@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Thin wrapper around xcodebuild used by the mise tasks.
-#   scripts/xcode.sh build | test | run
+#   scripts/xcode.sh build | test | test-packages | test-app | run
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,8 +19,18 @@ case "${1:-build}" in
     xcodebuild "${common[@]}" build | pretty
     ;;
   test)
-    set -o pipefail
+    # The app's tests run even when the package's fail, so one run shows every failure (CI
+    # once showed one per run: a red package test hid two red app tests for three runs).
+    status=0
+    "$root/scripts/xcode.sh" test-packages || status=1
+    "$root/scripts/xcode.sh" test-app || status=1
+    exit "$status"
+    ;;
+  test-packages)
     swift test --package-path Packages/CalmKit --quiet
+    ;;
+  test-app)
+    set -o pipefail
     xcodebuild "${common[@]}" test | pretty
     ;;
   run)
@@ -38,7 +48,7 @@ case "${1:-build}" in
       | grep -E '^calm-selftest:' || true
     ;;
   *)
-    echo "usage: $0 build|test|run|snapshot" >&2
+    echo "usage: $0 build|test|test-packages|test-app|run|snapshot" >&2
     exit 64
     ;;
 esac

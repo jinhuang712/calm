@@ -20,7 +20,7 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 | `calm search <text>` | Finds past conversations | ✅ (📝 conversation ids, with `show`; ⏸ `--limit`, `--json`) |
 | `calm show <conversation>` | Everything Calm knows about one conversation | 📝 |
 | `calm notify <message>` | Notifies you about this session | ✅ |
-| `calm config` | Reads and changes Calm's settings | 📝 |
+| `calm config` | Reads and changes Calm's settings | ✅ |
 | `calm doctor` | Checks that Calm and the agents' hooks work | ✅ |
 | `calm trace` | Prints Calm's timeline log | ✅ |
 | `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state | ✅ |
@@ -31,7 +31,7 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 Agents' hooks carry almost everything the CLI does: in 12 hours of real use, 866 of the 902 changes to session rows came through `calm hook` and `calm status`, while the author had typed `calm` once in 21,002 commands (2026-09-30). Inside Calm, the sidebar, ⌘K and ⌘O already do what the commands for people would. So the order follows who uses the CLI (decided 2026-10-06):
 
 1. `calm doctor` and `calm trace`: for whoever is working out why a row is wrong, often an agent. Built 2026-10-06.
-2. `calm config`, with ⌘N's agent command: a setting you'd ask your agent to change.
+2. `calm config`, with ⌘N's agent command: a setting you'd ask your agent to change. Built 2026-10-06; ⌘N's own key comes with ⌘N.
 3. `calm fork` and `calm show`, then a way for agents to learn them: a plugin, needed, but not yet.
 
 The ⏸ commands wait until a real need shows up (a script, SSH from another device).
@@ -197,12 +197,22 @@ Transcript  ~/.claude/projects/-Users-me-dev-apps-calm/0f9c2a7e-….jsonl
 
 ## Settings
 
-### `calm config [list | get <key> | set <key> <value> | unset <key>]` 📝
+### `calm config [list [--json] | get <key> | set <key> <value> | unset <key>]` ✅
 
-- Reads and changes Calm's settings in config.toml, the keys Settings writes (DESIGNS.md → Settings), one line at a time as Settings does, so comments and unknown keys stay.
-- Calm applies a change at once. config.toml isn't watched today, so the CLI tells the running Calm to read it again.
-- Wanted first for ⌘N's agent command: a setting you'd ask your agent to change. Decided 2026-10-06, after `calm config` had been left out on 2026-09-30.
-- Key names, checking values, and what `list` prints are decided when it is built.
+- `calm config` (or `list`) prints every setting: its value in force, `(default)` when config.toml doesn't set it, and what it takes. Keys config.toml has that Calm doesn't read, and lines it can't read, follow on stderr. `--json` gives each one's value, default, whether it is set, what it takes and what it does.
+
+  ```
+  theme                    = Forest                a theme's name; unset, the Ghostty config's colors, else Calm
+  motion                   = full       (default)  full, reduced or off
+  agents.sound             = true                  true or false
+  ```
+
+- `get <key>` prints the value in force alone, for scripts (an unset theme prints an empty line).
+- `set <key> <value>` checks the value (a theme must be one there is; true/false also take yes/no, on/off, 1/0), writes the line as Settings does, one line at a time, so comments and other keys stay, and a default removes the line, as Settings does (except the theme, whose default is no value). It prints what it wrote: `theme = Forest`.
+- `unset <key>` removes the line: the default applies again.
+- After a change it asks the running Calm to read config.toml and the Ghostty config again, as Reload Configuration (⌘⇧,) does, so the change shows at once. It never starts Calm: when Calm isn't running, the change waits for its next launch, and it says so.
+- The keys are those of DESIGNS.md → Settings (`CalmSettings.keys`); a wrong key or value exits 64 and says what it takes: `motion can't be 'fast': it takes full, reduced or off`.
+- Wanted first for ⌘N's agent command, a setting you'd ask your agent to change (its key comes with ⌘N). Decided 2026-10-06, after `calm config` had been left out on 2026-09-30; built the same day.
 
 ## Diagnosis
 

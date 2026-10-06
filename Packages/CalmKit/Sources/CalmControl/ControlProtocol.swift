@@ -29,6 +29,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         case search
         /// What `calm doctor` asks: which Calm answers, and what it knows of `session`.
         case info
+        /// Re-read config.toml and the Ghostty config, as Reload Configuration does (`calm config`).
+        case reload
     }
 
     public var v: Int

@@ -44,6 +44,12 @@ struct ControlRequestsTests {
         #expect(info.session == nil)
     }
 
+    /// `calm config` asks for it after a change; the unit-test host only re-reads (agents' files
+    /// are never written under XCTest).
+    @Test func `reload re-reads the settings`() {
+        #expect(server.handle(ControlRequest(cmd: .reload)) == .success())
+    }
+
     @Test func `list answers with every session`() {
         let response = server.handle(ControlRequest(cmd: .list))
 

@@ -238,6 +238,7 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 - `calm notify <message>` — show a notification for the current session.
 - `calm doctor` — check that Calm, this `calm` and the agents' hooks work: which Calm answers, a second copy, an install waiting for a restart, the `calm` on `PATH`, each agent's link, and this session's last report. Reads only; exits 1 on a problem.
 - `calm trace` — print Calm's trace (what decided each session's row) from the unified log: `--last 10m`, `--session <id>`, `--follow`.
+- `calm config` — list Calm's settings (each value, its default, what it takes); `get`, `set` and `unset` one, written to config.toml as Settings writes it and applied by the running Calm at once.
 - Talks to the running app over a local socket. `open` and `list` start Calm if it isn't running: the Calm the CLI came with.
 
 **Settings:** none.

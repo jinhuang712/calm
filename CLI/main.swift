@@ -16,6 +16,10 @@ Usage:
   calm list                         List sessions
   calm search <text>                Search every agent's past sessions
   calm notify <message>             Notify about this session at the next pause
+  calm config [list]                Calm's settings: each one's value, and what it takes
+  calm config get <key>             Print one setting's value
+  calm config set <key> <value>     Change a setting in config.toml; Calm applies it at once
+  calm config unset <key>           Put a setting back to its default
   calm doctor [--json]              Check that Calm, this calm and the agents' hooks work
   calm trace [--last 5m] [--session <id>] [--follow]
                                     Print Calm's trace: what decided each session's row
@@ -163,6 +167,8 @@ case "notify":
     let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
     guard !words.isEmpty else { fail("give a message", code: 64) }
     report(ControlRequest(cmd: .notify, session: session, message: words.joined(separator: " ")))
+case "config":
+    ConfigCommand.run(Array(arguments.dropFirst()))
 case "doctor":
     DoctorCommand.run(Array(arguments.dropFirst()), cliVersion: version)
 case "trace":

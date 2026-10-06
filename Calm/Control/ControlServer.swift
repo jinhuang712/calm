@@ -214,6 +214,10 @@ final class ControlServer {
             guard let message = request.message, !message.isEmpty else { return .failure("Give a message.") }
             AttentionCenter.shared.notify(message, for: id)
             return .success()
+        case .reload:
+            // `calm config` wrote config.toml: apply it as Reload Configuration (⌘⇧,) does.
+            TerminalEngine.shared.reloadConfig(soft: false)
+            return .success()
         case .info:
             // For `calm doctor`: which Calm answers (a second copy, an old build) and whether this
             // session's agent reports reach it.

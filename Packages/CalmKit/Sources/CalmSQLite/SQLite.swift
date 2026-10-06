@@ -32,11 +32,17 @@ package final class SQLiteDatabase {
         let flags = readOnly
             ? SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX
             : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
-        guard sqlite3_open_v2(path, &handle, flags, nil) == SQLITE_OK else {
-            let message = handle.map { String(cString: sqlite3_errmsg($0)) } ?? "unknown error"
-            sqlite3_close(handle)
+        // A failed open still hands out a connection, closed here. It stays out of `handle`:
+        // deinit runs even when this init throws (every stored property has a value), and closing
+        // it there again freed it twice. SQLite logged "API call with invalid database connection
+        // pointer", and the next open, on another thread, crashed now and then (2026-09-30).
+        var opened: OpaquePointer?
+        guard sqlite3_open_v2(path, &opened, flags, nil) == SQLITE_OK else {
+            let message = opened.map { String(cString: sqlite3_errmsg($0)) } ?? "unknown error"
+            sqlite3_close(opened)
             throw Failure.open(message)
         }
+        handle = opened
         sqlite3_busy_timeout(handle, 2000)
     }
 

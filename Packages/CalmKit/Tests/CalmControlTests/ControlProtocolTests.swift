@@ -44,6 +44,10 @@ struct ControlProtocolTests {
     /// Binds a socket file at `path`; listening or not, the file stays until the test unlinks it.
     private func bindSocket(at path: String, listening: Bool) -> Int32 {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        // Tests run side by side, and some start processes (AgentDetectionTests' `sleep 30`): a
+        // child that inherited this socket kept it listening after the test closed it, and "the
+        // file a dead Calm left behind" still answered, once in 15 runs.
+        _ = fcntl(fd, F_SETFD, FD_CLOEXEC)
         var address = sockaddr_un()
         address.sun_family = sa_family_t(AF_UNIX)
         withUnsafeMutableBytes(of: &address.sun_path) { buffer in

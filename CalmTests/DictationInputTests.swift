@@ -41,7 +41,16 @@ struct DictationInputTests {
     @Test func `text committed with no event in flight reaches the program`() async throws {
         let pane = try pane(command: "/bin/cat")
         defer { pane.teardown() }
-        try #require(NSApp.currentEvent == nil, "the test must run outside an event, as a voice engine's commit does")
+        // What decides it is whether a key press is being processed (`keyTextAccumulator`), and
+        // that is nil unless the test itself runs inside one. Not `NSApp.currentEvent == nil`: the
+        // app's last event stays "current" outside any handler, and on a CI runner it is a system
+        // event (KitDefined) that has nothing to do with the keyboard.
+        try #require(pane.keyTextAccumulator == nil, "a voice engine commits outside any key press")
+        let keyboardEvents: [NSEvent.EventType] = [.keyDown, .keyUp, .flagsChanged]
+        try #require(
+            !keyboardEvents.contains { $0 == NSApp.currentEvent?.type },
+            "the test must not run inside a key event",
+        )
         pane.insertText("dictated words", replacementRange: NSRange(location: NSNotFound, length: 0))
         #expect(await waitForText("dictated words", in: pane))
     }

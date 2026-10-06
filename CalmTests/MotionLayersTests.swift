@@ -46,16 +46,26 @@ struct MotionLayersTests {
             loop.removeFromSuperview()
 
             #expect(drawn.count == layered.count)
+            let scale = window.backingScaleFactor
             let differences = zip(drawn, layered).map { abs(Int($0) - Int($1)) }
             let mean = Double(differences.reduce(0, +)) / Double(max(differences.count, 1))
             // A pixel is off when any of its four channels is off by more than 8.
             let offPixels = stride(from: 0, to: differences.count - 3, by: 4).count { differences[$0 ..< $0 + 4].contains { $0 > 8 } }
             let share = Double(offPixels) / Double(max(differences.count / 4, 1))
-            // Two resamplers never agree to the bit: here up to 3% of the pixels, at the edges, a mean
+            // Two resamplers never agree to the bit: at 2× up to 3% of the pixels, at the edges, a mean
             // under 1. The frame resampled twice (shrunk, then stretched) was off in 13%, mean 2.5; a
             // wrong frame is off by far more.
-            #expect(mean < 1.5, "time \(time): mean difference \(mean)")
-            #expect(share < 0.05, "time \(time): \(offPixels) pixels off")
+            //
+            // At 1× (a CI runner's virtual display, or a plain external monitor) the tile is 26 pixels
+            // and the frame is shrunk about 32×, and the two resamplers disagree about as much as a
+            // wrong frame or a one-pixel shift would: measured on a runner, mean 2.6 to 4.1 and 13 to
+            // 18% of the pixels, for a correct mark. So at 1× this can only catch what is grossly
+            // wrong: a blank mark is off by a mean of 17 or more (except frame 0, a dot, which nothing
+            // tells from blank) and a mark at the wrong size by 29 or more. The strict check above is
+            // for 2×, which is what it was tuned on and what every Retina screen has.
+            let (meanLimit, shareLimit) = scale >= 2 ? (1.5, 0.05) : (6.0, 0.30)
+            #expect(mean < meanLimit, "time \(time), \(scale)×: mean difference \(mean)")
+            #expect(share < shareLimit, "time \(time), \(scale)×: \(offPixels) pixels off")
         }
     }
 

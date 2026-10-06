@@ -21,9 +21,12 @@ jobs:
           install: true
           cache: true
 
-      - name: Cache GhosttyKit
+      # Restored here and saved right after the engine builds, not left to `actions/cache`'s own
+      # save at the end of the job: that one is skipped when any later step fails, so a red Test
+      # step meant the engine (a 9-minute build, 39 downloads) was rebuilt on every run.
+      - name: Restore GhosttyKit cache
         id: ghosttykit-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/Library/Caches/calm/ghostty
           key: ghosttykit-${{ runner.os }}-${{ hashFiles('scripts/ghostty.env', 'scripts/ghosttykit.sh', 'scripts/ghostty-deps.py', 'scripts/ghostty-patches/*.patch', 'mise.toml') }}
@@ -34,6 +37,13 @@ jobs:
 
       - name: Build GhosttyKit
         run: mise run ghosttykit
+
+      - name: Save GhosttyKit cache
+        if: steps.ghosttykit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/Library/Caches/calm/ghostty
+          key: ${{ steps.ghosttykit-cache.outputs.cache-primary-key }}
 
       - name: Fetch zmx
         run: mise run zmx

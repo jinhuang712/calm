@@ -39,4 +39,29 @@ struct DockIconViewTests {
             }
         }
     }
+
+    @Test func `each of the chase's twelve pictures is drawn once and looks as drawn whole`() throws {
+        for dark in [true, false] {
+            let view = DockIconView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
+            view.dark = dark
+            for head in 12 ..< 36 {
+                let frame = AppIconFrame(busy: 1, head: Double(head), done: 0, failed: 0)
+                view.iconFrame = frame
+                view.cachesStillParts = false
+                let whole = try pixels(view)
+                view.cachesStillParts = true
+                let cached = try pixels(view)
+                let worst = zip(whole, cached).map { abs(Int($0) - Int($1)) }.max() ?? 0
+                #expect(worst <= 1, "dark \(dark), head \(head): a channel differs by \(worst)")
+            }
+            // Two laps, one picture per place.
+            #expect(view.chasePicturesForTesting == 12)
+            // The settle eases between places: drawn as it comes, nothing kept.
+            view.iconFrame = AppIconFrame(busy: 0.4, head: 11.5, done: 0, failed: 0)
+            _ = try pixels(view)
+            #expect(view.chasePicturesForTesting == 12)
+            view.releaseChasePictures()
+            #expect(view.chasePicturesForTesting == 0)
+        }
+    }
 }

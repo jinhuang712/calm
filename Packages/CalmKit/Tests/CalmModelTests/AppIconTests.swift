@@ -109,6 +109,38 @@ struct AppIconMotionTests {
         #expect(drawn(wholeSteps: true) == 24)
     }
 
+    @Test func `the steady chase in whole steps is twelve pictures, one per place`() {
+        var motion = AppIconMotion()
+        motion.show(.running, at: 0)
+        // While the trail comes on, frames ease and aren't among them.
+        #expect(motion.frame(at: 0.1, wholeSteps: true).rounded.chasePlace == nil)
+        let places = (8 ..< 40).compactMap { motion.frame(at: Double($0) / 8 + 0.01, wholeSteps: true).rounded.chasePlace }
+        #expect(places.count == 32)
+        #expect(Set(places) == Set(0 ..< 12))
+        // A place a lap later is the same picture.
+        #expect(AppIconFrame(busy: 1, head: 15, done: 0, failed: 0).chasePlace == 3)
+        // Between places, settling, done, failed or arriving: drawn as they come.
+        #expect(AppIconFrame(busy: 1, head: 8.6, done: 0, failed: 0).chasePlace == nil)
+        #expect(AppIconFrame(busy: 0.4, head: 11, done: 0, failed: 0).chasePlace == nil)
+        #expect(AppIconMotion.stillFrame(for: .done).chasePlace == nil)
+        #expect(AppIconFrame(busy: 1, head: 3, done: 0, failed: 0, arrival: 1).chasePlace == nil)
+    }
+
+    @Test func `in the steady chase the next step is known, and nothing changes before it`() {
+        var motion = AppIconMotion()
+        motion.show(.running, at: 0)
+        // The trail is still coming on.
+        #expect(motion.nextWholeStep(after: 0.1) == nil)
+        let next = motion.nextWholeStep(after: 1.01)
+        #expect(next == 1.125)
+        #expect(motion.frame(at: 1.01, wholeSteps: true) == motion.frame(at: 1.124, wholeSteps: true))
+        #expect(motion.frame(at: 1.126, wholeSteps: true).head == 9)
+        // Once work stops, the settle eases: back to drawing every frame.
+        motion.show(.done, at: 2)
+        #expect(motion.nextWholeStep(after: 2.01) == nil)
+        #expect(AppIconMotion().nextWholeStep(after: 1) == nil)
+    }
+
     @Test func `in whole steps the settle still eases the last step`() {
         var motion = AppIconMotion()
         motion.show(.running, at: 0)

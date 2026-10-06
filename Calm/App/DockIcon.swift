@@ -74,29 +74,25 @@ final class DockIcon {
     }
 
     private func tick() {
-        guard sight.isSeen else {
-            timer?.invalidate()
-            timer = nil
-            return
-        }
+        timer?.invalidate()
+        timer = nil
+        guard sight.isSeen else { return }
         let now = CACurrentMediaTime()
         let reduced = Motion.isReduced
         // In whole steps: each frame is a new picture sent to the Dock, and at its size the ease
         // between places doesn't show (8 frames a second instead of 16).
         let frame = reduced ? AppIconMotion.stillFrame(for: motion.state) : motion.frame(at: now, wholeSteps: true)
         draw(frame.rounded)
-        if reduced || motion.isStill(at: now) {
-            timer?.invalidate()
-            timer = nil
-        } else if timer == nil {
-            // 30 frames a second, the rate Calm's agent marks use; most of them change nothing,
-            // because the cursor holds on each place for most of its beat.
-            let timer = Timer(timeInterval: 1 / 30, repeats: true) { _ in
-                MainActor.assumeIsolated { DockIcon.shared.tick() }
-            }
-            RunLoop.main.add(timer, forMode: .common)
-            self.timer = timer
+        guard !reduced, !motion.isStill(at: now) else { return }
+        // The steady chase changes only when the cursor steps, so the next tick is the next step
+        // (8 a second; a millisecond late, so the step has surely happened). While something
+        // eases, 30 a second, the rate Calm's agent marks use.
+        let delay = motion.nextWholeStep(after: now).map { $0 - now + 0.001 } ?? 1 / 30
+        let timer = Timer(timeInterval: max(delay, 0.001), repeats: false) { _ in
+            MainActor.assumeIsolated { DockIcon.shared.tick() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func draw(_ frame: AppIconFrame) {
@@ -107,6 +103,7 @@ final class DockIcon {
                 tile.display()
             }
             drawn = nil
+            view.releaseChasePictures()
             return
         }
         let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
@@ -202,28 +199,61 @@ final class DockIconView: NSView {
     /// which the test doesn't cover.
     var cachesStillParts = false
 
+    /// The chase's twelve pictures (`AppIconFrame.chasePlace`), each drawn whole the first time it
+    /// comes round and stamped after that. The Dock draws into a half-float bitmap, where filling
+    /// the cells through the tile's clip and the glow cost about 0.6 ms a frame, 8 frames a second
+    /// while an agent works (sampled in the running app, 2026-10-06); a stamp is one copy. Only
+    /// the settle and the changes between states, a second or so each, are drawn as they come.
+    private var chase: (key: StillKey, layers: [Int: CGLayer])?
+
     private struct StillKey: Equatable {
         var dark: Bool
         var size: CGSize
         var resolution: CGFloat
     }
 
+    /// Lets the chase's pictures go once the icon is at rest; the next run draws them again.
+    func releaseChasePictures() {
+        chase = nil
+    }
+
+    #if DEBUG
+        var chasePicturesForTesting: Int {
+            chase?.layers.count ?? 0
+        }
+    #endif
+
     override func draw(_: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
         let palette = dark ? Palette.dark : Palette.light
         let frame = iconFrame
-        let places = frame.places
         let scale = bounds.width / 1024
+        if cachesStillParts, let place = frame.chasePlace,
+           let layer = chaseLayer(frame, place: place, like: context, palette: palette, scale: scale) {
+            stamp(layer, in: context)
+            return
+        }
         if cachesStillParts, let layer = stillLayer(like: context, palette: palette, scale: scale) {
-            // The layer holds pixels as they land, flip and shadow included, so it goes on unflipped.
-            context.saveGState()
-            context.translateBy(x: 0, y: bounds.height)
-            context.scaleBy(x: 1, y: -1)
-            context.draw(layer, in: CGRect(origin: .zero, size: bounds.size))
-            context.restoreGState()
+            stamp(layer, in: context)
         } else {
             drawStillParts(in: context, palette: palette, scale: scale, shadowUnit: 1)
         }
+        drawMovingParts(frame, in: context, palette: palette, scale: scale)
+    }
+
+    /// Draws a layer made by `layer(like:)` over the whole view. The layer holds pixels as they
+    /// land, flip and shadow included, so it goes on unflipped.
+    private func stamp(_ layer: CGLayer, in context: CGContext) {
+        context.saveGState()
+        context.translateBy(x: 0, y: bounds.height)
+        context.scaleBy(x: 1, y: -1)
+        context.draw(layer, in: CGRect(origin: .zero, size: bounds.size))
+        context.restoreGState()
+    }
+
+    /// The cells and the glow: everything that moves.
+    private func drawMovingParts(_ frame: AppIconFrame, in context: CGContext, palette: Palette, scale: CGFloat) {
+        let places = frame.places
         context.saveGState()
         context.scaleBy(x: scale, y: scale)
         context.addPath(Self.tilePath)
@@ -252,26 +282,54 @@ final class DockIconView: NSView {
         context.restoreGState()
     }
 
-    private func stillLayer(like context: CGContext, palette: Palette, scale: CGFloat) -> CGLayer? {
+    private func stillKey(for context: CGContext) -> StillKey {
         let device = context.convertToDeviceSpace(CGSize(width: 1, height: 1))
-        let key = StillKey(dark: dark, size: bounds.size, resolution: abs(device.width))
+        return StillKey(dark: dark, size: bounds.size, resolution: abs(device.width))
+    }
+
+    private func stillLayer(like context: CGContext, palette: Palette, scale: CGFloat) -> CGLayer? {
+        let key = stillKey(for: context)
         if let still, still.key == key {
             return still.layer
         }
+        guard let (layer, layerContext) = layer(like: context, key: key) else { return nil }
+        drawStillParts(in: layerContext, palette: palette, scale: scale, shadowUnit: key.resolution)
+        still = (key, layer)
+        return layer
+    }
+
+    private func chaseLayer(
+        _ frame: AppIconFrame, place: Int, like context: CGContext, palette: Palette, scale: CGFloat,
+    ) -> CGLayer? {
+        let key = stillKey(for: context)
+        if chase?.key != key {
+            chase = (key, [:])
+        }
+        if let layer = chase?.layers[place] {
+            return layer
+        }
+        guard let (layer, layerContext) = layer(like: context, key: key) else { return nil }
+        drawStillParts(in: layerContext, palette: palette, scale: scale, shadowUnit: key.resolution)
+        drawMovingParts(frame, in: layerContext, palette: palette, scale: scale)
+        chase?.layers[place] = layer
+        return layer
+    }
+
+    /// A layer the size of the view, made for `context`, and its context set up to draw as the
+    /// view draws: in points and flipped, so the shapes and the gradients land the same way.
+    private func layer(like context: CGContext, key: StillKey) -> (CGLayer, CGContext)? {
         // A layer's size is in its context's base units, pixels for a bitmap: sized in points it
         // held half the pixels on a Retina Dock and blurred the tile's outline.
         let pixels = CGSize(width: bounds.width * key.resolution, height: bounds.height * key.resolution)
         guard let layer = CGLayer(context, size: pixels, auxiliaryInfo: nil), let layerContext = layer.context else {
             return nil
         }
-        // Drawn as the view draws, in points and flipped, so the shapes and the gradient land the
-        // same way. A shadow ignores the transform: the view's context measures it in points, the
-        // layer's in pixels. The pixel test (DockIconViewTests) holds the two to the same pixels.
+        // A shadow ignores the transform: the view's context measures it in points, the layer's
+        // in pixels (`shadowUnit`). The pixel test (DockIconViewTests) holds the two to the same
+        // pixels.
         layerContext.translateBy(x: 0, y: pixels.height)
         layerContext.scaleBy(x: key.resolution, y: -key.resolution)
-        drawStillParts(in: layerContext, palette: palette, scale: scale, shadowUnit: key.resolution)
-        still = (key, layer)
-        return layer
+        return (layer, layerContext)
     }
 
     /// The tile, its shadow and its edge. `shadowUnit` is how many of the context's base units

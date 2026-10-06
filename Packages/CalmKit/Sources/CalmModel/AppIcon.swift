@@ -148,6 +148,17 @@ public struct AppIconFrame: Sendable, Equatable {
             && head.truncatingRemainder(dividingBy: Double(Self.placeCount)) == 0
     }
 
+    /// When this frame is one of the twelve pictures the chase repeats every lap (working at full
+    /// strength, the cursor on a whole place, nothing done or failed, the mark arrived), the place
+    /// its cursor is on; otherwise nil. A renderer can draw those twelve once and keep them.
+    public var chasePlace: Int? {
+        guard busy == 1, done == 0, failed == 0, arrival.isInfinite, cursorLevel == 1,
+              head.rounded(.down) == head
+        else { return nil }
+        let place = head.truncatingRemainder(dividingBy: Double(Self.placeCount))
+        return Int(place < 0 ? place + Double(Self.placeCount) : place)
+    }
+
     /// The frame to three decimals, so frames that look the same compare equal.
     public var rounded: AppIconFrame {
         func r(_ value: Double) -> Double {
@@ -254,6 +265,17 @@ public struct AppIconMotion: Sendable, Equatable {
             }
         }
         return AppIconFrame(busy: busy.value(at: time), head: head, done: done.value(at: time), failed: failed.value(at: time))
+    }
+
+    /// During the steady chase in whole steps, when the cursor next moves: the frame changes then
+    /// and at no time between. Nil while anything eases (the trail coming on, a mark turning, the
+    /// settle) or outside the chase, when only drawing every frame can tell.
+    public func nextWholeStep(after time: TimeInterval) -> TimeInterval? {
+        guard state == .running, settle == nil, let runStart,
+              time >= busy.end, time >= done.end, time >= failed.end
+        else { return nil }
+        let position = Self.placesPerSecond * (time - runStart)
+        return runStart + (position.rounded(.down) + 1) / Self.placesPerSecond
     }
 
     /// Nothing changes until the next state, so the icon can stop redrawing.

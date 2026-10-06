@@ -14,6 +14,11 @@ Ghostty smooth-scrolling patches, from thdxg/ghostty (https://github.com/thdxg/g
 Ghostty fork, MIT License (Ghostty's, above). Applied unchanged to the engine;
 see scripts/ghostty-patches. Patches from 0007 on are Calm's own changes to Ghostty's source.
 
+translate-c (https://codeberg.org/vancluever/translate-c, a fork of Zig's translate-c), MIT License.
+Copyright (c) Zig contributors.
+Used while building Ghostty's engine. A copy of the pinned source is kept in
+scripts/ghostty-mirror, so that building doesn't depend on Codeberg being up.
+
 zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
 Copyright (c) 2025 Eric Bower.
 Bundled to keep shells running while Calm is closed.

@@ -7,6 +7,17 @@ package listed in Ghostty's build.zig.zon.json with curl and loads it into
 Zig's global package cache with `zig fetch`, so `zig build` never needs
 the network.
 
+Two things keep one unreachable host from stopping a build (Codeberg answered
+503 for translate_c for a while, and 3 of Ghostty's 39 packages are not on its
+own CDN or GitHub):
+
+- A copy kept in scripts/ghostty-mirror/ (named like the download, by the
+  package's hash) is used first, without the network. Zig checks every package
+  against that hash, so a copy cannot change what gets built.
+- A package that cannot be downloaded is reported and skipped, not fatal:
+  `zig build` fetches again only what it really needs, and says which package
+  it could not get. (Fontconfig is Linux-only, for one.)
+
 Usage: ghostty-deps.py <ghostty-src-dir> <download-dir>
 """
 
@@ -15,6 +26,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+MIRROR = Path(__file__).resolve().parent / "ghostty-mirror"
 
 
 def zig_cache_has(src: Path, hash_key: str) -> bool:
@@ -31,11 +44,23 @@ def tarball_url(url: str) -> str:
     return url
 
 
+def download(url: str, target: Path) -> bool:
+    """Fetches `url` to `target` with curl; False (and nothing left behind) if it can't be had."""
+    result = subprocess.run(
+        ["curl", "-fsSL", "--retry", "3", "--connect-timeout", "20", "--max-time", "300", "-o", str(target), url],
+    )
+    if result.returncode != 0:
+        target.unlink(missing_ok=True)  # a partial file would be taken for a finished download next run
+        return False
+    return True
+
+
 def main() -> int:
     src, downloads = Path(sys.argv[1]), Path(sys.argv[2])
     downloads.mkdir(parents=True, exist_ok=True)
     deps = json.loads((src / "build.zig.zon.json").read_text())
     failed = []
+    unreachable = []
     for hash_key, dep in deps.items():
         if zig_cache_has(src, hash_key):
             continue
@@ -45,13 +70,21 @@ def main() -> int:
             continue
         suffix = next((ext for ext in (".tar.gz", ".tar.xz", ".tar.zst", ".tgz", ".zip") if url.endswith(ext)), ".tar.gz")
         target = downloads / f"{hash_key}{suffix}"
-        if not target.exists():
+        mirrored = MIRROR / f"{hash_key}{suffix}"
+        if mirrored.exists():
+            print(f"  using the copy of {dep['name']} in scripts/ghostty-mirror")
+            target = mirrored
+        elif not target.exists():
             print(f"  downloading {dep['name']}")
-            subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", str(target), url], check=True)
+            if not download(url, target):
+                unreachable.append((dep["name"], url))
+                continue
         result = subprocess.run(["zig", "fetch", str(target)], capture_output=True, text=True, cwd=src)
         got = result.stdout.strip()
         if result.returncode != 0 or got != hash_key:
             failed.append((dep["name"], f"expected {hash_key}, got {got or result.stderr.strip()}"))
+    for name, url in unreachable:
+        print(f"  could not download {name} from {url}; zig build will try again if it needs it", file=sys.stderr)
     for name, why in failed:
         print(f"  could not prefetch {name}: {why}", file=sys.stderr)
     return 1 if failed else 0

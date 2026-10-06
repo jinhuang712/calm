@@ -234,7 +234,9 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 
 - `calm open <folder|file>` — open a project (and a new session in it), or a file in the viewer (`file:line` highlights that line in code). With no argument, the current folder.
 - `calm list` — list sessions: project, title, state, agent and folder.
-- `calm search <text>` — search sessions from any shell: when, agent, project and title, then the matching text.
+- `calm search <text>` — search sessions from any shell: when, agent, project, title and the conversation's id, then the matching text.
+- `calm show <conversation>` — everything Calm knows about one conversation: what it was for, its branch and folder, when, the session it is open in, the last prompts, the agent's recap and tasks, its last reply, and the commands to resume or fork it (`--prompts`, `--all`, `--json`).
+- `calm fork ["<prompt>"]` — fork this session's conversation into a new session beside it, with the prompt as the fork's first message (Claude Code, Codex); `--background` keeps you where you are, `--in <folder>` (a git worktree) runs it elsewhere. A session `calm fork` started can't fork in turn.
 - `calm status <state> [message]` — report agent state; this is the contract any agent's hooks can call. `--agent <name>`, `--transcript <file>` and `--agent-session <id>` say which agent and which of its conversations this is, for agents that can't send a hook payload (pi's extension does). Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm hook <agent>` — read an agent's hook payload on stdin and report its state; Calm's Claude Code plugin runs `calm hook claude-code`. Safe in any terminal, like `status`.
 - `calm notify <message>` — show a notification for the current session.

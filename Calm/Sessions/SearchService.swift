@@ -99,6 +99,7 @@ enum SearchService {
             ControlResponse.SearchHit(
                 title: result.title, agent: result.agent.displayName, directory: result.directory,
                 lastActive: result.lastActive.timeIntervalSince1970, snippet: result.snippet, transcript: result.transcriptPath,
+                conversation: result.agentSessionID,
             )
         })
     }

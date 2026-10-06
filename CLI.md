@@ -16,9 +16,9 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 | `calm open project [folder]` | Makes a folder a project | ⏸ (today: `calm open <folder>`) |
 | `calm list` | Lists the open sessions | ✅ (⏸ ids, `--json`) |
 | `calm status` | Describes this session | ⏸ |
-| `calm fork ["<prompt>"]` | Forks this session's conversation into a new session | 📝 |
-| `calm search <text>` | Finds past conversations | ✅ (📝 conversation ids, with `show`; ⏸ `--limit`, `--json`) |
-| `calm show <conversation>` | Everything Calm knows about one conversation | 📝 |
+| `calm fork ["<prompt>"]` | Forks this session's conversation into a new session | ✅ |
+| `calm search <text>` | Finds past conversations, each with its id | ✅ (⏸ `--limit`, `--json`) |
+| `calm show <conversation>` | Everything Calm knows about one conversation | ✅ |
 | `calm notify <message>` | Notifies you about this session | ✅ |
 | `calm config` | Reads and changes Calm's settings | ✅ |
 | `calm doctor` | Checks that Calm and the agents' hooks work | ✅ |
@@ -32,7 +32,7 @@ Agents' hooks carry almost everything the CLI does: in 12 hours of real use, 866
 
 1. `calm doctor` and `calm trace`: for whoever is working out why a row is wrong, often an agent. Built 2026-10-06.
 2. `calm config`, with ⌘N's agent command: a setting you'd ask your agent to change. Built 2026-10-06; ⌘N's own key comes with ⌘N.
-3. `calm fork` and `calm show`, then a way for agents to learn them: a plugin, needed, but not yet.
+3. `calm fork` and `calm show`: built 2026-10-06. Next, a way for agents to learn them: a plugin, needed, but not yet.
 
 The ⏸ commands wait until a real need shows up (a script, SSH from another device).
 
@@ -112,16 +112,16 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 - Fails outside a Calm session: "Not in a Calm session."
 - With a state after it (`calm status done`), it is the hook command instead (below).
 
-### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]` 📝
+### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]` ✅
 
 - Forks the agent conversation running in this session, or the one that ran here last. The fork is a new session of its own (a new tab), in the same project and folder, running the agent's own fork command (FEATURES.md → F12). The original goes on untouched.
-- Takes you to the fork. With `--background` you stay where you are, and the fork appears in the sidebar.
-- The prompt becomes the fork's first message, so it starts working at once. Claude Code and Codex take one (`claude --resume <id> --fork-session "<prompt>"`, `codex fork <id> "<prompt>"`, read from their `--help`, Claude Code 2.1.285 and Codex 0.159). pi and OpenCode aren't checked yet; until they are, a prompt for them fails.
-- `--in <folder>` runs the fork in another folder, such as a git worktree made for it.
-- Prints the new session's id.
-- Fails outside a Calm session, and where there is no conversation to fork: "No conversation to fork here."
-- A session started by `calm fork` can't run `calm fork` itself ("A fork can't fork."), so an agent that forks can't set off a chain. Right-click → Fork still works there.
-- **Not yet checked:** whether each agent finds the conversation from another folder with `--in` (Claude Code keeps transcripts by the folder a conversation started in); and forking in the middle of a turn, when the conversation ends in a tool call still running, which is exactly the case of an agent running `calm fork` itself.
+- Takes you to the fork. With `--background` you stay where you are: the fork waits in the sidebar, already running (its pane is made at the terminal area's size, so its agent starts the size it will be shown at).
+- The words that aren't options are the prompt, the fork's first message, so it starts working at once: `calm fork try the CRDT approach`. Claude Code and Codex take one (`claude --resume <id> --fork-session '<prompt>'`, `codex fork <id> '<prompt>'`, from their `--help`, Claude Code 2.1.285 and Codex 0.159). pi and OpenCode aren't checked; a prompt for them fails: "pi can't start a fork with a prompt."
+- `--in <folder>` runs the fork in another folder. Claude Code finds the conversation from a git worktree of its own repository, but not from an unrelated folder ("No conversation found with session ID"; checked with 2.1.291 in a scratch home, no model call). The other agents aren't checked.
+- Prints the new session's full id (what `--session` takes).
+- Fails outside a Calm session, for a missing folder, and where there is no conversation to fork: "No conversation to fork here." It never starts Calm.
+- A session started by `calm fork` can't run `calm fork` itself ("A fork can't fork: calm fork started this session."), so an agent that forks can't set off a chain. Right-click → Fork still works there. Calm keeps this in memory, so a relaunch forgets it.
+- **Not yet checked:** forking in the middle of a turn, when the conversation ends in a tool call still running: the case of an agent running `calm fork` itself, which waits for the plugin that teaches agents (*What comes next*).
 
 ### `calm notify <message>` ✅
 
@@ -134,20 +134,20 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 
 ### `calm search <text> [--limit <n>] [--json]` ✅
 
-- Searches every agent's past conversations. One result per conversation, best first: when it was last active, its agent, project and title, then the matching text on the next line, indented, with the matches in bold.
+- Searches every agent's past conversations. One result per conversation, best first: when it was last active, its agent, project, title and its id (for `calm show`), then the matching text on the next line, indented, with the matches in bold.
 - Goes through the running Calm, or reads the index itself when Calm isn't running (bringing it up to date first).
 - When Calm answers with an error, it says so and exits 1, rather than search the index behind its back: a Calm older than the CLI says to update it.
 - When Calm is running but hasn't answered after 15 seconds (a cold index can take it that long), it says so and reads the index itself.
-- *Built:* the above, 20 results. *Planned with `calm show`:* each result's conversation id. *Parked:* `--limit` and `--json`.
+- *Built:* the above, 20 results. *Parked:* `--limit` and `--json`.
 
-### `calm show <conversation> [--prompts] [--all] [--json]` 📝
+### `calm show <conversation> [--prompts] [--all] [--json]` ✅
 
 Everything Calm knows about one conversation, on one screen: what it was for, where it got to, where its work lives, and how to go back to it.
 
 ```
-Fix the flaky auth test                                        Claude Code
-calm · ~/dev/apps/calm · wt-auth-fix
-Started 3 days ago · last active 2h ago · 14 prompts, 31 replies
+Fix the flaky auth test · Claude Code
+~/dev/apps/calm · on wt-auth-fix
+Started 3 d ago · last active 2 h ago · 14 prompts, 31 replies
 Open in session a1b2c3d4 · done
 
 Asked
@@ -166,34 +166,35 @@ Tasks  4/5 · Opening the PR
 Last reply
   (the agent's newest reply, whole)
 
-Resume      claude --resume 0f9c2a7e-…
-Fork        claude --resume 0f9c2a7e-… --fork-session
+Resume      claude --resume '0f9c2a7e-…'
+Fork        claude --resume '0f9c2a7e-…' --fork-session
 Transcript  ~/.claude/projects/-Users-me-dev-apps-calm/0f9c2a7e-….jsonl
+Id          0f9c2a7e-…
 ```
 
 | Part | Comes from |
 |---|---|
 | Title, agent, folder, last active | The search index |
-| Project | The project that holds the folder, while Calm runs; else the folder's name |
-| Branch | The transcript: Claude Code's `gitBranch`, Codex's `session_meta` (both seen in real transcripts); pi and OpenCode not checked |
-| Started | The transcript's first record |
+| Branch | The transcript: Claude Code's newest `gitBranch`, Codex's `session_meta.git.branch` (both seen in real transcripts); none for pi and OpenCode |
+| Started | When the transcript file was made; none for OpenCode, whose conversations share one database |
 | Prompts and replies | Counted in the index |
-| Open in session | The running Calm: the session whose agent is in this conversation, with its state. Left out when Calm isn't running or the conversation isn't open |
-| Asked | The index's first prompt |
-| Recent prompts | The index: your last three, one line each, cut to fit |
-| Recap | The transcript's tail: the agent's own summary (Claude Code's recap), else the start of its last reply |
-| Tasks | The transcript's tail: the todo list's progress and the task in progress (Claude Code only) |
-| Last reply | The index: the agent's newest reply |
-| Resume, Fork | The agent's adapter, the same commands as F12's menu |
-| Transcript | The index, marked *deleted* when the file is gone (Claude Code deletes transcripts after 30 days; its prompts outlive them in `history.jsonl`) |
+| Open in session | The running Calm (`list`): the session whose agent is in this conversation, with its state. Left out when Calm isn't running or the conversation isn't open; never starts Calm |
+| Asked | The first prompt |
+| Recent prompts | The last three after the first, one line each, cut to the terminal's width |
+| Recap | The agent's own summary (Claude Code's recap), from the transcript's tail. Left out otherwise: the start of the last reply would only repeat it |
+| Tasks | The todo list's progress and the task in progress (Claude Code) |
+| Last reply | The index: the agent's newest reply, whole |
+| Resume, Fork | The agent's adapter, the commands of F12's menu; left out once the transcript is gone |
+| Transcript | Its path, marked *(deleted)* when the agent deleted it. Known only from the prompt history (Claude Code deletes transcripts after 30 days and keeps `history.jsonl`), it says so: its prompts are there, its replies aren't |
 
 - A part with nothing in it is left out, not printed empty.
 - `--prompts` lists every prompt you wrote, numbered, in place of the last three.
-- `--all` prints the whole conversation as text instead: every prompt and reply in order, without tool calls, tool output or thinking (what search indexes). For reading it through, or handing it to another agent.
-- `--json` gives every part, with the full lists.
-- Takes a conversation id, from `calm search` or `calm status`.
-- Works without Calm, except for *Open in session* and the project: the CLI reads the index and the transcript itself.
+- `--all` prints the whole conversation instead: every prompt (under "You") and reply (under the agent's name) in order, without tool calls, tool output or thinking (what search indexes). For reading it through, or handing it to another agent.
+- `--json` gives every part, with every message.
+- Takes a conversation id, from `calm search` (each result ends with it) or `calm status`, or the start of one, 6 characters or more, that only one conversation's id begins with; several say which.
+- Works without Calm, except for *Open in session*: the CLI reads the index and the transcript itself, bringing the index up to date once when it doesn't know the id.
 - Fails for an id the index doesn't know.
+- Checked on the author's real conversations of all four agents (fields only, on a copy of the index) and end to end in a headless self-test, where it named the session the conversation was open in.
 
 ## Settings
 

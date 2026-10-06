@@ -76,6 +76,11 @@ public protocol AgentAdapter: Sendable {
     /// The shell command that starts the agent again on the conversation, with the options it was
     /// started with (`arguments`: the running process's argv): what a restart types once it quit.
     func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath: String) -> String?
+    /// The same, with `prompt` as the fork's first message (`calm fork "<prompt>"`), or nil when
+    /// the agent can't start a fork with one (or hasn't been checked).
+    func forkCommand(agentSessionID: String?, transcriptPath: String, prompt: String) -> String?
+    /// The git branch a conversation worked on, by its transcript's own account (`calm show`).
+    func branch(of transcript: URL) -> String?
     /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
     /// config. `inherited` is Calm's own environment, which also locates the agent's config.
     func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
@@ -108,6 +113,14 @@ public extension AgentAdapter {
     }
 
     func restartCommand(arguments _: [String], agentSessionID _: String?, transcriptPath _: String) -> String? {
+        nil
+    }
+
+    func forkCommand(agentSessionID _: String?, transcriptPath _: String, prompt _: String) -> String? {
+        nil
+    }
+
+    func branch(of _: URL) -> String? {
         nil
     }
 

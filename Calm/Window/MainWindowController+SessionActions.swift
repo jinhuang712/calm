@@ -170,6 +170,26 @@ extension MainWindowController {
         runAgentCommand(command, in: pane)
     }
 
+    /// `calm fork` (CLI.md): `command`, the agent's fork command, in a new session of its own, in
+    /// `id`'s project and in `folder` or `id`'s own. It's brought to the front, unless `background`:
+    /// then it waits in the sidebar, its pane made now at the terminal area's size, so the agent
+    /// starts at once and at the size it will be shown at (a pane made later starts at a
+    /// placeholder size, which garbled a full-screen program before).
+    func forkForCLI(of id: Session.ID, command: String, in folder: String?, background: Bool) -> Session {
+        let (placement, directory) = placementAndFolder(from: id, pane: manager.panes[id])
+        let forked = manager.newSession(in: folder ?? directory, placement: placement, selecting: !background)
+        let pane: TerminalSurfaceView?
+        if background {
+            pane = manager.pane(for: forked.id, host: self, size: mainArea.bounds.size)
+        } else {
+            hideSettings()
+            showSelectedLayout(animated: true)
+            pane = manager.panes[forked.id]
+        }
+        runAgentCommand(command, in: pane)
+        return forked
+    }
+
     /// Types an agent's command into a pane. Headless self-tests log it instead: it would start
     /// the user's real agent, on their account.
     func runAgentCommand(_ command: String, in pane: TerminalSurfaceView?) {

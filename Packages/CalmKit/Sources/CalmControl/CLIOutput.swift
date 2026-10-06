@@ -27,7 +27,9 @@ public enum CLIOutput {
         let reset = styled ? "\u{1B}[0m" : ""
         let when = age(seconds: now.timeIntervalSince1970 - hit.lastActive)
         let project = hit.directory.map { ($0 as NSString).lastPathComponent } ?? "-"
-        var lines = ["\(dim)\(when)\t\(hit.agent)\t\(project)\(reset)\t\(bold)\(hit.title)\(reset)"]
+        // The conversation's id last, for `calm show <id>`.
+        let id = hit.conversation.map { "\t\(dim)\($0)\(reset)" } ?? ""
+        var lines = ["\(dim)\(when)\t\(hit.agent)\t\(project)\(reset)\t\(bold)\(hit.title)\(reset)\(id)"]
         let snippet = hit.snippet
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\u{2}", with: bold)

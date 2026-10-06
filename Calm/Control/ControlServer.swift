@@ -1,3 +1,4 @@
+import CalmAgents
 import CalmControl
 import CalmModel
 import Foundation
@@ -17,6 +18,8 @@ final class ControlServer {
     /// The file at the path that a live Calm was found to own, so a busy one isn't asked every time.
     private var rivalFile: FileID?
     private var watchdog: Timer?
+    /// Sessions `calm fork` started, which can't `calm fork` in turn (in memory: a relaunch forgets).
+    private var forkedByCLI: Set<Session.ID> = []
 
     private struct FileID: Equatable {
         var device: dev_t
@@ -177,17 +180,7 @@ final class ControlServer {
         let manager = SessionManager.shared
         switch request.cmd {
         case .list:
-            let sessions = manager.orderedSessions.map { session in
-                ControlResponse.SessionInfo(
-                    id: session.id.uuidString,
-                    title: session.displayTitle,
-                    project: manager.workspace.project(session.projectID)?.name ?? "",
-                    directory: session.workingDirectory,
-                    state: session.state.reportName,
-                    agent: session.agent?.kind.displayName,
-                )
-            }
-            return .success(sessions: sessions)
+            return .success(sessions: manager.orderedSessions.map(sessionInfo))
         case .open:
             return open(request.path)
         case .status:
@@ -218,6 +211,8 @@ final class ControlServer {
             // `calm config` wrote config.toml: apply it as Reload Configuration (⌘⇧,) does.
             TerminalEngine.shared.reloadConfig(soft: false)
             return .success()
+        case .fork:
+            return fork(request)
         case .info:
             // For `calm doctor`: which Calm answers (a second copy, an old build) and whether this
             // session's agent reports reach it.
@@ -236,6 +231,58 @@ final class ControlServer {
                 session: report,
             ))
         }
+    }
+
+    private func sessionInfo(_ session: Session) -> ControlResponse.SessionInfo {
+        let manager = SessionManager.shared
+        return ControlResponse.SessionInfo(
+            id: session.id.uuidString,
+            title: session.displayTitle,
+            project: manager.workspace.project(session.projectID)?.name ?? "",
+            directory: session.workingDirectory,
+            state: session.state.reportName,
+            agent: session.agent?.kind.displayName,
+            conversation: session.conversation?.agentSessionID,
+        )
+    }
+
+    /// `calm fork` (CLI.md): the session's conversation, running or ended, into a new session of
+    /// its own, through the agent's own fork command. A session `calm fork` started can't fork in
+    /// turn, so an agent that forks itself can't set off a chain; right-click → Fork still works.
+    private func fork(_ request: ControlRequest) -> ControlResponse {
+        guard let id = session(request.session), let source = SessionManager.shared.workspace.session(id) else {
+            return .failure("No such session.")
+        }
+        guard !forkedByCLI.contains(id) else {
+            return .failure("A fork can't fork: calm fork started this session. Right-click → Fork still works here.")
+        }
+        guard let conversation = source.conversation, let adapter = Agents.adapter(for: conversation.kind) else {
+            return .failure("No conversation to fork here.")
+        }
+        let transcript = conversation.transcriptPath ?? ""
+        let prompt = request.message.flatMap { $0.isEmpty ? nil : $0 }
+        let agent = adapter.kind.displayName
+        let command = if let prompt {
+            adapter.forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: transcript, prompt: prompt)
+        } else {
+            adapter.forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: transcript)
+        }
+        guard let command else {
+            return .failure(prompt == nil ? "\(agent) can't fork this conversation." : "\(agent) can't start a fork with a prompt.")
+        }
+        var folder: String?
+        if let path = request.path {
+            let standardized = WorkspacePath.standardize(path)
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: standardized, isDirectory: &isDirectory), isDirectory.boolValue else {
+                return .failure("No such folder: \(standardized)")
+            }
+            folder = standardized
+        }
+        let controller = TerminalWindowManager.shared.openMainWindow()
+        let forked = controller.forkForCLI(of: id, command: command, in: folder, background: request.background == true)
+        forkedByCLI.insert(forked.id)
+        return .success(sessions: [sessionInfo(forked)])
     }
 
     private func session(_ value: String?) -> Session.ID? {

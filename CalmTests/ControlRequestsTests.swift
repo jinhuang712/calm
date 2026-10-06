@@ -50,6 +50,10 @@ struct ControlRequestsTests {
         #expect(server.handle(ControlRequest(cmd: .reload)) == .success())
     }
 
+    @Test func `a fork of a session Calm doesn't know is refused`() {
+        #expect(server.handle(ControlRequest(cmd: .fork, session: nobody, message: "try B")) == .failure("No such session."))
+    }
+
     @Test func `list answers with every session`() {
         let response = server.handle(ControlRequest(cmd: .list))
 

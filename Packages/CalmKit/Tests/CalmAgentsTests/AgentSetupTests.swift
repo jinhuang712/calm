@@ -166,6 +166,18 @@ struct AgentSetupTests {
         #expect(OpenCodeAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/db") == nil)
     }
 
+    /// `calm fork "<prompt>"`: the prompt is the fork's first message where the agent's own command
+    /// line takes one; elsewhere the fork can't start with one rather than drop it.
+    @Test func `a fork with a first message, where the agent takes one`() {
+        let prompt = "Try the CRDT approach; don't merge it"
+        #expect(ClaudeCodeAdapter().forkCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl", prompt: prompt)
+            == "claude --resume 'abc' --fork-session 'Try the CRDT approach; don'\\''t merge it'")
+        #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl", prompt: "go on")
+            == "codex fork '019a' 'go on'")
+        #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a.jsonl", prompt: "go on") == nil)
+        #expect(OpenCodeAdapter().forkCommand(agentSessionID: "ses_1", transcriptPath: "/db", prompt: "go on") == nil)
+    }
+
     /// OpenCode forks through its API and opens the new session: run in a real shell, with a
     /// stand-in `opencode` that answers the way 2.0.19's `opencode api` does (one line of JSON).
     @Test func `the opencode fork opens the session the api made`() throws {

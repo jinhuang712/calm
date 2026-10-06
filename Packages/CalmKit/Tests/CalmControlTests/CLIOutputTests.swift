@@ -41,6 +41,14 @@ struct CLIOutputTests {
         ])
     }
 
+    @Test func `a result ends with its conversation's id, for calm show`() {
+        let hit = ControlResponse.SearchHit(
+            title: "Fix", agent: "Codex", directory: "/x/api", lastActive: 0, snippet: "", transcript: "/t.jsonl",
+            conversation: "019a7c11-aaaa",
+        )
+        #expect(CLIOutput.lines(for: hit, now: Date(timeIntervalSince1970: 60), styled: false) == ["1m\tCodex\tapi\tFix\t019a7c11-aaaa"])
+    }
+
     @Test func `a result with no folder shows a dash, and no matching text adds no line`() {
         let hit = ControlResponse.SearchHit(
             title: "Old one", agent: "Codex", directory: nil, lastActive: 0, snippet: "", transcript: "/t.jsonl",

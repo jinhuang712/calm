@@ -15,6 +15,21 @@ struct SessionGroupingTests {
         workspace.session(session.id).flatMap { workspace.project($0.projectID) }
     }
 
+    /// `calm fork --background`: the fork waits in the sidebar, and what the user was looking at
+    /// stays in front, its done state not settled.
+    @Test func `a session made without selecting it leaves the one in front where it is`() {
+        var workspace = Workspace()
+        let front = workspace.newSession(in: "/Users/me/dev/calm", gitRoot: gitRoot)
+        let layoutInFront = workspace.selectedLayoutID
+        let waiting = workspace.newSession(in: "/Users/me/dev/calm", gitRoot: gitRoot, selecting: false)
+
+        #expect(workspace.selectedLayoutID == layoutInFront)
+        #expect(workspace.selectedLayout?.focusedSessionID == front.id)
+        #expect(workspace.session(waiting.id) != nil)
+        #expect(workspace.layout(containing: waiting.id) != nil)
+        #expect(group(workspace, waiting)?.id == group(workspace, front)?.id)
+    }
+
     @Test func `a directory group holds only its own folder, so the home folder doesn't swallow the rest`() {
         var workspace = Workspace()
         let home = workspace.newSession(in: "/Users/me", gitRoot: gitRoot)

@@ -411,15 +411,20 @@ public struct Workspace: Codable, Hashable, Sendable {
         in directory: String,
         placement: Placement = .directory,
         gitRoot: (String) -> String? = { _ in nil },
+        selecting: Bool = true,
     ) -> Session {
-        if let left = selectedLayout?.focusedSessionID {
+        // Not selecting (`calm fork --background`): the session waits in the sidebar, and the one
+        // in front stays in front, unsettled.
+        if selecting, let left = selectedLayout?.focusedSessionID {
             settle(left)
         }
         let session = makeSession(in: directory, placement: placement, gitRoot: gitRoot)
         sessions.append(session)
         let layout = PaneLayout(tree: .leaf(session.id), focusedSessionID: session.id)
         layouts.append(layout)
-        selectedLayoutID = layout.id
+        if selecting {
+            selectedLayoutID = layout.id
+        }
         reveal(session.id)
         return session
     }

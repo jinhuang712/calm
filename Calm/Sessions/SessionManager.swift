@@ -256,8 +256,8 @@ final class SessionManager {
     // MARK: Sessions
 
     @discardableResult
-    func newSession(in directory: String, placement: Workspace.Placement = .directory) -> Session {
-        let session = workspace.newSession(in: directory, placement: placement, gitRoot: GitRoot.find)
+    func newSession(in directory: String, placement: Workspace.Placement = .directory, selecting: Bool = true) -> Session {
+        let session = workspace.newSession(in: directory, placement: placement, gitRoot: GitRoot.find, selecting: selecting)
         scheduleSave()
         return session
     }

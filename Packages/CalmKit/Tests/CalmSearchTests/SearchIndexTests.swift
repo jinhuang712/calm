@@ -177,6 +177,70 @@ struct SearchIndexTests {
         #expect(fixture.index.search("scrollbar").isEmpty)
     }
 
+    /// `calm show`: one conversation by its agent's id, with what the user and the agent wrote, in order.
+    @Test func `a conversation is found by its id, with its messages in order`() throws {
+        let fixture = try makeFixture()
+        try fixture.write(".claude/projects/-d/three.jsonl", [
+            #"{"type":"custom-title","customTitle":"pager flicker"}"#,
+            #"{"type":"user","sessionId":"S3","cwd":"/Users/me/src/app","message":{"role":"user","content":"why does it flicker?"}}"#,
+            Self.claudeAgent("The pager redraws twice."),
+            Self.claudeTool("SECRET_TOOL_OUTPUT"),
+            #"{"type":"user","sessionId":"S3","cwd":"/Users/me/src/app","message":{"role":"user","content":"fix it"}}"#,
+        ])
+        fixture.index.update(home: fixture.home)
+        let found = try fixture.index.conversation(id: "S3").get()
+        #expect(found.result.title == "pager flicker")
+        #expect(found.result.agent == .claudeCode)
+        #expect(found.firstPrompt == "why does it flicker?")
+        #expect(!found.fromHistory)
+        #expect(found.messages == [
+            TranscriptMessage(.user, "why does it flicker?"),
+            TranscriptMessage(.agent, "The pager redraws twice."),
+            TranscriptMessage(.user, "fix it"),
+        ])
+        #expect(fixture.index.conversation(id: "nope") == .failure(.none))
+    }
+
+    /// Two files with one id (the fixture's "S" is in two transcripts): the newer one is the conversation.
+    @Test func `two files with one id give the newer one`() throws {
+        let fixture = try makeFixture()
+        let earlier = Date(timeIntervalSince1970: 1_780_000_000)
+        try fixture.write(".claude/projects/-a/one.jsonl", [Self.claudeUser("the older file")], modified: earlier)
+        try fixture.write(".claude/projects/-b/two.jsonl", [Self.claudeUser("the newer file")], modified: earlier.addingTimeInterval(60))
+        fixture.index.update(home: fixture.home)
+        #expect(try fixture.index.conversation(id: "S").get().firstPrompt == "the newer file")
+    }
+
+    @Test func `a conversation is found by the start of its id, when only one starts so`() throws {
+        let fixture = try makeFixture()
+        try fixture.write(".codex/sessions/2026/09/28/rollout-2.jsonl", [
+            #"{"type":"session_meta","payload":{"id":"019a7c11-aaaa","cwd":"/Users/me/src/api"}}"#,
+            #"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"one"}]}}"#,
+        ])
+        try fixture.write(".codex/sessions/2026/09/28/rollout-3.jsonl", [
+            #"{"type":"session_meta","payload":{"id":"019a7c22-bbbb","cwd":"/Users/me/src/api"}}"#,
+            #"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"two"}]}}"#,
+        ])
+        fixture.index.update(home: fixture.home)
+        #expect(try fixture.index.conversation(id: "019a7c11").get().firstPrompt == "one")
+        #expect(fixture.index.conversation(id: "019a7c") == .failure(.several(["019a7c11-aaaa", "019a7c22-bbbb"])))
+        // Too short a start is no match at all, rather than every id that begins so.
+        #expect(fixture.index.conversation(id: "019a") == .failure(.none))
+    }
+
+    @Test func `a transcript's copy of a conversation wins over the prompt history's`() throws {
+        let fixture = try makeFixture()
+        try fixture.write(".claude/history.jsonl", [Self.historyLine("why does the pager flicker?", session: "OLD")])
+        fixture.index.update(home: fixture.home)
+        #expect(try fixture.index.conversation(id: "OLD").get().fromHistory)
+        try fixture.write(".claude/projects/-c/old.jsonl", [
+            #"{"type":"user","sessionId":"OLD","cwd":"/Users/me/src/old","#
+                + #""message":{"role":"user","content":"why does the pager flicker?"}}"#,
+        ])
+        fixture.index.update(home: fixture.home)
+        #expect(try !fixture.index.conversation(id: "OLD").get().fromHistory)
+    }
+
     @Test func `a version 1 index keeps its sessions`() throws {
         let fixture = Fixture()
         let url = fixture.home.appending(path: "v1.sqlite")

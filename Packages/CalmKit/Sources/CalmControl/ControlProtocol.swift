@@ -31,6 +31,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         case info
         /// Re-read config.toml and the Ghostty config, as Reload Configuration does (`calm config`).
         case reload
+        /// Fork `session`'s conversation into a new session (`calm fork`): `message` is the fork's
+        /// first prompt, `path` its folder, `background` keeps the user where they are.
+        case fork
     }
 
     public var v: Int
@@ -47,6 +50,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var shells: Int?
     /// For `search`.
     public var query: String?
+    /// For `fork`: stay where you are, the fork waiting in the sidebar.
+    public var background: Bool?
 
     public init(
         cmd: Command,
@@ -59,6 +64,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         transcript: String? = nil,
         shells: Int? = nil,
         query: String? = nil,
+        background: Bool? = nil,
     ) {
         v = ControlProtocol.version
         self.cmd = cmd
@@ -71,6 +77,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.transcript = transcript
         self.shells = shells
         self.query = query
+        self.background = background
     }
 }
 
@@ -83,14 +90,20 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         public var state: String
         /// The agent in the foreground, if any (added after v1 shipped; optional for older apps).
         public var agent: String?
+        /// The agent's id for the conversation running or last run here (`calm show` matches it).
+        public var conversation: String?
 
-        public init(id: String, title: String, project: String, directory: String, state: String, agent: String? = nil) {
+        public init(
+            id: String, title: String, project: String, directory: String, state: String, agent: String? = nil,
+            conversation: String? = nil,
+        ) {
             self.id = id
             self.title = title
             self.project = project
             self.directory = directory
             self.state = state
             self.agent = agent
+            self.conversation = conversation
         }
     }
 
@@ -104,14 +117,20 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         /// The best match, with matches between U+0002 and U+0003.
         public var snippet: String
         public var transcript: String
+        /// The agent's id for the conversation, for `calm show` (nil from an older Calm).
+        public var conversation: String?
 
-        public init(title: String, agent: String, directory: String?, lastActive: Double, snippet: String, transcript: String) {
+        public init(
+            title: String, agent: String, directory: String?, lastActive: Double, snippet: String, transcript: String,
+            conversation: String? = nil,
+        ) {
             self.title = title
             self.agent = agent
             self.directory = directory
             self.lastActive = lastActive
             self.snippet = snippet
             self.transcript = transcript
+            self.conversation = conversation
         }
     }
 

@@ -41,8 +41,8 @@ public struct IndexStats: Sendable, Equatable {
 /// Agents delete old transcripts, so the index is the only copy of those sessions: it keeps them
 /// when their file goes, and a schema change migrates rather than rebuilds.
 public final class SearchIndex: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "calm.search")
-    private let database: SQLiteDatabase
+    let queue = DispatchQueue(label: "calm.search")
+    let database: SQLiteDatabase
     static let schemaVersion = "2"
 
     public static var standardURL: URL {
@@ -560,7 +560,7 @@ public final class SearchIndex: @unchecked Sendable {
         return matches
     }
 
-    private struct Session {
+    struct Session {
         var path: String
         var agent: AgentKind
         var sessionID: String?

@@ -14,8 +14,12 @@ Usage:
   calm open <folder>                Add the folder as a project and open a session in it
   calm open <file>[:line]           View the file in Calm (or open it in your editor)
   calm list                         List sessions
-  calm search <text>                Search every agent's past sessions
+  calm search <text>                Search every agent's past sessions (each ends with its id)
+  calm show <conversation>          Everything Calm knows about one conversation
+                                    [--prompts: every prompt; --all: the whole of it; --json]
   calm notify <message>             Notify about this session at the next pause
+  calm fork ["<prompt>"]            Fork this session's conversation into a new session
+                                    [--background: stay here; --in <folder>; --session <id>]
   calm config [list]                Calm's settings: each one's value, and what it takes
   calm config get <key>             Print one setting's value
   calm config set <key> <value>     Change a setting in config.toml; Calm applies it at once
@@ -102,6 +106,7 @@ func searchIndex(_ query: String) -> [ControlResponse.SearchHit] {
         ControlResponse.SearchHit(
             title: result.title, agent: result.agent.displayName, directory: result.directory,
             lastActive: result.lastActive.timeIntervalSince1970, snippet: result.snippet, transcript: result.transcriptPath,
+            conversation: result.agentSessionID,
         )
     }
 }
@@ -169,6 +174,10 @@ case "notify":
     report(ControlRequest(cmd: .notify, session: session, message: words.joined(separator: " ")))
 case "config":
     ConfigCommand.run(Array(arguments.dropFirst()))
+case "fork":
+    ForkCommand.run(Array(arguments.dropFirst()))
+case "show":
+    ShowCommand.run(Array(arguments.dropFirst()))
 case "doctor":
     DoctorCommand.run(Array(arguments.dropFirst()), cliVersion: version)
 case "trace":

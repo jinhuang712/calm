@@ -19,6 +19,22 @@ public extension ClaudeCodeAdapter {
     func forkCommand(agentSessionID: String?, transcriptPath: String) -> String? {
         resumeCommand(agentSessionID: agentSessionID, transcriptPath: transcriptPath).map { $0 + " --fork-session" }
     }
+
+    /// `claude [options] [prompt]` (2.1.285's `--help`): the prompt starts the forked session.
+    func forkCommand(agentSessionID: String?, transcriptPath: String, prompt: String) -> String? {
+        forkCommand(agentSessionID: agentSessionID, transcriptPath: transcriptPath).map { $0 + " " + shellQuoted(prompt) }
+    }
+
+    /// Every record carries the `gitBranch` it was written on (seen in 2.1.x transcripts); the
+    /// newest says where the conversation ended up.
+    func branch(of transcript: URL) -> String? {
+        for record in JSONLTail(transcript) {
+            if let branch = record["gitBranch"] as? String, !branch.isEmpty {
+                return branch
+            }
+        }
+        return nil
+    }
 }
 
 public extension CodexAdapter {
@@ -28,6 +44,21 @@ public extension CodexAdapter {
 
     func forkCommand(agentSessionID: String?, transcriptPath _: String) -> String? {
         agentSessionID.map { "codex fork \(shellQuoted($0))" }
+    }
+
+    /// `codex fork [SESSION_ID] [PROMPT]` (0.159's `--help`).
+    func forkCommand(agentSessionID: String?, transcriptPath: String, prompt: String) -> String? {
+        forkCommand(agentSessionID: agentSessionID, transcriptPath: transcriptPath).map { $0 + " " + shellQuoted(prompt) }
+    }
+
+    /// The rollout's first record, `session_meta`, has `payload.git.branch` (with `commit_hash`
+    /// and `repository_url`; seen in 0.159's rollouts) for a session started in a repository.
+    func branch(of transcript: URL) -> String? {
+        guard let record = TranscriptDiscovery.firstRecord(of: transcript), record["type"] as? String == "session_meta",
+              let git = (record["payload"] as? [String: Any])?["git"] as? [String: Any],
+              let branch = git["branch"] as? String, !branch.isEmpty
+        else { return nil }
+        return branch
     }
 }
 

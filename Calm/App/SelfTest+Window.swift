@@ -211,6 +211,10 @@
             case "cmd_z":
                 // ⌘Z: bound to Ctrl-_ in CalmDefaults, the line editor's undo
                 pressKeyEquivalentForTesting(keyCode: 6, characters: "z", modifiers: [.command])
+            case "cmd_return":
+                // ⌘↵: Calm's binding types Return while Send with ⌘ Return is off; on, nothing claims
+                // it and it goes to the terminal as ⌘+Return (CalmDefaults).
+                pressKeyEquivalentForTesting(keyCode: 36, characters: "\r", modifiers: [.command], deliverUnclaimed: true)
             case "cmd_delete":
                 // ⌘⌫: Ghostty's default sends Ctrl-U, which deletes the line
                 pressKeyEquivalentForTesting(keyCode: 51, characters: "\u{7F}", modifiers: [.command])
@@ -523,7 +527,11 @@
         /// is): the focused terminal first, then the menu item with that equivalent. The item's
         /// action is performed directly: a headless (accessory) app has no live menu bar, so
         /// `NSMenu.performKeyEquivalent` matches the item but doesn't dispatch it.
-        func pressKeyEquivalentForTesting(keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = .command) {
+        /// `deliverUnclaimed`: a key equivalent that neither the terminal nor a menu takes goes on to the
+        /// first responder's `keyDown`, as AppKit hands it on.
+        func pressKeyEquivalentForTesting(
+            keyCode: UInt16, characters: String, modifiers: NSEvent.ModifierFlags = .command, deliverUnclaimed: Bool = false,
+        ) {
             guard let window, let event = NSEvent.keyEvent(
                 with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
                 windowNumber: window.windowNumber, context: nil, characters: characters,
@@ -536,6 +544,9 @@
                 owner.update()
                 menuItem = owner.items[index].title + (owner.items[index].isEnabled ? "" : " (disabled)")
                 owner.performActionForItem(at: index)
+            }
+            if deliverUnclaimed, !terminalTookIt, menuItem == nil {
+                focusedPane?.keyDown(with: event)
             }
             FileHandle.standardError
                 .write(Data("calm-selftest: ⌘\(characters): terminal \(terminalTookIt), menu item \(menuItem ?? "none")\n".utf8))

@@ -204,6 +204,7 @@ final class SessionManager {
                 mode: TerminalEngine.shared.config?.string("shell-integration"),
                 resourcesDirectory: process["GHOSTTY_RESOURCES_DIR"],
                 inherited: process,
+                calmZsh: ShellIntegration.preparedZshDirectory,
             )) { current, _ in current }
         }
         options.environment.merge(AgentIntegrations.environment(settings: settings)) { current, _ in current }

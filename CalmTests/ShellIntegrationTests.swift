@@ -1,4 +1,5 @@
 @testable import Calm
+import Foundation
 import Testing
 
 struct ShellIntegrationTests {
@@ -12,6 +13,36 @@ struct ShellIntegrationTests {
             shell: "/bin/zsh", mode: "detect", resourcesDirectory: resources, inherited: ["ZDOTDIR": "/Users/me/.config/zsh"],
         )
         #expect(custom["GHOSTTY_ZSH_ZDOTDIR"] == "/Users/me/.config/zsh")
+    }
+
+    @Test func `with Calm's startup, zsh starts there and goes on to Ghostty's`() {
+        let environment = ShellIntegration.environment(
+            shell: "/bin/zsh", mode: "detect", resourcesDirectory: resources,
+            inherited: ["ZDOTDIR": "/Users/me/.config/zsh"], calmZsh: "/Support/Calm/zsh",
+        )
+        #expect(environment == [
+            "ZDOTDIR": "/Support/Calm/zsh",
+            "CALM_GHOSTTY_ZSH_DIR": "\(resources)/shell-integration/zsh",
+            "GHOSTTY_ZSH_ZDOTDIR": "/Users/me/.config/zsh",
+        ])
+        // Shell integration off is off for Calm's startup too.
+        #expect(ShellIntegration.environment(
+            shell: "/bin/zsh", mode: "none", resourcesDirectory: resources, inherited: [:], calmZsh: "/Support/Calm/zsh",
+        ).isEmpty)
+    }
+
+    /// zsh reads it at every shell start, so a typo would break every shell; `zsh -n` parses it.
+    @Test func `the zsh startup Calm writes is valid zsh`() throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "calm-zshenv-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try ShellIntegration.zshStartup.write(to: file, atomically: true, encoding: .utf8)
+        let zsh = Process()
+        zsh.executableURL = URL(filePath: "/bin/zsh")
+        zsh.arguments = ["-n", file.path]
+        try zsh.run()
+        zsh.waitUntilExit()
+        #expect(zsh.terminationStatus == 0)
+        #expect(ShellIntegration.zshStartup.contains("'^[[27;9;13~'"))
     }
 
     @Test func `fish prepends the integration to XDG_DATA_DIRS`() {

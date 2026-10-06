@@ -22,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Unit tests host the app; they don't need a live shell.
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         if !isTesting {
+            // Before any shell starts: zsh starts through it (⌘ Return).
+            ShellIntegration.prepare()
             SessionManager.shared.restore()
             Trace.note("state restored")
             // Before the control server and the window: the saved rows are checked against the

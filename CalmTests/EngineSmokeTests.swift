@@ -33,6 +33,16 @@ struct EngineSmokeTests {
         #expect(contents.contains("smooth-scroll = true"))
         #expect(contents.contains("keybind = super+shift+t=unbind")) // Ghostty's undo, in the way of Reopen Closed Session
         #expect(contents.contains(#"keybind = super+z=text:\x1f"#)) // Ctrl-_, the line editor's undo
+        #expect(contents.contains(#"keybind = super+enter=text:\r"#)) // ⌘↵ types Return, never full screen
+        #expect(try diagnostics(loading: contents) == 0)
+    }
+
+    /// Send with ⌘ Return on: ⌘↵ goes to the program, where the agents and Calm's zsh startup read it.
+    @Test func `with Send with Command-Return on, the key goes to the program`() throws {
+        GhosttyRuntime.initializeProcess()
+        let contents = CalmDefaults.contents(reduceMotion: false, cursorShader: nil, sendWithCommandReturn: true)
+        #expect(contents.contains("keybind = super+enter=unbind"))
+        #expect(!contents.contains("super+enter=text"))
         #expect(try diagnostics(loading: contents) == 0)
     }
 

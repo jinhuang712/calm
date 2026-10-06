@@ -94,6 +94,10 @@ public protocol AgentAdapter: Sendable {
     var themeFilePath: String? { get }
     /// That file for the colors on screen, carrying `AgentSetup.marker`.
     func themeFile(for colors: CalmTheme.Colors, mode: CalmTheme.Mode) -> String?
+    /// The bindings that make ⌘ Return send and Return start a new line in the agent's prompt, and
+    /// where they go (`SendKeys`); nil when the agent can't bind ⌘. `inherited` locates the
+    /// agent's config, as for `shellEnvironment`.
+    func sendKeys(home: URL, inherited: [String: String]) -> SendKeys?
 }
 
 public extension AgentAdapter {
@@ -142,6 +146,10 @@ public extension AgentAdapter {
     }
 
     func themeFile(for _: CalmTheme.Colors, mode _: CalmTheme.Mode) -> String? {
+        nil
+    }
+
+    func sendKeys(home _: URL, inherited _: [String: String]) -> SendKeys? {
         nil
     }
 

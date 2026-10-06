@@ -33,7 +33,9 @@ enum CalmDefaults {
     }
 
     /// The settings Calm applies by default.
-    static func contents(reduceMotion: Bool, cursorShader: URL?, smoothScroll: Bool = false, theme: [String] = []) -> String {
+    static func contents(
+        reduceMotion: Bool, cursorShader: URL?, smoothScroll: Bool = false, theme: [String] = [], sendWithCommandReturn: Bool = false,
+    ) -> String {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
@@ -57,6 +59,10 @@ enum CalmDefaults {
         // zsh, readline and Claude Code take as undo. Ghostty binds ⌘Z to `undo` (a closed tab),
         // which Calm doesn't do, and macOS encodes no bytes for an unbound ⌘-letter, so it did nothing.
         lines.append("keybind = super+z=text:\\x1f")
+        // ⌘↵ is never full screen in Calm (⌃⌘F and the green button are). With Send with ⌘ Return
+        // on (FEATURES.md → F5) programs get it as ⌘+Return: the agents send with it (`SendKeys`), and
+        // Calm's zsh startup runs the line with it (`ShellIntegration`). Off, it types Return.
+        lines.append(sendWithCommandReturn ? "keybind = super+enter=unbind" : "keybind = super+enter=text:\\r")
         // ⌘⌥ + arrow splits toward that side (⌘D and ⌘⇧D stay for right and down). Ghostty binds the
         // same keys to move focus between splits; Calm leaves focus to ⌘[ and ⌘], so the keys are
         // rebound here. A `goto_split` line in the user's own config still wins over this.
@@ -94,6 +100,7 @@ enum CalmDefaults {
             cursorShader: shader,
             smoothScroll: GhosttyRuntime.hasSmoothScroll,
             theme: theme,
+            sendWithCommandReturn: settings.sendWithCommandReturn,
         )
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

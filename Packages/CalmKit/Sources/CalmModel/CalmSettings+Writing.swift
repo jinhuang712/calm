@@ -16,6 +16,12 @@ public extension CalmSettings {
         bool("agents.sound", default: false)
     }
 
+    /// Send with ⌘ Return (FEATURES.md → F5): ⌘ Return sends an agent's prompt and Return starts a
+    /// new line in it, in the agents that can bind ⌘ (`SendKeys`). Off: Return sends, as everywhere.
+    var sendWithCommandReturn: Bool {
+        bool("agents.send-with-cmd-return", default: false)
+    }
+
     /// The window's background (UIUX.md → Themes): solid, or the system's glass behind a
     /// translucent terminal and sidebar.
     enum WindowBackground: String, Sendable, CaseIterable {

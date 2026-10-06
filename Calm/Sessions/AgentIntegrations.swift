@@ -45,6 +45,53 @@ enum AgentIntegrations {
         }
         refreshConnectedFiles()
         syncThemeFiles()
+        syncSendKeys(on: SessionManager.shared.settings.sendWithCommandReturn)
+    }
+
+    /// Send with ⌘ Return (FEATURES.md → F5): puts Calm's bindings into each installed agent's own
+    /// key settings while the setting is on, and takes them out while it's off (`SendKeysFile`,
+    /// which only ever adds and removes Calm's own). At launch, so an agent installed since gets
+    /// them, and whenever the setting changes. Returns where each agent stands, for Settings.
+    @discardableResult
+    static func syncSendKeys(
+        on: Bool,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+        inherited: [String: String] = ProcessInfo.processInfo.environment,
+    ) -> [AgentKind: SendKeysFile.State] {
+        var states: [AgentKind: SendKeysFile.State] = [:]
+        for (kind, keys) in sendKeys(home: home, inherited: inherited) {
+            guard writesAgentFiles else {
+                states[kind] = SendKeysFile.state(of: keys)
+                continue
+            }
+            do {
+                if on {
+                    states[kind] = try SendKeysFile.turnOn(keys)
+                } else {
+                    try SendKeysFile.turnOff(keys)
+                    states[kind] = SendKeysFile.state(of: keys)
+                }
+            } catch {
+                let reason = error.localizedDescription
+                log.error("couldn't change \(keys.file.path, privacy: .public): \(reason, privacy: .public)")
+                states[kind] = .unreadable
+            }
+        }
+        return states
+    }
+
+    /// The installed agents that can send with ⌘ Return (their config folder is there), in the
+    /// order Calm lists agents, with their bindings.
+    static func sendKeys(
+        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+        inherited: [String: String] = ProcessInfo.processInfo.environment,
+    ) -> [(kind: AgentKind, keys: SendKeys)] {
+        Agents.adapters.compactMap { adapter in
+            guard let keys = adapter.sendKeys(home: home, inherited: inherited),
+                  FileManager.default.fileExists(atPath: keys.file.deletingLastPathComponent().path)
+            else { return nil }
+            return (adapter.kind, keys)
+        }
     }
 
     /// Writes, rewrites or removes each connected agent's theme file for the colors on screen

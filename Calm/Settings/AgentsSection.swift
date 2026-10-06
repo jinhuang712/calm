@@ -21,6 +21,17 @@ final class AgentsSettingsModel {
         }
     }
 
+    /// An installed agent that can send with ⌘ Return, and where its key settings stand.
+    struct SendKeysAgent: Identifiable {
+        let kind: AgentKind
+        let state: SendKeysFile.State
+        /// The file's name, for the line that says Calm can't edit it.
+        let file: String
+        var id: AgentKind {
+            kind
+        }
+    }
+
     var rows: [Row] = []
     /// config.toml as last read or written: the options each agent starts with.
     private(set) var settings = CalmSettings()
@@ -28,6 +39,10 @@ final class AgentsSettingsModel {
     private(set) var newSessionAgent: AgentKind?
     var notifyStates: CalmSettings.NotifyStates
     var sound: Bool
+    var sendWithCommandReturn: Bool
+    private(set) var sendKeyAgents: [SendKeysAgent] = []
+    /// Agents with a session open when the setting changed: they switch when they start again.
+    private(set) var switchingOnRestart: [AgentKind] = []
     /// macOS turned Calm's notifications off, so a *needs you* can't reach the user.
     private(set) var notificationsBlocked = false
     var error: String?
@@ -39,6 +54,7 @@ final class AgentsSettingsModel {
         let settings = SessionManager.shared.settings
         notifyStates = settings.notifyStates
         sound = settings.notificationSound
+        sendWithCommandReturn = settings.sendWithCommandReturn
         refresh()
     }
 
@@ -60,6 +76,13 @@ final class AgentsSettingsModel {
             return Row(adapter: adapter, setup: setup, state: state)
         }
         newSessionAgent = Agents.newSessionAgent(settings: settings, installed: rows.map(\.id))
+        sendWithCommandReturn = settings.sendWithCommandReturn
+        sendKeyAgents = AgentIntegrations.sendKeys(home: home).map {
+            SendKeysAgent(kind: $0.kind, state: SendKeysFile.state(of: $0.keys), file: $0.keys.file.lastPathComponent)
+        }
+        // An agent whose sessions have all closed has nothing left to start again.
+        let open = Set(SessionManager.shared.workspace.sessions.compactMap { $0.agent?.kind })
+        switchingOnRestart.removeAll { !open.contains($0) }
         refreshNotificationStatus()
     }
 
@@ -136,6 +159,48 @@ final class AgentsSettingsModel {
         save("agents.sound", value ? "true" : nil)
     }
 
+    /// Send with ⌘ Return (FEATURES.md → F5): the agents' own key settings, then ⌘↵ itself, which
+    /// goes through to programs while it's on and types Return while it's off (`CalmDefaults`).
+    func setSendWithCommandReturn(_ value: Bool) {
+        sendWithCommandReturn = value
+        save("agents.send-with-cmd-return", value ? "true" : nil)
+        AgentIntegrations.syncSendKeys(on: value, home: home)
+        TerminalEngine.shared.reloadConfig(soft: false)
+        switchingOnRestart = AgentIntegrations.sendKeys(home: home).filter { !$0.keys.appliesLive }.map(\.kind)
+        refresh()
+    }
+
+    /// The line under "Send prompts with": what Return becomes, and words only when something
+    /// needs a step (UIUX.md → Settings → Agents).
+    var sendKeysLine: String {
+        var problems: [String] = []
+        if sendWithCommandReturn {
+            let own = sendKeyAgents.filter { $0.state == .ownKeys }.map(\.kind.displayName)
+            if !own.isEmpty {
+                problems.append("\(Self.list(own)) \(own.count == 1 ? "keeps" : "keep") your own Return")
+            }
+            for agent in sendKeyAgents where agent.state == .unreadable {
+                problems.append("Calm can't edit \(agent.kind.displayName)'s \(agent.file)")
+            }
+        }
+        guard problems.isEmpty else { return problems.joined(separator: " · ") }
+        let line = "Return starts a new line"
+        let waiting = switchingOnRestart.map(\.displayName)
+        guard !waiting.isEmpty else { return line }
+        return line + " · \(Self.list(waiting)) " + (waiting.count == 1 ? "switches when it starts again" : "switch when they start again")
+    }
+
+    /// Which agents it reaches, for the marks' tooltip; and why not Codex, when Codex is here.
+    var sendKeysReach: String {
+        let names = Self.list(sendKeyAgents.map(\.kind.displayName))
+        guard rows.contains(where: { $0.adapter.kind == .codex }) else { return names }
+        return "\(names). Not Codex: it can't use ⌘ keys, so it keeps Return."
+    }
+
+    private static func list(_ names: [String]) -> String {
+        ListFormatter.localizedString(byJoining: names)
+    }
+
     private func save(_ key: String, _ value: String?) {
         do {
             SessionManager.shared.settings = try CalmSettings.save(key, value)
@@ -173,6 +238,13 @@ struct AgentsSection: View {
                             onConnect: { model.connect(row) }, onDisconnect: { model.disconnect(row) },
                         )
                     }
+                }
+            }
+            if !model.sendKeyAgents.isEmpty {
+                GroupHeading(title: "Keys", style: style)
+                    .padding(.top, 34.scaled)
+                SettingsGroup(style: style) {
+                    SendKeysRow(model: model, style: style)
                 }
             }
             GroupHeading(title: "Notifications", style: style)
@@ -375,6 +447,100 @@ private struct LaunchChip: View {
         .accessibilityLabel(option.label)
         .accessibilityValue(isOn ? "On" : "Off")
         .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// Send with ⌘ Return (UIUX.md → Settings → Agents): one switch. ⌘ ↩ before it, as two soft keys,
+/// say what it turns on (solid while on, an outline while off); the line under the title says
+/// what Return becomes, after the marks of the agents it reaches. Picked by the author from local
+/// mockups (2026-10-06): choices built from keys (pairs, boxes, chips) read as a legend, not a
+/// control, so the keys are the switch's label and the switch is the control.
+private struct SendKeysRow: View {
+    @Bindable var model: AgentsSettingsModel
+    let style: SidebarStyle
+
+    var body: some View {
+        HStack(spacing: 16.scaled) {
+            SettingsIcon(symbol: "return", style: style)
+            VStack(alignment: .leading, spacing: 4.scaled) {
+                Text("Send prompts with")
+                    .calmFont(size: SettingsMetrics.label)
+                    .foregroundStyle(style.primary)
+                HStack(spacing: 8.scaled) {
+                    marks
+                    Text(model.sendKeysLine)
+                        .calmFont(size: SettingsMetrics.note)
+                        .foregroundStyle(style.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .help(model.sendKeysLine)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            SoftKeys(symbols: ["command", "return"], lit: model.sendWithCommandReturn, style: style)
+            Toggle(
+                "Send prompts with Command-Return",
+                isOn: Binding(get: { model.sendWithCommandReturn }, set: { model.setSendWithCommandReturn($0) }),
+            )
+            .toggleStyle(CalmSwitchStyle(style: style))
+            .labelsHidden()
+        }
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .padding(.vertical, 14.scaled)
+        .frame(minHeight: SettingsMetrics.rowHeight)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The agents it reaches, small and overlapping: one whose own keys win is grayed, and one whose
+    /// file Calm can't edit carries the warning mark.
+    private var marks: some View {
+        HStack(spacing: -4.scaled) {
+            ForEach(model.sendKeyAgents) { agent in
+                let left = model.sendWithCommandReturn && agent.state == .ownKeys
+                AgentLogo(agent: agent.kind, size: 18, style: style)
+                    .saturation(left ? 0 : 1)
+                    .opacity(left ? 0.35 : 1)
+                    .background(RoundedRectangle(cornerRadius: 7.scaled, style: .continuous).fill(style.groupFill).padding(-2))
+                    .overlay(alignment: .bottomTrailing) {
+                        if model.sendWithCommandReturn, agent.state == .unreadable {
+                            WarningMark(style: style, size: 9).offset(x: 4.scaled, y: 4.scaled)
+                        }
+                    }
+            }
+        }
+        .help(model.sendKeysReach)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.sendKeysReach)
+    }
+}
+
+/// Keys drawn as soft keys: a face a step off the card, a hairline edge and a one-point shadow
+/// under it while `lit`, only the edge otherwise. SF Symbols, so ⌘ and ↩ match in weight.
+struct SoftKeys: View {
+    let symbols: [String]
+    let lit: Bool
+    let style: SidebarStyle
+
+    var body: some View {
+        HStack(spacing: 5.scaled) {
+            ForEach(symbols, id: \.self) { symbol in
+                Image(systemName: symbol)
+                    .calmFont(size: 12, weight: .medium)
+                    .foregroundStyle(lit ? style.primary : style.tertiary)
+                    .frame(minWidth: 26.scaled, minHeight: 26.scaled)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6.scaled, style: .continuous)
+                            .fill(lit ? (style.isDark ? style.primary.opacity(0.09) : Color.white) : Color.clear)
+                            .shadow(color: .black.opacity(lit ? (style.isDark ? 0.5 : 0.11) : 0), radius: 0, y: 1),
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6.scaled, style: .continuous)
+                            .strokeBorder(style.isDark ? Color.white.opacity(0.06) : Color.black.opacity(0.09)),
+                    )
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: lit)
+        .accessibilityHidden(true)
     }
 }
 

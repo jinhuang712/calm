@@ -112,6 +112,7 @@ Calm knows what every agent is doing and interrupts only when one needs you.
 - [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
 - [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent. *Became Settings → Agents, opened from Calm → Agents….*
 - [x] **M3.12 Agents settings:** which states notify, sound on or off.
+- [x] **M3.13 Send with ⌘ Return:** ⌘ Return sends an agent's prompt and Return starts a new line, with every other Return (questions, permissions, pickers) the agent's as before. *Built (2026-10-07) through each agent's own key settings, nothing intercepted: Claude Code, OpenCode and pi; Codex can't bind ⌘. ⌘↵ is no longer full screen; at a zsh prompt it runs the line. Checked: the agents in a pty against their installed versions, the key and zsh headless in Calm, zmx alone, and Claude Code end to end in a headless pane (a mock model). Not checked: OpenCode and pi inside Calm.*
 
 **Exit criteria**
 - For a week of normal work, the author never clicks through tabs to find which agent is waiting.

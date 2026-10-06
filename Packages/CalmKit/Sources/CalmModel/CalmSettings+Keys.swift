@@ -122,6 +122,12 @@ public extension CalmSettings {
             about: "Notifications play a sound",
         ),
         Key(
+            name: "agents.send-with-cmd-return",
+            kind: .bool,
+            defaultValue: "false",
+            about: "⌘ Return sends in Claude Code, OpenCode and pi; Return starts a new line",
+        ),
+        Key(
             name: "agents.claude-code-hooks",
             kind: .bool,
             defaultValue: "true",

@@ -1,0 +1,51 @@
+Subject: The animation timer stays off while the display link draws every refresh
+
+While an animation runs (a region scroll, a custom shader's loop), the display link draws at
+every refresh, and the renderer thread also armed its animation timer every 8 ms
+(`draw_interval_ms`). Under vsync the timer's draw does nothing (`Thread.drawFrame` leaves
+drawing to the display link then), so each tick only woke the thread to arm the next one.
+
+A draw wake is no longer armed while the display link runs. Once a draw stops the link (no
+animation needs every refresh any more; with 0016, a region scroll slowing to rest),
+`drawNowCallback` arms the timer again, so the frames still due come from it. Update wakes
+(Kitty animations, which need the frame data rebuilt) are armed as before.
+
+Measured in Calm (headless Debug app, M5 Pro, 2026-10-06, with and without this patch, one round
+each): region scrolls streaming a step every 0.1 s, 996 interrupt wakeups a second before and
+204 after, 195 and 187 million instructions; scrolls coming to rest, 378 and 123 wakeups, 148
+and 144 million; a pane redrawing every refresh (a cursor shader's loop), 775 and 204 wakeups,
+118 and 116 million. Frames presented stay the same (303 and 305 over eight scrolls to rest,
+each still moving its whole 102 px; 420 and 416 streaming; 480 and 479 in four seconds of the
+loop).
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0005–0016. No Zig test: the
+decision is in the renderer thread's event loop, which needs a surface; the frame check is a
+self-test (DESIGNS.md → Motion in the terminal).
+
+diff --git a/src/renderer/Thread.zig b/src/renderer/Thread.zig
+--- a/src/renderer/Thread.zig
++++ b/src/renderer/Thread.zig
+@@ -530,6 +530,11 @@
+     // Draw immediately
+     const t = self_.?;
+     t.drawFrame(true);
++
++    // The draw stops the display link once no animation needs every
++    // refresh; one still under way (a region scroll slowing to rest)
++    // goes on with the timer.
++    if (!t.renderer.hasVsync()) t.armAnimationTimer();
+ 
+     return .rearm;
+ }
+@@ -595,6 +600,11 @@
+ /// actual next wake.
+ fn armAnimationTimer(self: *Thread) void {
+     const wake = self.renderer.animationWake() orelse return;
++    // While the display link runs it draws at every refresh, and a draw
++    // wake would find nothing to do (drawFrame leaves drawing to vsync
++    // then): it only woke the thread every 8 ms. drawNowCallback arms
++    // the timer again once the link stops.
++    if (wake.kind == .draw and self.renderer.hasVsync()) return;
+     self.animation_wake = wake.kind;
+     self.render_h.reset(
+         &self.loop,

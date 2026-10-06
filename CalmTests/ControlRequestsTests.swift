@@ -1,5 +1,6 @@
 @testable import Calm
 import CalmControl
+import Foundation
 import Testing
 
 /// How the control server answers what the CLI sends, called directly: the unit-test host never
@@ -29,6 +30,18 @@ struct ControlRequestsTests {
         #expect(server.handle(ControlRequest(cmd: .open)) == .failure("Give a folder or file to open."))
         #expect(server.handle(ControlRequest(cmd: .open, path: "/nonexistent/calm-test")) ==
             .failure("No such file or folder: /nonexistent/calm-test"))
+    }
+
+    /// `calm doctor` asks which Calm answers; a session it doesn't know comes back as none.
+    @Test func `info says which Calm answers`() throws {
+        let response = server.handle(ControlRequest(cmd: .info, session: nobody))
+        let info = try #require(response.info)
+
+        #expect(response.ok)
+        #expect(info.processID == ProcessInfo.processInfo.processIdentifier)
+        #expect(info.bundlePath == Bundle.main.bundlePath)
+        #expect(info.version == Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
+        #expect(info.session == nil)
     }
 
     @Test func `list answers with every session`() {

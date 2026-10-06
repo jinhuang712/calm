@@ -24,7 +24,7 @@ let package = Package(
         .target(name: "CalmAgents", dependencies: ["CalmModel", "CalmSQLite"], resources: [.copy("Marks")]),
         .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel", "CalmSQLite"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"], resources: [.copy("Fixtures")]),
-        .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"]),
+        .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmAgentsTests", dependencies: ["CalmAgents", "CalmSQLite"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmSearchTests", dependencies: ["CalmSearch", "CalmSQLite"]),
     ],

@@ -175,6 +175,8 @@ targets:
       - package: CalmKit
         product: CalmControl
       - package: CalmKit
+        product: CalmModel
+      - package: CalmKit
         product: CalmAgents
       - package: CalmKit
         product: CalmSearch

@@ -15,17 +15,22 @@ Usage:
   calm open <file>[:line]           View the file in Calm (or open it in your editor)
   calm list                         List sessions
   calm search <text>                Search every agent's past sessions
-  calm status <state> [message]     Report this session's state (for agents' hooks):
-                                    working, needs-you, done, failed or idle
-                                    [--agent <name> --transcript <file> --agent-session <id>
-                                    say which agent and conversation, for its transcript]
   calm notify <message>             Notify about this session at the next pause
-  calm hook <agent>                 Read an agent's hook payload on stdin and report it
-                                    (used by the hooks Calm installs; agent: claude-code)
+  calm doctor [--json]              Check that Calm, this calm and the agents' hooks work
+  calm trace [--last 5m] [--session <id>] [--follow]
+                                    Print Calm's trace: what decided each session's row
   calm --version                    Print the version
   calm --help                       Show this help
 
-status and notify act on $CALM_SESSION_ID (or --session <id>). Outside Calm, or when
+For agents' hooks:
+  calm status <state> [message]     Report this session's state:
+                                    working, needs-you, done, failed or idle
+                                    [--agent <name> --transcript <file> --agent-session <id>
+                                    say which agent and conversation, for its transcript]
+  calm hook <agent>                 Read an agent's hook payload on stdin and report it
+                                    (used by the hooks Calm installs; agent: claude-code)
+
+status, hook and notify act on $CALM_SESSION_ID (or --session <id>). Outside Calm, or when
 Calm isn't running, they do nothing and exit 0, so hooks are safe in any terminal.
 """
 
@@ -158,6 +163,10 @@ case "notify":
     let (session, words) = sessionAndWords(Array(arguments.dropFirst()))
     guard !words.isEmpty else { fail("give a message", code: 64) }
     report(ControlRequest(cmd: .notify, session: session, message: words.joined(separator: " ")))
+case "doctor":
+    DoctorCommand.run(Array(arguments.dropFirst()), cliVersion: version)
+case "trace":
+    TraceCommand.run(Array(arguments.dropFirst()))
 default:
     fail("unknown command '\(arguments[0])'\n\n\(usage)", code: 64)
 }

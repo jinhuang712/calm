@@ -21,8 +21,8 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 | `calm show <conversation>` | Everything Calm knows about one conversation | 📝 |
 | `calm notify <message>` | Notifies you about this session | ✅ |
 | `calm config` | Reads and changes Calm's settings | 📝 |
-| `calm doctor` | Checks that Calm and the agents' hooks work | 📝 |
-| `calm trace` | Prints Calm's timeline log | 📝 |
+| `calm doctor` | Checks that Calm and the agents' hooks work | ✅ |
+| `calm trace` | Prints Calm's timeline log | ✅ |
 | `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state | ✅ |
 | `calm --help`, `calm --version` | Help, and the CLI's version | ✅ |
 
@@ -30,7 +30,7 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 
 Agents' hooks carry almost everything the CLI does: in 12 hours of real use, 866 of the 902 changes to session rows came through `calm hook` and `calm status`, while the author had typed `calm` once in 21,002 commands (2026-09-30). Inside Calm, the sidebar, ⌘K and ⌘O already do what the commands for people would. So the order follows who uses the CLI (decided 2026-10-06):
 
-1. `calm doctor` and `calm trace`: for whoever is working out why a row is wrong, often an agent.
+1. `calm doctor` and `calm trace`: for whoever is working out why a row is wrong, often an agent. Built 2026-10-06.
 2. `calm config`, with ⌘N's agent command: a setting you'd ask your agent to change.
 3. `calm fork` and `calm show`, then a way for agents to learn them: a plugin, needed, but not yet.
 
@@ -206,26 +206,44 @@ Transcript  ~/.claude/projects/-Users-me-dev-apps-calm/0f9c2a7e-….jsonl
 
 ## Diagnosis
 
-### `calm doctor [--json]` 📝
+### `calm doctor [--json]` ✅
 
-Checks that Calm works and reaches you, one line per check: ✓, or ✗ with what to do. It changes nothing, and exits 1 when a check fails.
+Checks that Calm works and reaches you, one line per check: ✓ fine, ✗ a problem with what to do under it, · worth knowing (an agent left unconnected is a choice, not a fault). It only reads, never starts Calm, and exits 1 when a check finds a problem. `--json` gives the checks with `"v": 1`.
+
+```
+✓ Calm 0.1.0 answers on its socket (process 14094, running since 22:33).
+✗ A newer Calm was installed at 22:44, after this one started.
+    Calm → Restart Calm: until then its shells can lose access to Documents, Desktop and Downloads.
+✓ This calm (0.1.0) belongs to the Calm answering.
+✓ The calm on PATH is this Calm's.
+✓ Claude Code: reports through Calm's plugin, in Calm's shells.
+· Codex: reports through its own notifications and transcript; no hooks, by design.
+✓ pi: connected.
+✓ This session (bcf9f1b1): working, Claude Code, last reported by a hook 4 s ago.
+```
 
 | Check | What it catches |
 |---|---|
-| Calm answers on its socket | Calm not running, or its socket dead |
-| The Calm answering is the installed one (`/Applications/Calm.app`) | A second copy of Calm holding the socket, which leaves rows gray or stuck on working |
-| The running Calm is the build installed on disk | A newer Calm waiting: Calm → Restart Calm |
-| The `calm` on `PATH` is the installed app's, at the same version | A stale link |
-| Each installed agent is connected | Claude Code's plugin written, pi's extension current, OpenCode's plugin present (Codex has no hooks, by decision: DESIGNS.md → Codex hooks) |
-| In a Calm session: Calm knows it, and when its agent last reported | Hooks that run but never arrive |
+| Calm answers `info` on its socket | Calm not running, a dead or stuck socket, or a Calm too old to know `info` |
+| One process runs that Calm's executable | A second copy holding the socket, which leaves rows gray or stuck on working (2026-09-29) |
+| The running Calm is the build on disk: its executable wasn't written after the process started, and the versions match | An install waiting for Calm → Restart Calm |
+| This `calm` comes with the Calm answering, at its version | A Debug build's `calm` talking to the installed Calm, or the reverse |
+| The `calm` on `PATH` is that Calm's | A stale link (nothing on `PATH` is only a note: Calm's shells have `$CALM_CLI`) |
+| Each agent whose config folder is there, as Settings → Agents sees it | Claude Code's plugin missing, a file Calm didn't write in the way; pi or OpenCode not connected, or connected with an older file, is a note |
+| In a Calm session: Calm knows it, its state and who last reported it, and whether this shell loads Calm's Claude Code plugin | A shell that outlived its session; hooks that never arrive |
 
-It needs one new request from the app: its process id, bundle path, version and launch time.
+### `calm trace [--last <duration>] [--session <id>] [--follow]` ✅
 
-### `calm trace [--last <duration>] [--session <id>] [--follow]` 📝
+- Prints Calm's trace, the timeline of what decides each session's row (DESIGNS.md → Trace), from the unified log: each event's time and the trace's own words, under a heading for the day and the Calm process, so a restart starts a new heading.
 
-- Prints Calm's trace, the timeline of what decides each session's row (DESIGNS.md → Trace), from the unified log. The last 5 minutes unless `--last` says otherwise (`30s`, `10m`, `2h`). `--session` keeps one session's lines; `--follow` keeps printing new ones as they come.
-- Works whether or not Calm is running.
-- The same as `/usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'`, without the typing.
+  ```
+  — 2026-10-06, Calm, process 14094 —
+  22:52:26.691  +1116.52 report fe7faaaa from hook says working: done → working
+  ```
+
+- The last 5 minutes unless `--last` says otherwise (`30s`, `10m`, `2h`, `1d`). `--session` keeps one session's lines (its id, or the first 8 hex digits the trace uses); `--follow` prints new ones as they come.
+- Only the Calm this `calm` came with: every launch of that app, so both sides of a restart and any second copy, but not a Debug build's or a self-test's. A `calm` outside an app shows every Calm's.
+- Works whether or not Calm is running. When nothing matches, it says so on stderr. Dump Logs (⌘P) puts the last 30 minutes of the running Calm's trace in a file.
 
 ## For agents' hooks ✅
 

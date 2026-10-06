@@ -125,6 +125,13 @@ extension ClaudeCodeAdapter: HookReporting {
         }
     }
 
+    /// Where Calm writes the plugin, at each launch: its shells load it through
+    /// `CLAUDE_CODE_PLUGIN_DIRS`, and `calm doctor` checks it's there.
+    public static var pluginDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appending(path: "Calm/agents/claude-code")
+    }
+
     /// The plugin's files: `.claude-plugin/plugin.json` and `hooks/hooks.json`. Hooks run
     /// synchronously so reports arrive in order; `calm hook` returns within a second at most.
     public static func pluginFiles() -> [String: String] {

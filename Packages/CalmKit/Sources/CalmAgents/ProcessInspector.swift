@@ -36,6 +36,24 @@ public enum ProcessInspector {
         return Date(timeIntervalSince1970: Double(info.pbi_start_tvsec) + Double(info.pbi_start_tvusec) / 1_000_000)
     }
 
+    /// Every process running `executable` (as `proc_pidpath` gives it: links resolved), such as
+    /// each copy of Calm started from one app.
+    public static func processes(running executable: String) -> [Int32] {
+        // A count of processes (libproc divides by the size of a pid), plus room for those
+        // started between the two calls.
+        let estimate = proc_listallpids(nil, 0)
+        guard estimate > 0 else { return [] }
+        var pids = [Int32](repeating: 0, count: Int(estimate) + 64)
+        let count = Int(proc_listallpids(&pids, Int32(pids.count * MemoryLayout<Int32>.stride)))
+        var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+        return pids.prefix(max(count, 0)).filter { pid in
+            guard pid > 0 else { return false }
+            let length = Int(proc_pidpath(pid, &buffer, UInt32(buffer.count)))
+            guard length > 0 else { return false }
+            return String(bytes: buffer.prefix(length).map { UInt8(bitPattern: $0) }, encoding: .utf8) == executable
+        }
+    }
+
     /// The files the process has open (regular files and directories, not sockets or pipes).
     public static func openFiles(of pid: Int32) -> [String] {
         let bytes = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nil, 0)

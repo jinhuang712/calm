@@ -76,6 +76,19 @@ struct AgentDetectionTests {
         #expect(ProcessInspector.parseArguments([1, 0], processID: 1) == nil)
     }
 
+    /// What `calm doctor` counts copies of Calm with: every process running one executable.
+    @Test func `the processes running an executable are found by its path`() throws {
+        let sleeper = Process()
+        sleeper.executableURL = URL(filePath: "/bin/sleep")
+        sleeper.arguments = ["30"]
+        try sleeper.run()
+        defer { sleeper.terminate() }
+
+        #expect(ProcessInspector.processes(running: "/bin/sleep").contains(sleeper.processIdentifier))
+        #expect(!ProcessInspector.processes(running: "/bin/sleep").contains(ProcessInfo.processInfo.processIdentifier))
+        #expect(ProcessInspector.processes(running: "/nonexistent/Calm").isEmpty)
+    }
+
     @Test func `a running process is read for its agent`() throws {
         // A real process named like the agent: `exec -a claude` sets argv[0] as a shell would find it.
         let agent = Process()

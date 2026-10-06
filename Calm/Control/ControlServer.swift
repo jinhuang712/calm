@@ -214,6 +214,23 @@ final class ControlServer {
             guard let message = request.message, !message.isEmpty else { return .failure("Give a message.") }
             AttentionCenter.shared.notify(message, for: id)
             return .success()
+        case .info:
+            // For `calm doctor`: which Calm answers (a second copy, an old build) and whether this
+            // session's agent reports reach it.
+            let report = session(request.session).flatMap { manager.workspace.session($0) }.map { session in
+                ControlResponse.SessionReport(
+                    state: session.state.reportName,
+                    agent: session.agent?.kind.displayName,
+                    reportSource: session.lastReport?.source.rawValue,
+                    reportedAt: session.lastReport?.date.timeIntervalSince1970,
+                )
+            }
+            return .success(info: ControlResponse.AppInfo(
+                processID: ProcessInfo.processInfo.processIdentifier,
+                bundlePath: Bundle.main.bundlePath,
+                version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?",
+                session: report,
+            ))
         }
     }
 

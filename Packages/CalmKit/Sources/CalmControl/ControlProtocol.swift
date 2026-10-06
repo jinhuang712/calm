@@ -27,6 +27,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         case status
         case notify
         case search
+        /// What `calm doctor` asks: which Calm answers, and what it knows of `session`.
+        case info
     }
 
     public var v: Int
@@ -111,17 +113,52 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         }
     }
 
+    /// The Calm that answered `info`.
+    public struct AppInfo: Codable, Sendable, Equatable {
+        public var processID: Int32
+        /// The app bundle it runs from.
+        public var bundlePath: String
+        public var version: String
+        /// What it knows of the session the request named; nil when it doesn't know it.
+        public var session: SessionReport?
+
+        public init(processID: Int32, bundlePath: String, version: String, session: SessionReport? = nil) {
+            self.processID = processID
+            self.bundlePath = bundlePath
+            self.version = version
+            self.session = session
+        }
+    }
+
+    /// A session's state and who last reported it: enough to tell hooks that never arrive.
+    public struct SessionReport: Codable, Sendable, Equatable {
+        public var state: String
+        public var agent: String?
+        /// `hook` or `terminal`; nil before anything reported.
+        public var reportSource: String?
+        /// Seconds since 1970.
+        public var reportedAt: Double?
+
+        public init(state: String, agent: String? = nil, reportSource: String? = nil, reportedAt: Double? = nil) {
+            self.state = state
+            self.agent = agent
+            self.reportSource = reportSource
+            self.reportedAt = reportedAt
+        }
+    }
+
     public var ok: Bool
     public var error: String?
     public var sessions: [SessionInfo]?
     public var results: [SearchHit]?
+    public var info: AppInfo?
 
-    public static func success(sessions: [SessionInfo]? = nil, results: [SearchHit]? = nil) -> ControlResponse {
-        ControlResponse(ok: true, error: nil, sessions: sessions, results: results)
+    public static func success(sessions: [SessionInfo]? = nil, results: [SearchHit]? = nil, info: AppInfo? = nil) -> ControlResponse {
+        ControlResponse(ok: true, error: nil, sessions: sessions, results: results, info: info)
     }
 
     public static func failure(_ message: String) -> ControlResponse {
-        ControlResponse(ok: false, error: message, sessions: nil, results: nil)
+        ControlResponse(ok: false, error: message, sessions: nil, results: nil, info: nil)
     }
 }
 

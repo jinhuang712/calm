@@ -27,8 +27,7 @@ enum AgentIntegrations {
     }
 
     static var claudeCodePluginDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "Calm/agents/claude-code")
+        ClaudeCodeAdapter.pluginDirectory
     }
 
     /// Writes the plugin files, so a moved or updated app still leaves a valid plugin behind for

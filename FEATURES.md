@@ -236,6 +236,8 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 - `calm status <state> [message]` — report agent state; this is the contract any agent's hooks can call. `--agent <name>`, `--transcript <file>` and `--agent-session <id>` say which agent and which of its conversations this is, for agents that can't send a hook payload (pi's extension does). Safe in any terminal: outside Calm, or with Calm not running, it does nothing.
 - `calm hook <agent>` — read an agent's hook payload on stdin and report its state; Calm's Claude Code plugin runs `calm hook claude-code`. Safe in any terminal, like `status`.
 - `calm notify <message>` — show a notification for the current session.
+- `calm doctor` — check that Calm, this `calm` and the agents' hooks work: which Calm answers, a second copy, an install waiting for a restart, the `calm` on `PATH`, each agent's link, and this session's last report. Reads only; exits 1 on a problem.
+- `calm trace` — print Calm's trace (what decided each session's row) from the unified log: `--last 10m`, `--session <id>`, `--follow`.
 - Talks to the running app over a local socket. `open` and `list` start Calm if it isn't running: the Calm the CLI came with.
 
 **Settings:** none.

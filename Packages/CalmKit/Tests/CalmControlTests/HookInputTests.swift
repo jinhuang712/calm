@@ -64,12 +64,19 @@ struct HookInputTests {
 
     /// Bigger than a pipe's buffer, written in pieces by another thread while the read runs, the
     /// way a hook runner writes a long payload.
+    ///
+    /// The writer is a thread of its own, not a task on GCD's global queue, and the read gets a
+    /// long limit: this test is about reading the payload whole, and the 1-second deadline has
+    /// its own test above. On a CI runner with a few cores, running the whole suite at once, this
+    /// failed (the read gave up: nil) in both runs that had it, and never in 20 full-suite runs on
+    /// a Mac, idle or with 36 busy loops. A writer waiting on a pool whose workers are all held by
+    /// other tests fits that, but it wasn't proven.
     @Test func `a payload that arrives in pieces is read whole`() {
         let (reader, writer) = makePipe()
         defer { close(reader) }
         let payload = Data((0 ..< 1_000_000).map { UInt8(truncatingIfNeeded: $0) })
         let pieces = stride(from: 0, to: payload.count, by: 100_000).map { payload[$0 ..< min($0 + 100_000, payload.count)] }
-        DispatchQueue.global().async {
+        Thread.detachNewThread {
             for piece in pieces {
                 piece.withUnsafeBytes { buffer in
                     var offset = 0
@@ -84,6 +91,6 @@ struct HookInputTests {
             close(writer)
         }
 
-        #expect(HookInput.read(from: reader) == payload)
+        #expect(HookInput.read(from: reader, timeLimit: 30) == payload)
     }
 }

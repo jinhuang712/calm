@@ -13,6 +13,9 @@ well above what a run costs today and well below what the regressions it guards 
   ticking anyway (before WindowPresence) cost about 300 M instructions a second.
 - seen: the same three agents in view. Their marks and the working light drawn by SwiftUI
   timelines (before they became Core Animation layers) cost about 310 M instructions a second.
+- compacting: the same, with the one in front compacting, its bar breathing. A Core Animation
+  layer (BreathingFill), so it should cost what `seen` does: a SwiftUI opacity animation would lay
+  the sidebar out again every frame, as the marks' timelines did.
 
 Usage: scripts/perf-check.py [scenario ...]   (after `mise run build`; about 35 s a scenario)
 Exits 1 if any budget is exceeded.
@@ -45,6 +48,7 @@ SCENARIOS = {
     "idle": ("true", "calm.new_session", (40, 60)),
     "unseen": (agent, three_agents + ",calm.window_unseen", (40, 80)),
     "seen": (agent, three_agents, (40, 80)),
+    "compacting": (agent, three_agents + ",calm.hook_compact:start:auto", (40, 80)),
 }
 
 
@@ -129,7 +133,7 @@ def main(names):
     home = os.path.join(out, "home")  # agents' folders stay empty: nothing real is read
     os.makedirs(home)
     failed = False
-    print(f"{'scenario':<8} {'M instr/s':>10} {'wakeups/s':>10} {'CPU':>7}   budget")
+    print(f"{'scenario':<10} {'M instr/s':>10} {'wakeups/s':>10} {'CPU':>7}   budget")
     for name in names or list(SCENARIOS):
         typed, after, budget = SCENARIOS[name]
         result = run(name, typed, after, out, home)
@@ -138,7 +142,7 @@ def main(names):
             over = result["instructions"] > budget[0] or result["wakeups"] > budget[1]
             failed |= over
             verdict = f"{'OVER' if over else 'ok'}  (at most {budget[0]} M instr/s, {budget[1]} wakeups/s)"
-        print(f"{name:<8} {result['instructions']:>10.1f} {result['wakeups']:>10.1f} {result['cpu']:>6.1f}%   {verdict}")
+        print(f"{name:<10} {result['instructions']:>10.1f} {result['wakeups']:>10.1f} {result['cpu']:>6.1f}%   {verdict}")
     print(f"logs: {out}")
     return 1 if failed else 0
 

@@ -146,7 +146,7 @@ case "hook":
     report(ControlRequest(
         cmd: .status, session: session, state: hook.state.reportName, message: hook.message,
         agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
-        shells: hook.backgroundShells > 0 ? hook.backgroundShells : nil,
+        shells: hook.backgroundShells > 0 ? hook.backgroundShells : nil, compaction: hook.compaction?.reportName,
     ))
 case "search", "s":
     let query = arguments.dropFirst().joined(separator: " ")

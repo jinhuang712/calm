@@ -239,6 +239,85 @@ final class ShimmerBandView: NSView {
     }
 }
 
+/// The compaction bar's fill while the agent compacts (CompactionBarLine): it breathes like the
+/// restoring bar (0.4 to 1 and back, 1.9 s), in Core Animation, so a card compacting for two
+/// minutes costs the app nothing between frames (a SwiftUI opacity animation lays the sidebar
+/// out again each frame, see MarkFramesLoop). On the wall clock, so bars side by side agree.
+struct BreathingFill: NSViewRepresentable {
+    let color: Color
+
+    func makeNSView(context: Context) -> BreathingFillView {
+        let view = BreathingFillView()
+        view.color = color.resolve(in: context.environment).cgColor
+        return view
+    }
+
+    func updateNSView(_ view: BreathingFillView, context: Context) {
+        view.color = color.resolve(in: context.environment).cgColor
+    }
+}
+
+final class BreathingFillView: NSView {
+    private let fill = CALayer()
+    /// One way, 0.4 to 1; it comes back the same way.
+    static let half = 0.95
+
+    #if DEBUG
+        var breathForTesting: CABasicAnimation? {
+            fill.animation(forKey: "breath") as? CABasicAnimation
+        }
+    #endif
+    var color: CGColor = .white {
+        didSet {
+            if color != oldValue {
+                restart()
+            }
+        }
+    }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.addSublayer(fill)
+        setAccessibilityElement(false)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("not supported")
+    }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        fill.frame = bounds
+        fill.cornerRadius = bounds.height / 2
+        CATransaction.commit()
+        if fill.animation(forKey: "breath") == nil {
+            restart()
+        }
+    }
+
+    private func restart() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        fill.backgroundColor = color
+        fill.removeAllAnimations()
+        let breath = CABasicAnimation(keyPath: "opacity")
+        breath.fromValue = 0.4
+        breath.toValue = 1
+        breath.duration = Self.half
+        breath.autoreverses = true
+        breath.repeatCount = .infinity
+        breath.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        breath.isRemovedOnCompletion = false
+        breath.timeOffset = MarkMotion.fraction(Date.now.timeIntervalSinceReferenceDate, of: Self.half * 2) * Self.half * 2
+        fill.add(breath, forKey: "breath")
+        CATransaction.commit()
+    }
+}
+
 /// Each frame drawn once onto the whole tile, at the screen's pixels, where the SwiftUI path
 /// draws it: centered, `scale` of the tile, resampled once with high quality (its
 /// `.interpolation(.high)`). Shrunk to its own whole-pixel size instead, the layer stretched it

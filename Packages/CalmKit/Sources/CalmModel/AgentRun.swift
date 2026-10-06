@@ -89,6 +89,14 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     /// turn was interrupted). An agent with no hook or extension has no other way to tell Calm
     /// it is working.
     public var turn: TurnPhase?
+    /// The conversation's size as the agent's latest reply saw it, in tokens (for agents whose
+    /// transcript counts them): what a compaction starts from.
+    public var contextTokens: Int?
+    /// The newest compaction the transcript records, with the sizes it gives.
+    public var lastCompaction: CompactedContext?
+    /// When the newest message was written (the person's or the agent's, not bookkeeping): a
+    /// message after a compaction began, with no record of it ending, means it was cancelled.
+    public var newestMessageAt: Date?
 
     public init(
         title: String? = nil,
@@ -99,6 +107,9 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         interrupted: Bool = false,
         directory: String? = nil,
         turn: TurnPhase? = nil,
+        contextTokens: Int? = nil,
+        lastCompaction: CompactedContext? = nil,
+        newestMessageAt: Date? = nil,
     ) {
         self.title = title
         self.lastMessage = lastMessage
@@ -108,6 +119,9 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         self.interrupted = interrupted
         self.directory = directory
         self.turn = turn
+        self.contextTokens = contextTokens
+        self.lastCompaction = lastCompaction
+        self.newestMessageAt = newestMessageAt
     }
 
     /// The state a session should move to given what this reading says of the newest turn, or nil
@@ -181,9 +195,13 @@ public extension Session {
 
     /// The recap a card and the arrival card show: what the agent asked while it waits for you;
     /// once you've read it (idle), the agent's own summary of where things stand, if it wrote one
-    /// after its last message; otherwise the latest thing it said.
+    /// after its last message; otherwise the latest thing it said. A `/compact` that ended as
+    /// *done* says so: the last thing the agent said came before it.
     var recap: String? {
         let tail = agent?.tail
+        if state == .done, compaction?.trigger == .manual, compaction?.endedAt != nil, let message = lastReport?.message {
+            return message
+        }
         switch state {
         case .needsYou: return lastReport?.message ?? tail?.lastMessage
         case .idle: return tail?.summary ?? tail?.lastMessage ?? lastReport?.message
@@ -222,6 +240,7 @@ public extension Workspace {
     mutating func updateTranscriptTail(_ id: Session.ID, _ tail: TranscriptTail, readAt date: Date = Date()) {
         guard let index = sessions.firstIndex(where: { $0.id == id }), sessions[index].agent != nil else { return }
         sessions[index].agent?.tail = tail
+        noteCompactionInTranscript(index, tail, readAt: date)
         if tail.interrupted, sessions[index].state == .working {
             sessions[index].state = .idle
             sessions[index].lastReport = StatusReport(state: .idle, message: "Interrupted", source: .hook, date: date)

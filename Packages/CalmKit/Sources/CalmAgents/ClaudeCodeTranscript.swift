@@ -15,6 +15,13 @@ import Foundation
 ///   after a turn ends (seen 2026-09-30, versions 2.1.260 to 2.1.284). Most end with the hint
 ///   "(disable recaps in /config)".
 /// - `~/.claude/tasks/<sessionId>/<n>.json`: `{id, subject, activeForm, status}` per todo.
+/// - Compaction (2.1.291, 2026-10-06): an `assistant` record's `message.usage` counts the context
+///   it saw (`input_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens` +
+///   `output_tokens`; in the author's 15 compactions, within 1.4% of the compaction's own count).
+///   A compaction that finished leaves a `system` record, `subtype: "compact_boundary"`, whose
+///   `compactMetadata` holds `trigger`, `preTokens`, `postTokens` and `durationMs`, then a `user`
+///   record with `isCompactSummary`. One cancelled with Esc leaves only a `user` record. Every
+///   record carries an ISO 8601 `timestamp`.
 extension ClaudeCodeAdapter: TranscriptReading {
     public func transcript(forProcess processID: Int32, home: URL) -> (agentSessionID: String, url: URL)? {
         let claude = home.appending(path: ".claude")
@@ -63,13 +70,28 @@ extension ClaudeCodeAdapter: TranscriptReading {
                     // Lines kept apart, so the cleaning can tell a heading from what follows it.
                     tail.lastMessage = MessageText.recap(Self.texts(of: record).joined(separator: "\n"))
                 }
+                if tail.contextTokens == nil, record["isSidechain"] as? Bool != true {
+                    tail.contextTokens = Self.contextTokens(of: record)
+                }
+                tail.newestMessageAt = tail.newestMessageAt ?? Self.date(of: record)
                 sawConversation = true
             case "user":
+                // The summary a compaction leaves is part of the compaction, not a message after it.
+                if record["isCompactSummary"] as? Bool != true {
+                    tail.newestMessageAt = tail.newestMessageAt ?? Self.date(of: record)
+                }
                 // Only the newest conversation record can show an interruption.
                 if !sawConversation {
                     tail.interrupted = Self.texts(of: record).contains { $0.hasPrefix("[Request interrupted") }
                 }
                 sawConversation = true
+            case "system" where record["subtype"] as? String == "compact_boundary":
+                if tail.lastCompaction == nil, let date = Self.date(of: record) {
+                    let metadata = record["compactMetadata"] as? [String: Any]
+                    tail.lastCompaction = CompactedContext(
+                        date: date, tokensBefore: metadata?["preTokens"] as? Int, tokensAfter: metadata?["postTokens"] as? Int,
+                    )
+                }
             case "system" where record["subtype"] as? String == "away_summary":
                 // Only a recap newer than every message: a turn after it has moved on.
                 if !sawConversation, tail.summary == nil {
@@ -119,6 +141,21 @@ extension ClaudeCodeAdapter: TranscriptReading {
             text = String(text.dropLast(hint.count))
         }
         return MessageText.recap(text)
+    }
+
+    /// The context the reply saw: everything sent to the model, cached or not, and what it wrote.
+    static func contextTokens(of record: [String: Any]) -> Int? {
+        guard let usage = (record["message"] as? [String: Any])?["usage"] as? [String: Any] else { return nil }
+        let counts = ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"]
+            .compactMap { usage[$0] as? Int }
+        return counts.isEmpty ? nil : counts.reduce(0, +)
+    }
+
+    /// A record's `timestamp`: "2026-10-06T15:42:35.880Z", sometimes without the milliseconds.
+    static func date(of record: [String: Any]) -> Date? {
+        guard let text = record["timestamp"] as? String else { return nil }
+        return (try? Date(text, strategy: .iso8601.year().month().day().time(includingFractionalSeconds: true)))
+            ?? (try? Date(text, strategy: .iso8601))
     }
 
     private static func texts(of record: [String: Any]) -> [String] {

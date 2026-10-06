@@ -48,6 +48,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var transcript: String?
     /// From a hook that ended a turn: shells still running (nil for none; older callers omit it).
     public var shells: Int?
+    /// From a hook about a compaction: "start:manual", "end:auto" (`CompactionReport`; nil for none).
+    public var compaction: String?
     /// For `search`.
     public var query: String?
     /// For `fork`: stay where you are, the fork waiting in the sidebar.
@@ -63,6 +65,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         agentSession: String? = nil,
         transcript: String? = nil,
         shells: Int? = nil,
+        compaction: String? = nil,
         query: String? = nil,
         background: Bool? = nil,
     ) {
@@ -76,6 +79,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.agentSession = agentSession
         self.transcript = transcript
         self.shells = shells
+        self.compaction = compaction
         self.query = query
         self.background = background
     }

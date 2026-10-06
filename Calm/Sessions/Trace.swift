@@ -46,8 +46,10 @@ enum Trace {
 
     /// A status report reached a session (from a hook or a terminal signal).
     static func reported(_ id: Session.ID, _ report: StatusReport, before: SessionState?, after: SessionState?) {
-        guard isLaunching || before != after else { return }
-        note("report \(Trace.id(id)) from \(report.source.rawValue) says \(report.state.rawValue): \(transition(before, after))")
+        // A compaction's start and end are news even when the state stays *working*.
+        guard isLaunching || before != after || report.compaction != nil else { return }
+        let says = report.state.rawValue + (report.compaction.map { ", compaction \($0.reportName)" } ?? "")
+        note("report \(Trace.id(id)) from \(report.source.rawValue) says \(says): \(transition(before, after))")
     }
 
     /// A hook, or the probe finding a transcript, said which agent a session runs. Every hook

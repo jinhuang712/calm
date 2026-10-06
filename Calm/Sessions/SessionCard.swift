@@ -24,6 +24,8 @@ struct SessionCard: View {
     var inView = false
     /// A restart waiting for the turn to end, or under way: a footnote on the state line.
     var restart: RestartPhase?
+    /// The clock the compaction bar is read against: moved on when a drained bar is due to go.
+    @State private var now = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: (size == .full ? 6 : 4).scaled) {
@@ -64,6 +66,13 @@ struct SessionCard: View {
         .help(tooltip)
         .animation(.easeInOut(duration: 0.25), value: session.state)
         .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.45), value: isConfirming)
+        .task(id: session.compactionBarEnds) {
+            // A drained bar goes by itself a few seconds after the compaction (`compactionBar`).
+            guard let ends = session.compactionBarEnds, ends > .now else { return }
+            try? await Task.sleep(for: .seconds(ends.timeIntervalSinceNow))
+            guard !Task.isCancelled else { return }
+            Motion.animate(.easeInOut(duration: 0.25)) { now = .now }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -90,9 +99,15 @@ struct SessionCard: View {
                 }
             }
             .padding(.leading, Self.indent)
-            if !isConfirming, let progress = session.agent?.tail?.progress, progress.total > 0 {
+            // A compaction takes the todo bar's place: the same line, so nothing moves when they swap.
+            if let bar = compactionBar {
+                CompactionBarLine(bar: bar, isRunning: session.isCompacting, style: style)
+                    .padding(.leading, Self.indent)
+                    .transition(.opacity)
+            } else if !isConfirming, let progress = session.agent?.tail?.progress, progress.total > 0 {
                 TodoProgressLine(progress: progress, style: style)
                     .padding(.leading, Self.indent)
+                    .transition(.opacity)
             }
             recapText(lines: 2)
         case let .merged(lines):
@@ -136,7 +151,7 @@ struct SessionCard: View {
                     .calmFont(size: 13, weight: .medium)
                     .lineLimit(1)
                     .layoutPriority(1)
-                if session.agent?.tail?.step == nil, let recap = session.recap {
+                if session.workingStep == nil, let recap = session.recap {
                     Text("·")
                         .calmFont(size: 13)
                         .foregroundStyle(style.tertiary)
@@ -146,7 +161,9 @@ struct SessionCard: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6.scaled)
-                if let progress = session.agent?.tail?.progress, progress.total > 0 {
+                if let bar = compactionBar {
+                    compactionReadout(bar)
+                } else if let progress = session.agent?.tail?.progress, progress.total > 0 {
                     Text("\(progress.done)/\(progress.total)")
                         .calmFont(size: 12)
                         .monospacedDigit()
@@ -170,11 +187,31 @@ struct SessionCard: View {
         }
     }
 
+    /// Compact's end of the working line while a compaction shows: a short bar while it runs,
+    /// the sizes once it's over (where the todo count goes).
+    @ViewBuilder
+    private func compactionReadout(_ bar: CompactionBar) -> some View {
+        if case .drained = bar, let label = bar.label {
+            Text(label)
+                .calmFont(size: 12)
+                .monospacedDigit()
+                .foregroundStyle(style.tertiary)
+                .fixedSize()
+        } else {
+            CompactionBarLine(bar: bar, isRunning: session.isCompacting, style: style, showsLabel: false)
+                .frame(width: 46.scaled)
+        }
+    }
+
     /// "Needs you · Should I also update…", one run of text so a second line wraps under the first.
     private var mergedText: Text {
         var parts = [Text(session.state.label).foregroundStyle(stateColor).fontWeight(session.state == .done ? .medium : .regular)]
         if let shells = Self.shellsLine(session.shellsStillRunning) {
             parts.append(Text("· \(shells)").foregroundStyle(style.tertiary))
+        }
+        // A `/compact` that ended as done: what it kept, a footnote like the shells'.
+        if let bar = compactionBar, case .drained = bar, let label = bar.label {
+            parts.append(Text("· \(label)").foregroundStyle(style.tertiary))
         }
         if let recap = session.recap {
             parts.append(Text("·").foregroundStyle(style.tertiary))
@@ -211,10 +248,12 @@ struct SessionCard: View {
         timeColor != nil && AccessibilitySettings.differentiateWithoutColor
     }
 
-    /// What a smaller card leaves out: the whole recap and the worktree.
+    /// What a smaller card leaves out: the whole recap and the worktree, and at Minimal, that the
+    /// agent is compacting (there's no line to say it).
     private var tooltip: String {
         guard size != .full else { return "" }
-        return [session.recap, session.worktreeName.map { "Worktree: \($0)" }]
+        let compacting = size == .minimal && session.isCompacting ? workingLine : nil
+        return [compacting, session.recap, session.worktreeName.map { "Worktree: \($0)" }]
             .compactMap(\.self)
             .joined(separator: "\n")
     }
@@ -293,10 +332,23 @@ struct SessionCard: View {
         }
     }
 
-    /// "Working · Fixing the token mock", or "Working" when the agent names no step. No minutes:
-    /// the time in the card's corner already counts them.
+    /// "Working · Fixing the token mock", "Working · Compacting", or "Working" when the agent names
+    /// no step. No minutes: the time in the card's corner already counts them.
     var workingLine: String {
-        session.agent?.tail?.step.map { "\(SessionState.working.label) · \($0)" } ?? SessionState.working.label
+        session.workingStep.map { "\(SessionState.working.label) · \($0)" } ?? SessionState.working.label
+    }
+
+    /// The compaction bar shown now, if any (never while the state is being checked).
+    private var compactionBar: CompactionBar? {
+        isConfirming ? nil : session.compactionBar(now: now)
+    }
+
+    /// What the compaction bar says, for VoiceOver: "compacted from 968k to 13k tokens".
+    static func compactionWords(_ bar: CompactionBar) -> String? {
+        switch bar {
+        case .full: nil
+        case let .drained(from, to): "compacted from \(CompactionBar.tokens(from)) to \(CompactionBar.tokens(to)) tokens"
+        }
     }
 
     /// "2 shells running" for what a finished turn left behind; nothing when there are none.
@@ -354,9 +406,12 @@ struct SessionCard: View {
 
     private var accessibilityText: String {
         let state = isConfirming ? "Restoring" : session.state == .working ? workingLine : session.state.label
-        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), Self.restartLine(restart), session.recap]
-            .compactMap(\.self)
-            .joined(separator: ", ")
+        return [
+            agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), Self.restartLine(restart),
+            compactionBar.flatMap(Self.compactionWords), session.recap,
+        ]
+        .compactMap(\.self)
+        .joined(separator: ", ")
     }
 }
 
@@ -379,6 +434,51 @@ struct LoadingBar: View {
                 withAnimation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true)) { dimmed = false }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// A compaction, in the todo bar's place (UIUX.md → Session cards): the bar full while the agent
+/// compacts, breathing like the restoring bar, then drained to the share it kept over 0.6 s, the
+/// sizes beside it ("968k", then "968k → 13k"). The breathing is a layer (BreathingFill) over the
+/// SwiftUI bar, which stays hidden under it at full width, so the drain is SwiftUI's own width
+/// animation from there.
+struct CompactionBarLine: View {
+    let bar: CompactionBar
+    /// Still compacting: the bar breathes (motion allowing); held full after, it rests.
+    let isRunning: Bool
+    let style: SidebarStyle
+    var showsLabel = true
+
+    var body: some View {
+        // Still while nobody can see the window (WindowPresence) or motion is reduced.
+        let breathes = isRunning && bar.fraction == 1 && !Motion.isReduced && WindowPresence.shared.isVisible
+        HStack(spacing: 8.scaled) {
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                ZStack(alignment: .leading) {
+                    Capsule().fill(style.selection)
+                    Capsule()
+                        .fill(style.secondary)
+                        // Never thinner than its own height: what's kept is a dot, not nothing.
+                        .frame(width: max(width * bar.fraction, 4.scaled))
+                        .opacity(breathes ? 0 : 1)
+                    if breathes {
+                        BreathingFill(color: style.secondary)
+                            .frame(width: width)
+                    }
+                }
+            }
+            .frame(height: 4.scaled)
+            if showsLabel, let label = bar.label {
+                Text(label)
+                    .calmFont(size: 12)
+                    .monospacedDigit()
+                    .foregroundStyle(style.tertiary)
+                    .fixedSize()
+            }
+        }
+        .animation(Motion.isReduced ? nil : .easeOut(duration: 0.6), value: bar)
+        .accessibilityHidden(true)
     }
 }
 

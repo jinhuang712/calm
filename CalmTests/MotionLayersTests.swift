@@ -105,6 +105,26 @@ struct MotionLayersTests {
         #expect(light.repeatCount == .infinity)
     }
 
+    /// The compaction bar breathes like the restoring bar: 0.4 to 1 and back over 1.9 s, forever,
+    /// in a layer of its own, rounded to its height.
+    @Test func `the compaction bar breathes in a layer, on the wall clock`() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 100), styleMask: .borderless, backing: .buffered, defer: false,
+        )
+        let fill = BreathingFillView(frame: NSRect(x: 0, y: 0, width: 200, height: 4))
+        window.contentView?.addSubview(fill)
+        fill.layoutSubtreeIfNeeded()
+        let breath = try #require(fill.breathForTesting)
+        #expect(breath.keyPath == "opacity")
+        #expect((breath.fromValue as? NSNumber)?.doubleValue == 0.4)
+        #expect((breath.toValue as? NSNumber)?.doubleValue == 1)
+        #expect(breath.duration == BreathingFillView.half)
+        #expect(breath.autoreverses)
+        #expect(breath.repeatCount == .infinity)
+        #expect(breath.timeOffset >= 0 && breath.timeOffset < BreathingFillView.half * 2)
+        #expect(fill.layer?.sublayers?.first?.cornerRadius == 2)
+    }
+
     @Test func `the loop keeps its frames once drawn at a size`() throws {
         let frames = try #require(Agents.adapter(for: .claudeCode)?.mark.frames)
         let first = MarkFrameImages.image(frames.images[0], tile: 26, scale: frames.scale, pixelsPerPoint: 2)

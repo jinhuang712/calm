@@ -26,11 +26,13 @@ extension ClaudeCodeAdapter: HookReporting {
     /// The events Calm listens to, each running `calm hook claude-code` with the payload on stdin.
     public static let hookEvents = [
         "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "StopFailure",
+        "PreCompact", "PostCompact",
     ]
 
     /// Payload fields (stdin JSON): `hook_event_name`, `session_id`, `transcript_path`, and per
     /// event `tool_name`/`tool_input`, `notification_type`/`message`, `last_assistant_message`
-    /// and `background_tasks`, `error`/`error_details`.
+    /// and `background_tasks`, `error`/`error_details`, and for compaction `trigger` ("manual" for
+    /// `/compact`, "auto"; captured from 2.1.291 on 2026-10-06).
     private struct Payload: Decodable {
         var hookEventName: String?
         var sessionId: String?
@@ -45,6 +47,7 @@ extension ClaudeCodeAdapter: HookReporting {
         var backgroundTasks: [BackgroundTask]?
         var error: String?
         var errorDetails: String?
+        var trigger: String?
 
         struct ToolInput: Decodable {
             var command: String?
@@ -87,15 +90,20 @@ extension ClaudeCodeAdapter: HookReporting {
         guard let hook = try? decoder.decode(Payload.self, from: payload), let event = hook.hookEventName else { return nil }
         // `prose`: what Claude said (Markdown, made plain). The rest is Calm's own text or text
         // that quotes a command someone is asked to allow, and stays as it is.
-        func report(_ state: SessionState, _ message: String? = nil, prose: Bool = false, shells: Int = 0) -> HookReport {
+        func report(
+            _ state: SessionState, _ message: String? = nil, prose: Bool = false, shells: Int = 0, compaction: CompactionReport? = nil,
+        ) -> HookReport {
             HookReport(
                 state: state,
                 message: prose ? MessageText.recap(message.map { String($0.prefix(Self.recapSource)) }) : HookReport.recap(message),
                 agentSessionID: hook.sessionId,
                 transcriptPath: hook.transcriptPath,
                 backgroundShells: shells,
+                compaction: compaction,
             )
         }
+        // A trigger Calm doesn't know reads as Claude's own: that never ends the turn as done.
+        let trigger = Compaction.Trigger(rawValue: hook.trigger ?? "") ?? .auto
         switch event {
         case "UserPromptSubmit", "PreToolUse", "PostToolUse":
             // After an approval the tool runs, so these also clear a *needs you*.
@@ -120,6 +128,19 @@ extension ClaudeCodeAdapter: HookReporting {
             return report(.done, hook.lastAssistantMessage, prose: true, shells: running.count)
         case "StopFailure":
             return report(.failed, hook.errorDetails ?? hook.error)
+        case "PreCompact":
+            // Claude summarizes the conversation to make room: busy for a minute or two (99 s at the
+            // median in the author's history), with none of the turn's work. `/compact` sends no
+            // UserPromptSubmit, so this is all that says the session is busy.
+            return report(.working, compaction: .started(trigger))
+        case "PostCompact":
+            // A `/compact` you typed is over and waits for your next prompt (no Stop follows it);
+            // one Claude began on its own goes back to the turn, whose Stop comes later. Esc
+            // cancels a compaction with neither (the transcript tells, `Workspace`).
+            if trigger == .manual {
+                return report(.done, "Conversation compacted.", compaction: .ended(.manual))
+            }
+            return report(.working, compaction: .ended(trigger))
         default:
             return nil
         }

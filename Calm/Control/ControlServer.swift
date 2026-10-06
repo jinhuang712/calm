@@ -198,7 +198,10 @@ final class ControlServer {
                 }
                 manager.noteAgentSession(id, kind: kind, agentSessionID: request.agentSession, transcriptPath: request.transcript)
             }
-            manager.report(id, StatusReport(state: state, message: request.message, source: .hook, backgroundShells: request.shells ?? 0))
+            manager.report(id, StatusReport(
+                state: state, message: request.message, source: .hook, backgroundShells: request.shells ?? 0,
+                compaction: request.compaction.flatMap(CompactionReport.init(reportName:)),
+            ))
             return .success()
         case .search:
             return SearchService.respond(to: request)

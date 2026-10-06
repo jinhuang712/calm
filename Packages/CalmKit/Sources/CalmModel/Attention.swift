@@ -17,18 +17,38 @@ public struct StatusReport: Codable, Hashable, Sendable {
     /// Shells the agent's turn left running (a *done* report only). A snapshot from one report,
     /// so it isn't saved: after a restart it may no longer be true, and *done* alone still is.
     public var backgroundShells = 0
+    /// What the report says of a compaction (Claude Code's PreCompact and PostCompact). Not saved,
+    /// as the compaction itself isn't.
+    public var compaction: CompactionReport?
 
     private enum CodingKeys: String, CodingKey {
         case state, message, source, date
     }
 
-    public init(state: SessionState, message: String? = nil, source: Source, date: Date = Date(), backgroundShells: Int = 0) {
+    public init(
+        state: SessionState,
+        message: String? = nil,
+        source: Source,
+        date: Date = Date(),
+        backgroundShells: Int = 0,
+        compaction: CompactionReport? = nil,
+    ) {
         self.state = state
         let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.message = trimmed?.isEmpty == false ? trimmed : nil
         self.source = source
         self.date = date
         self.backgroundShells = max(backgroundShells, 0)
+        self.compaction = compaction
+    }
+}
+
+public extension Session {
+    /// Shells the agent's turn left running, while the card says *done* ("Done · 2 shells
+    /// running"); none once it has moved on to another state or been settled by a visit.
+    var shellsStillRunning: Int {
+        guard state == .done, lastReport?.source == .hook else { return 0 }
+        return lastReport?.backgroundShells ?? 0
     }
 }
 
@@ -77,6 +97,7 @@ public extension Workspace {
     ///   *needs you* takes it back.
     /// - *Done* and *failed* stay put even where the user is looking; the session settles when
     ///   they leave it (`Workspace.select`, `settle`).
+    /// - A compaction's start and end are kept on the session for its card (`Compaction`).
     @discardableResult
     mutating func report(_ id: Session.ID, _ report: StatusReport, focusedSessionID: Session.ID?) -> AttentionEffect {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return .none }
@@ -86,7 +107,8 @@ public extension Workspace {
         }
         let isFocused = id == focusedSessionID
         let newState = report.state
-        if previous.state == newState, previous.lastReport?.message == report.message,
+        noteCompaction(index, report)
+        if report.compaction == nil, previous.state == newState, previous.lastReport?.message == report.message,
            previous.lastReport?.source == report.source,
            (previous.lastReport?.backgroundShells ?? 0) == report.backgroundShells {
             return .none
@@ -112,6 +134,7 @@ public extension Workspace {
             sessions[index].lastConversation = conversation
         }
         sessions[index].agent = nil
+        sessions[index].compaction = nil
         sessions[index].lastReport?.source = .terminal
         if sessions[index].state == .working {
             sessions[index].state = .idle

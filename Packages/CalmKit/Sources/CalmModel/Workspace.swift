@@ -94,16 +94,11 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     public var lastConversation: AgentConversation?
     /// A scratch session's own folder (⌘⇧N). Calm never shows it.
     public var scratchFolder: String?
+    /// The agent's latest compaction while its card shows it; not saved (`CodingKeys`, `Compaction`).
+    public var compaction: Compaction?
 
     public var isScratch: Bool {
         scratchFolder != nil
-    }
-
-    /// Shells the agent's turn left running, while the card says *done* ("Done · 2 shells
-    /// running"); none once it has moved on to another state or been settled by a visit.
-    public var shellsStillRunning: Int {
-        guard state == .done, lastReport?.source == .hook else { return 0 }
-        return lastReport?.backgroundShells ?? 0
     }
 
     public init(

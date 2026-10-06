@@ -11,6 +11,8 @@ public struct HookReport: Equatable, Sendable {
     /// Shells still running when the turn ended (monitors and kinds Calm doesn't know count
     /// too). They don't make the session *working*: nothing wakes the agent if one never ends.
     public var backgroundShells: Int
+    /// A compaction starting or ending (the agent summarizing its conversation to make room).
+    public var compaction: CompactionReport?
 
     public init(
         state: SessionState,
@@ -18,12 +20,14 @@ public struct HookReport: Equatable, Sendable {
         agentSessionID: String? = nil,
         transcriptPath: String? = nil,
         backgroundShells: Int = 0,
+        compaction: CompactionReport? = nil,
     ) {
         self.state = state
         self.message = message
         self.agentSessionID = agentSessionID
         self.transcriptPath = transcriptPath
         self.backgroundShells = backgroundShells
+        self.compaction = compaction
     }
 
     /// Long agent messages are cut for a one- or two-line recap.

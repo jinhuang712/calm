@@ -187,4 +187,44 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.lastMessage != nil)
         #expect(tail.directory != nil)
     }
+
+    // Compaction fixtures: what Claude Code 2.1.291 wrote against a stand-in API (README).
+
+    private func compactionTail(_ name: String) throws -> TranscriptTail {
+        let url = try #require(Bundle.module.url(forResource: name, withExtension: "jsonl", subdirectory: "Fixtures/claude-code"))
+        return try #require(adapter.readTail(of: url, agentSessionID: nil, home: FileManager.default.temporaryDirectory))
+    }
+
+    private func date(_ text: String) throws -> Date {
+        try #require(ClaudeCodeAdapter.date(of: ["timestamp": text]))
+    }
+
+    @Test func `the last reply's context is what a compaction starts from`() throws {
+        let tail = try compactionTail("transcript-compacting")
+        // input + cache creation + cache read + output, of the reply before Claude compacts.
+        #expect(tail.contextTokens == 985_010)
+        // The /compact earlier in the conversation, with its sizes.
+        #expect(try tail.lastCompaction == CompactedContext(date: date("2026-10-06T15:42:47.166Z"), tokensBefore: 5010, tokensAfter: 1165))
+    }
+
+    @Test func `a compaction that finished is recorded, and its summary is no message`() throws {
+        let tail = try compactionTail("transcript-compacted")
+        let recorded = try CompactedContext(date: date("2026-10-06T15:43:09.829Z"), tokensBefore: 985_037, tokensAfter: 1192)
+        #expect(tail.lastCompaction == recorded)
+        // The prompt before it began: the summary it left is part of it.
+        #expect(try tail.newestMessageAt == date("2026-10-06T15:43:05.296Z"))
+        #expect(tail.contextTokens == 985_010)
+        #expect(tail.lastMessage == "Here is the big answer.")
+    }
+
+    @Test func `one cancelled with Esc leaves a message and no record`() throws {
+        let tail = try compactionTail("transcript-compact-cancelled")
+        #expect(tail.lastCompaction == nil)
+        #expect(try tail.newestMessageAt == date("2026-10-06T15:44:49.570Z"))
+    }
+
+    @Test func `timestamps read with and without milliseconds`() throws {
+        #expect(try abs(date("2026-10-06T15:44:49.570Z").timeIntervalSince(date("2026-10-06T15:44:49Z")) - 0.57) < 0.001)
+        #expect(ClaudeCodeAdapter.date(of: ["timestamp": "yesterday"]) == nil)
+    }
 }

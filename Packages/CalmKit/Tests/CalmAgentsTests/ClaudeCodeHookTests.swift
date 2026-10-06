@@ -165,4 +165,38 @@ struct ClaudeCodeHookTests {
         #expect(Agents.hookReporter(named: "claude-code")?.kind == .claudeCode)
         #expect(Agents.hookReporter(named: "nothing") == nil)
     }
+
+    /// Captured from Claude Code 2.1.291 (2026-10-06): `/compact` sends PreCompact and PostCompact
+    /// and nothing else, no prompt hook before and no Stop after.
+    @Test func `a compact you typed is work, then done`() throws {
+        let start = try #require(adapter.hookReport(from: fixture("PreCompact-manual")))
+        #expect(start.state == .working)
+        #expect(start.compaction == .started(.manual))
+        #expect(start.agentSessionID == "4f6b2c1e-0000-4000-8000-000000000001")
+        let end = try #require(adapter.hookReport(from: fixture("PostCompact-manual")))
+        #expect(end.state == .done)
+        #expect(end.message == "Conversation compacted.")
+        #expect(end.compaction == .ended(.manual))
+    }
+
+    @Test func `one Claude began on its own goes back to the turn`() throws {
+        let start = try #require(adapter.hookReport(from: fixture("PreCompact-auto")))
+        #expect(start.state == .working)
+        #expect(start.compaction == .started(.auto))
+        let end = try #require(adapter.hookReport(from: fixture("PostCompact-auto")))
+        #expect(end.state == .working)
+        #expect(end.message == nil)
+        #expect(end.compaction == .ended(.auto))
+    }
+
+    @Test func `a trigger Calm doesn't know never ends the turn`() throws {
+        let end = try #require(adapter.hookReport(from: payload(["hook_event_name": "PostCompact", "trigger": "later"])))
+        #expect(end.state == .working)
+        #expect(end.compaction == .ended(.auto))
+    }
+
+    @Test func `the plugin listens for compaction`() {
+        #expect(ClaudeCodeAdapter.hookEvents.contains("PreCompact"))
+        #expect(ClaudeCodeAdapter.hookEvents.contains("PostCompact"))
+    }
 }

@@ -10,6 +10,7 @@ Calm is built for days spent supervising CLI coding agents such as Claude Code, 
 
 - **Shows which session needs you.** Every session in the sidebar says whether its agent is working, needs you, is done or failed, for Claude Code, Codex, OpenCode and pi. Only *needs you* ever notifies.
 - **Keeps sessions alive.** Quitting Calm detaches your shells instead of killing them; relaunching brings back every session, split and running agent.
+- **Starts your agent with one key.** ⌘N opens a session running Claude Code, or the agent you choose, with the options you picked (skip permissions, a new worktree); ⌘T is a plain shell.
 - **Groups by project, by itself.** Sessions file under the project or folder they work in; scratch sessions (⌘⇧N) are for throwaway work.
 - **Finds any past conversation.** ⌘K searches every agent's history; a past conversation can be resumed, or forked into a new split.
 - **Is comfortable to read in.** ⌘-click opens a path at its line, ⌥-click copies a table cell, and a files column and viewer show what an agent changed.

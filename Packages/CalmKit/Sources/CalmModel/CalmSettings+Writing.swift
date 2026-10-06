@@ -83,7 +83,8 @@ public extension CalmSettings {
     static func setting(_ key: String, to value: String, in text: String) -> String {
         let parts = key.split(separator: ".", maxSplits: 1).map(String.init)
         let (section, name) = parts.count == 2 ? (parts[0], parts[1]) : ("", parts[0])
-        let rendered = ["true", "false"].contains(value) || Double(value) != nil ? value : "\"\(value)\""
+        let escaped = value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let rendered = ["true", "false"].contains(value) || Double(value) != nil ? value : "\"\(escaped)\""
         let entry = "\(name) = \(rendered)"
         var lines = text.isEmpty ? [] : text.components(separatedBy: "\n")
         var current = ""

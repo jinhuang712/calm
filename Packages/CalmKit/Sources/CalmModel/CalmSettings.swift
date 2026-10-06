@@ -29,7 +29,7 @@ public struct CalmSettings: Equatable, Sendable {
             let key = line[..<equals].trimmingCharacters(in: .whitespaces)
             var value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespaces)
             if value.count >= 2, value.hasPrefix("\""), value.hasSuffix("\"") {
-                value = String(value.dropFirst().dropLast())
+                value = Self.unescaped(String(value.dropFirst().dropLast()))
             }
             values[section.isEmpty ? key : "\(section).\(key)"] = value
         }
@@ -76,9 +76,42 @@ public struct CalmSettings: Equatable, Sendable {
         values["motion"].flatMap { MotionLevel(rawValue: $0.lowercased()) } ?? .full
     }
 
+    /// A basic TOML string's `\"` and `\\` (an agent's flags can hold quotes); any other escape is
+    /// kept as written.
+    private static func unescaped(_ value: String) -> String {
+        var result = ""
+        var escaping = false
+        for character in value {
+            if escaping {
+                if character != "\"", character != "\\" {
+                    result.append("\\")
+                }
+                result.append(character)
+                escaping = false
+            } else if character == "\\" {
+                escaping = true
+            } else {
+                result.append(character)
+            }
+        }
+        if escaping {
+            result.append("\\")
+        }
+        return result
+    }
+
     private static func stripComment(_ line: String) -> String {
         var inQuotes = false
+        var escaping = false
         for (index, character) in line.enumerated() {
+            if escaping {
+                escaping = false
+                continue
+            }
+            if character == "\\", inQuotes {
+                escaping = true
+                continue
+            }
             if character == "\"" {
                 inQuotes.toggle()
             }

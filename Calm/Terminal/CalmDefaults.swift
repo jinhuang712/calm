@@ -50,6 +50,9 @@ enum CalmDefaults {
         // ⌘⇧T reopens the last closed session. Ghostty binds it to undo, which Calm doesn't do; that
         // binding would take the key first and pass it on to the shell.
         lines.append("keybind = super+shift+t=unbind")
+        // ⌘N starts the agent chosen in Settings → Agents. Ghostty binds it to new_window, which in
+        // Calm's one window was a second ⌘T; left bound, Ghostty would take the key before the menu.
+        lines.append("keybind = super+n=unbind")
         // ⌘Z undoes the last edit of the line being typed (a paste, a ⌘⌫): it sends Ctrl-_, which
         // zsh, readline and Claude Code take as undo. Ghostty binds ⌘Z to `undo` (a closed tab),
         // which Calm doesn't do, and macOS encodes no bytes for an unbound ⌘-letter, so it did nothing.

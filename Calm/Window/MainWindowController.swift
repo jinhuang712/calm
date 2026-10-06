@@ -289,15 +289,17 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         }
     }
 
-    func newSession(inheriting pane: TerminalSurfaceView? = nil) {
+    @discardableResult
+    func newSession(inheriting pane: TerminalSurfaceView? = nil) -> Session {
         hideSettings()
         let source = pane ?? focusedPane
         let (placement, directory) = placementAndFolder(
             from: source?.id ?? manager.workspace.selectedLayout?.focusedSessionID,
             pane: source,
         )
-        manager.newSession(in: directory, placement: placement)
+        let session = manager.newSession(in: directory, placement: placement)
         showSelectedLayout(animated: true)
+        return session
     }
 
     func requestCloseSession(_ id: Session.ID) {

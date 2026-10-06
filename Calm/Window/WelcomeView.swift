@@ -8,6 +8,10 @@ import SwiftUI
 /// sessions and one of projects, or, with nothing to list, the three ways to start.
 struct WelcomeView: View {
     struct Actions {
+        /// ⌘N's agent and the others: the first way to start when there is one.
+        var agents = StartAgents()
+        let newAgentSession: (AgentKind?) -> Void
+        let chooseNewSessionAgent: () -> Void
         let newSession: () -> Void
         let newScratchSession: () -> Void
         let newProject: () -> Void
@@ -146,10 +150,31 @@ struct WelcomeView: View {
                 }
             }
             VStack(spacing: 2.scaled) {
-                WelcomeActionRow(
-                    title: "Start a session", symbol: "square.and.pencil", keys: "⌘T", isMain: true,
-                    style: style, action: actions.newSession,
-                )
+                if let agent = actions.agents.chosen {
+                    ZStack(alignment: .trailing) {
+                        WelcomeActionRow(
+                            title: "Start \(agent.displayName)", symbol: "", agent: agent, keys: "⌘N", isMain: true,
+                            style: style, action: { actions.newAgentSession(nil) },
+                        )
+                        Menu {
+                            OtherAgentsMenu(actions: actions)
+                        } label: {
+                            ChevronMenuLabel(style: style)
+                        }
+                        .plainMenu()
+                        .padding(.trailing, 10.scaled)
+                        .accessibilityLabel("More ways to start")
+                    }
+                    WelcomeActionRow(
+                        title: "Start a shell", symbol: "square.and.pencil", keys: "⌘T", isMain: false,
+                        style: style, action: actions.newSession,
+                    )
+                } else {
+                    WelcomeActionRow(
+                        title: "Start a session", symbol: "square.and.pencil", keys: "⌘T", isMain: true,
+                        style: style, action: actions.newSession,
+                    )
+                }
                 WelcomeActionRow(
                     title: "Try a scratch session", symbol: "square.dashed", keys: "⌘⇧N", isMain: false,
                     style: style, action: actions.newScratchSession,
@@ -581,99 +606,5 @@ private struct WelcomeNewProjectRow: View {
         .onHover { hovering = $0 }
         .help("New Project (⌘O)")
         .accessibilityLabel("New project")
-    }
-}
-
-// MARK: - The ways to start
-
-/// The bottom line of the page: the three ways to start, shortcut first. Each is a button with a
-/// faint fill of its own, so it reads as something to press without the weight of a toolbar.
-private struct HintLine: View {
-    let style: SidebarStyle
-    let actions: WelcomeView.Actions
-
-    var body: some View {
-        HStack(spacing: 8.scaled) {
-            HintButton(keys: "⌘T", title: "New session", help: "New Session (⌘T)", style: style, action: actions.newSession)
-            HintButton(keys: "⌘⇧N", title: "Scratch", help: "New Scratch Session (⌘⇧N)", style: style, action: actions.newScratchSession)
-            HintButton(keys: "⌘O", title: "New project…", help: "New Project (⌘O)", style: style, action: actions.newProject)
-        }
-    }
-}
-
-private struct HintButton: View {
-    let keys: String
-    let title: String
-    let help: String
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 9.scaled) {
-                Text(keys)
-                    .calmFont(size: 13.5, weight: .medium)
-                    .tracking(0.5)
-                    .foregroundStyle(style.primary)
-                Text(title)
-                    .calmFont(size: 13.5)
-                    .foregroundStyle(style.primary.opacity(0.84))
-            }
-            .padding(.horizontal, 16.scaled)
-            .padding(.vertical, 9.scaled)
-            .background(RoundedRectangle(cornerRadius: 9.scaled, style: .continuous).fill(style.primary.opacity(hovering ? 0.11 : 0.055)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
-        .help(help)
-        .accessibilityLabel(title)
-    }
-}
-
-/// One of the three ways to start on the first-run page, drawn like the list rows and the
-/// sidebar's footer. The first is the selected row: the one to press.
-private struct WelcomeActionRow: View {
-    let title: String
-    let symbol: String
-    let keys: String
-    let isMain: Bool
-    let style: SidebarStyle
-    let action: () -> Void
-    @State private var hovering = false
-
-    private var fill: Color {
-        isMain ? (hovering ? style.primary.opacity(0.11) : style.selection) : (hovering ? style.primary.opacity(0.06) : .clear)
-    }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12.scaled) {
-                Image(systemName: symbol)
-                    .calmFont(size: 14)
-                    .foregroundStyle(style.secondary)
-                    .frame(width: 30.scaled, height: 30.scaled)
-                    .background(RoundedRectangle(cornerRadius: 9.scaled, style: .continuous).fill(style.primary.opacity(0.06)))
-                Text(title)
-                    .calmFont(size: 14.5, weight: .medium)
-                    .foregroundStyle(style.primary)
-                Spacer(minLength: 8)
-                Text(keys)
-                    .calmFont(size: 12)
-                    .tracking(0.6)
-                    .foregroundStyle(style.tertiary)
-            }
-            .padding(.leading, 12.scaled)
-            .padding(.trailing, 16.scaled)
-            .frame(width: 340.scaled, height: 54.scaled)
-            .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(fill))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
-        .accessibilityLabel(title)
     }
 }

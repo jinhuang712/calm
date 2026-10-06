@@ -12,6 +12,8 @@ public extension CalmSettings {
             case theme
             /// One of the known editors by name, or an application's `.app` path.
             case editor
+            /// Anything, written as given (an agent's extra flags).
+            case text
         }
 
         public let name: String
@@ -20,6 +22,13 @@ public extension CalmSettings {
         public let defaultValue: String
         public let about: String
 
+        public init(name: String, kind: Kind, defaultValue: String, about: String) {
+            self.name = name
+            self.kind = kind
+            self.defaultValue = defaultValue
+            self.about = about
+        }
+
         /// The values it takes, in words.
         public var takes: String {
             switch kind {
@@ -27,6 +36,7 @@ public extension CalmSettings {
             case let .choice(choices): choices.dropLast().joined(separator: ", ") + " or " + (choices.last ?? "")
             case .theme: "a theme's name; unset, the Ghostty config's colors, else Calm"
             case .editor: "automatic, " + Editor.allCases.map(\.rawValue).joined(separator: ", ") + ", or an app's path"
+            case .text: "any text, typed as written"
             }
         }
     }
@@ -79,7 +89,7 @@ public extension CalmSettings {
             name: "sidebar.footer",
             kind: .bool,
             defaultValue: "true",
-            about: "New Session, New Scratch Session and New Project… under the sidebar",
+            about: "The ways to start under the sidebar: ⌘N's agent, New Session, Scratch, New Project…, Show Files",
         ),
         Key(
             name: "auto-grouping",
@@ -117,7 +127,20 @@ public extension CalmSettings {
             defaultValue: "true",
             about: "Claude Code reports through Calm's plugin in Calm's shells",
         ),
-    ]
+        Key(
+            name: "agents.new-session",
+            kind: .choice(AgentKind.allCases.map(\.configName)),
+            defaultValue: AgentKind.claudeCode.configName,
+            about: "The agent ⌘N and ⌘⇧N start; unset, Claude Code, or the first agent installed",
+        ),
+    ] + AgentKind.allCases.map { kind in
+        Key(
+            name: extraFlagsKey(of: kind),
+            kind: .text,
+            defaultValue: "",
+            about: "More flags \(kind.displayName) starts with on ⌘N, typed as written",
+        )
+    }
 
     static func key(named name: String) -> Key? {
         keys.first { $0.name == name.lowercased() }
@@ -154,6 +177,8 @@ public extension CalmSettings {
                 return .failure(KeyError(key: key, value: value, among: themes))
             }
             return .success(.write(name))
+        case .text:
+            return .success(value.isEmpty ? .remove : .write(value))
         case .editor:
             if lowered == "automatic" {
                 return .success(.remove)

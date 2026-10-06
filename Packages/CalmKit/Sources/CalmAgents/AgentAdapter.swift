@@ -81,6 +81,11 @@ public protocol AgentAdapter: Sendable {
     func forkCommand(agentSessionID: String?, transcriptPath: String, prompt: String) -> String?
     /// The git branch a conversation worked on, by its transcript's own account (`calm show`).
     func branch(of transcript: URL) -> String?
+    /// The command that starts a new conversation (⌘N), before any option (in `LaunchCommands.swift`).
+    var launchCommand: String { get }
+    /// The options Settings → Agents offers as chips, each one of the agent's own flags, in the
+    /// order they're typed.
+    var launchOptions: [LaunchOption] { get }
     /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
     /// config. `inherited` is Calm's own environment, which also locates the agent's config.
     func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
@@ -122,6 +127,10 @@ public extension AgentAdapter {
 
     func branch(of _: URL) -> String? {
         nil
+    }
+
+    var launchOptions: [LaunchOption] {
+        []
     }
 
     func shellEnvironment(home _: URL, inherited _: [String: String]) -> [String: String] {

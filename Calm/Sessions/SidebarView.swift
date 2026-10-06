@@ -128,6 +128,8 @@ struct SidebarView: View {
     let cardSize: CalmSettings.SessionCardSize
     /// Shrink to fit: `cardSize` is the largest the cards get, not the only size.
     let fitsCards: Bool
+    /// ⌘N's agent, the footer's first row, and the others its ⌄ offers.
+    let startAgents: StartAgents
     let onSelect: (Session.ID) -> Void
     let onClose: (Session.ID) -> Void
     let onNewSession: () -> Void
@@ -486,6 +488,9 @@ struct SidebarView: View {
             footerHandle(symbol: "chevron.down", help: "Hide shortcuts", shows: false)
             Rectangle().fill(style.tertiary.opacity(0.14)).frame(height: 1)
             VStack(spacing: 2.scaled) {
+                if let agent = startAgents.chosen {
+                    AgentFooterRow(agent: agent, agents: startAgents, style: style, actions: actions)
+                }
                 footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
                 footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
                 footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
@@ -555,6 +560,10 @@ struct SidebarActions {
     let resume: (Session.ID) -> Void
     let fork: (Session.ID, MainWindowController.ForkDestination) -> Void
     let newScratchSession: () -> Void
+    /// ⌘N: a session running the chosen agent (nil), or another one from the ⌄ menu.
+    let newAgentSession: (AgentKind?) -> Void
+    /// Settings → Agents, where ⌘N's agent is chosen.
+    let chooseNewSessionAgent: () -> Void
     /// Shows or hides the sidebar's footer (saved in config.toml, applied in every window).
     let showFooter: (Bool) -> Void
     let search: () -> Void

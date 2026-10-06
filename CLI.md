@@ -212,8 +212,8 @@ Id          0f9c2a7e-…
 - `set <key> <value>` checks the value (a theme must be one there is; true/false also take yes/no, on/off, 1/0), writes the line as Settings does, one line at a time, so comments and other keys stay, and a default removes the line, as Settings does (except the theme, whose default is no value). It prints what it wrote: `theme = Forest`.
 - `unset <key>` removes the line: the default applies again.
 - After a change it asks the running Calm to read config.toml and the Ghostty config again, as Reload Configuration (⌘⇧,) does, so the change shows at once. It never starts Calm: when Calm isn't running, the change waits for its next launch, and it says so.
-- The keys are those of DESIGNS.md → Settings (`CalmSettings.keys`); a wrong key or value exits 64 and says what it takes: `motion can't be 'fast': it takes full, reduced or off`.
-- Wanted first for ⌘N's agent command, a setting you'd ask your agent to change (its key comes with ⌘N). Decided 2026-10-06, after `calm config` had been left out on 2026-09-30; built the same day.
+- The keys are those of DESIGNS.md → Settings (`Agents.settingsKeys`: `CalmSettings.keys` and the options the agents' adapters declare); a wrong key or value exits 64 and says what it takes: `motion can't be 'fast': it takes full, reduced or off`.
+- Wanted first for ⌘N's agent, a setting you'd ask your agent to change. Decided 2026-10-06, after `calm config` had been left out on 2026-09-30; built the same day. ⌘N's keys (FEATURES.md → F15): `agents.new-session`, each agent's options (`agents.claude-code-skip-permissions`, `agents.claude-code-worktree`, …), and `agents.<agent>-flags`, which takes any text.
 
 ## Diagnosis
 

@@ -6,11 +6,15 @@ import CalmModel
 extension MainWindowController {
     // MARK: Scratch sessions
 
-    /// ⌘⇧N: a scratch session in a new hidden folder, on top of the sidebar.
+    /// ⌘⇧N: a scratch session in a new hidden folder, on top of the sidebar, running the agent ⌘N
+    /// starts (FEATURES.md → New agent sessions), or a plain shell when there is none.
     func newScratchSession() {
         hideSettings()
-        guard manager.newScratchSession() != nil else { return }
+        guard let session = manager.newScratchSession() else { return }
         showSelectedLayout(animated: true)
+        if let agent = newSessionAgent {
+            startAgent(agent, in: session)
+        }
     }
 
     /// Closing a scratch session whose folder has files asks what to do with them first:
@@ -183,6 +187,9 @@ extension MainWindowController {
 
     var welcomeActions: WelcomeView.Actions {
         WelcomeView.Actions(
+            agents: startAgents,
+            newAgentSession: { [weak self] kind in self?.newAgentSession(kind) },
+            chooseNewSessionAgent: { [weak self] in self?.showSettings(.agents) },
             newSession: { [weak self] in self?.newSession() },
             newScratchSession: { [weak self] in self?.newScratchSession() },
             newProject: { [weak self] in self?.chooseNewProject() },

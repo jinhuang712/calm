@@ -4,8 +4,9 @@ import CalmModel
 import SwiftUI
 import UserNotifications
 
-/// Settings → Agents (FEATURES.md → F5; ROADMAP M3.11–M3.12): how each installed agent connects,
-/// the one setup that needs consent (files in an agent's own config folder), and the two
+/// Settings → Agents (FEATURES.md → F5, New agent sessions; ROADMAP M3.11–M3.12): the agent ⌘N
+/// starts, each installed agent with the options it starts with and how it connects (the one
+/// setup that needs consent writes files in an agent's own config folder), and the two
 /// notification settings. Calm → Agents… opens it. Nothing is written anywhere without a click.
 @MainActor
 @Observable
@@ -21,6 +22,10 @@ final class AgentsSettingsModel {
     }
 
     var rows: [Row] = []
+    /// config.toml as last read or written: the options each agent starts with.
+    private(set) var settings = CalmSettings()
+    /// The agent ⌘N starts; nil with none installed.
+    private(set) var newSessionAgent: AgentKind?
     var notifyStates: CalmSettings.NotifyStates
     var sound: Bool
     /// macOS turned Calm's notifications off, so a *needs you* can't reach the user.
@@ -40,6 +45,7 @@ final class AgentsSettingsModel {
     /// Installed agents (their config folder exists), and whether macOS lets Calm notify.
     func refresh() {
         let settings = SessionManager.shared.settings
+        self.settings = settings
         notifyStates = settings.notifyStates
         sound = settings.notificationSound
         rows = Agents.adapters.compactMap { adapter in
@@ -53,7 +59,28 @@ final class AgentsSettingsModel {
             }
             return Row(adapter: adapter, setup: setup, state: state)
         }
+        newSessionAgent = Agents.newSessionAgent(settings: settings, installed: rows.map(\.id))
         refreshNotificationStatus()
+    }
+
+    /// The agents the ⌘N menu offers: those installed, and the one config.toml names if it isn't.
+    var newSessionChoices: [AgentKind] {
+        let installed = rows.map(\.id)
+        guard let chosen = newSessionAgent, !installed.contains(chosen) else { return installed }
+        return installed + [chosen]
+    }
+
+    /// Claude Code is the default, so choosing it removes the key, as the other sections do.
+    func setNewSessionAgent(_ kind: AgentKind) {
+        save("agents.new-session", kind == .claudeCode ? nil : kind.configName)
+        newSessionAgent = Agents.newSessionAgent(settings: settings, installed: rows.map(\.id))
+        // The sidebar's footer and the welcome page name it, and they don't observe the settings.
+        TerminalWindowManager.shared.controllers.forEach { $0.applyAppearance() }
+    }
+
+    /// A chip: on writes `true`, off removes the key (off is the default).
+    func toggle(_ option: LaunchOption, of kind: AgentKind) {
+        save(CalmSettings.launchOptionKey(option.id, of: kind), settings.isOn(option.id, of: kind) ? nil : "true")
     }
 
     private func refreshNotificationStatus() {
@@ -112,6 +139,7 @@ final class AgentsSettingsModel {
     private func save(_ key: String, _ value: String?) {
         do {
             SessionManager.shared.settings = try CalmSettings.save(key, value)
+            settings = SessionManager.shared.settings
         } catch {
             self.error = "Couldn't save the setting: \(error.localizedDescription)"
         }
@@ -128,22 +156,20 @@ struct AgentsSection: View {
             SettingsTitle(title: "Agents", style: style)
                 .padding(.bottom, 24.scaled)
             GroupHeading(title: "Installed", style: style)
-            if model.rows.isEmpty {
-                SettingsGroup(style: style) {
+            SettingsGroup(style: style) {
+                if model.rows.isEmpty {
                     Text("No agents found yet. Calm notices Claude Code, Codex, OpenCode and pi once they're installed.")
                         .calmFont(size: SettingsMetrics.note)
                         .foregroundStyle(style.secondary)
                         .padding(SettingsMetrics.rowInset)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            } else {
-                LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: 16.scaled), GridItem(.flexible(), spacing: 16.scaled)],
-                    spacing: 16.scaled,
-                ) {
+                } else {
+                    newSessionRow
                     ForEach(model.rows) { row in
-                        AgentCard(
-                            row: row, activity: activity(of: row.adapter.kind), style: style,
+                        RowDivider(style: style)
+                        AgentRow(
+                            row: row, markState: markState(of: row.id), settings: model.settings, style: style,
+                            onToggle: { model.toggle($0, of: row.id) },
                             onConnect: { model.connect(row) }, onDisconnect: { model.disconnect(row) },
                         )
                     }
@@ -181,14 +207,26 @@ struct AgentsSection: View {
         }
     }
 
-    /// What the agent is doing in Calm right now, from the open sessions.
-    private func activity(of kind: AgentKind) -> AgentCard.Activity {
+    /// ⌘N's agent, which ⌘⇧N starts too. The menu offers the agents installed.
+    private var newSessionRow: some View {
+        SettingsRow(title: "⌘N starts", note: "⌘⇧N too, in a scratch folder", symbol: "terminal", style: style) {
+            if let chosen = model.newSessionAgent {
+                SettingsMenu(
+                    title: "⌘N starts",
+                    options: model.newSessionChoices.map { (value: $0, label: $0.displayName) },
+                    selection: chosen, style: style,
+                ) { model.setNewSessionAgent($0) }
+            }
+        }
+    }
+
+    /// The agent's mark moves while one of its sessions works, as on its cards in the sidebar.
+    private func markState(of kind: AgentKind) -> SessionState? {
         let sessions = manager.workspace.sessions.filter { $0.agent?.kind == kind }
-        return AgentCard.Activity(
-            sessions: sessions.count,
-            working: sessions.count { $0.state == .working },
-            needsYou: sessions.count { $0.state == .needsYou },
-        )
+        if sessions.contains(where: { $0.state == .working }) {
+            return .working
+        }
+        return sessions.contains { $0.state == .needsYou } ? .needsYou : nil
     }
 
     private var blockedRow: some View {
@@ -207,63 +245,48 @@ struct AgentsSection: View {
     }
 }
 
-/// One installed agent: its mark (moving while one of its sessions works), where it stands, and
-/// what it's doing in Calm now. Anything longer (what Connect adds) waits
-/// behind its pill or button.
-private struct AgentCard: View {
-    struct Activity {
-        var sessions: Int
-        var working: Int
-        var needsYou: Int
-
-        var markState: SessionState? {
-            working > 0 ? .working : needsYou > 0 ? .needsYou : nil
-        }
-
-        var summary: String {
-            guard sessions > 0 else { return "Not running" }
-            var parts = [sessions == 1 ? "1 session" : "\(sessions) sessions"]
-            if needsYou > 0 {
-                parts.append("\(needsYou) needs you")
-            }
-            if working > 0 {
-                parts.append("\(working) working")
-            }
-            return parts.joined(separator: " · ")
-        }
-    }
-
+/// One installed agent on one row (UIUX.md → Settings → Agents): its mark (moving while one of
+/// its sessions works), its name, and under it a chip for each option it starts with on ⌘N. The
+/// right side stays empty while all is well (connected is the normal state) and holds only what
+/// is off: Connect, Left alone, Set Up…, and ••• for Disconnect.
+private struct AgentRow: View {
     let row: AgentsSettingsModel.Row
-    let activity: Activity
+    let markState: SessionState?
+    let settings: CalmSettings
     let style: SidebarStyle
+    let onToggle: (LaunchOption) -> Void
     let onConnect: () -> Void
     let onDisconnect: () -> Void
     @State private var explaining = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                AgentLogo(agent: row.adapter.kind, state: activity.markState, size: 48, style: style)
-                Spacer(minLength: 8.scaled)
-                standing
+        HStack(spacing: 16.scaled) {
+            AgentLogo(agent: row.id, state: markState, size: 34, style: style)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 8.scaled) {
+                Text(row.id.displayName)
+                    .calmFont(size: SettingsMetrics.label)
+                    .foregroundStyle(style.primary)
+                if !row.adapter.launchOptions.isEmpty {
+                    HStack(spacing: 8.scaled) {
+                        ForEach(row.adapter.launchOptions) { option in
+                            LaunchChip(option: option, isOn: settings.isOn(option.id, of: row.id), style: style) {
+                                onToggle(option)
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(minLength: 18.scaled)
-            Text(row.adapter.kind.displayName)
-                .calmFont(size: 19, weight: .medium)
-                .foregroundStyle(style.primary)
-            Text(activity.summary)
-                .calmFont(size: SettingsMetrics.note)
-                .foregroundStyle(activity.needsYou > 0 ? style.attention : style.secondary)
-                .padding(.top, 4.scaled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            standing
         }
-        .padding(20.scaled)
-        .frame(maxWidth: .infinity, minHeight: 172.scaled, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).fill(style.groupFill))
-        .overlay(RoundedRectangle(cornerRadius: 16.scaled, style: .continuous).strokeBorder(style.hairline))
+        .padding(.horizontal, SettingsMetrics.rowInset)
+        .padding(.vertical, 14.scaled)
+        .frame(minHeight: SettingsMetrics.rowHeight)
         .accessibilityElement(children: .contain)
     }
 
-    /// Where the agent stands, in quiet text, or the one action it needs.
+    /// The one action the agent needs, or why Calm left it alone; nothing when it is connected.
     @ViewBuilder
     private var standing: some View {
         switch (row.setup, row.state) {
@@ -273,7 +296,6 @@ private struct AgentCard: View {
                 .help("Adds \(Self.paths(files)), so it can tell Calm when it's working or waiting.")
         case (_, .connected?):
             HStack(spacing: 4.scaled) {
-                StatusLabel(text: "Connected", symbol: "checkmark", style: style)
                 Menu {
                     Button("Disconnect", action: onDisconnect)
                 } label: {
@@ -306,12 +328,53 @@ private struct AgentCard: View {
                 }
                 .accessibilityHint(text)
         default:
-            StatusLabel(text: "Connected", symbol: "checkmark", style: style)
+            EmptyView()
         }
     }
 
     private static func paths(_ files: [String: String]) -> String {
         files.keys.sorted().map { "~/\($0)" }.joined(separator: ", ")
+    }
+}
+
+/// One option an agent starts with, as a chip that turns on and off: on is a soft fill of the
+/// accent with a check, off a quiet outline (UIUX.md → Settings → Agents). Pointing at it names
+/// the flag it adds.
+private struct LaunchChip: View {
+    let option: LaunchOption
+    let isOn: Bool
+    let style: SidebarStyle
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5.scaled) {
+                if isOn {
+                    Image(systemName: "checkmark")
+                        .calmFont(size: 10, weight: .bold)
+                        .foregroundStyle(style.accent)
+                }
+                Text(option.label)
+                    .calmFont(size: 13.5)
+            }
+            .foregroundStyle(isOn ? style.primary : style.secondary)
+            .padding(.horizontal, 11.scaled)
+            .frame(height: 26.scaled)
+            .background(RoundedRectangle(cornerRadius: 7.scaled, style: .continuous).fill(isOn ? style.accent.opacity(0.16) : .clear))
+            .overlay(
+                RoundedRectangle(cornerRadius: 7.scaled, style: .continuous)
+                    .strokeBorder(isOn ? .clear : hovering ? style.secondary.opacity(0.4) : style.hairline),
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: isOn)
+        .help(option.flag + (option.onlyInGitRepository ? ", in a git repository" : ""))
+        .accessibilityLabel(option.label)
+        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
 

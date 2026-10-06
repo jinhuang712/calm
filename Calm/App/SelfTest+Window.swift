@@ -198,6 +198,12 @@
                 TerminalMenuTarget.shared.restart(nil)
             case "scratch":
                 newScratchSession()
+            case "cmd_n":
+                // What ⌘N does: a session running the chosen agent (logged, not typed, headless)
+                TerminalMenuTarget.shared.newAgentSession(nil)
+            case let agent where agent.hasPrefix("new_agent:"):
+                // new_agent:<claude-code|codex|opencode|pi>: what the ⌄ menu and ⌘P's rows do
+                AgentKind(configName: String(agent.dropFirst(10))).map { newAgentSession($0) }
             case "close":
                 focusedPane.map { requestCloseSession($0.id) }
             case "cmd_shift_t":

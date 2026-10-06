@@ -1,9 +1,11 @@
+import CalmAgents
 import CalmControl
 import CalmModel
 import Foundation
 
-/// `calm config`: lists, reads and changes Calm's settings in config.toml (`CalmSettings.keys`),
-/// one line at a time as Settings writes them, then asks the running Calm to apply them as
+/// `calm config`: lists, reads and changes Calm's settings in config.toml (`Agents.settingsKeys`:
+/// Calm's own, and each agent's options for ⌘N, which the adapters declare), one line at a time
+/// as Settings writes them, then asks the running Calm to apply them as
 /// Reload Configuration does. It never starts Calm: a change waits for its next launch.
 enum ConfigCommand {
     static let usage = "calm config [list [--json] | get <key> | set <key> <value> | unset <key>]"
@@ -47,7 +49,7 @@ enum ConfigCommand {
     }
 
     private static func key(_ name: String) -> CalmSettings.Key {
-        guard let key = CalmSettings.key(named: name) else {
+        guard let key = Agents.settingsKey(named: name) else {
             fail("no setting named '\(name)': `calm config list` shows them", code: 64)
         }
         return key
@@ -57,16 +59,16 @@ enum ConfigCommand {
     /// "(default)". Keys config.toml has that Calm doesn't read, and lines it can't read, follow.
     private static func list(json: Bool) {
         let settings = CalmSettings.load()
-        let known = Set(CalmSettings.keys.map(\.name))
+        let known = Set(Agents.settingsKeys.map(\.name))
         let unknown = settings.values.keys.filter { !known.contains($0) }.sorted()
         if json {
             printJSON(settings, unknown: unknown)
             return
         }
-        let shown = CalmSettings.keys.map { settings.value(of: $0).isEmpty ? "(unset)" : settings.value(of: $0) }
-        let width = CalmSettings.keys.map(\.name.count).max() ?? 0
+        let shown = Agents.settingsKeys.map { settings.value(of: $0).isEmpty ? "(unset)" : settings.value(of: $0) }
+        let width = Agents.settingsKeys.map(\.name.count).max() ?? 0
         let valueWidth = shown.map(\.count).max() ?? 0
-        for (key, value) in zip(CalmSettings.keys, shown) {
+        for (key, value) in zip(Agents.settingsKeys, shown) {
             let isSet = settings.values[key.name] != nil
             let name = key.name.padding(toLength: width, withPad: " ", startingAt: 0)
             let padded = value.padding(toLength: valueWidth, withPad: " ", startingAt: 0)
@@ -95,7 +97,7 @@ enum ConfigCommand {
             let unknown: [String]
             let problems: [String]
         }
-        let entries = CalmSettings.keys.map { key in
+        let entries = Agents.settingsKeys.map { key in
             Entry(
                 key: key.name, value: settings.value(of: key), isSet: settings.values[key.name] != nil,
                 defaultValue: key.defaultValue, takes: key.takes, about: key.about,

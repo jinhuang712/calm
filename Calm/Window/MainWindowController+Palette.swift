@@ -105,7 +105,7 @@ extension MainWindowController {
     }
 
     private func sessionCommands(_ own: [PaletteCommand], focused: Session?) -> [PaletteCommand] {
-        var rows = own
+        var rows = own + newAgentCommands()
         if manager.workspace.sessionsNeedingYou.contains(where: { $0.id != focused?.id }) {
             rows.append(PaletteCommand(.jumpWaiting, title: "Jump to Waiting Session", trailing: "⌘⇧A") {
                 TerminalMenuTarget.shared.jumpToWaitingSession(nil)
@@ -115,6 +115,20 @@ extension MainWindowController {
             rows.append(PaletteCommand(.unsplit, title: "Unsplit") { [weak self] in self?.unsplit() })
         }
         return rows
+    }
+
+    /// A new session running each installed agent, with its options (FEATURES.md → New agent
+    /// sessions). The one ⌘N starts shows the key, which the palette is there to teach.
+    private func newAgentCommands() -> [PaletteCommand] {
+        let chosen = newSessionAgent
+        return Self.installedAgents.map { kind in
+            PaletteCommand(
+                id: "new-agent-\(kind.configName)",
+                title: "New \(kind.displayName) Session",
+                detail: "Start \(kind.displayName) in a new session, with its options from Settings → Agents.",
+                trailing: kind == chosen ? "⌘N" : "",
+            ) { [weak self] in self?.newAgentSession(kind) }
+        }
     }
 
     private func viewCommands() -> [PaletteCommand] {

@@ -16,6 +16,21 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
         case .pi: "pi"
         }
     }
+
+    /// The agent's name in config.toml keys (`agents.claude-code-hooks`) and `calm config` values.
+    public var configName: String {
+        switch self {
+        case .claudeCode: "claude-code"
+        case .codex: "codex"
+        case .openCode: "opencode"
+        case .pi: "pi"
+        }
+    }
+
+    public init?(configName: String) {
+        guard let kind = Self.allCases.first(where: { $0.configName == configName.lowercased() }) else { return nil }
+        self = kind
+    }
 }
 
 public extension AgentKind {

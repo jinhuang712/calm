@@ -56,6 +56,8 @@ enum MainMenu {
 
     private static func fileMenu() -> NSMenu {
         let menu = NSMenu(title: "Shell")
+        // Named for the agent it starts when the menu opens (`validateMenuItem`).
+        menu.addItem(actionItem("New Agent Session", #selector(TerminalMenuTarget.newAgentSession(_:)), key: "n"))
         menu.addItem(actionItem("New Session", #selector(TerminalMenuTarget.newSession(_:)), key: "t"))
         menu.addItem(actionItem(
             "New Scratch Session",
@@ -162,7 +164,8 @@ enum MainMenu {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.keyEquivalentModifierMask = mods
         let targeted = [
-            "newSession", "newScratchSession", "newProject", "reopenClosedSession", "toggleCommandPalette", "toggleSidebar", "toggleFiles",
+            "newAgentSession", "newSession", "newScratchSession", "newProject", "reopenClosedSession", "toggleCommandPalette",
+            "toggleSidebar", "toggleFiles",
             "jumpToWaitingSession",
             "showArrivalCard",
             "searchSessions",
@@ -180,6 +183,10 @@ enum MainMenu {
 @MainActor
 final class TerminalMenuTarget: NSObject {
     static let shared = TerminalMenuTarget()
+
+    @objc func newAgentSession(_: Any?) {
+        TerminalWindowManager.shared.openMainWindow().newAgentSession()
+    }
 
     @objc func newSession(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().newSession()
@@ -265,7 +272,12 @@ extension TerminalMenuTarget: NSMenuItemValidation {
     /// Reopen Closed Session waits until a session has been closed; the two that leave a split wait
     /// for a split.
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
-        switch item.action {
+        if item.action == #selector(newAgentSession(_:)) {
+            // With no agent to start, ⌘N opens a plain shell, as ⌘T does.
+            let agent = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings)
+            item.title = agent.map { "New \($0.displayName) Session" } ?? "New Session"
+        }
+        return switch item.action {
         case #selector(reopenClosedSession(_:)): SessionManager.shared.canReopenClosedSession
         case #selector(takePaneOutOfSplit(_:)), #selector(unsplitAll(_:)): TerminalWindowManager.shared.focusedController?.isInSplit == true
         default: true

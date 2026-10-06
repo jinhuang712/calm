@@ -423,6 +423,7 @@ struct SidebarView: View {
                 size: shownCardSize, isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
                 inView: manager.workspace.sessionsInView.contains(session.id),
+                restart: manager.restarts[session.id],
             )
         } else {
             SessionRow(

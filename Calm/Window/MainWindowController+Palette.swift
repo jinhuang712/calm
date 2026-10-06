@@ -77,14 +77,26 @@ extension MainWindowController {
                 rename: { [weak self] in self?.beginRename(session.id) },
                 copyLastReply: { [weak self] id in self?.copyLastReply(of: id) },
                 openTranscript: { [weak self] id in self?.openTranscript(of: id) },
+                restart: { [weak self] id in self?.restartAgent(in: id) },
+                cancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
+                restartPending: manager.restarts[session.id] == .afterTurn,
             ))
         } ?? SessionRows()
-        return agentCommands(own.agent) + sessionCommands(own.session, focused: focused) + viewCommands()
+        return agentCommands(own.agent, focused: focused) + sessionCommands(own.session, focused: focused) + viewCommands()
             + own.folder + lookCommands() + calmCommands() + terminalCommands()
     }
 
-    private func agentCommands(_ own: [PaletteCommand]) -> [PaletteCommand] {
+    private func agentCommands(_ own: [PaletteCommand], focused: Session?) -> [PaletteCommand] {
         var rows = own
+        // Restart All for each agent running somewhere, unless it would only repeat the session
+        // in front's own Restart.
+        for kind in AgentKind.allCases {
+            let sessions = manager.restartableSessions(kind)
+            guard sessions.count > 1 || sessions.first.map({ $0.id != focused?.id }) == true else { continue }
+            rows.append(PaletteCommand(.restartAll, title: "Restart All \(kind.displayName) Sessions") { [weak self] in
+                self?.manager.restartAll(kind)
+            })
+        }
         let current = manager.workspace.selectedLayout?.focusedSessionID
         if !manager.workspace.sessionsDoneUnseen(except: current).isEmpty {
             rows.append(PaletteCommand(.markDoneSeen, title: "Mark All Done as Seen") { [weak self] in

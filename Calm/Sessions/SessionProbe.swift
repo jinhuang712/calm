@@ -30,6 +30,8 @@ final class SessionProbe {
     private var lastDiscoveries: [Session.ID: Date] = [:]
     /// The launch pass is still out, with rows showing as loading (`settleSavedRuns`).
     private var savedRunsPending = false
+    /// Polls so far, for the work done every few of them.
+    private var ticks = 0
 
     /// Where the launch pass leaves its answer for the main thread to pick up.
     private final class AnswerBox: @unchecked Sendable {
@@ -169,6 +171,14 @@ final class SessionProbe {
             if let agent = session.agent {
                 readTranscriptIfChanged(session.id, agent)
             }
+        }
+        // A few syscalls per agent; an update is news for hours, so every 10 s is plenty.
+        ticks += 1
+        if ticks % 5 == 1 {
+            manager.checkAgentVersions()
+        }
+        if !manager.restarts.isEmpty {
+            manager.runDueRestarts()
         }
         let live = Set(manager.workspace.sessions.map(\.id))
         foregroundJobs = foregroundJobs.filter { live.contains($0.key) }

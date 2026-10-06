@@ -69,6 +69,13 @@ public protocol AgentAdapter: Sendable {
     func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
     /// The shell command that starts a new conversation from a copy of one, if the agent can.
     func forkCommand(agentSessionID: String?, transcriptPath: String) -> String?
+    /// The signal that makes the running agent quit and leave the terminal as it found it, so it
+    /// can be started again on the same conversation; nil when Calm doesn't restart this agent
+    /// (no way to quit it has been checked).
+    var quitSignal: Int32? { get }
+    /// The shell command that starts the agent again on the conversation, with the options it was
+    /// started with (`arguments`: the running process's argv): what a restart types once it quit.
+    func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath: String) -> String?
     /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
     /// config. `inherited` is Calm's own environment, which also locates the agent's config.
     func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
@@ -93,6 +100,14 @@ public extension AgentAdapter {
     }
 
     func forkCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
+        nil
+    }
+
+    var quitSignal: Int32? {
+        nil
+    }
+
+    func restartCommand(arguments _: [String], agentSessionID _: String?, transcriptPath _: String) -> String? {
         nil
     }
 

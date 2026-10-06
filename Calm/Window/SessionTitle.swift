@@ -30,8 +30,12 @@ struct SessionTitleView: View {
     var onChange: (String) -> Void = { _ in }
     /// Gets the ⋯ button's frame, so the host takes clicks there and nowhere else.
     var onMenuFrame: (CGRect) -> Void = { _ in }
-    /// Gets the readout's frame (nil once it goes), keyed by the view that draws it.
-    var onReadoutFrame: (UUID, CGRect?) -> Void = { _, _ in }
+    /// Gets the frames of the controls besides ⋯ (the files readout, the update hint; nil once
+    /// one goes), keyed by the view that draws it.
+    var onControlFrame: (UUID, CGRect?) -> Void = { _, _ in }
+    /// The update hint's click: restart the agent, or take back a restart still waiting.
+    var onRestart: (Session.ID) -> Void = { _ in }
+    var onCancelRestart: (Session.ID) -> Void = { _ in }
     @State private var menuHovered = false
 
     /// What the files readout follows: the project, and whether an agent is working in it.
@@ -67,6 +71,16 @@ struct SessionTitleView: View {
             .animation(nil, value: strip.title)
             .animation(nil, value: worktree)
             .animation(nil, value: summary)
+            if let session, let hint = updateHint(for: session) {
+                // Outside the fitting rows: it is news the title gives way to, never the reverse.
+                AgentUpdateHintView(hint: hint, style: style, onFrame: onControlFrame) {
+                    if hint.cancels {
+                        onCancelRestart(session.id)
+                    } else {
+                        onRestart(session.id)
+                    }
+                }
+            }
             if let session {
                 menu(for: session)
             }
@@ -94,7 +108,7 @@ struct SessionTitleView: View {
             titleBlock(strip: strip, title: title, worktree: worktree)
             Spacer(minLength: summary == nil ? 0 : 8.scaled)
             if let summary {
-                ChangeReadoutView(summary: summary, style: style, action: actions.toggleFiles, onFrame: onReadoutFrame)
+                ChangeReadoutView(summary: summary, style: style, action: actions.toggleFiles, onFrame: onControlFrame)
             }
         }
     }
@@ -173,6 +187,14 @@ struct SessionTitleView: View {
         manager.workspace.selectedLayout.flatMap { manager.workspace.session($0.focusedSessionID) }
     }
 
+    private func updateHint(for session: Session) -> AgentUpdateHint? {
+        guard let agent = session.agent?.kind else { return nil }
+        return AgentUpdateHint(
+            agent: agent, state: session.state, update: manager.agentUpdates[session.id], phase: manager.restarts[session.id],
+            canRestart: SessionManager.restartableAgent(session) != nil,
+        )
+    }
+
     private var project: Project? {
         session.flatMap { manager.workspace.project($0.projectID) }
     }
@@ -237,17 +259,17 @@ private struct ChangeReadoutView: View {
 final class SessionTitleHost: NSHostingView<SessionTitleView> {
     /// The button's frame in this view's own space, top left origin, as SwiftUI reports it.
     var menuFrame = CGRect.zero
-    /// The readout's frames, one per view that draws it (normally one, or none).
-    private var readoutFrames: [UUID: CGRect] = [:]
+    /// The other controls' frames (the readout, the update hint), one per view that draws one.
+    private var controlFrames: [UUID: CGRect] = [:]
 
-    func setReadoutFrame(_ frame: CGRect?, for id: UUID) {
-        readoutFrames[id] = frame
+    func setControlFrame(_ frame: CGRect?, for id: UUID) {
+        controlFrames[id] = frame
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = convert(point, from: superview)
         let spot = CGPoint(x: local.x, y: isFlipped ? local.y : bounds.height - local.y)
-        let onControl = menuFrame.contains(spot) || readoutFrames.values.contains { $0.contains(spot) }
+        let onControl = menuFrame.contains(spot) || controlFrames.values.contains { $0.contains(spot) }
         return onControl ? super.hitTest(point) : nil
     }
 }
@@ -294,7 +316,9 @@ extension MainWindowController {
             // The window's title stays hidden (titleVisibility), but the system still shows it.
             onChange: { [weak self] title in self?.window?.title = title.isEmpty ? BuildVariant.appName : title },
             onMenuFrame: { [weak self] frame in self?.titleHost?.menuFrame = frame },
-            onReadoutFrame: { [weak self] id, frame in self?.titleHost?.setReadoutFrame(frame, for: id) },
+            onControlFrame: { [weak self] id, frame in self?.titleHost?.setControlFrame(frame, for: id) },
+            onRestart: { [weak self] id in self?.restartAgent(in: id) },
+            onCancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
         )
     }
 }

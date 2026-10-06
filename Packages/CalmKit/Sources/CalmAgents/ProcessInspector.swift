@@ -22,6 +22,16 @@ public enum ProcessInspector {
         return parseArguments(Array(buffer.prefix(size)), processID: pid)
     }
 
+    /// The file the process runs, links resolved (`…/claude/versions/2.1.291`, where its argv
+    /// says `~/.local/bin/claude`). Nil once that file was deleted, as an update does to the
+    /// version it replaces, or when the process is gone.
+    public static func executableFile(of pid: Int32) -> String? {
+        var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+        guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
+        let path = String(bytes: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, encoding: .utf8)
+        return path?.isEmpty == false ? path : nil
+    }
+
     /// The process's current directory.
     public static func workingDirectory(of pid: Int32) -> String? {
         var info = proc_vnodepathinfo()

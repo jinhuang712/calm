@@ -135,6 +135,14 @@ extension MainWindowController {
         runAgentCommand(command, in: manager.panes[id])
     }
 
+    /// Restarts the agent in `id` on its conversation (⌘P, or the title strip's update hint): now,
+    /// or after its turn when it is busy.
+    func restartAgent(in id: Session.ID) {
+        if !manager.requestRestart(id) {
+            showNote("Can't restart \(manager.workspace.session(id)?.agent?.kind.displayName ?? "the agent") here")
+        }
+    }
+
     /// ⌘⇧T: opens the session closed last again, and resumes the conversation of the agent that was
     /// running in it. The shell is a new one: closing ended the old.
     func reopenClosedSession() {

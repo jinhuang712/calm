@@ -73,6 +73,12 @@ enum PersistentShell {
         return result
     }
 
+    /// Types `text` into a zmx session's terminal, as keys from a client would (`zmx send`): for a
+    /// session no pane is attached to yet.
+    static func send(name: String, text: String) {
+        _ = run(["send", name, text])
+    }
+
     /// Ends a zmx session and the shell in it.
     static func kill(name: String) {
         _ = run(["kill", name, "--force"])

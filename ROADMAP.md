@@ -203,6 +203,7 @@ Conversations can be renamed, resumed and forked.
 - [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi.*
 - [x] **M7.4 Menus:** right-click actions on session cards.
 - [x] **M7.5 Reopen closed session:** ⌘⇧T opens the session closed last again (up to ten, in memory), resuming the agent conversation that was running in it. *Ghostty's `undo` binding on ⌘⇧T is unbound in Calm's defaults.*
+- [x] **M7.6 Restart after an update:** restart a running agent on its conversation with the options it was started with (⌘P, one session or all of an agent's), and an amber hint in the title strip while the agent in front is older than the one installed. *Added 2026-10-06. Restart is Claude Code only (the one agent whose way to quit was checked); the hint works for any agent installed as a binary. Checked with stand-ins and a pty run of the real `claude`; not yet across a real update.*
 
 **Exit criteria**
 - Resuming or forking a conversation is one right-click.

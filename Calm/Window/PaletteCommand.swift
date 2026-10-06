@@ -34,6 +34,9 @@ enum PaletteRow: String, CaseIterable {
     case forkSplit = "fork-split"
     case forkTab = "fork-tab"
     case resume
+    case restartAgent = "restart-agent"
+    case cancelRestart = "cancel-restart"
+    case restartAll = "restart-all"
     case copyLastReply = "copy-last-reply"
     case copySessionID = "copy-sessionID"
     case copyResumeCommand = "copy-resumeCommand"
@@ -60,6 +63,9 @@ enum PaletteRow: String, CaseIterable {
         case .forkSplit: "Start a copy of this conversation in a new split beside it."
         case .forkTab: "Start a copy of this conversation in a new session."
         case .resume: "Pick the conversation that ended here back up, in this shell."
+        case .restartAgent: "Quit the agent and resume this conversation, keeping its options."
+        case .cancelRestart: "Keep the agent running; it was to restart after this turn."
+        case .restartAll: "Restart every session of this agent; busy ones after their turn."
         case .copyLastReply: "Copy the agent's latest message, Markdown and all."
         case .copySessionID: "Copy the agent's own id for this conversation."
         case .copyResumeCommand: "Copy the command that resumes this conversation."
@@ -97,6 +103,10 @@ struct PaletteSessionActions {
     let rename: @MainActor () -> Void
     let copyLastReply: @MainActor (Session.ID) -> Void
     let openTranscript: @MainActor (Session.ID) -> Void
+    var restart: @MainActor (Session.ID) -> Void = { _ in }
+    var cancelRestart: @MainActor (Session.ID) -> Void = { _ in }
+    /// The session's agent is waiting for its turn to end to restart.
+    var restartPending = false
 }
 
 /// The focused session's rows, kept by category so the palette can place each where it belongs.
@@ -120,6 +130,14 @@ extension PaletteCommand {
         }
         if let kind = available.resumes {
             rows.agent.append(PaletteCommand(.resume, title: "Resume \(kind.displayName) Conversation") { menu.resume(id) })
+        }
+        // Only here and on the title strip's update hint: restarting isn't an everyday action.
+        if let kind = available.restarts {
+            if palette.restartPending {
+                rows.agent.append(PaletteCommand(.cancelRestart, title: "Don't Restart \(kind.displayName)") { palette.cancelRestart(id) })
+            } else {
+                rows.agent.append(PaletteCommand(.restartAgent, title: "Restart \(kind.displayName)") { palette.restart(id) })
+            }
         }
         if available.transcriptFile != nil {
             rows.agent.append(PaletteCommand(.copyLastReply, title: "Copy Last Reply") { palette.copyLastReply(id) })

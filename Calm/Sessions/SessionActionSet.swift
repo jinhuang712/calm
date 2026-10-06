@@ -9,6 +9,8 @@ import Foundation
 struct SessionActionSet {
     /// The agent whose ended conversation can be resumed in this shell.
     let resumes: AgentKind?
+    /// The running agent that can be restarted on its conversation (⌘P only).
+    let restarts: AgentKind?
     let forks: Bool
     let copies: [SessionCopy]
     let opensFolder: Bool
@@ -21,6 +23,7 @@ struct SessionActionSet {
 
     init(_ session: Session) {
         resumes = MainWindowController.resumeCommand(for: session) != nil ? session.resumableConversation?.kind : nil
+        restarts = SessionManager.restartableAgent(session)
         forks = MainWindowController.forkCommand(for: session) != nil
         copies = SessionCopy.allCases.filter { $0.text(for: session) != nil }
         opensFolder = !session.isScratch && !copies.isEmpty

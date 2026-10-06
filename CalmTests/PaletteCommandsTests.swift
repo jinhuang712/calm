@@ -110,6 +110,46 @@ struct PaletteCommandsTests {
         #expect(titles.contains("Copy Last Reply"))
     }
 
+    /// A running agent as the probe knows it: its process and its conversation.
+    private func running(_ kind: AgentKind) -> Session {
+        var session = Session(projectID: UUID(), workingDirectory: "/tmp/app")
+        session.agent = AgentRun(kind: kind, processID: 4242)
+        session.agent?.agentSessionID = "abc"
+        return session
+    }
+
+    @Test func `a running Claude Code can be restarted, and a waiting restart taken back`() throws {
+        var restarted: [UUID] = []
+        var kept: [UUID] = []
+        let session = running(.claudeCode)
+        let menu = SidebarActions(
+            rename: { _, _ in }, resume: { _ in }, fork: { _, _ in }, newScratchSession: {}, showFooter: { _ in }, search: {},
+            toggleFiles: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in }, removeProject: { _ in },
+            move: { _, _ in }, followFolder: { _ in }, keepScratch: { _ in }, copy: { _, _ in }, openFolder: { _ in }, takeOut: { _ in },
+        )
+        let idle = PaletteCommand.session(session, menu: menu, palette: PaletteSessionActions(
+            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in }, restart: { restarted.append($0) },
+        ))
+        try #require(idle.agent.first { $0.title == "Restart Claude Code" }).run()
+        #expect(restarted == [session.id])
+        let waiting = PaletteCommand.session(session, menu: menu, palette: PaletteSessionActions(
+            rename: {}, copyLastReply: { _ in }, openTranscript: { _ in }, cancelRestart: { kept.append($0) }, restartPending: true,
+        ))
+        #expect(!waiting.agent.contains { $0.title == "Restart Claude Code" })
+        try #require(waiting.agent.first { $0.title == "Don't Restart Claude Code" }).run()
+        #expect(kept == [session.id])
+    }
+
+    @Test func `an agent Calm can't quit cleanly, or one not yet probed, has no restart`() {
+        #expect(!rows(for: running(.codex)).agent.contains { $0.id == "restart-agent" })
+        var unprobed = running(.claudeCode)
+        unprobed.agent?.processID = 0
+        #expect(!rows(for: unprobed).agent.contains { $0.id == "restart-agent" })
+        var unnamed = running(.claudeCode)
+        unnamed.agent?.agentSessionID = nil
+        #expect(!rows(for: unnamed).agent.contains { $0.id == "restart-agent" })
+    }
+
     @Test func `no transcript file means no reply to copy and nothing to open`() {
         let gone = FileManager.default.temporaryDirectory.appending(path: "calm-palette-gone.jsonl")
         for session in [conversation(transcript: nil), conversation(transcript: gone)] {
@@ -157,7 +197,7 @@ struct PaletteCommandsTests {
 
     @Test func `every one of Calm's rows has a short description of its own`() {
         let lines = PaletteRow.allCases.map(\.help)
-        #expect(lines.count == 22)
+        #expect(lines.count == 25)
         #expect(Set(lines).count == lines.count)
         for row in PaletteRow.allCases {
             // One line in the footer, at the largest interface size too: about 70 characters fit.

@@ -22,6 +22,8 @@ struct SessionCard: View {
     /// On screen beside the session you're in, in a split: lifted like the selected card, with no
     /// ring (UIUX.md → Split panes).
     var inView = false
+    /// A restart waiting for the turn to end, or under way: a footnote on the state line.
+    var restart: RestartPhase?
 
     var body: some View {
         VStack(alignment: .leading, spacing: (size == .full ? 6 : 4).scaled) {
@@ -236,9 +238,13 @@ struct SessionCard: View {
     @ViewBuilder
     private var stateLine: some View {
         if session.state == .working {
-            ShimmerText(text: workingLine, color: style.working, highlight: style.workingHighlight)
-                .calmFont(size: 13, weight: .medium)
-                .lineLimit(1)
+            HStack(spacing: 7.scaled) {
+                ShimmerText(text: workingLine, color: style.working, highlight: style.workingHighlight)
+                    .calmFont(size: 13, weight: .medium)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+                restartFootnote
+            }
         } else {
             HStack(spacing: 7.scaled) {
                 StateMark(state: session.state, style: style)
@@ -253,7 +259,28 @@ struct SessionCard: View {
                         .foregroundStyle(style.tertiary)
                         .lineLimit(1)
                 }
+                restartFootnote
             }
+        }
+    }
+
+    /// "· restarts after this turn" while a restart waits (Restart All's busy sessions), and
+    /// "· restarting" for the second it takes: a footnote like the shells', in the tertiary color.
+    @ViewBuilder
+    private var restartFootnote: some View {
+        if let line = Self.restartLine(restart) {
+            Text("· \(line)")
+                .calmFont(size: 13)
+                .foregroundStyle(style.tertiary)
+                .lineLimit(1)
+        }
+    }
+
+    static func restartLine(_ phase: RestartPhase?) -> String? {
+        switch phase {
+        case .afterTurn: "restarts after this turn"
+        case .restarting: "restarting"
+        case nil: nil
         }
     }
 
@@ -327,7 +354,7 @@ struct SessionCard: View {
 
     private var accessibilityText: String {
         let state = isConfirming ? "Restoring" : session.state == .working ? workingLine : session.state.label
-        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), session.recap]
+        return [agent.displayName, title, state, Self.shellsLine(session.shellsStillRunning), Self.restartLine(restart), session.recap]
             .compactMap(\.self)
             .joined(separator: ", ")
     }

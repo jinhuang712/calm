@@ -302,12 +302,7 @@ struct SidebarView: View {
                         .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
                         .onTapGesture { onSelect(session.id) }
                         .dragSession(session.id, enabled: editing.renamingSessionID != session.id)
-                        .contextMenu {
-                            SessionMenu(
-                                session: session, manager: manager, actions: actions,
-                                onRename: { beginRename(session) }, onClose: { onClose(session.id) },
-                            )
-                        }
+                        .onRightClick { point in actions.showMenu(session.id, point) }
                         .matchedGeometryEffect(id: session.id, in: rows)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -382,10 +377,6 @@ struct SidebarView: View {
                 .tracking(0.7)
                 .lineLimit(1)
         }
-    }
-
-    private func beginRename(_ session: Session) {
-        editing.renamingSessionID = session.id
     }
 
     /// The inline name field that stands in for a session's card while it's renamed: return keeps

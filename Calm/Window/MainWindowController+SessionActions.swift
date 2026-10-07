@@ -70,6 +70,7 @@ extension MainWindowController {
             takeOut: { [weak self] id in self?.takeOutPane(id) },
             restart: { [weak self] id in self?.restartAgent(in: id) },
             cancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
+            showMenu: { [weak self] id, point in self?.showSessionMenu(id, atWindowPoint: point) },
         )
     }
 

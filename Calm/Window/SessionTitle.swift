@@ -24,8 +24,8 @@ struct SessionTitleView: View {
     /// The folder the files column would show for the focused session (its project, or a scratch
     /// session's folder).
     let filesRoot: () -> String?
-    let onRename: (Session.ID) -> Void
-    let onClose: (Session.ID) -> Void
+    /// Opens the session menu under the ⋯ button.
+    let onShowMenu: (Session.ID) -> Void
     /// Gets the window title whenever it changes.
     var onChange: (String) -> Void = { _ in }
     /// Gets the ⋯ button's frame, so the host takes clicks there and nowhere else.
@@ -161,21 +161,18 @@ struct SessionTitleView: View {
 
     /// Quiet until the pointer is on it: the row is a title first.
     private func menu(for session: Session) -> some View {
-        Menu {
-            SessionMenu(
-                session: session, manager: manager, actions: actions,
-                onRename: { onRename(session.id) }, onClose: { onClose(session.id) },
-            )
+        // Calm draws the menu itself (SessionMenuController), so this is a plain button.
+        Button {
+            onShowMenu(session.id)
         } label: {
             Image(systemName: "ellipsis")
                 .calmFont(size: 13, weight: .semibold)
                 .foregroundStyle(menuHovered ? style.primary : style.tertiary)
                 .frame(width: 30.scaled, height: 26.scaled)
                 .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(menuHovered ? style.selection : .clear))
+                .contentShape(Rectangle())
         }
-        .menuStyle(.button)
         .buttonStyle(.plain)
-        .menuIndicator(.hidden)
         .fixedSize()
         .onHover { menuHovered = $0 }
         .help("Session actions")
@@ -311,8 +308,7 @@ extension MainWindowController {
             manager: manager, style: style, actions: sessionActions,
             files: filesColumn.model,
             filesRoot: { [weak self] in self?.focusedProjectPath },
-            onRename: { [weak self] id in self?.beginRename(id) },
-            onClose: { [weak self] id in self?.requestCloseSession(id) },
+            onShowMenu: { [weak self] id in self?.showSessionMenuFromTitle(id) },
             // The window's title stays hidden (titleVisibility), but the system still shows it.
             onChange: { [weak self] title in self?.window?.title = title.isEmpty ? BuildVariant.appName : title },
             onMenuFrame: { [weak self] frame in self?.titleHost?.menuFrame = frame },

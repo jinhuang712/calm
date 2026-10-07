@@ -32,4 +32,6 @@ struct SidebarActions {
     /// still waiting (FEATURES.md → F12).
     var restart: (Session.ID) -> Void = { _ in }
     var cancelRestart: (Session.ID) -> Void = { _ in }
+    /// Opens the session menu at a point in the window (a right-click on a card or a shell row).
+    var showMenu: (Session.ID, CGPoint) -> Void = { _, _ in }
 }

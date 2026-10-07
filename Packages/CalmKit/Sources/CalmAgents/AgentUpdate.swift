@@ -36,6 +36,12 @@ public enum AgentUpdates {
         return compare(launcherTarget: launcher, running: ProcessInspector.executableFile(of: process.processID))
     }
 
+    /// The version `processID` runs, as the path of its file names it (nil once the file was
+    /// deleted, or for a path that names none): what the session menu shows by the agent's name.
+    public static func runningVersion(of processID: Int32) -> String? {
+        ProcessInspector.executableFile(of: processID).flatMap(version(in:))
+    }
+
     /// The decision, from the two paths: where the launcher points now, and the file the process
     /// runs (nil: deleted).
     static func compare(launcherTarget: String, running: String?) -> AgentUpdate? {

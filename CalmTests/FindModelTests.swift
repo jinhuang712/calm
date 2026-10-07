@@ -9,19 +9,70 @@ private final class FakePane: FindTarget {
     var actions: [String] = []
     /// What the pane was last told to mark.
     var marks: (words: String?, selected: Int?) = (nil, nil)
+    var marksPattern = false
 
     func perform(_ action: String) -> Bool {
         actions.append(action)
         return true
     }
 
-    func markFind(_ words: String?, selected: Int?) {
+    func markFind(_ words: String?, selected: Int?, isPattern: Bool) {
         marks = (words, selected)
+        marksPattern = isPattern
     }
 }
 
 @MainActor
 struct FindModelTests {
+    @Test func `a pattern: libghostty's search stops, the pane counts, and find steps through its own matches`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        find.togglePattern()
+        find.query = #"(error|warn)\w*"#
+        #expect(pane.actions.last == "search:")
+        #expect(pane.marks.words == #"(error|warn)\w*"# && pane.marksPattern && pane.marks.selected == nil)
+        // libghostty's own counts don't count here.
+        find.handle(.total(2), from: pane)
+        #expect(find.total == nil)
+        find.handle(.counted(5), from: pane)
+        #expect(find.countText == "1 of 5" && pane.marks.selected == 0)
+        find.step(.older)
+        find.step(.older)
+        #expect(find.countText == "3 of 5" && pane.marks.selected == 2)
+        // New output's two matches are newer: the same match is now the fifth newest.
+        find.handle(.counted(7), from: pane)
+        #expect(find.countText == "5 of 7")
+        find.handle(.chose(6), from: pane)
+        #expect(find.countText == "7 of 7" && find.olderDisabled)
+        find.step(.older)
+        #expect(pane.marks.selected == 6) // it stops at the oldest
+    }
+
+    @Test func `a pattern half typed says so and leaves the marks as they were`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        find.togglePattern()
+        find.query = "warn"
+        find.query = "warn("
+        #expect(find.countText == "Incomplete pattern")
+        #expect(pane.marks.words == "warn") // the last pattern's marks stay
+        find.query = "warn(ing)?"
+        #expect(find.countText == "" && pane.marks.words == "warn(ing)?")
+    }
+
+    @Test func `each pane remembers its switch with its words, and the selection is always plain words`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        find.togglePattern()
+        find.query = #"\d+ms"#
+        find.close()
+        find.handle(.start(needle: ""), from: pane)
+        #expect(find.isPattern && find.query == #"\d+ms"#)
+        find.close()
+        find.handle(.start(needle: "a.b"), from: pane) // ⌘E with "a.b" selected
+        #expect(!find.isPattern && find.query == "a.b")
+    }
+
     @Test func `a full-screen program's screen: the count says on screen, the note only when nothing matches`() {
         let find = FindModel(), pane = FakePane()
         find.handle(.start(needle: ""), from: pane)

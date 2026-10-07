@@ -24,8 +24,18 @@ final class PaneFind {
     var onChange: (() -> Void)?
     /// The words searched in this pane, while find is open on it with some.
     fileprivate(set) var words: String?
-    /// libghostty's current match, counted from the newest (0).
+    /// The words as find matches them: plain, or a pattern (`.*`); nil for a pattern half typed.
+    fileprivate(set) var query: FindQuery?
+    /// The words are a pattern, which the pane searches and counts itself.
+    fileprivate(set) var isPattern = false
+    /// The current match, counted from the newest (0): libghostty's for plain words, find's own
+    /// for a pattern.
     fileprivate(set) var selected: Int?
+    /// A pattern's current match the pane painted as the pill (engine patch 0019), by its number;
+    /// nil when the pane painted none (libghostty paints plain words' itself).
+    fileprivate var painted: Int?
+    /// A pattern's current match changed, so the screen goes to it once it's known where.
+    fileprivate var goesToCurrent = false
     /// The matches on screen, top to bottom, each as its cells, one run per row.
     fileprivate(set) var matches: [[CellRun]] = []
     /// Which of `matches` is the current one: its line gets the band and the edge bar.
@@ -93,19 +103,27 @@ extension TerminalSurfaceView {
         find.onChange?()
     }
 
-    /// What find marks in this pane (`FindTarget`): the words, or nil for none, and the current match.
-    func markFind(_ words: String?, selected: Int?) {
-        let isNew = words != find.words
+    /// What find marks in this pane (`FindTarget`): the words, or nil for none, whether they're a
+    /// pattern, and the current match.
+    func markFind(_ words: String?, selected: Int?, isPattern: Bool) {
+        let isNew = words != find.words || isPattern != find.isPattern
         let moved = selected != find.selected
         if isNew {
             find.rows = []
             find.counted = nil
             find.map = nil
             find.isFullScreen = nil
+            find.query = words.flatMap { FindQuery(words: $0, isPattern: isPattern) }
+            clearPaintedMatch()
         }
         find.words = words
+        find.isPattern = isPattern
         find.selected = selected
+        if isPattern, moved, selected != nil {
+            find.goesToCurrent = true
+        }
         guard words != nil else {
+            clearPaintedMatch()
             find.matches = []
             find.current = nil
             find.onChange?()
@@ -154,7 +172,7 @@ extension TerminalSurfaceView {
 
     private func refreshFind() {
         find.isRefreshPending = false
-        guard let words = find.words, window != nil else { return }
+        guard let query = find.query, window != nil else { return }
         reportFindScreen()
         guard let geometry = gridGeometry() else { return }
         let rows = viewportRows()
@@ -163,9 +181,12 @@ extension TerminalSurfaceView {
         if rows != find.rows {
             find.rows = rows
             let grid = TextGrid(lines: rows)
-            matches = lines(of: grid).flatMap { FindMatcher.matches(of: words, in: grid, rows: $0) }
+            matches = lines(of: grid).flatMap { FindMatcher.matches(of: query, in: grid, rows: $0) }
         }
-        let current = currentMatch(words: words, among: matches)
+        let current = currentMatch(query: query, among: matches)
+        if find.isPattern {
+            showPatternMatch(current.map { matches[$0] })
+        }
         // The marks follow the grid too: smooth scrolling shifts it by pixels.
         let moved = geometry.origin != find.geometry?.origin || geometry.baseline != find.geometry?.baseline
         let background = effectiveBackgroundColor ?? shownConfig?.backgroundColor
@@ -176,6 +197,55 @@ extension TerminalSurfaceView {
         find.geometry = geometry
         find.background = background
         find.onChange?()
+    }
+
+    /// A pattern's current match, which libghostty can't find: the pane paints it as the pill
+    /// once it's on screen (engine patch 0019), or brings the screen to it first, a third of the
+    /// way down, the way libghostty brings its own matches (`scroll_to_row`). Only when the match
+    /// changed: a screen the user scrolled away stays where it is.
+    private func showPatternMatch(_ runs: [CellRun]?) {
+        guard let surface, let selected = find.selected else { return }
+        if let runs, let first = runs.first, let last = runs.last {
+            guard find.painted != selected else { return }
+            let match = ghostty_selection_s(
+                top_left: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: UInt32(first.columns.lowerBound), y: UInt32(first.row),
+                ),
+                bottom_right: ghostty_point_s(
+                    tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT,
+                    x: UInt32(max(last.columns.upperBound - 1, 0)), y: UInt32(last.row),
+                ),
+                rectangle: false,
+            )
+            if ghostty_surface_mark_search_match(surface, match) {
+                find.painted = selected
+                find.goesToCurrent = false
+            }
+        } else if find.goesToCurrent, let map = find.map, let line = map.line(holding: selected), let position = find.position {
+            find.goesToCurrent = false
+            perform("scroll_to_row:\(max(map.lines[line].row - position.visible / 3, 0))")
+        }
+    }
+
+    /// New output's matches are newer: a pattern's current match keeps its place by its number
+    /// growing with them, as find works it out too (`FindModel`, `.counted`), so it isn't taken for
+    /// a step, and a screen scrolled away from it stays.
+    func keepPatternMatch(count: Int, before: Int?) {
+        guard let selected = find.selected, let before, count > before else { return }
+        let kept = min(selected + count - before, count - 1)
+        if find.painted == selected {
+            find.painted = kept
+        }
+        find.selected = kept
+    }
+
+    /// Takes away the pill the pane painted for a pattern, and only that: plain words' pill is
+    /// libghostty's own.
+    private func clearPaintedMatch() {
+        guard find.painted != nil, let surface else { return }
+        find.painted = nil
+        ghostty_surface_clear_search_match(surface)
     }
 
     /// Tells find when the pane starts or stops showing a full-screen program's screen (the
@@ -194,7 +264,8 @@ extension TerminalSurfaceView {
     /// so it's the matches from the top of the screen down to the newest row, counted backwards:
     /// at the bottom those are the screen's own; scrolled up, the rows below are read and counted
     /// too (only when the words or the position changed).
-    private func currentMatch(words: String, among matches: [[CellRun]]) -> Int? {
+    private func currentMatch(query: FindQuery, among matches: [[CellRun]]) -> Int? {
+        let words = query.words + (query.isPattern ? "\u{0}pattern" : "")
         guard let selected = find.selected else { return nil }
         let position = find.position
         let count: Int
@@ -210,7 +281,7 @@ extension TerminalSurfaceView {
                 bottom_right: ghostty_point_s(tag: GHOSTTY_POINT_SCREEN, coord: GHOSTTY_POINT_COORD_BOTTOM_RIGHT, x: 0, y: 0),
                 rectangle: false,
             )) ?? ""
-            count = FindMatcher.count(of: words, in: text)
+            count = query.count(in: text)
             find.counted = PaneFind.Counted(words: words, position: position, count: count)
         }
         let index = count - 1 - selected

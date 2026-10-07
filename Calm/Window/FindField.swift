@@ -19,6 +19,10 @@ protocol FindFieldModel: AnyObject, Observable {
     var focusRequest: Int { get }
     /// Where the field is in the title strip (top left origin), for the note under it.
     var fieldFrame: CGRect? { get set }
+    /// `.*`: the words are a pattern; whether this field offers the switch at all.
+    var isPattern: Bool { get }
+    var supportsPattern: Bool { get }
+    func togglePattern()
     func step(up: Bool)
     func close()
 }
@@ -46,7 +50,8 @@ struct FindFieldView<Model: FindFieldModel>: View {
                 .accessibilityHidden(true)
             TextField(model.placeholder, text: $model.query)
                 .textFieldStyle(.plain)
-                .calmFont(size: 13.5)
+                // A pattern reads as one in monospaced type.
+                .calmFont(size: pattern ? 12.5 : 13.5, design: pattern ? .monospaced : .default)
                 .foregroundStyle(style.primary)
                 .focused($focused)
                 .onKeyPress(.return, phases: .down) { press in
@@ -61,6 +66,9 @@ struct FindFieldView<Model: FindFieldModel>: View {
                 .foregroundStyle(style.tertiary)
                 .fixedSize()
                 .padding(.horizontal, 4.scaled)
+            if model.supportsPattern {
+                patternSwitch
+            }
             arrow("chevron.up", help: model.upHelp, disabled: model.upDisabled) { model.step(up: true) }
             arrow("chevron.down", help: model.downHelp, disabled: model.downDisabled) { model.step(up: false) }
             Button { model.close() } label: {
@@ -106,6 +114,29 @@ struct FindFieldView<Model: FindFieldModel>: View {
                 withAnimation(.easeOut(duration: 0.16)) { shown = true }
             }
         }
+    }
+
+    private var pattern: Bool {
+        model.isPattern && model.supportsPattern
+    }
+
+    /// `.*`: find's one switch (UIUX.md → Find). Quiet when off; on, the text color on a tint of the accent.
+    private var patternSwitch: some View {
+        Button { model.togglePattern() } label: {
+            Text(".*")
+                .font(.system(size: 11.5.scaled, weight: .semibold, design: .monospaced))
+                .foregroundStyle(pattern ? style.primary : style.tertiary)
+                .fixedSize()
+                .padding(.horizontal, 5.scaled)
+                .frame(height: 20.scaled)
+                .background(RoundedRectangle(cornerRadius: 4.scaled, style: .continuous)
+                    .fill(pattern ? style.accent.opacity(0.22) : .clear))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Regular expression (⌥⌘R)")
+        .accessibilityLabel("Regular expression")
+        .accessibilityValue(pattern ? "On" : "Off")
     }
 
     private func arrow(_ symbol: String, help: String, disabled: Bool, action: @escaping () -> Void) -> some View {

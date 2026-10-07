@@ -34,6 +34,9 @@ final class ViewerFindModel: FindFieldModel {
 
     private(set) var total: Int?
     private(set) var current: Int?
+    private(set) var isPattern = false
+    /// The words aren't a pattern (yet): the count says so, and the page keeps its marks.
+    private(set) var isPatternIncomplete = false
     /// The web view's answer, for a page whose find has no count.
     private(set) var found: Bool?
     /// The quiet note for ⌘F over a picture, until the next key or click.
@@ -51,6 +54,9 @@ final class ViewerFindModel: FindFieldModel {
 
     var countText: String {
         guard !query.isEmpty else { return "" }
+        if isPatternIncomplete, supportsPattern {
+            return "Incomplete pattern"
+        }
         if searcher == .web {
             return found == false ? "No matches" : ""
         }
@@ -62,6 +68,9 @@ final class ViewerFindModel: FindFieldModel {
 
     /// Down the file is forward: ↵ and ↓ go to the next match, ⇧↵ and ↑ to the one before.
     var upDisabled: Bool {
+        if isPatternIncomplete, supportsPattern {
+            return true
+        }
         if searcher == .web {
             return found != true
         }
@@ -70,6 +79,9 @@ final class ViewerFindModel: FindFieldModel {
     }
 
     var downDisabled: Bool {
+        if isPatternIncomplete, supportsPattern {
+            return true
+        }
         if searcher == .web {
             return found != true
         }
@@ -89,6 +101,24 @@ final class ViewerFindModel: FindFieldModel {
         false
     }
 
+    /// Calm's own page takes patterns; PDFKit and the web view's find take plain words only.
+    var supportsPattern: Bool {
+        searcher == .page
+    }
+
+    /// The page searches with a pattern only while the switch shows.
+    var searchesPattern: Bool {
+        isPattern && supportsPattern
+    }
+
+    func togglePattern() {
+        guard supportsPattern else { return }
+        isPattern.toggle()
+        if isOpen {
+            onSearch?(query)
+        }
+    }
+
     /// ⌘F: opens the field with the last words selected (a picture gets its note instead), or
     /// closes it; `words` (⌘E) replaces them.
     func toggle(words: String? = nil) {
@@ -102,9 +132,15 @@ final class ViewerFindModel: FindFieldModel {
         }
         isOpen = true
         focusRequest += 1
-        if let words, !words.isEmpty, words != query {
-            query = words
-        } else if !query.isEmpty {
+        if let words, !words.isEmpty {
+            // ⌘E: the selected text is words, never a pattern.
+            isPattern = false
+            if words != query {
+                query = words
+                return
+            }
+        }
+        if !query.isEmpty {
             onSearch?(query)
         }
     }
@@ -139,8 +175,14 @@ final class ViewerFindModel: FindFieldModel {
 
     /// What the page or PDFKit found.
     func show(total: Int?, current: Int?) {
+        isPatternIncomplete = false
         self.total = total
         self.current = current.flatMap { $0 >= 0 ? $0 : nil }
+    }
+
+    /// The page couldn't read the words as a pattern: they're half typed.
+    func showIncompletePattern() {
+        isPatternIncomplete = true
     }
 
     /// What the web view's find said.
@@ -162,7 +204,7 @@ extension FileViewer {
     private func search(_ words: String) {
         switch find.searcher {
         case .page:
-            runPage("calmFind(\(Self.json(words)), \(Self.json(pageColors)))")
+            runPage("calmFind(\(Self.json(words)), \(Self.json(pageColors)), \(find.searchesPattern))")
         case .pdf:
             searchPDF(words)
         case .web:
@@ -213,6 +255,10 @@ extension FileViewer {
     func showPageResult(_ result: Any?) {
         // Closing gets an answer too (no matches); the field is gone by then.
         guard find.isOpen, let state = result as? [String: Any] else { return }
+        if state["invalid"] as? Bool == true {
+            find.showIncompletePattern()
+            return
+        }
         find.show(total: state["total"] as? Int, current: state["current"] as? Int)
     }
 

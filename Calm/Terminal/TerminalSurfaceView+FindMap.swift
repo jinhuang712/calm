@@ -30,7 +30,7 @@ extension TerminalSurfaceView {
     /// 10,000 lines, 24 ms for the 44,000 its default limit keeps) and scans it off the main thread.
     private func scanMap() {
         find.isMapScanPending = false
-        guard let words = find.words, let surface, window != nil else { return }
+        guard let words = find.words, let query = find.query, let surface, window != nil else { return }
         let columns = Int(ghostty_surface_size(surface).columns)
         let text = readText(ghostty_selection_s(
             top_left: ghostty_point_s(tag: GHOSTTY_POINT_SCREEN, coord: GHOSTTY_POINT_COORD_TOP_LEFT, x: 0, y: 0),
@@ -40,9 +40,17 @@ extension TerminalSurfaceView {
         find.mapGeneration += 1
         let generation = find.mapGeneration
         Task.detached(priority: .utility) { [weak self] in
-            let map = FindMap.scan(text, words: words, columns: columns)
+            let map = FindMap.scan(text, query: query, columns: columns)
             await MainActor.run {
-                guard let find = self?.find, find.mapGeneration == generation, find.words == words, map != find.map else { return }
+                guard let self else { return }
+                let find = self.find
+                guard find.mapGeneration == generation, find.words == words else { return }
+                // A pattern's count is the pane's own: libghostty searches plain words only.
+                if find.isPattern {
+                    self.keepPatternMatch(count: map.matches, before: find.map?.matches)
+                    self.host?.surface(self, didFind: .counted(map.matches))
+                }
+                guard map != find.map else { return }
                 find.map = map
                 find.onChange?()
             }
@@ -53,6 +61,11 @@ extension TerminalSurfaceView {
     /// there through the engine, which scrolls it into view.
     func goToFindLine(_ line: Int) {
         guard let target = find.map?.selection(of: line) else { return }
+        if find.isPattern {
+            // A pattern's matches are find's own: it makes the choice and the pane goes there.
+            host?.surface(self, didFind: .chose(target))
+            return
+        }
         // No current match yet: the first step older selects the newest (index 0).
         let steps = target - (find.selected ?? -1)
         let action = steps > 0 ? "navigate_search:next" : "navigate_search:previous"

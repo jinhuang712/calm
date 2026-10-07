@@ -36,7 +36,14 @@ public struct FindMap: Equatable, Sendable {
     /// bytes, matching as the engine does (`FindMatcher`); a line's width is its byte count unless
     /// it has more than ASCII (then its characters' cells), since this runs over megabytes.
     public static func scan(_ text: String, words: String, columns: Int) -> FindMap {
-        let needle = Array(words.utf8).map(fold)
+        FindQuery(words: words, isPattern: false).map { scan(text, query: $0, columns: columns) } ?? FindMap(lines: [], rows: 0)
+    }
+
+    /// The map of `query` in the scrollback's `text`. A pattern is matched line by line on the
+    /// line's characters, which is slower than the bytes plain words are matched on; both run off
+    /// the main thread.
+    public static func scan(_ text: String, query: FindQuery, columns: Int) -> FindMap {
+        let needle = Array(query.words.utf8).map(fold)
         guard !needle.isEmpty, columns > 0 else { return FindMap(lines: [], rows: 0) }
         var text = text
         return text.withUTF8 { bytes in
@@ -56,7 +63,9 @@ public struct FindMap: Equatable, Sendable {
                 let line = UnsafeBufferPointer(rebasing: bytes[start ..< end])
                 // A line ends at a newline, so it's whole UTF-8, as the text was.
                 let width = isASCII ? line.count : cells(String(bytes: line, encoding: .utf8) ?? "")
-                let count = matches(of: needle, in: line)
+                let count = query.isPattern
+                    ? query.ranges(in: String(bytes: line, encoding: .utf8) ?? "").count
+                    : matches(of: needle, in: line)
                 if count > 0 {
                     let words = (String(bytes: line, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespaces)
                     lines.append(Line(row: row, number: number, matches: count, text: String(words.prefix(tagLength))))

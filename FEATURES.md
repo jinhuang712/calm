@@ -305,7 +305,7 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 
 ## F16 — Find in a session (⌘F) 🚧
 
-Designed with the author step by step, 2026-10-06 and 07, on a design canvas (claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf). Looks in UIUX.md → Find, the engine and the plan in DESIGNS.md → Find. Built 2026-10-07 (ROADMAP.md → M8), as below, but for regular expressions and the whole session, designed the same day and still to come (ROADMAP.md → M9).
+Designed with the author step by step, 2026-10-06 and 07, on a design canvas (claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf). Looks in UIUX.md → Find, the engine and the plan in DESIGNS.md → Find. Built 2026-10-07 (ROADMAP.md → M8), as below, with regular expressions since (M9.1); the whole session, designed the same day, is still to come (ROADMAP.md → M9).
 
 - **⌘F** opens find for the session you're in (in a split, the pane you're in; each pane keeps its own search). The field takes the right of the title strip, where the files readout was. The pane's last search comes back selected, so typing replaces it; **⌘E** finds the selected text. **⌘F again closes it**, from the field or from the terminal. The Edit menu has Find… (Hide Find while it's open), Find Next ⌘G, Find Previous ⌘⇧G and Use Selection for Find ⌘E; ⌘P leaves it out, since everyone knows ⌘F.
 - Matches are marked as you type. Case doesn't matter for the letters A to Z (Ghostty's engine).

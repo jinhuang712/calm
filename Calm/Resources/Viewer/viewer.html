@@ -322,6 +322,7 @@
   let current = -1;
   let map = null;
   let findWords = "";   // what find is looking for, so a redraw can look again
+  let findExpression = null; // the words as a pattern, when `.*` is on
 
   function clearFind() {
     for (const mark of finds) {
@@ -339,28 +340,51 @@
     }
   }
 
-  // Case doesn't matter, as in the terminal; matches don't overlap here (a mark can't).
-  function markAll(words) {
+  // Where the words are in one text: case doesn't matter, as in the terminal; matches don't
+  // overlap here (a mark can't). A pattern (`.*`) is JavaScript's, and one that matches nothing
+  // isn't counted.
+  function rangesIn(text, words, expression) {
+    const found = [];
+    if (expression) {
+      expression.lastIndex = 0;
+      let match;
+      while ((match = expression.exec(text)) !== null) {
+        if (match[0].length === 0) {
+          expression.lastIndex++;
+          continue;
+        }
+        found.push([match.index, match.index + match[0].length]);
+      }
+      return found;
+    }
+    const lower = text.toLowerCase();
     const needle = words.toLowerCase();
+    let at = lower.indexOf(needle);
+    while (at >= 0) {
+      found.push([at, at + needle.length]);
+      at = lower.indexOf(needle, at + needle.length);
+    }
+    return found;
+  }
+
+  function markAll(words, expression) {
     const nodes = [];
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
       const text = node.nodeValue;
-      const lower = text.toLowerCase();
-      let at = lower.indexOf(needle);
-      if (at < 0) continue;
+      const ranges = rangesIn(text, words, expression);
+      if (!ranges.length) continue;
       const fragment = document.createDocumentFragment();
       let last = 0;
-      while (at >= 0) {
-        if (at > last) fragment.appendChild(document.createTextNode(text.slice(last, at)));
+      for (const [start, end] of ranges) {
+        if (start > last) fragment.appendChild(document.createTextNode(text.slice(last, start)));
         const mark = document.createElement("mark");
         mark.className = "calm-find";
-        mark.textContent = text.slice(at, at + needle.length);
+        mark.textContent = text.slice(start, end);
         fragment.appendChild(mark);
         finds.push(mark);
-        last = at + needle.length;
-        at = lower.indexOf(needle, last);
+        last = end;
       }
       if (last < text.length) fragment.appendChild(document.createTextNode(text.slice(last)));
       node.parentNode.replaceChild(fragment, node);
@@ -441,7 +465,7 @@
     current = -1;
     map?.remove();
     map = null;
-    markAll(findWords);
+    markAll(findWords, findExpression);
     if (finds.length) {
       const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
       select(first < 0 ? 0 : first, false);
@@ -449,15 +473,25 @@
     window.webkit?.messageHandlers?.calmFind?.postMessage(findState());
   }
 
-  /// Marks `words` and makes the first match in view, or the first after it, the current one.
-  window.calmFind = function (words, colors) {
+  /// Marks `words` (a pattern when `pattern`) and makes the first match in view, or the first
+  /// after it, the current one. A pattern half typed changes nothing and says so.
+  window.calmFind = function (words, colors, pattern) {
     for (const [name, value] of Object.entries(colors || {})) {
       document.documentElement.style.setProperty(`--${name}`, value);
     }
+    let expression = null;
+    if (pattern && words) {
+      try {
+        expression = new RegExp(words, "gi");
+      } catch (error) {
+        return { total: null, current: -1, invalid: true };
+      }
+    }
     clearFind();
     findWords = words || "";
+    findExpression = expression;
     if (!words) return findState();
-    markAll(words);
+    markAll(words, expression);
     if (finds.length) {
       const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
       select(first < 0 ? 0 : first, true);
@@ -475,6 +509,7 @@
 
   window.calmFindClose = function () {
     findWords = "";
+    findExpression = null;
     clearFind();
     return findState();
   };

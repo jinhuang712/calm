@@ -33,24 +33,29 @@ public enum FindMatcher {
     /// The matches in one line of the screen (`rows`, which the terminal wrapped from one line, or
     /// a single row), left to right, each as the cells it covers, one run per row.
     public static func matches(of words: String, in grid: TextGrid, rows: Range<Int>) -> [[CellRun]] {
-        let needle = Array(words.utf16)
-        guard !needle.isEmpty else { return [] }
-        var units: [UInt16] = []
-        // The cells each code unit belongs to: a wide character's two, a combining mark's base.
+        FindQuery(words: words, isPattern: false).map { matches(of: $0, in: grid, rows: rows) } ?? []
+    }
+
+    /// The query's matches in one line of the screen, as `matches(of:in:rows:)` gives plain words'.
+    public static func matches(of query: FindQuery, in grid: TextGrid, rows: Range<Int>) -> [[CellRun]] {
+        var line = ""
+        // The cells each UTF-16 unit of `line` belongs to: a wide character's two, a combining
+        // mark's base.
         var cells: [CellRun] = []
         for row in rows where grid.cells.indices.contains(row) {
             for (column, character) in grid.cells[row].enumerated() {
                 guard let character else { continue } // the second half of a wide character
                 let width = max(CellWidth.of(character), 1)
-                for unit in String(character).utf16 {
-                    units.append(unit)
+                line.append(character)
+                for _ in String(character).utf16 {
                     cells.append(CellRun(row: row, columns: column ..< column + width))
                 }
             }
         }
-        return starts(of: needle, in: units).map { start in
+        return query.ranges(in: line).compactMap { range in
+            guard range.upperBound <= cells.count else { return nil }
             var runs: [CellRun] = []
-            for cell in cells[start ..< start + needle.count] {
+            for cell in cells[range] {
                 if let last = runs.last, last.row == cell.row {
                     let columns = last.columns.lowerBound ..< max(last.columns.upperBound, cell.columns.upperBound)
                     runs[runs.count - 1] = CellRun(row: cell.row, columns: columns)

@@ -19,6 +19,32 @@ extension MainWindowController {
         find.handle(event, from: view)
     }
 
+    /// ⌥⌘R: switches find's words between plain and a pattern; with find closed, opens it with
+    /// a pattern.
+    func toggleFindPattern() {
+        if fileViewer.isShowing, !settingsPage.isShowing {
+            let viewer = fileViewer.find
+            if !viewer.isOpen {
+                viewer.toggle()
+                if !viewer.isPattern {
+                    viewer.togglePattern()
+                }
+            } else {
+                viewer.togglePattern()
+            }
+            return
+        }
+        guard let pane = focusedPane, !settingsPage.isShowing else { return }
+        if find.isSearching(pane) {
+            find.togglePattern()
+        } else {
+            find.handle(.start(needle: ""), from: pane)
+            if !find.isPattern {
+                find.togglePattern()
+            }
+        }
+    }
+
     /// The Edit menu's find items while a file is shown: they find in it. False otherwise, so the
     /// pane gets them.
     func performViewerFind(_ action: String) -> Bool {
@@ -77,8 +103,12 @@ extension MainWindowController {
                 find.step(.newer)
             case "find_close":
                 find.close()
+            case "find_pattern":
+                toggleFindPattern()
             case let words where words.hasPrefix("find_viewer:"):
                 fileViewer.find.toggle(words: String(words.dropFirst(12)))
+            case let words where words.hasPrefix("find_viewer_type:"):
+                fileViewer.find.query = String(words.dropFirst(17))
             case "find_viewer_toggle":
                 fileViewer.find.toggle()
             case let step where step.hasPrefix("find_viewer_step:"):
@@ -112,8 +142,9 @@ extension MainWindowController {
                 }
             default:
                 let target = find.target.map { Trace.id($0.id) } ?? "none"
-                let state = "open \(find.isOpen), words \"\(find.query)\", total \(find.total.map(String.init) ?? "nil"), "
-                    + "selected \(find.selected.map(String.init) ?? "nil"), shows \"\(find.countText)\", "
+                let state = "open \(find.isOpen), pattern \(find.isPattern), words \"\(find.query)\", "
+                    + "total \(find.total.map(String.init) ?? "nil"), selected \(find.selected.map(String.init) ?? "nil"), "
+                    + "shows \"\(find.countText)\", "
                     + "older \(find.olderDisabled ? "off" : "on"), newer \(find.newerDisabled ? "off" : "on"), pane \(target)"
                     + (focusedPane.map { pane in
                         let marks = pane.find

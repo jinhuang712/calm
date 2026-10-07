@@ -1,0 +1,120 @@
+Subject: ghostty_surface_mark_search_match paints a match the app found
+
+The search takes plain words. An embedder that finds matches itself (Calm's
+find takes a regular expression) can't show its current match the way the
+search shows its own: as the selected match, in search-selected colors.
+Hand the renderer a highlight of a selection, through the message the
+search thread already sends it; ghostty_surface_clear_search_match takes it
+away. A later search that selects a match paints over it.
+
+highlight.Flattened.init never compiled, since nothing called it: its list
+held the page iterator's chunks, which have no serial, and it set `end_x`, a
+field the struct doesn't have (it is `bot_x`). This is its first caller.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0018.
+
+diff --git a/include/ghostty.h b/include/ghostty.h
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -1207,6 +1207,9 @@
+ GHOSTTY_API void ghostty_surface_preedit(ghostty_surface_t, const char*, uintptr_t);
+ GHOSTTY_API bool ghostty_surface_mouse_captured(ghostty_surface_t);
+ GHOSTTY_API bool ghostty_surface_alternate_screen(ghostty_surface_t);
++GHOSTTY_API bool ghostty_surface_mark_search_match(ghostty_surface_t,
++                                                   ghostty_selection_s);
++GHOSTTY_API void ghostty_surface_clear_search_match(ghostty_surface_t);
+ GHOSTTY_API bool ghostty_surface_mouse_button(ghostty_surface_t,
+                                                  ghostty_input_mouse_state_e,
+                                                  ghostty_input_mouse_button_e,
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -2119,6 +2119,42 @@
+     /// view) draws on, which keeps no scrollback.
+     export fn ghostty_surface_alternate_screen(surface: *Surface) bool {
+         return surface.core_surface.alternateScreen();
++    }
++
++    /// Paints `sel` as the current search match, the way the search's own
++    /// selected match is painted, for an embedder that finds matches
++    /// itself (with a regular expression, which the search doesn't take).
++    /// A later search that selects a match paints over it.
++    export fn ghostty_surface_mark_search_match(
++        surface: *Surface,
++        sel: Selection,
++    ) bool {
++        const core_surface = &surface.core_surface;
++        var arena: std.heap.ArenaAllocator = .init(global.alloc());
++        const match = match: {
++            core_surface.renderer_state.mutex.lockUncancelable(global.io());
++            defer core_surface.renderer_state.mutex.unlock(global.io());
++            const screen = core_surface.renderer_state.terminal.screens.active;
++            const core_sel = sel.core(screen) orelse {
++                arena.deinit();
++                return false;
++            };
++            break :match terminal.highlight.Flattened.init(
++                arena.allocator(),
++                core_sel.topLeft(screen),
++                core_sel.bottomRight(screen),
++            ) catch {
++                arena.deinit();
++                return false;
++            };
++        };
++        core_surface.markSearchMatch(.{ .arena = arena, .match = match }) catch return false;
++        return true;
++    }
++
++    /// Clears what `ghostty_surface_mark_search_match` painted.
++    export fn ghostty_surface_clear_search_match(surface: *Surface) void {
++        surface.core_surface.markSearchMatch(null) catch {};
+     }
+ 
+     /// Tell the surface that it needs to schedule a render
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -3910,6 +3910,21 @@
+     return self.io.terminal.screens.active_key == .alternate;
+ }
+ 
++/// Hands the renderer `match` as the current search match, as the search
++/// thread hands it its own selected match, or clears it with null. The
++/// renderer takes the match's arena.
++pub fn markSearchMatch(
++    self: *Surface,
++    match: ?rendererpkg.Message.SearchMatch,
++) !void {
++    _ = self.renderer_thread.mailbox.push(
++        global.io(),
++        .{ .search_selected_match = match },
++        .forever,
++    );
++    try self.renderer_thread.wakeup.notify();
++}
++
+ /// Called for mouse button press/release events. This will return true
+ /// if the mouse event was consumed in some way (i.e. the program is capturing
+ /// mouse events). If the event was not consumed, then false is returned.
+diff --git a/src/terminal/highlight.zig b/src/terminal/highlight.zig
+--- a/src/terminal/highlight.zig
++++ b/src/terminal/highlight.zig
+@@ -143,7 +143,7 @@
+         start: Pin,
+         end: Pin,
+     ) Allocator.Error!Flattened {
+-        var result: std.MultiArrayList(PageChunk) = .empty;
++        var result: std.MultiArrayList(Chunk) = .empty;
+         errdefer result.deinit(alloc);
+         var it = start.pageIterator(.right_down, end);
+         while (it.next()) |chunk| try result.append(alloc, .{
+@@ -155,7 +155,7 @@
+         return .{
+             .chunks = result,
+             .top_x = start.x,
+-            .end_x = end.x,
++            .bot_x = end.x,
+         };
+     }
+ 

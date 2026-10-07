@@ -115,6 +115,9 @@ enum MainMenu {
         menu.addItem(terminalItem("Find Previous", "navigate_search:previous", key: "g", mods: [.command, .shift]))
         menu.addItem(.separator())
         menu.addItem(terminalItem("Use Selection for Find", "search_selection", key: "e"))
+        menu.addItem(actionItem(
+            "Regular Expression", #selector(TerminalMenuTarget.toggleFindPattern(_:)), key: "r", mods: [.command, .option],
+        ))
         return menu
     }
 
@@ -240,6 +243,11 @@ final class TerminalMenuTarget: NSObject {
         TerminalWindowManager.shared.focusedController?.focusedPane?.perform(action)
     }
 
+    /// ⌥⌘R: find's words become a pattern, or plain words again (FEATURES.md → F16).
+    @objc func toggleFindPattern(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.toggleFindPattern()
+    }
+
     /// ⌘⇧A: the session that has waited longest for you (UIUX.md → Keyboard).
     @objc func jumpToWaitingSession(_: Any?) {
         let manager = SessionManager.shared
@@ -303,6 +311,11 @@ extension TerminalMenuTarget: NSMenuItemValidation {
         case "start_search": item.title = finding ? "Hide Find" : "Find…"
         case "navigate_search:next", "navigate_search:previous": return finding
         default: break
+        }
+        if item.action == #selector(toggleFindPattern(_:)) {
+            let pattern = viewing ? controller?.fileViewer.find.searchesPattern : controller?.find.isPattern
+            item.state = finding && pattern == true ? .on : .off
+            return !viewing || controller?.fileViewer.find.supportsPattern == true
         }
         return switch item.action {
         case #selector(reopenClosedSession(_:)): SessionManager.shared.canReopenClosedSession

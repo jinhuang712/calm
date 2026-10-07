@@ -46,10 +46,14 @@ struct LaunchPassTests {
     // MARK: What the manager does with it
 
     /// A manager over a saved workspace with one Claude Code session, working since a minute ago.
-    private func manager(state: SessionState = .working) throws -> (manager: SessionManager, id: Session.ID) {
+    private func manager(state: SessionState = .working, named: Bool = false) throws -> (manager: SessionManager, id: Session.ID) {
         var workspace = Workspace()
         let id = workspace.newSession(in: "/tmp/a", gitRoot: { _ in nil }).id
-        workspace.startAgentRun(id, AgentRun(kind: .claudeCode, processID: 4242))
+        var run = AgentRun(kind: .claudeCode, processID: 4242)
+        if named {
+            run.agentSessionID = "abc"
+        }
+        workspace.startAgentRun(id, run)
         workspace.report(id, StatusReport(state: state, source: .hook, date: Date().addingTimeInterval(-60)), focusedSessionID: nil)
         let file = FileManager.default.temporaryDirectory.appending(path: "calm-launch-\(UUID().uuidString).json")
         let store = WorkspaceStore(fileURL: file)
@@ -100,6 +104,47 @@ struct LaunchPassTests {
         #expect(manager.workspace.session(id)?.agent != nil)
         manager.settleSavedRuns(answer(id, .gone), animated: false)
         #expect(manager.confirming.isEmpty)
+    }
+
+    // MARK: A shell that went with its agent (FEATURES.md → F3)
+
+    @Test func `a shell is gone only when zmx listed the shells and it isn't there`() {
+        #expect(LaunchPass.Answer(outcomes: [:], shells: [:], shellsListed: true).shellIsGone("calm-a"))
+        #expect(!LaunchPass.Answer(outcomes: [:], shells: ["calm-a": 10], shellsListed: true).shellIsGone("calm-a"))
+        // A list zmx couldn't give says nothing about any shell.
+        #expect(!LaunchPass.Answer(outcomes: [:], shells: [:], shellsListed: false).shellIsGone("calm-a"))
+    }
+
+    @Test func `a run whose shell went resumes as its session opens`() throws {
+        let (manager, id) = try manager(named: true)
+        manager.settleSavedRuns(LaunchPass.Answer(outcomes: [id: .gone], shells: [:], shellsListed: true))
+        #expect(manager.workspace.session(id)?.agent == nil)
+        #expect(manager.workspace.session(id)?.resumesWhenOpened == true)
+    }
+
+    @Test func `no list from zmx, or the shell still in it, resumes nothing`() throws {
+        let (unlisted, unlistedID) = try manager(named: true)
+        unlisted.settleSavedRuns(LaunchPass.Answer(outcomes: [unlistedID: .gone], shells: [:], shellsListed: false))
+        #expect(unlisted.workspace.session(unlistedID)?.resumesWhenOpened == nil)
+
+        let (listed, listedID) = try manager(named: true)
+        let shell = try #require(listed.workspace.session(listedID)?.persistentName)
+        listed.settleSavedRuns(LaunchPass.Answer(outcomes: [listedID: .gone], shells: [shell: 10], shellsListed: true))
+        #expect(listed.workspace.session(listedID)?.resumesWhenOpened == nil)
+
+        // No answer in time: nothing is known about the shells either.
+        let (late, lateID) = try manager(named: true)
+        late.settleSavedRuns(nil)
+        #expect(late.workspace.session(lateID)?.resumesWhenOpened == nil)
+    }
+
+    @Test func `resuming from the menu stands in for the resume on opening`() throws {
+        let (manager, id) = try manager(named: true)
+        manager.settleSavedRuns(LaunchPass.Answer(outcomes: [id: .gone], shells: [:], shellsListed: true))
+        manager.forgetResumeWhenOpened(id)
+        #expect(manager.workspace.session(id)?.resumesWhenOpened == nil)
+        // What the menu resumes is still there.
+        #expect(manager.workspace.session(id)?.resumableConversation?.agentSessionID == "abc")
     }
 
     @Test func `a quick answer doesn't flash the loading state`() {

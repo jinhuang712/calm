@@ -137,6 +137,8 @@ extension MainWindowController {
     /// Resumes the conversation that ended in `id`, in the same shell.
     func resumeConversation(in id: Session.ID) {
         guard let session = manager.workspace.session(id), let command = Self.resumeCommand(for: session) else { return }
+        // Before `select`, whose new pane would resume it too (after a restart of the Mac).
+        manager.forgetResumeWhenOpened(id)
         select(id)
         runAgentCommand(command, in: manager.panes[id])
     }

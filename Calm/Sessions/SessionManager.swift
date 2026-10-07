@@ -150,7 +150,8 @@ final class SessionManager {
         let settle = { [self] in
             for session in workspace.sessions where session.agent != nil {
                 let found = answer?.outcomes[session.id] ?? .gone
-                workspace.settleSavedRun(session.id, found: found, savedAt: stateSavedAt)
+                let shellGone = answer?.shellIsGone(session.persistentName) ?? false
+                workspace.settleSavedRun(session.id, found: found, shellGone: shellGone, savedAt: stateSavedAt)
                 Trace.settled(session.id, found: found, before: session, after: workspace.session(session.id))
             }
             confirming = []
@@ -216,6 +217,7 @@ final class SessionManager {
         Trace.note("pane \(Trace.id(sessionID)): attaching at \(pane.gridSize)")
         pane.host = host
         panes[session.id] = pane
+        resumeIfShellWasLost(session.id)
         return pane
     }
 

@@ -94,6 +94,10 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     public var lastConversation: AgentConversation?
     /// A scratch session's own folder (⌘⇧N). Calm never shows it.
     public var scratchFolder: String?
+    /// True when the shell went away with an agent running in it (the Mac restarted) and the
+    /// conversation resumes the first time the session opens, nil otherwise (FEATURES.md → F3).
+    /// Saved, so a session left unopened still resumes after another launch.
+    public var resumesWhenOpened: Bool?
     /// The agent's latest compaction while its card shows it; not saved (`CodingKeys`, `Compaction`).
     public var compaction: Compaction?
 
@@ -218,7 +222,7 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
 extension Session {
     private enum CodingKeys: String, CodingKey {
         case id, projectID, title, workingDirectory, isPinned, state, stateSince, lastReport, agent, createdAt
-        case customName, lastConversation, scratchFolder
+        case customName, lastConversation, scratchFolder, resumesWhenOpened
     }
 
     /// Decodes as the compiler would, except for the agent fields: a state file that names an
@@ -240,6 +244,7 @@ extension Session {
         customName = try container.decodeIfPresent(String.self, forKey: .customName)
         lastConversation = try? container.decodeIfPresent(AgentConversation.self, forKey: .lastConversation)
         scratchFolder = try container.decodeIfPresent(String.self, forKey: .scratchFolder)
+        resumesWhenOpened = try container.decodeIfPresent(Bool.self, forKey: .resumesWhenOpened)
     }
 }
 

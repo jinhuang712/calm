@@ -54,8 +54,13 @@ enum PersistentShell {
 
     /// The shell process of each live zmx session, from `zmx list` (`name=… pid=… …` per line).
     static func shellProcesses() -> [String: pid_t] {
-        guard let output = run(["list"]) else { return [:] }
-        return parseShellProcesses(output)
+        listedShellProcesses() ?? [:]
+    }
+
+    /// The same, or nil when zmx couldn't say: with a list, a name missing from it is a shell
+    /// that's gone (a dead session lists with no pid, `err=ConnectionRefused`).
+    static func listedShellProcesses() -> [String: pid_t]? {
+        run(["list"]).map(parseShellProcesses)
     }
 
     static func parseShellProcesses(_ listing: String) -> [String: pid_t] {
@@ -104,6 +109,8 @@ enum PersistentShell {
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        // What a failed command printed isn't an answer (an empty list would read as no shells).
+        guard process.terminationStatus == 0 else { return nil }
         return String(data: data, encoding: .utf8)
     }
 

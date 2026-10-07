@@ -171,6 +171,32 @@ extension SessionManager {
         }
     }
 
+    // MARK: Resume after a lost shell
+
+    /// A session whose shell went with an agent in it (the Mac restarted) resumes the
+    /// conversation as it first opens (FEATURES.md → F3). The surface exists from the pane's
+    /// start, so the command waits in the terminal's input until the new shell reads it, as
+    /// ⌘⇧T's does.
+    func resumeIfShellWasLost(_ id: Session.ID) {
+        var conversation: AgentConversation?
+        changeWorkspace { conversation = $0.takeConversationToResume(id) }
+        guard let conversation else { return }
+        scheduleSave()
+        guard let command = Agents.adapter(for: conversation.kind)?
+            .resumeCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
+        else { return }
+        Trace.note("pane \(Trace.id(id)): its shell was lost with \(conversation.kind.displayName) in it, resuming")
+        type(command, into: id)
+    }
+
+    /// Resume from the session menu: the conversation resumes once, by the menu, not again as
+    /// the session opens.
+    func forgetResumeWhenOpened(_ id: Session.ID) {
+        if changeWorkspace({ _ = $0.takeConversationToResume(id) }) {
+            scheduleSave()
+        }
+    }
+
     // MARK: Updates
 
     /// Checks each running agent against the installed one (`AgentUpdates`), from the probe every

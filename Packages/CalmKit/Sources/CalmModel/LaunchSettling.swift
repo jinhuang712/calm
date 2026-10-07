@@ -53,12 +53,21 @@ public extension Workspace {
     ///   done or failed while it says busy. *Needs you* is left to hooks.
     /// - With no status to ask, a saved *working* stands only if the state was saved moments
     ///   ago (`freshSavedState`); older, it is idle, as a launch always used to make it.
-    mutating func settleSavedRun(_ id: Session.ID, found: AgentAtLaunch, savedAt: Date?, now: Date = Date()) {
+    /// - When the shell itself is gone (`shellGone`: the Mac restarted), the agent didn't choose
+    ///   to end, so its conversation resumes the first time the session opens
+    ///   (`resumesWhenOpened`). An agent that exited in a shell still there stays ended.
+    mutating func settleSavedRun(
+        _ id: Session.ID, found: AgentAtLaunch, shellGone: Bool = false, savedAt: Date?, now: Date = Date(),
+    ) {
         guard let index = sessions.firstIndex(where: { $0.id == id }), let saved = sessions[index].agent else { return }
         guard case let .running(kind, processID, status) = found,
               saved.kind == kind, saved.processID == 0 || saved.processID == processID
         else {
             endAgentRun(id)
+            // Only the conversation that ran here: an older one may be all `lastConversation` has.
+            if shellGone, saved.conversation != nil {
+                sessions[index].resumesWhenOpened = true
+            }
             return
         }
         sessions[index].agent?.processID = processID
@@ -80,6 +89,17 @@ public extension Workspace {
         sessions[index].state = corrected
         sessions[index].stateSince = status.since
         sessions[index].lastReport = StatusReport(state: corrected, source: .hook, date: status.since)
+    }
+
+    /// The conversation to resume as the session opens, after its shell went with an agent in
+    /// it (`settleSavedRun`). Once: the mark is cleared, and nothing comes back if an agent has
+    /// started there since.
+    mutating func takeConversationToResume(_ id: Session.ID) -> AgentConversation? {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), sessions[index].resumesWhenOpened == true else {
+            return nil
+        }
+        sessions[index].resumesWhenOpened = nil
+        return sessions[index].resumableConversation
     }
 
     private static func isFresh(_ savedAt: Date?, now: Date) -> Bool {

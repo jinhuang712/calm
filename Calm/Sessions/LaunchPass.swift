@@ -17,6 +17,14 @@ enum LaunchPass {
         var outcomes: [Session.ID: AgentAtLaunch]
         /// The shells `zmx list` named, so the first regular probe needn't ask again.
         var shells: [String: pid_t]
+        /// Whether zmx answered: only then is a shell missing from `shells` known to be gone.
+        var shellsListed = false
+
+        /// The saved session's shell went (the Mac restarted, or its zmx session was ended), as
+        /// opposed to the agent in it ending.
+        func shellIsGone(_ name: String) -> Bool {
+            shellsListed && shells[name] == nil
+        }
     }
 
     /// How long the window waits for the pass before it opens with rows that show as loading.
@@ -38,7 +46,8 @@ enum LaunchPass {
                 Thread.sleep(forTimeInterval: delay / 1000)
             }
         #endif
-        let shells = PersistentShell.shellProcesses()
+        let listed = PersistentShell.listedShellProcesses()
+        let shells = listed ?? [:]
         var outcomes: [Session.ID: AgentAtLaunch] = [:]
         for question in questions {
             let foreground = shells[question.shellName]
@@ -48,7 +57,7 @@ enum LaunchPass {
                 Agents.liveStatusReader(for: question.kind)?.liveStatus(processID: processID, home: home)
             }
         }
-        return Answer(outcomes: outcomes, shells: shells)
+        return Answer(outcomes: outcomes, shells: shells, shellsListed: listed != nil)
     }
 
     /// The saved run's agent is still there when the shell's foreground job is that agent.

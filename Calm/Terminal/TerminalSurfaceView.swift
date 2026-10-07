@@ -94,6 +94,8 @@ final class TerminalSurfaceView: NSView {
     private var isEdgeSamplePending = false
     /// Links in the visible text and the one under ⌘ (TerminalSurfaceView+Links).
     let links = PaneLinks()
+    /// Find's matches on screen, while this pane is searched (TerminalSurfaceView+Find).
+    let find = PaneFind()
 
     // Keyboard and IME state, used by the keyboard extension.
     var markedText = NSMutableAttributedString()
@@ -195,7 +197,7 @@ final class TerminalSurfaceView: NSView {
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     self?.scheduleEdgeSample()
-                    self?.scheduleLinkScan()
+                    self?.frameDidChange()
                 }
             }
         }

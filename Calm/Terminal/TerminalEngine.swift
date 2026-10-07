@@ -112,7 +112,8 @@ final class TerminalEngine {
         let scheme = colorScheme
         // A theme picked in Calm is plain colors for one appearance: write the other and reload.
         if scheme != lastColorScheme, lastColorScheme != nil {
-            if TerminalTheme.active()?.picked == true {
+            // So do find's pill colors for the user's own Ghostty colors (TerminalTheme.userFindPillLines).
+            if TerminalTheme.active()?.picked == true || TerminalConfig.userColors(dark: scheme == GHOSTTY_COLOR_SCHEME_DARK) != nil {
                 reloadConfig(soft: false)
             } else {
                 // The default theme switches in Ghostty itself, but OpenCode's theme file holds one appearance.
@@ -312,6 +313,10 @@ final class TerminalEngine {
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { view.host?.surface(view, didFind: event) }
             }
+        case GHOSTTY_ACTION_SCROLLBAR:
+            // Where the screen is in the scrollback: find works out its current match from it.
+            let bar = action.action.scrollbar
+            view?.scrollPositionDidChange(ScrollbackPosition(total: Int(bar.total), offset: Int(bar.offset), visible: Int(bar.len)))
         case GHOSTTY_ACTION_COLOR_CHANGE:
             let change = action.action.color_change
             guard change.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND else { return true }

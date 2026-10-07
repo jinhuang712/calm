@@ -10,6 +10,8 @@ final class TerminalWorkspaceView: NSView {
     private(set) var zoomedPane: UUID?
     /// The dotted lines under links that open, above the panes (they can't take subviews).
     private let linkMarks = LinkMarksView()
+    /// Find's underlines and band (FEATURES.md → F16), over the panes like the link marks.
+    private let findMarks = FindMarksView()
     /// The veils over the panes that recede in a split, above the panes and their marks
     /// (TerminalWorkspaceView+Dim).
     let veils = VeilsView()
@@ -204,16 +206,22 @@ final class TerminalWorkspaceView: NSView {
     override func didAddSubview(_ subview: NSView) {
         super.didAddSubview(subview)
         guard let pane = subview as? TerminalSurfaceView else { return }
-        pane.links.onChange = { [weak self, weak pane] in
+        // Each set of marks steps aside for the other (UIUX.md → Find, links), so both redraw.
+        let redraw = { [weak self, weak pane] in
             guard let self, let pane else { return }
             linkMarks.update(pane)
+            findMarks.update(pane)
         }
+        pane.links.onChange = redraw
+        pane.find.onChange = redraw
     }
 
     override func willRemoveSubview(_ subview: NSView) {
         if let pane = subview as? TerminalSurfaceView {
             pane.links.onChange = nil
+            pane.find.onChange = nil
             linkMarks.remove(pane.id)
+            findMarks.remove(pane.id)
             veilViews.removeValue(forKey: pane.id)?.removeFromSuperview()
             handleViews.removeValue(forKey: pane.id)?.removeFromSuperview()
             if hoveredID == pane.id {
@@ -233,9 +241,13 @@ final class TerminalWorkspaceView: NSView {
             addSubview(linkMarks, positioned: .above, relativeTo: subviews[lastPane])
         }
         linkMarks.frame = bounds
+        if (subviews.firstIndex(of: findMarks) ?? -1) < (subviews.firstIndex(of: linkMarks) ?? 0) {
+            addSubview(findMarks, positioned: .above, relativeTo: linkMarks)
+        }
+        findMarks.frame = bounds
         // The veils lie over the marks, so a receding pane's marks recede with its text.
-        if (subviews.firstIndex(of: veils) ?? -1) < (subviews.firstIndex(of: linkMarks) ?? 0) {
-            addSubview(veils, positioned: .above, relativeTo: linkMarks)
+        if (subviews.firstIndex(of: veils) ?? -1) < (subviews.firstIndex(of: findMarks) ?? 0) {
+            addSubview(veils, positioned: .above, relativeTo: findMarks)
         }
         veils.frame = bounds
         // The icons lie over the veils and the question's clearing: a receding pane's icon stays as
@@ -247,8 +259,10 @@ final class TerminalWorkspaceView: NSView {
         for pane in panes.values {
             if animated {
                 pane.resetLinkMarks() // the pane is about to change size; its text will move
+                pane.resetFindMarks()
             } else {
                 linkMarks.update(pane)
+                findMarks.update(pane)
             }
         }
     }

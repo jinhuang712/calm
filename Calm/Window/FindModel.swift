@@ -7,6 +7,9 @@ protocol FindTarget: AnyObject {
     var id: UUID { get }
     @discardableResult
     func perform(_ action: String) -> Bool
+    /// What the pane marks: the words searched (nil for none) and the current match, counted from
+    /// the newest (FindMarksView).
+    func markFind(_ words: String?, selected: Int?)
 }
 
 /// What a pane tells its window about find (part of TerminalSurfaceHost).
@@ -121,6 +124,7 @@ final class FindModel {
         case let .selected(index):
             guard isSearching(target) else { return }
             selected = index
+            target.markFind(query.isEmpty ? nil : query, selected: index)
         }
     }
 
@@ -172,11 +176,13 @@ final class FindModel {
         selectsNewest = !query.isEmpty
         // Everything after the colon is the text, colons and spaces included; empty stops it.
         target.perform("search:" + query)
+        target.markFind(query.isEmpty ? nil : query, selected: nil)
     }
 
     private func finish() {
         if let target {
             lastQueries[target.id] = query
+            target.markFind(nil, selected: nil)
         }
         isOpen = false
         target = nil

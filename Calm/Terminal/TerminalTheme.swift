@@ -61,6 +61,21 @@ enum TerminalTheme {
         return ["theme = light:\(light),dark:\(dark)"]
     }
 
+    /// Find's current match for the user's own Ghostty colors, when they're on screen instead of a
+    /// Calm theme: palette color 4 (blue; those colors have no accent), with text in their
+    /// background's color. For Calm's defaults, so a search color in the user's config still wins;
+    /// Calm's themes carry their own (`CalmTheme.ghosttyLines`). One appearance's, so a change of
+    /// appearance reloads the config (`TerminalEngine.syncColorScheme`).
+    static func userFindPillLines(settings: CalmSettings, dark: Bool = isDark) -> [String] {
+        guard active(settings: settings)?.picked != true, let colors = TerminalConfig.userColors(dark: dark) else { return [] }
+        let background = colors.background.hexString
+        let accent = colors.palette.count == 16 ? colors.palette[4].hexString : colors.foreground.hexString
+        return [
+            "search-selected-background = \(FindColors.solid(accent: accent, background: background))",
+            "search-selected-foreground = \(background)",
+        ]
+    }
+
     /// How opaque the terminal is on a glass window: enough to read comfortably, with the blur
     /// showing through.
     static let glassOpacity = 0.84

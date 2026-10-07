@@ -45,7 +45,11 @@ struct ThemeTests {
             "background = #1a1f1b", "foreground = #c0c8c1", "cursor-color = #aabbaa",
             "selection-background = #303830", "selection-foreground = #c0c8c1", "palette = 0=#000000",
         ])
-        #expect(dark.last == "palette = 15=#ffffff")
+        #expect(dark.suffix(3) == [
+            "palette = 15=#ffffff",
+            // Find's current match: the accent (already 4.5:1 against the background), in its text.
+            "search-selected-background = #8fae96", "search-selected-foreground = #1a1f1b",
+        ])
         #expect(try CalmTheme.ghosttyLines(#require(theme.light)) == ["background = #f3f5f3", "foreground = #444a45"])
     }
 

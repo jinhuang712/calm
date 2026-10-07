@@ -34,6 +34,16 @@ struct EngineSmokeTests {
         #expect(contents.contains("keybind = super+shift+t=unbind")) // Ghostty's undo, in the way of Reopen Closed Session
         #expect(contents.contains(#"keybind = super+z=text:\x1f"#)) // Ctrl-_, the line editor's undo
         #expect(contents.contains(#"keybind = super+enter=text:\r"#)) // ⌘↵ types Return, never full screen
+        #expect(contents.contains("search-background = cell-background")) // find underlines instead
+        #expect(try diagnostics(loading: contents) == 0)
+    }
+
+    /// Find's pill for the user's own colors loads, and a theme's own pill lines do too.
+    @Test func `find's pill colors load without diagnostics`() throws {
+        GhosttyRuntime.initializeProcess()
+        let pill = ["search-selected-background = #536d87", "search-selected-foreground = #ecedee"]
+        let contents = CalmDefaults.contents(reduceMotion: false, cursorShader: nil, findPill: pill)
+        #expect(contents.contains(pill[0]))
         #expect(try diagnostics(loading: contents) == 0)
     }
 

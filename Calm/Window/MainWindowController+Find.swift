@@ -36,6 +36,14 @@ extension MainWindowController {
                 let state = "open \(find.isOpen), words \"\(find.query)\", total \(find.total.map(String.init) ?? "nil"), "
                     + "selected \(find.selected.map(String.init) ?? "nil"), shows \"\(find.countText)\", "
                     + "older \(find.olderDisabled ? "off" : "on"), newer \(find.newerDisabled ? "off" : "on"), pane \(target)"
+                    + (focusedPane.map { pane in
+                        let marks = pane.find
+                        let rows = marks.matches.map { runs in
+                            runs.map { "\($0.row):\($0.columns.lowerBound)-\($0.columns.upperBound)" }.joined(separator: "+")
+                        }
+                        let geometry = marks.geometry.map { "origin \($0.origin) baseline \($0.baseline) cell \(pane.cellSize)" } ?? "none"
+                        return ", marks [\(rows.joined(separator: " "))], current \(marks.current.map(String.init) ?? "nil"), \(geometry)"
+                    } ?? "")
                 FileHandle.standardError.write(Data("calm-selftest: find \(state)\n".utf8))
             }
         }

@@ -58,19 +58,32 @@ extension TerminalSurfaceView {
     /// include smooth scrolling's pixel shift (the IME point by the fork's patch 0005, the
     /// baseline by Calm's 0007), so this is where the rows are drawn.
     func gridOrigin() -> NSPoint? {
+        gridGeometry()?.origin
+    }
+
+    /// `gridOrigin`, and how far the text's baseline sits above the bottom of a cell (find's
+    /// underline goes just below it).
+    func gridGeometry() -> (origin: NSPoint, baseline: CGFloat)? {
         guard let surface, cellSize.width > 0, cellSize.height > 0 else { return nil }
+        // Row 1's position, a cell below row 0's: while the screen is scrolled up into the scrollback,
+        // libghostty counts row 0 as off screen and reports no position for it (-1; found 2026-10-07,
+        // when find's marks and the link marks landed a row high).
+        let row = ghostty_surface_size(surface).rows > 1 ? 1 : 0
         var text = ghostty_text_s()
-        let origin = ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT, x: 0, y: 0)
-        guard ghostty_surface_read_text(surface, ghostty_selection_s(top_left: origin, bottom_right: origin, rectangle: false), &text)
+        let cell = ghostty_point_s(tag: GHOSTTY_POINT_VIEWPORT, coord: GHOSTTY_POINT_COORD_EXACT, x: 0, y: UInt32(row))
+        guard ghostty_surface_read_text(surface, ghostty_selection_s(top_left: cell, bottom_right: cell, rectangle: false), &text)
         else {
             return nil
         }
         defer { ghostty_surface_free_text(surface, &text) }
+        guard text.tl_px_x >= 0 else { return nil }
         var imeX = 0.0, cursorBottom = 0.0, imeWidth = 0.0, imeHeight = 0.0
         ghostty_surface_ime_point(surface, &imeX, &cursorBottom, &imeWidth, &imeHeight)
-        let baseline = text.tl_px_y
+        let baseline = text.tl_px_y - CGFloat(row) * cellSize.height
         let cells = ((cursorBottom - baseline) / cellSize.height - 0.001).rounded(.up)
-        return NSPoint(x: text.tl_px_x, y: cursorBottom - cells * cellSize.height)
+        let origin = NSPoint(x: text.tl_px_x, y: cursorBottom - cells * cellSize.height)
+        // libghostty gives the row's baseline (Surface.zig, `readText`): the cell's height less its baseline.
+        return (origin, origin.y + cellSize.height - baseline)
     }
 
     /// The grid cell under a point in this view.

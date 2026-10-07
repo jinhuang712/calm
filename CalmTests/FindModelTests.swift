@@ -7,15 +7,34 @@ import Testing
 private final class FakePane: FindTarget {
     let id = UUID()
     var actions: [String] = []
+    /// What the pane was last told to mark.
+    var marks: (words: String?, selected: Int?) = (nil, nil)
 
     func perform(_ action: String) -> Bool {
         actions.append(action)
         return true
     }
+
+    func markFind(_ words: String?, selected: Int?) {
+        marks = (words, selected)
+    }
 }
 
 @MainActor
 struct FindModelTests {
+    @Test func `the searched pane marks the words and the current match, and nothing once find closes`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        #expect(pane.marks.words == nil) // no words yet
+        find.query = "error"
+        #expect(pane.marks.words == "error" && pane.marks.selected == nil)
+        find.handle(.total(3), from: pane)
+        find.handle(.selected(0), from: pane)
+        #expect(pane.marks.words == "error" && pane.marks.selected == 0)
+        find.close()
+        #expect(pane.marks.words == nil && pane.marks.selected == nil)
+    }
+
     @Test func `⌘F opens find with no words, and ⌘F again closes it and ends the search`() {
         let find = FindModel(), pane = FakePane()
         find.handle(.start(needle: ""), from: pane)

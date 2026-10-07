@@ -303,7 +303,7 @@ extension TerminalSurfaceView {
 
     /// The screen's rows grouped into its lines: a line longer than the pane wraps onto the rows
     /// below, and libghostty matches links across that wrap, so Calm does too.
-    private func lines(of grid: TextGrid) -> [Range<Int>] {
+    func lines(of grid: TextGrid) -> [Range<Int>] {
         guard let surface else { return [] }
         let columns = Int(ghostty_surface_size(surface).columns)
         var lines: [Range<Int>] = []

@@ -34,11 +34,18 @@ enum CalmDefaults {
 
     /// The settings Calm applies by default.
     static func contents(
-        reduceMotion: Bool, cursorShader: URL?, smoothScroll: Bool = false, theme: [String] = [], sendWithCommandReturn: Bool = false,
+        reduceMotion: Bool, cursorShader: URL?, smoothScroll: Bool = false, theme: [String] = [], findPill: [String] = [],
+        sendWithCommandReturn: Bool = false,
     ) -> String {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
+        // Find (FEATURES.md → F16): Ghostty fills every match, which reads as a selection, so its
+        // fill goes and Calm underlines the matches instead (FindMarksView). The current match keeps
+        // Ghostty's fill, the pill: Calm's themes color it, and `findPill` does for the user's own colors.
+        lines.append("search-foreground = cell-foreground")
+        lines.append("search-background = cell-background")
+        lines += findPill
         // A full-screen app that paints its own background (OpenCode, Neovim) would otherwise sit
         // in a frame of the theme's background: the padding takes the nearest cell's color instead.
         // Ghostty keeps the theme color at a shell prompt, where extending looks worse.
@@ -104,6 +111,7 @@ enum CalmDefaults {
             cursorShader: shader,
             smoothScroll: GhosttyRuntime.hasSmoothScroll,
             theme: theme,
+            findPill: TerminalTheme.userFindPillLines(settings: settings),
             sendWithCommandReturn: settings.sendWithCommandReturn,
         )
         do {

@@ -31,14 +31,23 @@ final class LinkMarksView: NSView {
     func update(_ pane: TerminalSurfaceView) {
         var views = marks[pane.id] ?? [:]
         let wanted = pane.isHidden ? [:] : pane.links.marks
-        let color = (pane.config?.color("foreground") ?? .textColor).withAlphaComponent(Self.opacity)
+        let color = (pane.shownConfig?.color("foreground") ?? .textColor).withAlphaComponent(Self.opacity)
         for (match, lines) in views where wanted[match] == nil {
             lines.forEach { Motion.fadeOutAndRemove($0, duration: 0.15) }
             views[match] = nil
         }
+        // Letters find marks (an underline, or the current match's pill) lose their dots: never two
+        // marks on one letter (UIUX.md → Find, links).
+        let found = pane.find.matches.flatMap(\.self)
         for (match, rects) in wanted {
             // A strip along the bottom of the cells, below the text's own underline.
-            let frames = rects.map { pane.convert(NSRect(x: $0.minX, y: $0.minY, width: $0.width, height: 3), to: self) }
+            let frames = zip(match.runs, rects).flatMap { run, rect in
+                let cell = rect.width / CGFloat(max(run.columns.count, 1))
+                return run.subtracting(found).map { piece in
+                    let x = rect.minX + CGFloat(piece.columns.lowerBound - run.columns.lowerBound) * cell
+                    return pane.convert(NSRect(x: x, y: rect.minY, width: CGFloat(piece.columns.count) * cell, height: 3), to: self)
+                }
+            }
             var lines = views[match] ?? []
             if lines.count != frames.count {
                 lines.forEach { $0.removeFromSuperview() }
@@ -74,7 +83,8 @@ final class LinkMarksView: NSView {
             selections[pane.id] = nil
             return
         }
-        let color = (pane.config?.color("selection-background") ?? pane.config?.color("foreground") ?? .selectedTextBackgroundColor)
+        let color = (pane.shownConfig?.color("selection-background") ?? pane.shownConfig?
+            .color("foreground") ?? .selectedTextBackgroundColor)
             .withAlphaComponent(Self.selectionOpacity)
         while bands.count > rects.count {
             bands.removeLast().removeFromSuperview()

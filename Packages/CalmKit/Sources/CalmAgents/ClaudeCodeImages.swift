@@ -9,7 +9,8 @@ import Foundation
 ///   /clear names an image in the old session's folder, which the lookup doesn't know: it finds
 ///   nothing there rather than another image.
 ///
-/// The session is the one in `sessions/<pid>.json` for the running process, else the hooks'.
+/// The session is the one in `sessions/<pid>.json` for the running process, which a /clear
+/// changes at once (seen 2026-10-07), else the hooks', which change only at the next prompt.
 extension ClaudeCodeAdapter: PastedImageResolving {
     public var pastedImagePattern: String {
         #"\[Image #(\d+)\]"#

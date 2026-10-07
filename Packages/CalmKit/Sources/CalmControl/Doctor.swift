@@ -219,7 +219,7 @@ public enum Doctor {
         let name = agent.name
         switch agent.link {
         case .plugin(_, on: false):
-            return Check(.note, "\(name): its hooks are off (claude-code-hooks = false in config.toml).")
+            return Check(.note, "\(name): its hooks are off (hooks = false under [agents.claude-code] in config.toml).")
         case .plugin(written: false, on: true):
             return Check(
                 .problem, "\(name): Calm's plugin isn't there (\(pluginFolderName)).",

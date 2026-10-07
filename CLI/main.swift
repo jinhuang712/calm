@@ -22,7 +22,7 @@ Usage:
                                     [--background: stay here; --in <folder>; --session <id>]
   calm config [list]                Calm's settings: each one's value, and what it takes
   calm config get <key>             Print one setting's value
-  calm config set <key> <value>     Change a setting in config.toml; Calm applies it at once
+  calm config set <key> <value…>    Change a setting in config.toml; Calm applies it at once
   calm config unset <key>           Put a setting back to its default
   calm doctor [--json]              Check that Calm, this calm and the agents' hooks work
   calm trace [--last 5m] [--session <id>] [--follow]

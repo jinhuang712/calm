@@ -37,7 +37,7 @@ final class SessionManager {
         }
     }
 
-    /// Whether sessions move between projects when their folder changes (config: `auto-grouping`).
+    /// Whether sessions move between projects when their folder changes (config: `sidebar.auto-grouping`).
     var autoGrouping: Bool {
         settings.autoGrouping
     }

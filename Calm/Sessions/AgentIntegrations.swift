@@ -8,7 +8,7 @@ import OSLog
 /// Claude Code's hooks ship as a plugin in `~/Library/Application Support/Calm/agents/claude-code`
 /// (rewritten at each launch) and are loaded through `CLAUDE_CODE_PLUGIN_DIRS` in the shells Calm
 /// starts: nothing is written to the user's Claude settings, and Claude sessions outside Calm
-/// never see it. `claude-code-hooks = false` under `[agents]` in config.toml turns it off.
+/// never see it. `hooks = false` under `[agents.claude-code]` in config.toml turns it off.
 ///
 /// An agent the user connected through a file (pi's extension) keeps that file current: at each
 /// launch Calm rewrites its own file if this version's differs. It never adds one: connecting is
@@ -147,7 +147,7 @@ enum AgentIntegrations {
 
     /// Adds Calm's plugin to `CLAUDE_CODE_PLUGIN_DIRS`, keeping the user's own directories.
     private static func claudeCodeEnvironment(settings: CalmSettings, inherited: [String: String]) -> [String: String] {
-        guard settings.bool("agents.claude-code-hooks", default: true) else { return [:] }
+        guard settings.bool("agents.claude-code.hooks", default: true) else { return [:] }
         let ours = claudeCodePluginDirectory.path
         let existing = inherited["CLAUDE_CODE_PLUGIN_DIRS"].flatMap { $0.isEmpty ? nil : $0 }
         guard existing?.split(separator: ":").contains(Substring(ours)) != true else { return [:] }

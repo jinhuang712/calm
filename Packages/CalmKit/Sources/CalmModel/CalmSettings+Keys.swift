@@ -12,8 +12,8 @@ public extension CalmSettings {
             case theme
             /// One of the known editors by name, or an application's `.app` path.
             case editor
-            /// Anything, written as given (an agent's extra flags).
-            case text
+            /// Anything, written as given; what it takes, in a few words (an agent's flags, a command).
+            case text(String)
         }
 
         public let name: String
@@ -36,7 +36,7 @@ public extension CalmSettings {
             case let .choice(choices): choices.dropLast().joined(separator: ", ") + " or " + (choices.last ?? "")
             case .theme: "a theme's name; unset, the Ghostty config's colors, else Calm"
             case .editor: "automatic, " + Editor.allCases.map(\.rawValue).joined(separator: ", ") + ", or an app's path"
-            case .text: "any text, typed as written"
+            case let .text(takes): takes
             }
         }
     }
@@ -74,13 +74,13 @@ public extension CalmSettings {
             about: "The terminal edge to edge, or a rounded card",
         ),
         Key(
-            name: "session-cards",
+            name: "sidebar.cards",
             kind: .choice(SessionCardSize.allCases.map(\.rawValue)),
             defaultValue: "full",
             about: "How much an agent's card in the sidebar shows",
         ),
         Key(
-            name: "session-cards-fit",
+            name: "sidebar.cards-fit",
             kind: .bool,
             defaultValue: "false",
             about: "Cards shrink while the sessions don't fit the sidebar",
@@ -92,19 +92,19 @@ public extension CalmSettings {
             about: "The ways to start under the sidebar: ⌘N's agent, New Session, Scratch, New Project…, Show Files",
         ),
         Key(
-            name: "auto-grouping",
+            name: "sidebar.auto-grouping",
             kind: .bool,
             defaultValue: "true",
             about: "Sessions move between projects when their folder changes",
         ),
         Key(
-            name: "editor",
+            name: "files.editor",
             kind: .editor,
             defaultValue: "automatic",
             about: "The editor files open in",
         ),
         Key(
-            name: "open-paths",
+            name: "files.open-in",
             kind: .choice(["viewer", "editor"]),
             defaultValue: "viewer",
             about: "Where ⌘-clicked files open: Calm's viewer, or the editor",
@@ -128,7 +128,7 @@ public extension CalmSettings {
             about: "⌘ Return sends in Claude Code, OpenCode and pi; Return starts a new line",
         ),
         Key(
-            name: "agents.claude-code-hooks",
+            name: "agents.claude-code.hooks",
             kind: .bool,
             defaultValue: "true",
             about: "Claude Code reports through Calm's plugin in Calm's shells",
@@ -143,13 +143,13 @@ public extension CalmSettings {
         [
             Key(
                 name: extraFlagsKey(of: kind),
-                kind: .text,
+                kind: .text("flags typed after the agent's name"),
                 defaultValue: "",
                 about: "More flags \(kind.displayName) starts with on ⌘N, typed as written after its name",
             ),
             Key(
                 name: commandKey(of: kind),
-                kind: .text,
+                kind: .text("a whole command, typed as written"),
                 defaultValue: "",
                 about: "The whole command ⌘N types for \(kind.displayName), as written; set, its flags and options don't apply",
             ),

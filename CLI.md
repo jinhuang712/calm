@@ -64,7 +64,7 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 #### `calm open file <path>[:line]`
 
 - Shows the file in Calm's viewer, over the session you're looking at. In code, `:line` highlights that line and centers it; Markdown shows rendered, without line numbers.
-- Always the viewer, even with `open-paths = "editor"` in config.toml: showing the file in Calm is the point of this command, and your editor has a command of its own.
+- Always the viewer, even with `open-in = "editor"` under `[files]` in config.toml: showing the file in Calm is the point of this command, and your editor has a command of its own.
 - A file the viewer can't show (a kind it doesn't know, or over 5 MB) opens in your editor at that line instead.
 - Fails for a missing file, and for a folder: "That's a folder: use `calm open session` or `calm open project`."
 
@@ -208,10 +208,12 @@ Id          0f9c2a7e-…
   agents.sound             = true                  true or false
   ```
 
+- `help` (or `--help`, `-h`) prints the usage and exits 0.
+- The list is in sections, as config.toml is: Calm's own keys, then each agent's together (`agents.claude-code.hooks`, its options, `flags`, `command`). A key that takes text says what for (`flags typed after the agent's name`, `a whole command, typed as written`).
 - `get <key>` prints the value in force alone, for scripts (an unset theme prints an empty line).
 - `set <key> <value…>` takes the rest of the line as the value, so a command needs no quotes (`calm config set agents.claude-code.command claude -w`; a value holding quotes still needs quoting as a whole, since the shell takes them off). It checks the value (a theme must be one there is; true/false also take yes/no, on/off, 1/0), writes the line as Settings does, one line at a time, so comments and other keys stay, and a default removes the line, as Settings does (except the theme, whose default is no value). It prints what it wrote: `theme = Forest`.
 - `unset <key>` removes the line: the default applies again.
-- After a change it asks the running Calm to read config.toml and the Ghostty config again, as Reload Configuration (⌘⇧,) does, so the change shows at once. It never starts Calm: when Calm isn't running, the change waits for its next launch, and it says so.
+- After a change it prints what it wrote first, then asks the running Calm to read config.toml and the Ghostty config again, as Reload Configuration (⌘⇧,) does, so the change shows at once. It never starts Calm: when Calm isn't running, the change waits for its next launch, and it says so.
 - The keys are those of DESIGNS.md → Settings (`Agents.settingsKeys`: `CalmSettings.keys` and the options the agents' adapters declare); a wrong key or value exits 64 and says what it takes: `motion can't be 'fast': it takes full, reduced or off`.
 - Wanted first for ⌘N's agent, a setting you'd ask your agent to change. Decided 2026-10-06, after `calm config` had been left out on 2026-09-30; built the same day. ⌘N's keys (FEATURES.md → F15): `agents.new-session`, each agent's options (`agents.claude-code.skip-permissions`, `agents.claude-code.worktree`, …), `agents.<agent>.flags`, and `agents.<agent>.command`, the whole command ⌘N types, which only `calm config` and config.toml set.
 

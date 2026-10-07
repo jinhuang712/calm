@@ -64,7 +64,7 @@ public struct CalmSettings: Equatable, Sendable {
 
     /// Sessions move between projects when their folder changes (FEATURES.md → F2).
     public var autoGrouping: Bool {
-        bool("auto-grouping", default: true)
+        bool("sidebar.auto-grouping", default: true)
     }
 
     public enum MotionLevel: String, Sendable, CaseIterable {

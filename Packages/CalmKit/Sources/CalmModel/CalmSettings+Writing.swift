@@ -68,7 +68,7 @@ public extension CalmSettings {
     }
 
     var sessionCardSize: SessionCardSize {
-        values["session-cards"].flatMap { SessionCardSize(rawValue: $0.lowercased()) } ?? .full
+        values["sidebar.cards"].flatMap { SessionCardSize(rawValue: $0.lowercased()) } ?? .full
     }
 
     /// Whether the sidebar's footer (New Session, New Scratch Session, New Project… and their
@@ -81,7 +81,7 @@ public extension CalmSettings {
     /// The cards shrink below the chosen size when the sessions don't fit the sidebar, and grow
     /// back when they do (`SessionCardFit`). Off unless asked for.
     var sessionCardsFit: Bool {
-        bool("session-cards-fit", default: false)
+        bool("sidebar.cards-fit", default: false)
     }
 
     /// The `[section]` a key lives in and its name there: everything before the last dot, so
@@ -148,17 +148,56 @@ public extension CalmSettings {
     static func removing(_ key: String, in text: String) -> String {
         let (section, name) = sectionAndName(key)
         var current = ""
+        var removed = false
         var lines = text.components(separatedBy: "\n")
         lines.removeAll { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("["), trimmed.hasSuffix("]") {
-                current = String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+            if let header = sectionHeader(trimmed) {
+                current = header
                 return false
             }
-            guard current == section, let equals = trimmed.firstIndex(of: "=") else { return false }
-            return trimmed[..<equals].trimmingCharacters(in: .whitespaces) == name
+            guard current == section, let equals = trimmed.firstIndex(of: "="),
+                  trimmed[..<equals].trimmingCharacters(in: .whitespaces) == name
+            else { return false }
+            removed = true
+            return true
+        }
+        if removed, !section.isEmpty {
+            lines = droppingEmpty(section, from: lines)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The name inside a `[section]` line, nil for any other line.
+    private static func sectionHeader(_ trimmed: String) -> String? {
+        guard trimmed.hasPrefix("["), trimmed.hasSuffix("]") else { return nil }
+        return String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// A section whose last key went goes too, with the blank lines around it, so going back to a
+    /// default leaves no bare `[window]` behind. One with anything else left in it, a comment
+    /// included, stays.
+    private static func droppingEmpty(_ section: String, from lines: [String]) -> [String] {
+        let isBlank = { (line: String) in line.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard let header = lines.firstIndex(where: { sectionHeader($0.trimmingCharacters(in: .whitespaces)) == section })
+        else { return lines }
+        var end = header + 1
+        while end < lines.count, sectionHeader(lines[end].trimmingCharacters(in: .whitespaces)) == nil {
+            guard isBlank(lines[end]) else { return lines }
+            end += 1
+        }
+        var start = header
+        while start > 0, isBlank(lines[start - 1]) {
+            start -= 1
+        }
+        var result = lines
+        result.removeSubrange(start ..< end)
+        if start > 0, end < lines.count {
+            result.insert("", at: start) // one blank line between the sections on either side
+        } else if end == lines.count, lines.last == "", result.last != "" {
+            result.append("") // the file still ends with a newline
+        }
+        return result
     }
 
     /// Writes one setting to config.toml (creating it if needed), or removes it for `nil`, and

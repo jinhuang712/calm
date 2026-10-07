@@ -132,7 +132,7 @@ public enum Editor: String, CaseIterable, Sendable {
     }
 }
 
-/// The `editor` setting: left to Calm, one of the known editors by name, or an application the
+/// The `files.editor` setting: left to Calm, one of the known editors by name, or an application the
 /// user chose (its `.app` path). Anything else in config.toml (a path to a tool) reads as automatic.
 public enum EditorSetting: Hashable, Sendable {
     case automatic

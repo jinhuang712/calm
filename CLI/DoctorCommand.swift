@@ -80,7 +80,7 @@ enum DoctorCommand {
                     written: ClaudeCodeAdapter.pluginFiles().keys.allSatisfy { path in
                         FileManager.default.fileExists(atPath: ClaudeCodeAdapter.pluginDirectory.appending(path: path).path)
                     },
-                    on: settings.bool("agents.claude-code-hooks", default: true),
+                    on: settings.bool("agents.claude-code.hooks", default: true),
                 )
             case .notifications:
                 .notifications

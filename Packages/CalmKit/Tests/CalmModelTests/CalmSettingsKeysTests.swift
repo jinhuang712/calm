@@ -14,11 +14,11 @@ struct CalmSettingsKeysTests {
         #expect(try key("ui-size").defaultValue == empty.interfaceSize.rawValue)
         #expect(try key("window.background").defaultValue == empty.windowBackground.rawValue)
         #expect(try key("window.layout").defaultValue == empty.windowLayout.rawValue)
-        #expect(try key("session-cards").defaultValue == empty.sessionCardSize.rawValue)
+        #expect(try key("sidebar.cards").defaultValue == empty.sessionCardSize.rawValue)
         #expect(try key("agents.notify").defaultValue == empty.notifyStates.rawValue)
-        #expect(try key("session-cards-fit").defaultValue == String(empty.sessionCardsFit))
+        #expect(try key("sidebar.cards-fit").defaultValue == String(empty.sessionCardsFit))
         #expect(try key("sidebar.footer").defaultValue == String(empty.sidebarFooter))
-        #expect(try key("auto-grouping").defaultValue == String(empty.autoGrouping))
+        #expect(try key("sidebar.auto-grouping").defaultValue == String(empty.autoGrouping))
         #expect(try key("agents.sound").defaultValue == String(empty.notificationSound))
         #expect(try key("agents.send-with-cmd-return").defaultValue == String(empty.sendWithCommandReturn))
         #expect(try key("motion").kind == .choice(CalmSettings.MotionLevel.allCases.map(\.rawValue)))
@@ -35,7 +35,7 @@ struct CalmSettingsKeysTests {
         #expect(try CalmSettings.change("FULL", for: key("motion")) == .success(.remove))
         #expect(try CalmSettings.change("on", for: key("agents.sound")) == .success(.write("true")))
         #expect(try CalmSettings.change("no", for: key("agents.sound")) == .success(.remove))
-        #expect(try CalmSettings.change("false", for: key("auto-grouping")) == .success(.write("false")))
+        #expect(try CalmSettings.change("false", for: key("sidebar.auto-grouping")) == .success(.write("false")))
     }
 
     @Test func `a value a key doesn't take says what it takes`() throws {
@@ -58,7 +58,7 @@ struct CalmSettingsKeysTests {
     }
 
     @Test func `an editor by name, an app by path, or automatic`() throws {
-        let editor = try key("editor")
+        let editor = try key("files.editor")
         #expect(CalmSettings.change("Cursor", for: editor) == .success(.write("cursor")))
         #expect(CalmSettings.change("/Applications/Nova.app", for: editor) == .success(.write("/Applications/Nova.app")))
         #expect(CalmSettings.change("automatic", for: editor) == .success(.remove))

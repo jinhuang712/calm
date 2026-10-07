@@ -16,6 +16,8 @@ enum ConfigCommand {
             let rest = words.dropFirst()
             guard rest.allSatisfy({ $0 == "--json" }) else { fail(usage, code: 64) }
             list(json: rest.contains("--json"))
+        case "help", "--help", "-h":
+            print(usage)
         case "get":
             guard words.count == 2 else { fail(usage, code: 64) }
             print(CalmSettings.load().value(of: key(words[1])))
@@ -27,19 +29,21 @@ enum ConfigCommand {
             let value = words.dropFirst(2).joined(separator: " ")
             switch CalmSettings.change(value, for: key, themes: themeNames()) {
             case let .success(.write(value)):
-                save(key, value)
+                write(key, value)
                 print("\(key.name) = \(value)")
             case .success(.remove):
-                save(key, nil)
+                write(key, nil)
                 print(backToDefault(key))
             case let .failure(error):
                 fail(error.description, code: 64)
             }
+            applyInRunningCalm()
         case "unset":
             guard words.count == 2 else { fail(usage, code: 64) }
             let key = key(words[1])
-            save(key, nil)
+            write(key, nil)
             print(backToDefault(key))
+            applyInRunningCalm()
         default:
             fail(usage, code: 64)
         }
@@ -112,13 +116,20 @@ enum ConfigCommand {
         print((try? encoder.encode(output)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}")
     }
 
-    /// Writes the line (or removes it for the default), then has the running Calm apply it.
-    private static func save(_ key: CalmSettings.Key, _ value: String?) {
+    /// Writes the line, or removes it for the default.
+    private static func write(_ key: CalmSettings.Key, _ value: String?) {
         do {
             try CalmSettings.save(key.name, value)
         } catch {
             fail("couldn't write \(CalmSettings.standardURL.path): \(error.localizedDescription)")
         }
+    }
+
+    /// Has the running Calm read config.toml again, as Reload Configuration does. After the line
+    /// saying what was written, so a warning here reads as a note on it: stdout is flushed first,
+    /// since piped it would otherwise come out after the warning on stderr.
+    private static func applyInRunningCalm() {
+        fflush(stdout)
         do {
             let response = try ControlClient.send(ControlRequest(cmd: .reload), timeout: 2)
             if !response.ok {

@@ -105,16 +105,28 @@ public extension Agents {
         settings.newSessionAgent ?? installed.first
     }
 
-    /// Every key `calm config` knows: Calm's own, and each agent's options (`agents.<agent>.<id>`),
-    /// which the adapters declare.
+    /// Every key `calm config` knows: Calm's own, then each agent's section together
+    /// (`agents.<agent>.…`): its own keys (Claude Code's hooks), the options its adapter declares,
+    /// then its flags and command.
     static var settingsKeys: [CalmSettings.Key] {
-        CalmSettings.keys + adapters.flatMap { adapter in
-            adapter.launchOptions.map { option in
+        let section = { (kind: AgentKind) in "agents.\(kind.configName)." }
+        let calm = CalmSettings.keys.filter { key in !AgentKind.allCases.contains { key.name.hasPrefix(section($0)) } }
+        return calm + adapters.flatMap { adapter in
+            let own = CalmSettings.keys.filter { $0.name.hasPrefix(section(adapter.kind)) }
+            let isText = { (key: CalmSettings.Key) in
+                if case .text = key.kind {
+                    true
+                } else {
+                    false
+                }
+            }
+            let options = adapter.launchOptions.map { option in
                 CalmSettings.Key(
                     name: CalmSettings.launchOptionKey(option.id, of: adapter.kind),
                     kind: .bool, defaultValue: "false", about: option.about,
                 )
             }
+            return own.filter { !isText($0) } + options + own.filter(isText)
         }
     }
 

@@ -22,7 +22,7 @@ struct AgentIntegrationsTests {
     @Test func `turning Claude Code's hooks off leaves OpenCode's theme`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
-        let settings = CalmSettings(text: "[agents]\nclaude-code-hooks = false\n")
+        let settings = CalmSettings(text: "[agents.claude-code]\nhooks = false\n")
         let environment = AgentIntegrations.environment(settings: settings, inherited: [:], home: home)
         #expect(environment["CLAUDE_CODE_PLUGIN_DIRS"] == nil)
         #expect(environment["OPENCODE_CLI_CONFIG_CONTENT"] != nil)

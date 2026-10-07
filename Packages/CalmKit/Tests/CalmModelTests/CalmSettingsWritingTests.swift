@@ -6,7 +6,7 @@ struct CalmSettingsWritingTests {
     @Test func `replaces a key in its section and keeps everything else`() {
         let text = """
         # my settings
-        auto-grouping = false
+        motion = "off"
 
         [agents]
         notify = "needs-you" # only when blocked
@@ -15,7 +15,7 @@ struct CalmSettingsWritingTests {
         let updated = CalmSettings.setting("agents.notify", to: "all", in: text)
         #expect(updated == """
         # my settings
-        auto-grouping = false
+        motion = "off"
 
         [agents]
         notify = "all"
@@ -32,8 +32,8 @@ struct CalmSettingsWritingTests {
     }
 
     @Test func `adds a missing section at the end`() {
-        let updated = CalmSettings.setting("agents.sound", to: "true", in: "auto-grouping = false\n")
-        #expect(updated == "auto-grouping = false\n\n[agents]\nsound = true\n")
+        let updated = CalmSettings.setting("agents.sound", to: "true", in: "motion = \"off\"\n")
+        #expect(updated == "motion = \"off\"\n\n[agents]\nsound = true\n")
         #expect(CalmSettings(text: updated).notificationSound)
     }
 
@@ -62,10 +62,10 @@ struct CalmSettingsWritingTests {
 
     @Test func `new top-level keys sit together, before a section`() {
         var text = "# mine\nunknown-key = 7\n"
-        for (key, value) in [("editor", "zed"), ("open-paths", "editor"), ("auto-grouping", "false")] {
+        for (key, value) in [("theme", "Ink"), ("ui-size", "large"), ("motion", "off")] {
             text = CalmSettings.setting(key, to: value, in: text)
         }
-        #expect(text == "# mine\nunknown-key = 7\neditor = \"zed\"\nopen-paths = \"editor\"\nauto-grouping = false\n")
+        #expect(text == "# mine\nunknown-key = 7\ntheme = \"Ink\"\nui-size = \"large\"\nmotion = \"off\"\n")
         let sectioned = CalmSettings.setting("motion", to: "off", in: "theme = \"Sage\"\n\n[agents]\nsound = true\n")
         #expect(sectioned == "theme = \"Sage\"\nmotion = \"off\"\n\n[agents]\nsound = true\n")
     }
@@ -90,9 +90,9 @@ struct CalmSettingsWritingTests {
 
     @Test func `session cards are full unless set`() {
         #expect(CalmSettings(text: "").sessionCardSize == .full)
-        #expect(CalmSettings(text: "session-cards = \"Compact\"\n").sessionCardSize == .compact)
-        #expect(CalmSettings(text: "session-cards = \"minimal\"\n").sessionCardSize == .minimal)
-        #expect(CalmSettings(text: "session-cards = \"tiny\"\n").sessionCardSize == .full)
+        #expect(CalmSettings(text: "[sidebar]\ncards = \"Compact\"\n").sessionCardSize == .compact)
+        #expect(CalmSettings(text: "[sidebar]\ncards = \"minimal\"\n").sessionCardSize == .minimal)
+        #expect(CalmSettings(text: "[sidebar]\ncards = \"tiny\"\n").sessionCardSize == .full)
     }
 
     @Test func `the sidebar footer shows unless hidden, and showing it again removes the key`() throws {
@@ -109,7 +109,24 @@ struct CalmSettingsWritingTests {
 
     @Test func `shrinking the cards to fit is off unless set`() {
         #expect(CalmSettings(text: "").sessionCardsFit == false)
-        #expect(CalmSettings(text: "session-cards-fit = true\n").sessionCardsFit)
+        #expect(CalmSettings(text: "[sidebar]\ncards-fit = true\n").sessionCardsFit)
+    }
+
+    @Test func `a section left with nothing in it goes with its last key`() {
+        let tail = "motion = \"off\"\n\n[window]\nlayout = \"card\"\n"
+        #expect(CalmSettings.removing("window.layout", in: tail) == "motion = \"off\"\n")
+        let head = "[window]\nlayout = \"card\"\n\n[agents]\nsound = true\n"
+        #expect(CalmSettings.removing("window.layout", in: head) == "[agents]\nsound = true\n")
+        let middle = "motion = \"off\"\n\n[window]\nlayout = \"card\"\n\n[agents]\nsound = true\n"
+        #expect(CalmSettings.removing("window.layout", in: middle) == "motion = \"off\"\n\n[agents]\nsound = true\n")
+        #expect(CalmSettings.removing("agents.sound", in: "[agents]\nsound = true\n") == "")
+        // A comment keeps its section, and so does another key.
+        let commented = "[window]\n# glass someday\nlayout = \"card\"\n"
+        #expect(CalmSettings.removing("window.layout", in: commented) == "[window]\n# glass someday\n")
+        let two = "[window]\nlayout = \"card\"\nbackground = \"glass\"\n"
+        #expect(CalmSettings.removing("window.layout", in: two) == "[window]\nbackground = \"glass\"\n")
+        // A section that was already empty is left as it was: only the removed key's section goes.
+        #expect(CalmSettings.removing("agents.sound", in: "[window]\n\n[agents]\nsound = true\n") == "[window]\n")
     }
 
     @Test func `removing a key keeps everything else, and the same name in another section`() throws {

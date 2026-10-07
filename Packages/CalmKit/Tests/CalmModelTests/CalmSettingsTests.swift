@@ -9,14 +9,20 @@ struct CalmSettingsTests {
     @Test func `booleans, strings, comments and sections`() {
         let settings = CalmSettings(text: """
         # Calm settings
+        motion = "off"
+
+        [sidebar]
         auto-grouping = false   # keep sessions where I put them
+
+        [files]
         editor = "zed"
 
         [agents]
         notify = "needs-you"
         """)
+        #expect(settings.motion == .off)
         #expect(settings.autoGrouping == false)
-        #expect(settings.string("editor") == "zed")
+        #expect(settings.string("files.editor") == "zed")
         #expect(settings.string("agents.notify") == "needs-you")
         #expect(settings.problems.isEmpty)
     }
@@ -26,13 +32,13 @@ struct CalmSettingsTests {
     }
 
     @Test func `malformed lines are reported, not fatal`() {
-        let settings = CalmSettings(text: "auto-grouping = off\nthis is wrong\n")
+        let settings = CalmSettings(text: "[sidebar]\nauto-grouping = off\nthis is wrong\n")
         #expect(settings.autoGrouping == false)
-        #expect(settings.problems == ["line 2: expected key = value"])
+        #expect(settings.problems == ["line 3: expected key = value"])
     }
 
     @Test func `unknown values fall back to the default`() {
-        #expect(CalmSettings(text: "auto-grouping = maybe").autoGrouping == true)
+        #expect(CalmSettings(text: "[sidebar]\nauto-grouping = maybe").autoGrouping == true)
     }
 
     @Test func `motion level reads full, reduced or off`() {

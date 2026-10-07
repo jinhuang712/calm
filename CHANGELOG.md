@@ -2,6 +2,21 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## Unreleased
+
+### Changed
+- Settings in `~/.config/calm/config.toml` sit under what they're about. If you set one of these by
+  hand, move it (Settings writes the new names by itself):
+
+  | 0.1.0 | Now |
+  |---|---|
+  | `session-cards`, `session-cards-fit` | `cards`, `cards-fit` under `[sidebar]` |
+  | `auto-grouping` | `auto-grouping` under `[sidebar]` |
+  | `editor`, `open-paths` | `editor`, `open-in` under `[files]` |
+  | `claude-code-hooks` under `[agents]` | `hooks` under `[agents.claude-code]` |
+
+  `calm config list` names any key Calm no longer reads.
+
 ## 0.1.0 — public preview
 
 The first release. Built from source only, for macOS 26 on Apple silicon; there is no download yet.

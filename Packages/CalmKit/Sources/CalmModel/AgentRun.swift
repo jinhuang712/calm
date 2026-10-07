@@ -17,7 +17,7 @@ public enum AgentKind: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// The agent's name in config.toml keys (`agents.claude-code-hooks`) and `calm config` values.
+    /// The agent's name in config.toml keys (`agents.claude-code.hooks`) and `calm config` values.
     public var configName: String {
         switch self {
         case .claudeCode: "claude-code"

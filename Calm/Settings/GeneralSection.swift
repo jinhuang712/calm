@@ -21,7 +21,7 @@ final class GeneralSettingsModel {
     func refresh() {
         let settings = SessionManager.shared.settings
         installed = EditorLocator.installed
-        editor = EditorSetting(configured: settings.string("editor"))
+        editor = EditorSetting(configured: settings.string("files.editor"))
         opensInViewer = LinkOpener.prefersViewer
         autoGrouping = settings.autoGrouping
         problems = settings.problems
@@ -30,7 +30,7 @@ final class GeneralSettingsModel {
 
     func setEditor(_ value: EditorSetting) {
         editor = value
-        save("editor", value.configured)
+        save("files.editor", value.configured)
     }
 
     /// "Choose Application…": the system's file picker, on /Applications.
@@ -55,12 +55,12 @@ final class GeneralSettingsModel {
 
     func setOpensInViewer(_ value: Bool) {
         opensInViewer = value
-        save("open-paths", value ? nil : "editor")
+        save("files.open-in", value ? nil : "editor")
     }
 
     func setAutoGrouping(_ value: Bool) {
         autoGrouping = value
-        save("auto-grouping", value ? nil : "false")
+        save("sidebar.auto-grouping", value ? nil : "false")
     }
 
     /// `set:<key>=<value>` in self-tests goes through here, like a click.
@@ -68,7 +68,7 @@ final class GeneralSettingsModel {
         switch key {
         case "editor": setEditor(value == "automatic" ? .automatic : EditorSetting(configured: value))
         case "editor-app": setEditorApplication(URL(filePath: value)) // what the picker hands back
-        case "open-paths": setOpensInViewer(value != "editor")
+        case "open-in": setOpensInViewer(value != "editor")
         case "auto-grouping": setAutoGrouping(value != "false")
         default: break
         }

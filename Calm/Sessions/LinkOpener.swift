@@ -9,9 +9,9 @@ import OSLog
 enum LinkOpener {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "links")
 
-    /// Whether viewable files open in Calm's viewer (`open-paths = "viewer"`, the default) or the editor.
+    /// Whether viewable files open in Calm's viewer (`files.open-in = "viewer"`, the default) or the editor.
     static var prefersViewer: Bool {
-        SessionManager.shared.settings.string("open-paths")?.lowercased() != "editor"
+        SessionManager.shared.settings.string("files.open-in")?.lowercased() != "editor"
     }
 
     /// What a link points at, trying the project's folder for a relative path that isn't in the
@@ -131,14 +131,14 @@ enum EditorTarget {
     }
 }
 
-/// Finds the user's editor: the `editor` setting (a name such as `cursor`, a path, or an
+/// Finds the user's editor: the `files.editor` setting (a name such as `cursor`, a path, or an
 /// application chosen in Settings), else the first installed in `Editor`'s order (VS Code and its
 /// forks, Zed, Sublime Text, IntelliJ IDEA, then Xcode). A GUI app's PATH is minimal, so known
 /// install locations are checked directly.
 enum EditorLocator {
     @MainActor
     static func find() -> EditorTarget? {
-        if let configured = SessionManager.shared.settings.string("editor"), !configured.isEmpty {
+        if let configured = SessionManager.shared.settings.string("files.editor"), !configured.isEmpty {
             let path = (configured as NSString).expandingTildeInPath
             if configured.hasSuffix(".app") {
                 // An app that has since been deleted falls through to automatic.

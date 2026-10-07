@@ -52,11 +52,24 @@ xcodegen generate --quiet
 # A separate derived-data folder, so the Debug build and self-tests are left alone.
 step "Building Calm (Release)"
 derived="$root/build/DerivedData-Release"
+products="$derived/Build/Products/Release"
+built="$products/Calm.app"
 pretty() { if command -v xcbeautify >/dev/null 2>&1; then xcbeautify --quiet; else cat; fi; }
+# The app is put together afresh each time (a few seconds; compiling stays incremental): once,
+# an incremental build kept a stale copy of a package's resource bundle inside it, and installed
+# a Calm without the files that commit added (2026-10-07; not reproduced since).
+rm -rf "$built"
 xcodebuild -project Calm.xcodeproj -scheme Calm -configuration Release \
   -derivedDataPath "$derived" -destination "platform=macOS,arch=arm64" build | pretty
-built="$derived/Build/Products/Release/Calm.app"
 [[ -d "$built" ]] || { echo "install.sh: build finished but $built is missing" >&2; exit 1; }
+# Each package resource bundle inside the app must be the one just built.
+for bundle in "$products"/*.bundle; do
+  [[ -e "$bundle" ]] || continue
+  if ! diff -rq "$bundle" "$built/Contents/Resources/$(basename "$bundle")" >/dev/null; then
+    echo "install.sh: $(basename "$bundle") in Calm.app differs from the one just built; not installing" >&2
+    exit 1
+  fi
+done
 
 target="$app_dir/Calm.app"
 was_running=0

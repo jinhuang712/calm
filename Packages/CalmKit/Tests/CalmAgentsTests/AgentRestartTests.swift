@@ -118,7 +118,7 @@ struct AgentUpdateTests {
 
         let process = Process()
         process.executableURL = launcher
-        process.arguments = ["30"]
+        process.arguments = ["300"]
         try process.run()
         defer { process.terminate() }
         let snapshot = try #require(ProcessInspector.snapshot(of: process.processIdentifier))
@@ -130,7 +130,14 @@ struct AgentUpdateTests {
         #expect(AgentUpdates.check(snapshot) == AgentUpdate(installed: "1.1.0", running: "1.0.0"))
 
         try FileManager.default.removeItem(at: old)
-        #expect(AgentUpdates.check(snapshot) == AgentUpdate(installed: "1.1.0", running: nil))
+        // Failed once in a full run (2026-10-07) with no news, never in 16 runs alone: the check is
+        // about a running process and has nothing to say for one that's gone, so say which it was.
+        try #require(process.isRunning, "the stand-in isn't running any more")
+        let running = ProcessInspector.executableFile(of: process.processIdentifier)
+        #expect(
+            AgentUpdates.check(snapshot) == AgentUpdate(installed: "1.1.0", running: nil),
+            "the running file is now \(running ?? "unknown")",
+        )
 
         // Uninstalled rather than updated: nothing to say.
         try FileManager.default.removeItem(at: launcher)

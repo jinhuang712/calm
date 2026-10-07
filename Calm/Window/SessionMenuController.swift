@@ -42,6 +42,10 @@ final class SessionMenuController {
         )
         let host = SessionMenuHost(rootView: view)
         host.menuFrames = { [weak self] in self?.frames ?? [] }
+        // Under the transparent title bar the host's safe area moved the whole overlay down 32 pt,
+        // so the menu opened that far below the ⋯ button and the pointer, and its frames missed
+        // the clicks on its top. The overlay takes the window's whole content, as the title does.
+        host.safeAreaRegions = []
         host.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(host)
         NSLayoutConstraint.activate([
@@ -65,10 +69,14 @@ final class SessionMenuController {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.hide() }
         }
+        self.anchor = anchor
         if Headless.isOn {
             FileHandle.standardError.write(Data("calm-selftest: session menu: \(describe())\n".utf8))
         }
     }
+
+    /// Where the menu was asked to open, for the self-test log.
+    private var anchor: SessionMenuAnchor?
 
     func hide() {
         if let monitor {
@@ -242,7 +250,22 @@ final class SessionMenuController {
             parts.append("projects " + content.projects.map(\.name).joined(separator: ", ")
                 + (state.projectHot.flatMap { content.projects.indices.contains($0) ? " (hot \(content.projects[$0].name))" : nil } ?? ""))
         }
+        // Where it was asked to open and where it is, both top-left in the window's content.
+        switch anchor {
+        case let .below(button): parts.append("under \(Self.rounded(button))")
+        case let .point(point): parts.append("at pointer \(Int(point.x)),\(Int(point.y))")
+        case nil: break
+        }
+        if !state.menuFrame.isEmpty {
+            parts.append("menu \(Self.rounded(state.menuFrame)) (in host \(Self.rounded(state.menuFrameInHost)))")
+        }
         return parts.joined(separator: " | ")
+    }
+}
+
+private extension SessionMenuController {
+    static func rounded(_ rect: CGRect) -> String {
+        "\(Int(rect.minX)),\(Int(rect.minY)) \(Int(rect.width))×\(Int(rect.height))"
     }
 }
 

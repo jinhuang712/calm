@@ -23,6 +23,9 @@ final class SessionMenuState {
     /// takes the pointer on, and what places the list.
     var menuFrame = CGRect.zero
     var projectsFrame = CGRect.zero
+    /// The menu's frame in the host itself: the same as `menuFrame` unless something moves the
+    /// overlay inside the host (the title bar's safe area did, by 32 pt). Self-tests log both.
+    var menuFrameInHost = CGRect.zero
 
     var menuSize: CGSize {
         menuFrame.size
@@ -47,6 +50,7 @@ final class SessionMenuState {
         projectHot = nil
         menuFrame = .zero
         projectsFrame = .zero
+        menuFrameInHost = .zero
         moveRowFrame = .zero
         appeared = false
         openPointer = NSEvent.mouseLocation
@@ -86,6 +90,7 @@ struct SessionMenuOverlay: View {
                 SessionMenuPanel(content: content, style: style, state: state, choose: choose)
                     .fixedSize()
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { state.menuFrame = $0 }
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { state.menuFrameInHost = $0 }
                     .scaleEffect(state.appeared ? 1 : 0.97, anchor: corner)
                     .opacity(state.appeared && state.menuSize != .zero ? 1 : 0)
                     .padding(.leading, origin.x)

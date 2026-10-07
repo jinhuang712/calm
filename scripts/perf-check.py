@@ -16,6 +16,12 @@ well above what a run costs today and well below what the regressions it guards 
 - compacting: the same, with the one in front compacting, its bar breathing. A Core Animation
   layer (BreathingFill), so it should cost what `seen` does: a SwiftUI opacity animation would lay
   the sidebar out again every frame, as the marks' timelines did.
+- fullscreen: a full-screen program streaming a line every 0.1 s into a scrolling region, in view.
+  Mostly the drawing (smooth scrolling); find's keeper reads the screen at most every 0.2 s on top.
+  A keeper reading after every frame instead would cost about 360 M instructions a second more.
+- fullscreen-unseen: the same, hidden in a session that works. A hidden pane draws nothing, so
+  this is the keeper's own cost: its reads every 0.2 s took it from about 13 to 22 M instructions a
+  second in the Debug build (2026-10-07).
 
 Usage: scripts/perf-check.py [scenario ...]   (after `mise run build`; about 35 s a scenario)
 Exits 1 if any budget is exceeded.
@@ -37,6 +43,8 @@ SETTLE = 10  # seconds after launch before measuring: startup reads state, index
 MEASURE = 15
 
 agent = f"bash {STANDIN} claude"
+# A full-screen program streaming a line every 0.1 s into a scrolling region, for 40 s.
+streaming = f"bash {os.path.join(ROOT, 'scripts', 'fixtures', 'region-scroll.sh')} 1 400"
 three_agents = ",".join([
     "calm.report:working",
     "calm.new_session", f"calm.type:{agent}", "calm.report:working",
@@ -49,6 +57,8 @@ SCENARIOS = {
     "unseen": (agent, three_agents + ",calm.window_unseen", (40, 80)),
     "seen": (agent, three_agents, (40, 80)),
     "compacting": (agent, three_agents + ",calm.hook_compact:start:auto", (40, 80)),
+    "fullscreen": (streaming, "wait", (400, 400)),
+    "fullscreen-unseen": (streaming, "calm.report:working,calm.new_session", (40, 80)),
 }
 
 

@@ -81,7 +81,7 @@ final class TerminalSurfaceView: NSView {
     private(set) var cellSize: NSSize = .zero
     private var contentSize: NSSize = .zero
     private var focused = false
-    private var visibility = PaneVisibility()
+    private(set) var visibility = PaneVisibility()
     private var pendingTitle: String?
     private var titleTimer: Timer?
     private var trackingArea: NSTrackingArea?
@@ -96,6 +96,8 @@ final class TerminalSurfaceView: NSView {
     let links = PaneLinks()
     /// Find's matches on screen, while this pane is searched (TerminalSurfaceView+Find).
     let find = PaneFind()
+    /// What full-screen programs showed here, for find's whole session (TerminalSurfaceView+Keep).
+    let keep = PaneKeep()
 
     // Keyboard and IME state, used by the keyboard extension.
     var markedText = NSMutableAttributedString()
@@ -424,6 +426,7 @@ final class TerminalSurfaceView: NSView {
     private func updateVisibility(_ change: (inout PaneVisibility) -> Void) {
         guard let surface, let draws = visibility.update(change) else { return }
         ghostty_surface_set_occlusion(surface, draws)
+        keepVisibilityDidChange()
     }
 
     // MARK: Focus
@@ -688,13 +691,5 @@ final class TerminalSurfaceView: NSView {
     func requestClose() {
         guard let surface else { return }
         ghostty_surface_request_close(surface)
-    }
-}
-
-/// Carries a non-Sendable value across an isolation boundary we know is safe (same thread).
-struct UncheckedSendable<Value>: @unchecked Sendable {
-    let value: Value
-    init(_ value: Value) {
-        self.value = value
     }
 }

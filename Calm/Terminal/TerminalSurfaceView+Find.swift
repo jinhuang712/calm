@@ -87,6 +87,7 @@ extension TerminalSurfaceView {
     /// A new frame: the text may have moved under the link and find marks.
     func frameDidChange() {
         scheduleLinkScan()
+        keepAfterFrame()
         guard find.words != nil else { return }
         followFindGrid()
         scheduleFindRefresh()

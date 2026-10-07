@@ -140,6 +140,16 @@ extension MainWindowController {
                 if let line = Int(click.dropFirst(15)) {
                     focusedPane?.goToFindLine(line)
                 }
+            case "find_kept":
+                // Every pane's kept lines, and the last line of the shell's screen behind (patch 0020).
+                for pane in manager.panes.values {
+                    let lines = pane.kept.lines
+                    let shell = pane.primaryScreenText()?.split(separator: "\n").last { !$0.allSatisfy(\.isWhitespace) }
+                    let state = "pane \(pane.id.uuidString.prefix(4)) shown \(pane.drawsFrames), kept \(lines.count), "
+                        + "parts \(lines.count(where: \.startsPart)), first \"\(lines.first?.text ?? "")\", "
+                        + "last \"\(lines.last?.text ?? "")\", shell \"\(shell ?? "none")\""
+                    FileHandle.standardError.write(Data("calm-selftest: kept \(state)\n".utf8))
+                }
             default:
                 let target = find.target.map { Trace.id($0.id) } ?? "none"
                 let state = "open \(find.isOpen), pattern \(find.isPattern), words \"\(find.query)\", "

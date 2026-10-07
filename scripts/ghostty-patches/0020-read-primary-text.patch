@@ -1,0 +1,68 @@
+Subject: ghostty_surface_read_primary_text reads the screen behind a full-screen program
+
+ghostty_surface_read_text reads the active screen. While a full-screen
+program shows the alternate screen, the shell's output before it (the
+primary screen and its scrollback) is still there, but an embedder can't
+read it until the program quits. Calm's find searches everything a session
+showed, the shell's output before the program too. The same read, with the
+points resolved on the primary screen and no viewport.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0019.
+
+diff --git a/include/ghostty.h b/include/ghostty.h
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -1244,6 +1244,9 @@
+ GHOSTTY_API bool ghostty_surface_read_text(ghostty_surface_t,
+                                               ghostty_selection_s,
+                                               ghostty_text_s*);
++GHOSTTY_API bool ghostty_surface_read_primary_text(ghostty_surface_t,
++                                                      ghostty_selection_s,
++                                                      ghostty_text_s*);
+ GHOSTTY_API void ghostty_surface_free_text(ghostty_surface_t, ghostty_text_s*);
+ 
+ #ifdef __APPLE__
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -1922,6 +1922,40 @@
+         ) orelse return false;
+ 
+         return readTextLocked(surface, core_sel, result);
++    }
++
++    /// Same as ghostty_surface_read_text but reads the primary screen,
++    /// the shell's, even while a full-screen program shows the alternate
++    /// one in front of it. The text has no viewport, since the primary
++    /// screen may not be the one shown.
++    export fn ghostty_surface_read_primary_text(
++        surface: *Surface,
++        sel: Selection,
++        result: *Text,
++    ) bool {
++        surface.core_surface.renderer_state.mutex.lockUncancelable(global.io());
++        defer surface.core_surface.renderer_state.mutex.unlock(global.io());
++
++        const screen = surface.core_surface.renderer_state.terminal.screens.get(.primary) orelse return false;
++        const core_sel = sel.core(screen) orelse return false;
++        const text = screen.selectionString(global.alloc(), .{
++            .sel = core_sel,
++            .trim = false,
++        }) catch |err| {
++            log.warn("error reading text err={}", .{err});
++            return false;
++        };
++
++        result.* = .{
++            .tl_px_x = -1,
++            .tl_px_y = -1,
++            .offset_start = 0,
++            .offset_len = 0,
++            .text = text.ptr,
++            .text_len = text.len,
++        };
++
++        return true;
+     }
+ 
+     fn readTextLocked(

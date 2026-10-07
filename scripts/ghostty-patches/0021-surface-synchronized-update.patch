@@ -1,0 +1,58 @@
+Subject: ghostty_surface_synchronized_update says a frame is half drawn
+
+The pty's output reaches the terminal a kilobyte at a time, each piece
+under the renderer's lock, so a program's frame of several kilobytes is
+on the screen half drawn between pieces. The renderer waits for the end of
+a synchronized update (mode 2026) before it draws; an app reading the text
+(ghostty_surface_read_text) can't tell. Calm keeps what a full-screen
+program shows by reading its screen a few times a second, and a half-drawn
+frame read as a new view would be kept twice. A read of the mode under the
+renderer's lock, as ghostty_surface_alternate_screen reads the screen.
+
+Calm's own patch (not from thdxg/ghostty); applies on top of 0020.
+
+diff --git a/include/ghostty.h b/include/ghostty.h
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -1207,6 +1207,7 @@
+ GHOSTTY_API void ghostty_surface_preedit(ghostty_surface_t, const char*, uintptr_t);
+ GHOSTTY_API bool ghostty_surface_mouse_captured(ghostty_surface_t);
+ GHOSTTY_API bool ghostty_surface_alternate_screen(ghostty_surface_t);
++GHOSTTY_API bool ghostty_surface_synchronized_update(ghostty_surface_t);
+ GHOSTTY_API bool ghostty_surface_mark_search_match(ghostty_surface_t,
+                                                    ghostty_selection_s);
+ GHOSTTY_API void ghostty_surface_clear_search_match(ghostty_surface_t);
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -2155,6 +2155,13 @@
+         return surface.core_surface.alternateScreen();
+     }
+ 
++    /// Whether the program is in the middle of a synchronized update
++    /// (mode 2026). Until it ends, the screen may hold half a frame: the
++    /// renderer waits for it, and so should an app that reads the text.
++    export fn ghostty_surface_synchronized_update(surface: *Surface) bool {
++        return surface.core_surface.synchronizedUpdate();
++    }
++
+     /// Paints `sel` as the current search match, the way the search's own
+     /// selected match is painted, for an embedder that finds matches
+     /// itself (with a regular expression, which the search doesn't take).
+diff --git a/src/Surface.zig b/src/Surface.zig
+--- a/src/Surface.zig
++++ b/src/Surface.zig
+@@ -3910,6 +3910,13 @@
+     return self.io.terminal.screens.active_key == .alternate;
+ }
+ 
++/// Returns true while the program draws a synchronized update (mode 2026).
++pub fn synchronizedUpdate(self: *Surface) bool {
++    self.renderer_state.mutex.lockUncancelable(global.io());
++    defer self.renderer_state.mutex.unlock(global.io());
++    return self.io.terminal.modes.get(.synchronized_output);
++}
++
+ /// Hands the renderer `match` as the current search match, as the search
+ /// thread hands it its own selected match, or clears it with null. The
+ /// renderer takes the match's arena.

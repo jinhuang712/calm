@@ -20,7 +20,10 @@ final class SessionManager {
 
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "sessions")
 
-    private(set) var workspace: Workspace
+    private(set) var workspace: Workspace {
+        didSet { tellPanesWhoWorks() }
+    }
+
     @ObservationIgnored private let store: WorkspaceStore
     @ObservationIgnored private(set) var panes: [Session.ID: TerminalSurfaceView] = [:]
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -216,9 +219,18 @@ final class SessionManager {
         let pane = TerminalSurfaceView(id: session.id, options: options)
         Trace.note("pane \(Trace.id(sessionID)): attaching at \(pane.gridSize)")
         pane.host = host
+        pane.setSessionWorking(session.state == .working)
         panes[session.id] = pane
         resumeIfShellWasLost(session.id)
         return pane
+    }
+
+    /// A hidden pane reads a full-screen program's screen only while its session works, for
+    /// find's whole session (TerminalSurfaceView+Keep).
+    private func tellPanesWhoWorks() {
+        for (id, pane) in panes {
+            pane.setSessionWorking(workspace.session(id)?.state == .working)
+        }
     }
 
     /// One text size for every session (FEATURES.md → F1): a pane that changed size takes the

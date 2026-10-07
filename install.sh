@@ -101,6 +101,15 @@ if [[ -e "$target" ]]; then
   mv "$target" "$app_dir/.Calm.app.previous-$(date +%Y%m%d-%H%M%S)-$$"
 fi
 mv "$staging" "$target"
+# Only the installed copy may be the Calm macOS starts by bundle ID (the Dock, Spotlight, a
+# notification, the dialog for an app it hasn't seen): every copy registered for the ID is a
+# candidate, and on 2026-10-07 a restart came back as a day-old Release build left in an old
+# worktree. So the build it was copied from goes (the next install puts it together afresh
+# anyway), and the installed one is registered.
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$lsregister" -u "$built" >/dev/null 2>&1 || true
+rm -rf "$built"
+"$lsregister" -f "$target" >/dev/null 2>&1 || true
 # lsof names each running Calm's program file where it is now, moved or not.
 in_use="$(lsof -a -c Calm -d txt -Fn 2>/dev/null | sed -n 's/^n//p' || true)"
 for old in "$app_dir"/.Calm.app.previous*; do

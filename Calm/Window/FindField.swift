@@ -1,11 +1,34 @@
 import AppKit
 import SwiftUI
 
-/// The find field in the title strip (UIUX.md → Find): the words, the count, ↑ ↓ and a ⌘F cap
-/// that closes it, in the sidebar search field's soft fill. ↵ goes to the older match and ⇧↵ to
-/// the newer; esc closes it. ⌘F, ⌘G and ⌘E come through the Edit menu while it has the keyboard.
-struct FindFieldView: View {
-    @Bindable var model: FindModel
+/// What find's field shows and does: a pane's search (`FindModel`) or a viewed file's
+/// (`ViewerFindModel`). The field is the same in the title strip and the viewer's header.
+@MainActor
+protocol FindFieldModel: AnyObject, Observable {
+    var query: String { get set }
+    var countText: String { get }
+    var placeholder: String { get }
+    /// ↑ goes up the scrollback or the page, ↓ down it; each with its help.
+    var upDisabled: Bool { get }
+    var downDisabled: Bool { get }
+    var upHelp: String { get }
+    var downHelp: String { get }
+    /// Whether ↵ goes up: in the terminal to the older match, above; in a file down, to the next.
+    var returnStepsUp: Bool { get }
+    /// Bumped to put the keyboard in the field, with what's in it selected.
+    var focusRequest: Int { get }
+    /// Where the field is in the title strip (top left origin), for the note under it.
+    var fieldFrame: CGRect? { get set }
+    func step(up: Bool)
+    func close()
+}
+
+/// The find field (UIUX.md → Find): the words, the count, ↑ ↓ and a ⌘F cap that closes it, in the
+/// sidebar search field's soft fill. In the title strip ↵ goes to the older match and ⇧↵ to the
+/// newer, in a viewed file ↵ to the next; esc closes it. ⌘F, ⌘G and ⌘E come through the Edit menu
+/// (in the title strip) or the viewer's keys while it has the keyboard.
+struct FindFieldView<Model: FindFieldModel>: View {
+    @Bindable var model: Model
     let style: SidebarStyle
     /// The field's frame in the strip, so the strip takes clicks there (SessionTitleHost).
     let onFrame: (UUID, CGRect?) -> Void
@@ -21,25 +44,25 @@ struct FindFieldView: View {
                 .foregroundStyle(style.tertiary)
                 .padding(.trailing, 3.scaled)
                 .accessibilityHidden(true)
-            TextField("Find in this session", text: $model.query)
+            TextField(model.placeholder, text: $model.query)
                 .textFieldStyle(.plain)
                 .calmFont(size: 13.5)
                 .foregroundStyle(style.primary)
                 .focused($focused)
                 .onKeyPress(.return, phases: .down) { press in
-                    model.step(press.modifiers.contains(.shift) ? .newer : .older)
+                    model.step(up: press.modifiers.contains(.shift) != model.returnStepsUp)
                     return .handled
                 }
                 .onExitCommand { model.close() }
-                .accessibilityLabel("Find in this session")
+                .accessibilityLabel(model.placeholder)
             Text(model.countText)
                 .calmFont(size: 12)
                 .monospacedDigit()
                 .foregroundStyle(style.tertiary)
                 .fixedSize()
                 .padding(.horizontal, 4.scaled)
-            arrow("chevron.up", help: "Older match (↵ or ⌘G)", disabled: model.olderDisabled) { model.step(.older) }
-            arrow("chevron.down", help: "Newer match (⇧↵ or ⌘⇧G)", disabled: model.newerDisabled) { model.step(.newer) }
+            arrow("chevron.up", help: model.upHelp, disabled: model.upDisabled) { model.step(up: true) }
+            arrow("chevron.down", help: model.downHelp, disabled: model.downDisabled) { model.step(up: false) }
             Button { model.close() } label: {
                 Text("⌘F")
                     .calmFont(size: 11)

@@ -229,6 +229,10 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func performTerminalAction(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? String else { return }
+        // A viewed file covers the terminal: the find items find in it.
+        if TerminalWindowManager.shared.focusedController?.performViewerFind(action) == true {
+            return
+        }
         if action == "reload_config" {
             TerminalEngine.shared.reloadConfig(soft: false)
             return
@@ -292,7 +296,9 @@ extension TerminalMenuTarget: NSMenuItemValidation {
             let agent = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings)
             item.title = agent.map { "New \($0.displayName) Session" } ?? "New Session"
         }
-        let finding = TerminalWindowManager.shared.focusedController?.find.isOpen == true
+        let controller = TerminalWindowManager.shared.focusedController
+        let viewing = controller?.fileViewer.isShowing == true
+        let finding = viewing ? controller?.fileViewer.find.isOpen == true : controller?.find.isOpen == true
         switch item.representedObject as? String {
         case "start_search": item.title = finding ? "Hide Find" : "Find…"
         case "navigate_search:next", "navigate_search:previous": return finding

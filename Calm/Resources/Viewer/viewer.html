@@ -33,6 +33,16 @@
   .lines .l { display: block; padding: 0 24px 0 0; white-space: pre; }
   .lines .l::before { counter-increment: line; content: counter(line); display: inline-block; width: 4.5em; padding-right: 1.2em; text-align: right; color: var(--faint); user-select: none; }
   .lines .l.target { background: var(--mark); }
+  /* Find (FEATURES.md → F16): Calm passes --find (the solid accent), --find-band, --find-track,
+     --find-box and --find-tick (a lone tick's strength). Every match underlined, the current one
+     a pill; in a code or text file its line gets the band and the edge bar. */
+  mark.calm-find { background: none; color: inherit; text-decoration: underline 2px var(--find); text-underline-offset: 3px; text-decoration-skip-ink: none; }
+  mark.calm-find.current { background: var(--find); color: var(--bg); border-radius: 3px; box-shadow: 0 0 0 2px var(--find); text-decoration: none; }
+  .lines .l.find-band { background: var(--find-band); box-shadow: inset 3px 0 0 var(--find); }
+  #calm-find-map { position: fixed; right: 3px; top: 6px; bottom: 6px; width: 8px; border-radius: 4px; background: var(--find-track); }
+  #calm-find-map .tick { position: absolute; left: 1px; right: 1px; height: 2px; border-radius: 1px; background: var(--find); cursor: default; }
+  #calm-find-map .tick.current { left: -2px; height: 4px; opacity: 1 !important; pointer-events: none; }
+  #calm-find-map .box { position: absolute; left: 0; right: 0; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--find-box); pointer-events: none; }
   /* highlight.js, in low-saturation tones. */
   .hljs-comment, .hljs-quote { color: var(--faint); font-style: italic; }
   .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type { color: #b7a6d6; }
@@ -82,6 +92,150 @@
         target.scrollIntoView({ block: "center" });
       }
     }
+  };
+
+  // Find: the field in Calm's viewer header calls these, and each returns { total, current }.
+  // Rendered Markdown gets no band (its lines reflow); a click on the map's tick tells Calm.
+  let finds = [];
+  let current = -1;
+  let map = null;
+
+  function clearFind() {
+    for (const mark of finds) {
+      const parent = mark.parentNode;
+      if (!parent) continue;
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    }
+    finds = [];
+    current = -1;
+    for (const line of content.querySelectorAll(".l.find-band")) line.classList.remove("find-band");
+    if (map) {
+      map.remove();
+      map = null;
+    }
+  }
+
+  // Case doesn't matter, as in the terminal; matches don't overlap here (a mark can't).
+  function markAll(words) {
+    const needle = words.toLowerCase();
+    const nodes = [];
+    const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const text = node.nodeValue;
+      const lower = text.toLowerCase();
+      let at = lower.indexOf(needle);
+      if (at < 0) continue;
+      const fragment = document.createDocumentFragment();
+      let last = 0;
+      while (at >= 0) {
+        if (at > last) fragment.appendChild(document.createTextNode(text.slice(last, at)));
+        const mark = document.createElement("mark");
+        mark.className = "calm-find";
+        mark.textContent = text.slice(at, at + needle.length);
+        fragment.appendChild(mark);
+        finds.push(mark);
+        last = at + needle.length;
+        at = lower.indexOf(needle, last);
+      }
+      if (last < text.length) fragment.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(fragment, node);
+    }
+  }
+
+  const findState = () => ({ total: finds.length, current: current });
+
+  function select(index, scroll) {
+    const old = finds[current];
+    if (old) {
+      old.classList.remove("current");
+      old.closest(".l")?.classList.remove("find-band");
+    }
+    current = index;
+    const mark = finds[index];
+    if (!mark) return;
+    mark.classList.add("current");
+    mark.closest(".l")?.classList.add("find-band");
+    if (scroll) {
+      const box = mark.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > window.innerHeight) mark.scrollIntoView({ block: "center" });
+    }
+    drawMap();
+  }
+
+  function drawMap() {
+    const height = document.documentElement.scrollHeight;
+    if (!finds.length || height <= window.innerHeight + 1) {
+      map?.remove();
+      map = null;
+      return;
+    }
+    if (!map) {
+      map = document.createElement("div");
+      map.id = "calm-find-map";
+      document.body.appendChild(map);
+      map.addEventListener("click", (event) => {
+        const tick = event.target.closest(".tick");
+        if (!tick) return;
+        select(Number(tick.dataset.index), true);
+        window.webkit?.messageHandlers?.calmFind?.postMessage(findState());
+      });
+    }
+    const track = map.clientHeight;
+    const top = (mark) => mark.getBoundingClientRect().top + window.scrollY;
+    const slots = new Map();
+    let ticks = "";
+    finds.forEach((mark, index) => {
+      const y = Math.min(Math.floor(((top(mark) / height) * track) / 2) * 2, track - 2);
+      slots.set(y, (slots.get(y) || 0) + 1);
+      if (slots.get(y) === 1) ticks += `<div class="tick" data-index="${index}" data-y="${y}" style="top:${y}px"></div>`;
+    });
+    const box = `<div class="box" style="top:${(window.scrollY / height) * track}px;height:${Math.max((window.innerHeight / height) * track, 4)}px"></div>`;
+    map.innerHTML = box + ticks;
+    for (const tick of map.querySelectorAll(".tick")) {
+      const lines = slots.get(Number(tick.dataset.y));
+      tick.style.opacity = lines >= 3 ? 0.95 : lines === 2 ? 0.78 : "var(--find-tick)";
+    }
+    const mark = finds[current];
+    if (mark) {
+      const y = (top(mark) / height) * track;
+      map.insertAdjacentHTML("beforeend", `<div class="tick current" style="top:${Math.min(Math.max(y - 1, 0), track - 4)}px"></div>`);
+    }
+  }
+
+  window.addEventListener("scroll", () => {
+    const box = map?.querySelector(".box");
+    if (box) box.style.top = `${(window.scrollY / document.documentElement.scrollHeight) * map.clientHeight}px`;
+  });
+  window.addEventListener("resize", () => drawMap());
+
+  /// Marks `words` and makes the first match in view, or the first after it, the current one.
+  window.calmFind = function (words, colors) {
+    for (const [name, value] of Object.entries(colors || {})) {
+      document.documentElement.style.setProperty(`--${name}`, value);
+    }
+    clearFind();
+    if (!words) return findState();
+    markAll(words);
+    if (finds.length) {
+      const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
+      select(first < 0 ? 0 : first, true);
+    } else {
+      drawMap();
+    }
+    return findState();
+  };
+
+  /// One match down (1) or up (-1); it stops at the ends, as in the terminal.
+  window.calmFindStep = function (step) {
+    if (finds.length) select(Math.min(Math.max(current + step, 0), finds.length - 1), true);
+    return findState();
+  };
+
+  window.calmFindClose = function () {
+    clearFind();
+    return findState();
   };
 </script>
 </body>

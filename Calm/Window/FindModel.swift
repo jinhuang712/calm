@@ -44,7 +44,7 @@ enum FindEvent: Equatable {
 /// binding actions on the pane. One window has one; the pane that has the keyboard is searched.
 @MainActor
 @Observable
-final class FindModel {
+final class FindModel: FindFieldModel {
     enum Direction {
         /// ↵, ⌘G, the ↑ arrow: back in time. libghostty's `navigate_search:next` runs newest to oldest.
         case older
@@ -102,6 +102,35 @@ final class FindModel {
     var noteText: String {
         agentName.map { "\($0) keeps the conversation, not the terminal." }
             ?? "This program draws its own screen, so only what's on it can be searched."
+    }
+
+    var placeholder: String {
+        "Find in this session"
+    }
+
+    /// Up the scrollback is back in time: ↑ is the older match.
+    var upDisabled: Bool {
+        olderDisabled
+    }
+
+    var downDisabled: Bool {
+        newerDisabled
+    }
+
+    var upHelp: String {
+        "Older match (↵ or ⌘G)"
+    }
+
+    var downHelp: String {
+        "Newer match (⇧↵ or ⌘⇧G)"
+    }
+
+    var returnStepsUp: Bool {
+        true
+    }
+
+    func step(up: Bool) {
+        step(up ? .older : .newer)
     }
 
     /// The oldest match is current (it stops there, no wrapping), or there's nothing to go to.

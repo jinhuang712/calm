@@ -59,8 +59,17 @@ final class FileViewer: NSObject {
     private var keyMonitor: Any?
     private var onClose: (() -> Void)?
     private var pendingRender: String?
-    private weak var webView: WKWebView?
+    private(set) weak var webView: WKWebView?
+    private(set) weak var pdfView: PDFView?
     private(set) var file: String?
+    /// Find in the file (ViewerFind): the header's field and what it found.
+    let find = ViewerFindModel()
+    /// Find's colors: the viewer's background and text, the terminal's accent.
+    var findColors: FindColors?
+    /// PDFKit's matches, and the underlines added for each while find is open.
+    var pdfMatches: [PDFSelection] = []
+    var pdfMarks: [[(page: PDFPage, underline: PDFAnnotation)]] = []
+    private let findMessages = ViewerFindMessages()
     /// The session the file was opened over; going to another one leaves the file.
     private(set) var session: Session.ID?
     /// Matches the terminal area's corners (a card window rounds them).
@@ -68,6 +77,9 @@ final class FileViewer: NSObject {
 
     init(container: NSView) {
         self.container = container
+        super.init()
+        findMessages.viewer = self
+        wireFind()
     }
 
     var isShowing: Bool {
@@ -93,6 +105,7 @@ final class FileViewer: NSObject {
         self.onClose = onClose
         file = path
         self.session = session
+        find.reset(for: Self.searcher(for: kind, path: path))
         // The header and content follow the root's size by autoresizing; the root itself is pinned
         // below to the area's sides and to the window's top and bottom, over the title strip.
         let frame = NSRect(x: area.frame.minX, y: 0, width: area.frame.width, height: container.bounds.height)
@@ -106,7 +119,7 @@ final class FileViewer: NSObject {
 
         let headerHeight: CGFloat = 46
         let header = NSHostingView(rootView: ViewerHeader(
-            path: path, sessionTitle: sessionTitle, style: style,
+            path: path, sessionTitle: sessionTitle, style: style, find: find,
             onOpenInEditor: { [weak self] in self?.openInEditor(line: line) },
             onBack: { [weak self] in self?.close() },
         ))
@@ -126,12 +139,59 @@ final class FileViewer: NSObject {
         self.root = root
         Motion.fadeIn(root, duration: 0.16)
 
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, event.keyCode == 53, event.window === container.window else { return event }
-            close()
-            return nil
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown]) { [weak self] event in
+            guard let self, event.window === container.window else { return event }
+            find.hidePictureNote()
+            return event.type == .keyDown && handleKey(event) ? nil : event
         }
         return true
+    }
+
+    /// The viewer's keys, ahead of the terminal under it: esc closes find first, then the viewer;
+    /// ⌘F, ⌘G, ⌘⇧G and ⌘E find in the file (FEATURES.md → F16).
+    private func handleKey(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
+        if event.keyCode == 53, modifiers.isEmpty {
+            if find.isOpen {
+                find.close()
+            } else {
+                close()
+            }
+            return true
+        }
+        guard modifiers == .command || modifiers == [.command, .shift] else { return false }
+        switch event.charactersIgnoringModifiers?.lowercased() {
+        case "f" where modifiers == .command:
+            find.toggle()
+        case "g" where find.isOpen:
+            find.step(up: modifiers.contains(.shift))
+        case "e" where modifiers == .command:
+            findSelection()
+        default:
+            return false
+        }
+        return true
+    }
+
+    /// ⌘E: the words selected in the file become find's.
+    func findSelection() {
+        if find.searcher == .pdf {
+            find.toggle(words: pdfView?.currentSelection?.string ?? "")
+            return
+        }
+        webView?.evaluateJavaScript("window.getSelection().toString()") { [weak self] result, _ in
+            let words = (result as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            MainActor.assumeIsolated { self?.find.toggle(words: words) }
+        }
+    }
+
+    private static func searcher(for kind: ViewableKind, path: String) -> ViewerFindModel.Searcher {
+        switch kind {
+        case .markdown, .code, .text: .page
+        case .pdf: .pdf
+        case .html: .web
+        case .image: URL(filePath: path).pathExtension.lowercased() == "svg" ? .web : .picture
+        }
     }
 
     func close() {
@@ -147,6 +207,9 @@ final class FileViewer: NSObject {
         keyMonitor = nil
         file = nil
         session = nil
+        pdfMatches = []
+        pdfMarks = []
+        find.reset(for: .page)
         guard let root else { return }
         self.root = nil
         if animated {
@@ -172,6 +235,7 @@ final class FileViewer: NSObject {
             view.document = document
             view.autoScales = true
             view.backgroundColor = NSColor(style.background)
+            pdfView = view
             return view
         case .image where url.pathExtension.lowercased() != "svg":
             guard let image = NSImage(contentsOf: url) else { return nil }
@@ -187,6 +251,8 @@ final class FileViewer: NSObject {
                   let page = Bundle.main.url(forResource: "viewer", withExtension: "html", subdirectory: "Viewer")
             else { return nil }
             let web = makeWebView()
+            // The map in Calm's page tells the field when a click on a tick changes the current match.
+            web.configuration.userContentController.add(findMessages, name: "calmFind")
             pendingRender = Self.renderScript(kind: kind, text: text, line: line, style: style)
             web.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
             return web
@@ -254,6 +320,7 @@ struct ViewerHeader: View {
     let path: String
     let sessionTitle: String
     let style: SidebarStyle
+    let find: ViewerFindModel
     let onOpenInEditor: () -> Void
     let onBack: () -> Void
 
@@ -270,15 +337,26 @@ struct ViewerHeader: View {
                     .truncationMode(.middle)
             }
             Spacer(minLength: 12)
+            if find.showsPictureNote {
+                Text("Nothing to find in a picture")
+                    .calmFont(size: 12)
+                    .foregroundStyle(style.secondary)
+            }
+            if find.isOpen {
+                FindFieldView(model: find, style: style) { _, _ in }
+                    .frame(width: 300.scaled)
+            }
             Button("Open in Editor", action: onOpenInEditor)
                 .controlSize(.small)
-            Button(action: onBack) {
-                Text("esc · Back to \(sessionTitle)")
-                    .calmFont(size: 11)
-                    .foregroundStyle(style.secondary)
-                    .lineLimit(1)
+            if !find.isOpen {
+                Button(action: onBack) {
+                    Text("esc · Back to \(sessionTitle)")
+                        .calmFont(size: 11)
+                        .foregroundStyle(style.secondary)
+                        .lineLimit(1)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

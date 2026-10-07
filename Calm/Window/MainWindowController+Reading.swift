@@ -146,6 +146,7 @@ extension MainWindowController {
     func showFile(_ path: String, line: Int? = nil) -> Bool {
         let session = focusedSession
         let title = session?.displayTitle ?? "session"
+        fileViewer.findColors = viewerFindColors
         let shown = fileViewer.show(
             path, line: line, over: mainArea, session: session?.id, sessionTitle: title, style: sidebarStyle,
         ) { [weak self] in

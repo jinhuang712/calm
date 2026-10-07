@@ -2,64 +2,39 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
-## Unreleased
+## 0.1.0 — 2026-10-08
 
-### Changed
-- Settings in `~/.config/calm/config.toml` sit under what they're about. If you set one of these by
-  hand, move it (Settings writes the new names by itself):
-
-  | 0.1.0 | Now |
-  |---|---|
-  | `session-cards`, `session-cards-fit` | `cards`, `cards-fit` under `[sidebar]` |
-  | `auto-grouping` | `auto-grouping` under `[sidebar]` |
-  | `editor`, `open-paths` | `editor`, `open-in` under `[files]` |
-  | `claude-code-hooks` under `[agents]` | `hooks` under `[agents.claude-code]` |
-
-  `calm config list` names any key Calm no longer reads.
-
-## 0.1.0 — public preview
-
-The first release. Built from source only, for macOS 26 on Apple silicon; there is no download yet.
-Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so
-expect rough edges (README → Known limits). Exact behavior of everything below is in
-[FEATURES.md](FEATURES.md).
+The first release, a public preview. Built from source only, for macOS 26 on Apple silicon; there is no download yet. Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so expect rough edges (README → Known limits). Exact behavior of everything below is in [FEATURES.md](FEATURES.md).
 
 ### The terminal
 - Ghostty's engine (libghostty): it reads your Ghostty config for fonts, colors and keybindings.
-- Smooth scrolling (including a program's scroll regions, like Claude Code's streaming view), a
-  cursor glide, and a one-size text setting for every session.
-- No tab bar. Splits by key (⌘D, ⌘⌥ + an arrow), with the pane you're in bright and the others
-  receding. A session can be dragged from the sidebar onto a pane; each pane in a split has a small
-  split icon for taking it out again, without ending its session.
+- Smooth scrolling (including a program's scroll regions, like Claude Code's streaming view), a cursor glide, and a one-size text setting for every session.
+- No tab bar. ⌘T opens a shell and ⌘N your agent, each as a session in the sidebar. Splits by key (⌘D, ⌘⌥ + an arrow), with the pane you're in bright and the others receding. A session can be dragged from the sidebar onto a pane; each pane in a split has a small split icon for taking it out again, without ending its session.
+- ⌘F finds in a session: every match marked as you type, the newest first, and a map of all of them along the pane's edge; `.*` (⌥⌘R) takes a regular expression. In a full-screen program such as Claude Code, **Screen | Session** searches everything the session showed, not only the screen.
+- Input methods and dictation type into a pane as the keyboard does, and ⌘V pastes a copied image as a file an agent can attach.
 
 ### Sessions and projects
-- Sessions file themselves under the project or folder they work in; projects you make stay put, and
-  scratch sessions (⌘⇧N) are for throwaway work.
-- Quitting Calm detaches your shells and relaunching brings everything back: sessions, splits,
-  scrollback and running agents. Calm → Restart Calm does it in one step.
-- Rename, resume and fork a conversation into a new split or tab; ⌘⇧T reopens a closed session.
+- Sessions file themselves under the project or folder they work in; projects you make stay put, and scratch sessions (⌘⇧N) are for throwaway work.
+- Quitting Calm detaches your shells and relaunching brings everything back: sessions, splits, scrollback and running agents. Calm → Restart Calm does it in one step. After the Mac restarts, a session that had an agent running resumes its conversation the first time you open it.
+- One menu for a session, on its card's right-click and the ⋯ in its title strip: rename, resume, restart, fork a conversation into a new split or tab, and copy its id, resume command or folder. ⌘⇧T reopens a closed session.
 
 ### Agents
-- Claude Code, Codex, OpenCode and pi are detected from their processes. Connect their hooks from
-  Calm → Agents… for exact state (each asks first and can be undone).
-- Each session card shows the agent's mark, its state (working, needs you, done, failed), what it
-  last said, and its todo progress where the agent keeps a list. Only *needs you* notifies, at a
-  natural pause.
+- Claude Code, Codex, OpenCode and pi are detected from their processes. Connect their hooks from Calm → Agents… for exact state (each asks first and can be undone).
+- ⌘N starts the agent you choose in Settings → Agents, with the options you picked there, such as skipping permissions or a new worktree. An empty worktree it made goes when its session closes.
+- Each session card shows the agent's mark, its state (working, needs you, done, failed), what it last said (once you've read it and it sits idle, Claude Code's own recap), its todo progress where the agent keeps a list, and a bar while Claude Code compacts its conversation. Only *needs you* notifies, at a natural pause.
+- After you update an agent, the title strip says so, and Restart starts it again on the same conversation, once the turn it's in has ended.
+- Send with ⌘ Return (off by default): ⌘↵ sends an agent's prompt and Return starts a new line, set in each agent's own key settings.
 - With the sidebar hidden, an arrival card tells you what happened in a session since you left it.
 
 ### Finding and reading
 - ⌘K searches every agent's past conversations, grouped like the sidebar.
 - ⌘P lists what Calm does that has no key everyone knows (one-shot commands).
-- ⌘-click opens a URL, or a file at its line, and holding ⌘ shows a tag saying where it leads.
-  ⌥-click copies a table cell.
-- A files column (⌘\) shows the project's tree and changes, and a viewer opens Markdown, HTML, PDFs,
-  images and code without leaving Calm.
+- ⌘-click opens a URL, or a file at its line, and holding ⌘ shows a tag saying where it leads; over Claude Code's `[Image #n]`, the image itself. ⌥-click copies a table cell.
+- A files column (⌘\\) shows the project's tree and changes, and a viewer opens Markdown, HTML, PDFs, images and code without leaving Calm; a changed file shows its diff, unified or side by side.
 
 ### Look
-- Five soft themes in light and dark pairs that follow the system, carried through the whole window;
-  Ghostty's own colors are a last choice. Motion can be reduced or turned off.
+- Five soft themes in light and dark pairs that follow the system, carried through the whole window; Ghostty's own colors are a last choice. Motion can be reduced or turned off.
 - A small settings page (⌘,): Appearance, Agents, General and Shortcuts.
 
 ### Command line
-- `calm open`, `list`, `search`, `status`, `notify` and `hook` talk to the running app; `status`,
-  `notify` and `hook` are safe to run anywhere, outside Calm they do nothing.
+- `calm open`, `list`, `search`, `show`, `fork`, `config`, `doctor` and `trace` for you and your agents; `status`, `hook` and `notify` for agents' hooks, safe to run anywhere: outside Calm they do nothing. Every command is in [CLI.md](CLI.md).

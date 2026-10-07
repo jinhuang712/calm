@@ -1,0 +1,120 @@
+name: Release
+
+# A release is a tag, vX.Y.Z, pushed on a commit of main (DESIGNS.md → Distribution). This builds
+# that commit the way the README tells a new user to, with nothing cached: Ghostty's engine from
+# source, its downloads from their hosts. It runs the tests, builds the Release app install.sh
+# installs, and only then publishes the version's CHANGELOG section as the release's notes.
+# Nothing is attached: a download waits for Developer ID signing (ROADMAP.md → Later).
+# Run it by hand (workflow_dispatch) for a dry run: everything but the publishing.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Checked first, so a wrong tag fails in seconds, not after the build.
+      - name: Version and notes
+        id: version
+        run: |
+          version="$(sed -n 's/^ *CFBundleShortVersionString: "\(.*\)"$/\1/p' project.yml)"
+          cli="$(sed -n 's/^let version = "\(.*\)"$/\1/p' CLI/main.swift)"
+          if [[ -z "$version" || "$version" != "$cli" ]]; then
+            echo "::error::project.yml says '$version' and CLI/main.swift says '$cli'"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
+              echo "::error::tag $GITHUB_REF_NAME doesn't name this commit's version, $version"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::tag $GITHUB_REF_NAME isn't on main"
+              exit 1
+            fi
+            ref="$GITHUB_REF_NAME"
+          else
+            ref="$GITHUB_SHA"
+          fi
+          # The version's section of CHANGELOG.md, from its heading to the next one.
+          notes="$RUNNER_TEMP/notes.md"
+          awk -v heading="## $version " '
+            /^## / { if (found) exit; if (index($0, heading) == 1) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > "$notes"
+          if ! grep -q '[^[:space:]]' "$notes"; then
+            echo "::error::CHANGELOG.md has no section headed \"## $version — …\""
+            exit 1
+          fi
+          # Relative links resolve against the release page, where they'd 404: point them at
+          # the files as they were at this commit.
+          sed -E -i '' "s#\]\(([A-Za-z0-9_./-]+\.md(\#[^)]*)?)\)#](https://github.com/$GITHUB_REPOSITORY/blob/$ref/\1)#g" "$notes"
+          { echo "## Notes for $version"; echo; cat "$notes"; } >> "$GITHUB_STEP_SUMMARY"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Runner
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+          xcodebuild -version
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # The README's steps, in its order. No GhosttyKit cache is restored: this is the build a
+      # fresh clone gets.
+      - name: Install Metal toolchain
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      - name: Setup
+        run: mise run setup
+
+      - name: Build
+        run: mise run build
+
+      - name: Test
+        run: mise run test
+
+      - name: Install (Release)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./install.sh --dir "$RUNNER_TEMP/Applications" --no-cli
+          app="$RUNNER_TEMP/Applications/Calm.app"
+          built="$(defaults read "$app/Contents/Info" CFBundleShortVersionString)"
+          cli="$("$app/Contents/Resources/bin/calm" --version)"
+          if [[ "$built" != "$VERSION" || "$cli" != "calm $VERSION" ]]; then
+            echo "::error::the installed app says $built and its calm says '$cli', not $VERSION"
+            exit 1
+          fi
+
+      - name: Publish
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          NOTES: ${{ steps.version.outputs.notes }}
+        run: |
+          # Before 1.0 a release is a preview, so GitHub doesn't call it the latest stable one.
+          prerelease=()
+          [[ "$VERSION" == 0.* ]] && prerelease=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "Calm Terminal $VERSION" \
+            --notes-file "$NOTES" "${prerelease[@]}"

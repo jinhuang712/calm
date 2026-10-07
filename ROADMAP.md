@@ -261,7 +261,7 @@ Find takes patterns, and in a full-screen program it can search everything the s
 
 ## Later
 
-- Release, beyond 0.1.0. 0.1.0 is a source-only public preview (CHANGELOG.md). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle updates and a Homebrew cask. Before the first download: the licenses of what Ghostty's engine links in (its own dependencies), and whether the pi mark may be shipped (NOTICE says its site states no license).
+- Release, beyond 0.1.0. 0.1.0 (2026-10-08) is a source-only public preview (CHANGELOG.md); a pushed tag builds and publishes a release (DESIGNS.md → Distribution). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle updates and a Homebrew cask. Before the first download: the licenses of what Ghostty's engine links in (its own dependencies), and whether the pi mark may be shipped (NOTICE says its site states no license).
 - Copy an attach command, to reach a session over SSH from another device.
 - Spotlight integration (semantic index on macOS 27+).
 - Scrollback search across open sessions; paste history.

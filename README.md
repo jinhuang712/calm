@@ -4,7 +4,7 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status: 0.1.0, a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). There is no download for now: Calm is built from source.
+> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). There is no download for now: Calm is built from source.
 
 ## What it does
 
@@ -13,14 +13,13 @@ Calm is built for days spent supervising CLI coding agents such as Claude Code, 
 - **Starts your agent with one key.** ⌘N opens a session running Claude Code, or the agent you choose, with the options you picked (skip permissions, a new worktree); ⌘T is a plain shell.
 - **Groups by project, by itself.** Sessions file under the project or folder they work in; scratch sessions (⌘⇧N) are for throwaway work.
 - **Finds any past conversation.** ⌘K searches every agent's history; a past conversation can be resumed, or forked into a new split.
+- **Finds in a session.** ⌘F marks every match and maps them along the pane's edge, and in a full-screen agent it searches everything the session showed, not only the screen.
 - **Is comfortable to read in.** ⌘-click opens a path at its line, ⌥-click copies a table cell, and a files column and viewer show what an agent changed.
 - **Is quiet by default.** Soft themes, gentle motion and very few settings.
 
 Exact behavior is in [FEATURES.md](FEATURES.md).
 
 ## Install
-
-Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 
 Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 

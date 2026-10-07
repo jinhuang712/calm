@@ -289,11 +289,8 @@ struct AgentUpdateTests {
     /// The real syscalls for a program at a fixed path, OpenCode's way: asked its version, and the
     /// file it runs known by inode.
     @Test func `a live program at a fixed path is asked its version and known by inode`() throws {
-        let root = FileManager.default.temporaryDirectory.appending(path: "calm-fixed-\(UUID().uuidString)").resolvingSymlinksInPath()
-        defer { try? FileManager.default.removeItem(at: root) }
-        try FileManager.default.createDirectory(at: root.appending(path: "bin"), withIntermediateDirectories: true)
-        let program = root.appending(path: "bin/tool")
-        try FileManager.default.copyItem(at: URL(filePath: "/bin/sleep"), to: program)
+        // Kept after the test, never removed (`StandInPrograms`).
+        let program = try StandInPrograms.sleep(at: "bin/tool")
 
         let process = Process()
         process.executableURL = program
@@ -306,9 +303,9 @@ struct AgentUpdateTests {
         #expect(AgentUpdates.check(snapshot, probe: probe) == AgentVersions(running: "2.0.20", update: nil))
 
         // The inode read from the live process is the file's own: what a new file at the path would
-        // differ from. The replacing itself isn't done here: a copied /bin/sleep was SIGKILLed when
-        // the files under it changed (code signing; 3 full runs in 37, 2026-10-07), which tested the
-        // stand-in rather than the check. `decideNative`'s tests take the replaced case.
+        // differ from. The replacing itself isn't done here: a program file that changes while it
+        // starts upsets macOS's signature check (`StandInPrograms`). `decideNative`'s tests take
+        // the replaced case.
         let mapped = try #require(ProcessInspector.executableInode(of: process.processIdentifier))
         #expect(mapped == ProcessInspector.fileStatus(of: program.path)?.identity)
         #expect(mapped != ProcessInspector.fileStatus(of: "/bin/sleep")?.identity)
@@ -322,13 +319,11 @@ struct AgentUpdateTests {
     @Test func `a live process is checked through its launcher`() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "calm-update-\(UUID().uuidString)").resolvingSymlinksInPath()
         defer { try? FileManager.default.removeItem(at: root) }
-        let versions = root.appending(path: "versions")
-        try FileManager.default.createDirectory(at: versions, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: root.appending(path: "bin"), withIntermediateDirectories: true)
-        let old = versions.appending(path: "1.0.0")
-        let new = versions.appending(path: "1.1.0")
-        try FileManager.default.copyItem(at: URL(filePath: "/bin/sleep"), to: old)
-        try FileManager.default.copyItem(at: URL(filePath: "/bin/sleep"), to: new)
+        // The programs are kept after the test, never removed (`StandInPrograms`); only the link,
+        // here, comes and goes.
+        let old = try StandInPrograms.sleep(at: "versions/1.0.0")
+        let new = try StandInPrograms.sleep(at: "versions/1.1.0")
         let launcher = root.appending(path: "bin/agent")
         try FileManager.default.createSymbolicLink(at: launcher, withDestinationURL: old)
 

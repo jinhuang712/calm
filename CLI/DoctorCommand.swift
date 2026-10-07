@@ -77,7 +77,9 @@ enum DoctorCommand {
             case .automatic:
                 // Calm's own plugin, loaded in its shells: Claude Code's.
                 .plugin(
-                    written: ClaudeCodeAdapter.pluginFiles().keys.allSatisfy { path in
+                    // The names only: reading the files would need CalmAgents' resource bundle,
+                    // which isn't beside this binary (`pluginFileNames`).
+                    written: ClaudeCodeAdapter.pluginFileNames.allSatisfy { path in
                         FileManager.default.fileExists(atPath: ClaudeCodeAdapter.pluginDirectory.appending(path: path).path)
                     },
                     on: settings.bool("agents.claude-code.hooks", default: true),

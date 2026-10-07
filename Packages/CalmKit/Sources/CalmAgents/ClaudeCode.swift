@@ -153,6 +153,12 @@ extension ClaudeCodeAdapter: HookReporting {
             .appending(path: "Calm/agents/claude-code")
     }
 
+    /// The paths `pluginFiles` writes, without reading anything: what `calm doctor` checks are
+    /// there. The mod comes from CalmAgents' resource bundle through `Bundle.module`, which stops
+    /// the process when it can't find the bundle, and the `calm` inside Calm.app runs from
+    /// `Contents/Resources/bin`, where it doesn't look; so the CLI never calls `pluginFiles`.
+    public static let pluginFileNames: Set<String> = [".claude-plugin/plugin.json", "hooks/hooks.json", "hooks/register.js"]
+
     /// The plugin's files: `.claude-plugin/plugin.json`, `hooks/hooks.json` and the mod,
     /// `hooks/register.js` (pictures of pasted images above the prompt; see `ClaudeCodeMod`).
     /// Hooks run synchronously so reports arrive in order; `calm hook` returns within a second

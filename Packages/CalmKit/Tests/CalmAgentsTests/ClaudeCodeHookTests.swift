@@ -173,6 +173,11 @@ struct ClaudeCodeHookTests {
         #expect(ClaudeCodeAdapter.pastedImagesHandoffDirectory.lastPathComponent == "claude-code-images")
     }
 
+    /// `calm doctor` checks the plugin by these names, since it can't read the mod's resource.
+    @Test func `the plugin's names, which calm doctor checks, are the files it writes`() {
+        #expect(Set(ClaudeCodeAdapter.pluginFiles().keys) == ClaudeCodeAdapter.pluginFileNames)
+    }
+
     @Test func `the hook name finds the adapter`() {
         #expect(Agents.hookReporter(named: "claude-code")?.kind == .claudeCode)
         #expect(Agents.hookReporter(named: "nothing") == nil)

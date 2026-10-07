@@ -274,10 +274,12 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 
   | Agent | Chips | Flags |
   |---|---|---|
-  | Claude Code 2.1.291 | Skip permissions, New worktree | `--dangerously-skip-permissions`, `-w` |
-  | Codex 0.159.0 | Skip approvals and sandbox, New worktree | `--dangerously-bypass-approvals-and-sandbox`, `--worktree` |
+  | Claude Code 2.1.292 | Skip permissions, New worktree | `--dangerously-skip-permissions`, `-w` |
+  | Codex 0.159.0 | Skip approvals and sandbox, New worktree | `--yolo` (Codex's short name for `--dangerously-bypass-approvals-and-sandbox`), `--worktree` |
   | OpenCode 2.0.20 | Auto-approve | `--auto` |
-  | pi 0.99.1 | none: pi doesn't ask before it acts | |
+  | pi 1.0.4 | Trust project files | `--approve` (pi doesn't ask before it acts, so there's nothing to skip) |
+
+  Chips are plain on/off flags that can't contradict one another (the author's call, 2026-10-07: no pick-one options such as a model or an effort level, and no conflicts to manage). Left out on purpose: Codex's `--search`, since web search is on by default (cached results) and `--yolo` already makes it live; and every other Claude Code flag, none of which the author wanted.
 
   Pointing at a chip names its flag. **New worktree** is added only when the session's folder is in a git repository: ⌘N on the welcome page starts in the home folder, and ⌘⇧N in a scratch folder, where the agent would refuse. Any other flag goes in config.toml, as `flags` in the agent's own section (`[agents.claude-code]`, `flags = "--model opus"`), typed as written before the chips' flags.
 - **The whole command**, a hidden way out: `calm config set agents.claude-code.command claude -w` makes ⌘N type exactly that for Claude Code, in place of its name, flags and chips. Settings has no field for it; while it's set, the agent's row shows the command in place of its chips, and `calm config unset agents.claude-code.command` brings them back. It is typed as written everywhere, a scratch folder included: a worktree flag in it isn't left out outside a git repository, as the chip's is.
@@ -285,7 +287,7 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 - **From an agent:** these are `calm config` keys (F13), so the agent in a session can be asked to "start Claude in a worktree on ⌘N": `calm config set agents.claude-code.worktree true`. Teaching agents about `calm` (a plugin) is for later.
 - A new version of an agent can rename or drop a flag. The agent then refuses to start and says why in the session, and the chip's flag changes in its adapter; Calm doesn't check the flags against the agent's `--help`.
 
-**Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (five for the four agents today), in Settings → Agents; stored as `new-session` under `[agents]`, and `skip-permissions` and `worktree` in each agent's section (`[agents.claude-code]`, `[agents.codex]`, `[agents.opencode]`). Two in the config file only: `flags` and `command`, per agent.
+**Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (six for the four agents today), in Settings → Agents; stored as `new-session` under `[agents]`, and `skip-permissions`, `worktree` and `trust-project-files` in each agent's section (`[agents.claude-code]`, `[agents.codex]`, `[agents.opencode]`, `[agents.pi]`). Two in the config file only: `flags` and `command`, per agent.
 
 ## Later, if needed
 

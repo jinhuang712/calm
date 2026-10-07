@@ -31,7 +31,7 @@ struct LaunchCommandTests {
 
     @Test func `skipping the questions for Codex and OpenCode uses their own flags`() throws {
         let skip = "[agents.codex]\nskip-permissions = true\n\n[agents.opencode]\nskip-permissions = true\n"
-        #expect(try command(.codex, skip) == "codex --dangerously-bypass-approvals-and-sandbox")
+        #expect(try command(.codex, skip) == "codex --yolo")
         #expect(try command(.openCode, skip) == "opencode --auto")
     }
 
@@ -39,6 +39,13 @@ struct LaunchCommandTests {
         let config = "[agents.claude-code]\nflags = \"--model opus\"\nworktree = true\n\n[agents.pi]\nflags = \"--provider anthropic\"\n"
         #expect(try command(.claudeCode, config) == "claude --model opus -w")
         #expect(try command(.pi, config) == "pi --provider anthropic")
+    }
+
+    @Test func `pi trusts the project's files when asked`() throws {
+        let trust = "[agents.pi]\ntrust-project-files = true\n"
+        #expect(try command(.pi, trust) == "pi --approve")
+        #expect(try command(.pi, trust, inGit: false) == "pi --approve")
+        #expect(Agents.settingsKey(named: "agents.pi.trust-project-files")?.kind == .bool)
     }
 
     @Test func `the whole command is typed as written, in place of the flags and options`() throws {

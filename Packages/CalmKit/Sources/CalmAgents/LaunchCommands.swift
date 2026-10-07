@@ -3,8 +3,10 @@ import Foundation
 
 // What ⌘N types to start each agent (FEATURES.md → New agent sessions): its command, the flags
 // written in config.toml, then the options chosen in Settings → Agents, each one of the agent's
-// own flags. Read from each agent's `--help` on 2026-10-06: Claude Code 2.1.291, Codex 0.159.0,
-// OpenCode 2.0.20, pi 0.99.1 (which asks before nothing, so it has no option to skip asking).
+// own flags. Read from each agent's `--help` on 2026-10-06 and 2026-10-07: Claude Code 2.1.292,
+// Codex 0.159.0, OpenCode 2.0.20, pi 1.0.4 (which asks before nothing, so it has no option to
+// skip asking). Kept to plain on/off flags that can't contradict one another (the author's call,
+// 2026-10-07: no pick-one options, no conflicts to manage).
 
 public extension ClaudeCodeAdapter {
     var launchCommand: String {
@@ -33,10 +35,13 @@ public extension CodexAdapter {
 
     var launchOptions: [LaunchOption] {
         [
-            // Its help calls it "EXTREMELY DANGEROUS": it also leaves Codex's sandbox, so the chip says so.
+            // `--yolo` is Codex's own short name for `--dangerously-bypass-approvals-and-sandbox`
+            // (hidden from its --help, named in its docs; 0.159 takes it and refuses unknown flags).
+            // It also leaves Codex's sandbox, so the chip says so, and it makes web search live,
+            // which is why there's no chip for `--search`.
             LaunchOption(
-                id: "skip-permissions", label: "Skip approvals and sandbox", flag: "--dangerously-bypass-approvals-and-sandbox",
-                about: "Codex on ⌘N runs commands without asking and outside its sandbox (--dangerously-bypass-approvals-and-sandbox)",
+                id: "skip-permissions", label: "Skip approvals and sandbox", flag: "--yolo",
+                about: "Codex on ⌘N runs commands without asking and outside its sandbox (--yolo)",
             ),
             LaunchOption(
                 id: "worktree", label: "New worktree", flag: "--worktree", onlyInGitRepository: true,
@@ -64,6 +69,15 @@ public extension OpenCodeAdapter {
 public extension PiAdapter {
     var launchCommand: String {
         "pi"
+    }
+
+    var launchOptions: [LaunchOption] {
+        [
+            LaunchOption(
+                id: "trust-project-files", label: "Trust project files", flag: "--approve",
+                about: "pi on ⌘N trusts the project's own .pi files for the run without asking (--approve)",
+            ),
+        ]
     }
 }
 

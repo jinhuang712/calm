@@ -50,17 +50,21 @@ enum ViewableKind: Equatable {
     ]
 }
 
-/// The file viewer (FEATURES.md → F10): a viewable file covers the terminal area; esc returns to
-/// the session exactly as it was (it keeps running underneath).
+/// The file viewer (FEATURES.md → F10): a viewable file covers the terminal area, under the title
+/// strip, which stays the session's; esc returns to the session exactly as it was (it keeps running
+/// underneath).
 @MainActor
 final class FileViewer: NSObject {
     private weak var container: NSView?
     private var root: NSView?
     private var keyMonitor: Any?
     private var onClose: (() -> Void)?
-    private var pendingRender: String?
+    /// Scripts for the page, held until it has loaded.
+    private var pendingScripts: [String] = []
+    private var pageLoaded = false
     private(set) weak var webView: WKWebView?
     private(set) weak var pdfView: PDFView?
+    private var reading: Task<Void, Never>?
     private(set) var file: String?
     /// Find in the file (ViewerFind): the header's field and what it found.
     let find = ViewerFindModel()
@@ -74,6 +78,10 @@ final class FileViewer: NSObject {
     private(set) var session: Session.ID?
     /// Matches the terminal area's corners (a card window rounds them).
     var cornerRadius: CGFloat = 0
+    /// Read by the title strip: it dims the session's name while a file is open over it.
+    let presence = ViewerPresence()
+    /// The header's changes and the switch between the file and its diff.
+    let model = ViewerModel()
 
     init(container: NSView) {
         self.container = container
@@ -86,43 +94,76 @@ final class FileViewer: NSObject {
         root != nil
     }
 
-    /// Shows `path` over `area` (the terminal area), and keeps it there while the sidebar or the
-    /// files column slides. Returns false if Calm can't show it.
+    /// A file to show, and where it's opened from.
+    struct Opening {
+        var path: String
+        /// The line a link pointed at, highlighted in code.
+        var line: Int?
+        /// The session it's opened over; going to another one leaves the file.
+        var session: Session.ID?
+        /// The session's project, which the header's folder is relative to.
+        var projectRoot: String?
+        /// From the files column's Changes: a changed file opens on its unified diff.
+        var preferDiff = false
+    }
+
+    /// Shows a file over `area` (the terminal area, under the title strip), and keeps it there
+    /// while the sidebar or the files column slides. `background` is the terminal's, so the file
+    /// takes the session's place on the same surface. Returns false if Calm can't show it.
     @discardableResult
     func show(
-        _ path: String,
-        line: Int?,
+        _ opening: Opening,
         over area: NSView,
-        session: Session.ID?,
-        sessionTitle: String,
+        background: NSColor,
         style: SidebarStyle,
         onClose: @escaping () -> Void,
     ) -> Bool {
-        guard let container, let kind = ViewableKind.of(path), let content = makeContent(kind, path: path, line: line, style: style) else {
+        let path = opening.path
+        let background = background.withAlphaComponent(1)
+        guard let container, let kind = ViewableKind.of(path),
+              let (content, render) = makeContent(kind, path: path, line: opening.line, background: background, style: style)
+        else {
             return false
         }
         hide(animated: false)
+        // Calm's page takes the file once it has loaded; an HTML file or an SVG loads as it is.
+        pendingScripts = render.map { [$0] } ?? []
+        pageLoaded = false
         self.onClose = onClose
         file = path
-        self.session = session
+        session = opening.session
         find.reset(for: Self.searcher(for: kind, path: path))
+        model.change = .unchanged
+        model.mode = .file
+        presence.isShowing = true
         // The header and content follow the root's size by autoresizing; the root itself is pinned
-        // below to the area's sides and to the window's top and bottom, over the title strip.
-        let frame = NSRect(x: area.frame.minX, y: 0, width: area.frame.width, height: container.bounds.height)
+        // below to the area's edges.
+        let frame = area.frame
         let root = NSView(frame: frame)
         root.translatesAutoresizingMaskIntoConstraints = false
         root.wantsLayer = true
-        root.layer?.backgroundColor = NSColor(style.background).cgColor
+        root.layer?.backgroundColor = background.cgColor
         root.layer?.cornerRadius = cornerRadius
         root.layer?.cornerCurve = .continuous
         root.layer?.masksToBounds = cornerRadius > 0
+        // A card's edge, which the root would otherwise cover.
+        root.layer?.borderWidth = area.layer?.borderWidth ?? 0
+        root.layer?.borderColor = area.layer?.borderColor
 
-        let headerHeight: CGFloat = 46
+        let headerHeight = 40.scaled
         let header = NSHostingView(rootView: ViewerHeader(
-            path: path, sessionTitle: sessionTitle, style: style, find: find,
-            onOpenInEditor: { [weak self] in self?.openInEditor(line: line) },
+            name: (path as NSString).lastPathComponent,
+            folder: Self.folder(of: path, in: opening.projectRoot),
+            detail: Self.detail(kind, path: path),
+            openTitle: Self.openTitle(kind, path: path),
+            style: style,
+            model: model,
+            find: find,
+            onMode: { [weak self] mode in self?.setMode(mode) },
+            onOpen: { [weak self] in self?.open(kind, line: opening.line) },
             onBack: { [weak self] in self?.close() },
         ))
+        header.safeAreaRegions = []
         header.frame = NSRect(x: 0, y: frame.height - headerHeight, width: frame.width, height: headerHeight)
         header.autoresizingMask = [.width, .minYMargin]
         content.frame = NSRect(x: 0, y: 0, width: frame.width, height: frame.height - headerHeight)
@@ -133,8 +174,8 @@ final class FileViewer: NSObject {
         NSLayoutConstraint.activate([
             root.leadingAnchor.constraint(equalTo: area.leadingAnchor),
             root.trailingAnchor.constraint(equalTo: area.trailingAnchor),
-            root.topAnchor.constraint(equalTo: container.topAnchor),
-            root.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            root.topAnchor.constraint(equalTo: area.topAnchor),
+            root.bottomAnchor.constraint(equalTo: area.bottomAnchor),
         ])
         self.root = root
         Motion.fadeIn(root, duration: 0.16)
@@ -143,6 +184,12 @@ final class FileViewer: NSObject {
             guard let self, event.window === container.window else { return event }
             find.hidePictureNote()
             return event.type == .keyDown && handleKey(event) ? nil : event
+        }
+        switch kind {
+        case .markdown, .code, .text:
+            readChanges(of: path, preferDiff: opening.preferDiff)
+        case .html, .image, .pdf:
+            break
         }
         return true
     }
@@ -205,11 +252,14 @@ final class FileViewer: NSObject {
             NSEvent.removeMonitor(keyMonitor)
         }
         keyMonitor = nil
+        reading?.cancel()
+        reading = nil
         file = nil
         session = nil
         pdfMatches = []
         pdfMarks = []
         find.reset(for: .page)
+        presence.isShowing = false
         guard let root else { return }
         self.root = nil
         if animated {
@@ -219,14 +269,110 @@ final class FileViewer: NSObject {
         }
     }
 
-    private func openInEditor(line: Int?) {
+    private func open(_ kind: ViewableKind, line: Int?) {
         guard let file else { return }
-        LinkOpener.openInEditor(file, line: line, column: nil)
+        switch kind {
+        case .image, .pdf:
+            LinkOpener.openInDefaultApp(file)
+        default:
+            LinkOpener.openInEditor(file, line: line, column: nil)
+        }
+    }
+
+    // MARK: Changes
+
+    /// Reads what git says about the file off the main thread; the header's `+3 −3` and switch,
+    /// and the page's marks, appear when it answers.
+    private func readChanges(of path: String, preferDiff: Bool) {
+        reading = Task { [weak self] in
+            let change = await Task.detached(priority: .userInitiated) { ViewerChange.read(path) }.value
+            guard let self, !Task.isCancelled, file == path else { return }
+            model.change = change
+            if let payload = change.pagePayload {
+                runScript(Self.call("calmSetChanges", payload))
+                if preferDiff {
+                    setMode(.unified)
+                }
+            }
+        }
+    }
+
+    func setMode(_ mode: ViewerModel.Mode) {
+        guard case .changed = model.change, model.mode != mode else { return }
+        model.mode = mode
+        runScript("calmSetMode(\"\(mode.rawValue)\")")
+    }
+
+    private func runScript(_ script: String) {
+        if pageLoaded, let webView {
+            webView.evaluateJavaScript(script)
+        } else {
+            pendingScripts.append(script)
+        }
+    }
+
+    private static func call(_ function: String, _ argument: [String: Any]) -> String {
+        let json = (try? JSONSerialization.data(withJSONObject: argument)).flatMap { String(bytes: $0, encoding: .utf8) } ?? "{}"
+        return "\(function)(\(json))"
+    }
+
+    // MARK: Header
+
+    /// The file's folder relative to the session's project when it's inside it (nil at its top),
+    /// else with `~` for home.
+    static func folder(of path: String, in projectRoot: String?) -> String? {
+        let folder = (path as NSString).deletingLastPathComponent
+        if let projectRoot {
+            let root = projectRoot.hasSuffix("/") ? String(projectRoot.dropLast()) : projectRoot
+            if folder == root {
+                return nil
+            }
+            if folder.hasPrefix(root + "/") {
+                return String(folder.dropFirst(root.count + 1))
+            }
+        }
+        return (folder as NSString).abbreviatingWithTildeInPath
+    }
+
+    /// What a picture or a PDF is: "PNG · 2000 × 302 · 84 KB", "PDF · 6 pages".
+    private static func detail(_ kind: ViewableKind, path: String) -> String? {
+        let url = URL(filePath: path)
+        let type = url.pathExtension.uppercased()
+        switch kind {
+        case .image:
+            var parts = [type]
+            if let rep = NSImage(contentsOf: url)?.representations.first, rep.pixelsWide > 0 {
+                parts.append("\(rep.pixelsWide) × \(rep.pixelsHigh)")
+            }
+            if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                parts.append(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
+            }
+            return parts.joined(separator: " · ")
+        case .pdf:
+            guard let pages = PDFDocument(url: url)?.pageCount else { return type }
+            return "\(type) · \(pages) page\(pages == 1 ? "" : "s")"
+        default:
+            return nil
+        }
+    }
+
+    /// Code goes to the editor; a picture or a PDF to the app macOS opens it with.
+    private static func openTitle(_ kind: ViewableKind, path: String) -> String {
+        switch kind {
+        case .image, .pdf:
+            guard let app = NSWorkspace.shared.urlForApplication(toOpen: URL(filePath: path)) else { return "Open" }
+            return "Open in \(FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: ""))"
+        default:
+            return "Open in Editor"
+        }
     }
 
     // MARK: Content
 
-    private func makeContent(_ kind: ViewableKind, path: String, line: Int?, style: SidebarStyle) -> NSView? {
+    /// The view for `path`, and for Calm's own page the script that renders the file in it.
+    private func makeContent(
+        _ kind: ViewableKind, path: String, line: Int?, background: NSColor, style: SidebarStyle,
+    ) -> (NSView, String?)? {
         let url = URL(filePath: path)
         switch kind {
         case .pdf:
@@ -234,18 +380,18 @@ final class FileViewer: NSObject {
             let view = PDFView()
             view.document = document
             view.autoScales = true
-            view.backgroundColor = NSColor(style.background)
+            view.backgroundColor = background
             pdfView = view
-            return view
+            return (view, nil)
         case .image where url.pathExtension.lowercased() != "svg":
             guard let image = NSImage(contentsOf: url) else { return nil }
             let view = NSImageView(image: image)
             view.imageScaling = .scaleProportionallyDown
-            return view
+            return (view, nil)
         case .html, .image:
             let web = makeWebView()
             web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
-            return web
+            return (web, nil)
         case .markdown, .code, .text:
             guard let text = try? String(contentsOf: url, encoding: .utf8),
                   let page = Bundle.main.url(forResource: "viewer", withExtension: "html", subdirectory: "Viewer")
@@ -253,9 +399,8 @@ final class FileViewer: NSObject {
             let web = makeWebView()
             // The map in Calm's page tells the field when a click on a tick changes the current match.
             web.configuration.userContentController.add(findMessages, name: "calmFind")
-            pendingRender = Self.renderScript(kind: kind, text: text, line: line, style: style)
             web.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
-            return web
+            return (web, Self.renderScript(kind: kind, text: text, line: line, background: background, style: style))
         }
     }
 
@@ -273,10 +418,22 @@ final class FileViewer: NSObject {
         func renderedTextForTesting() async -> String? {
             try? await webView?.evaluateJavaScript("document.body.innerText") as? String
         }
+
+        /// What the header shows and the page drew, for a self-test's log.
+        func stateForTesting() async -> String {
+            let lines = model.change.lines.map { "+\($0.added) −\($0.deleted)" } ?? "\(model.change == .new ? "new" : "unchanged")"
+            let script = "[document.querySelectorAll('.l.add,.l.mod').length, document.querySelectorAll('.r.del,.r.add').length].join(' ')"
+            let page = await (try? webView?.evaluateJavaScript(script) as? String) ?? "no page"
+            return "change \(lines), mode \(model.mode.rawValue), marks and diff rows \(page)"
+        }
     #endif
 
-    private static func renderScript(kind: ViewableKind, text: String, line: Int?, style: SidebarStyle) -> String {
-        var document: [String: Any] = ["text": text, "colors": style.viewerColors]
+    private static func renderScript(kind: ViewableKind, text: String, line: Int?, background: NSColor, style: SidebarStyle) -> String {
+        var document: [String: Any] = [
+            "text": text,
+            "colors": style.viewerColors(background: background),
+            "gutter": Double(ViewerHeader.leading),
+        ]
         switch kind {
         case .markdown: document["kind"] = "markdown"
         case let .code(language):
@@ -287,17 +444,17 @@ final class FileViewer: NSObject {
         if let line {
             document["line"] = line
         }
-        let json = (try? JSONSerialization.data(withJSONObject: document)).flatMap { String(bytes: $0, encoding: .utf8) } ?? "{}"
-        return "calmRender(\(json))"
+        return call("calmRender", document)
     }
 }
 
 extension FileViewer: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
-        if let script = pendingRender {
-            pendingRender = nil
+        pageLoaded = true
+        for script in pendingScripts {
             webView.evaluateJavaScript(script)
         }
+        pendingScripts = []
     }
 
     /// Links in a viewed file: web links open in the browser, local files in the viewer or outside.
@@ -316,59 +473,10 @@ extension FileViewer: WKNavigationDelegate {
     }
 }
 
-struct ViewerHeader: View {
-    let path: String
-    let sessionTitle: String
-    let style: SidebarStyle
-    let find: ViewerFindModel
-    let onOpenInEditor: () -> Void
-    let onBack: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text((path as NSString).lastPathComponent)
-                    .calmFont(size: 13, weight: .medium)
-                    .foregroundStyle(style.primary)
-                Text((path as NSString).abbreviatingWithTildeInPath)
-                    .calmFont(size: 11)
-                    .foregroundStyle(style.tertiary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            Spacer(minLength: 12)
-            if find.showsPictureNote {
-                Text("Nothing to find in a picture")
-                    .calmFont(size: 12)
-                    .foregroundStyle(style.secondary)
-            }
-            if find.isOpen {
-                FindFieldView(model: find, style: style) { _, _ in }
-                    .frame(width: 300.scaled)
-            }
-            Button("Open in Editor", action: onOpenInEditor)
-                .controlSize(.small)
-            if !find.isOpen {
-                Button(action: onBack) {
-                    Text("esc · Back to \(sessionTitle)")
-                        .calmFont(size: 11)
-                        .foregroundStyle(style.secondary)
-                        .lineLimit(1)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(style.background)
-        .overlay(alignment: .bottom) { Rectangle().fill(style.tertiary.opacity(0.2)).frame(height: 1) }
-        .environment(\.colorScheme, style.isDark ? .dark : .light)
-    }
-}
-
 extension SidebarStyle {
-    /// CSS colors for the viewer page, from the same palette as the chrome.
-    var viewerColors: [String: String] {
+    /// CSS colors for the viewer page, from the same palette as the chrome, on `background` (the
+    /// terminal's, which the viewer takes the place of).
+    func viewerColors(background: NSColor) -> [String: String] {
         func css(_ color: Color) -> String {
             let resolved = NSColor(color).usingColorSpace(.sRGB) ?? .gray
             return String(
@@ -378,8 +486,9 @@ extension SidebarStyle {
             )
         }
         return [
-            "bg": css(background), "fg": css(primary), "muted": css(secondary), "faint": css(tertiary),
+            "bg": css(Color(nsColor: background)), "fg": css(primary), "muted": css(secondary), "faint": css(tertiary),
             "line": css(tertiary.opacity(0.35)), "code-bg": css(selection), "mark": css(accent.opacity(0.18)),
+            "added": css(done), "removed": css(failure), "modified": css(accent),
         ]
     }
 }

@@ -38,6 +38,10 @@ struct SessionTitleView: View {
     var onCancelRestart: (Session.ID) -> Void = { _ in }
     /// Find (FEATURES.md → F16): while it's open its field takes the readout's place.
     let find: FindModel
+    /// A file open over the session (UIUX.md → Viewing files): the name dims and becomes the way
+    /// back, and the readout steps away (the file's row shows its own changes).
+    let viewer: ViewerPresence
+    var onCloseViewer: () -> Void = {}
     @State private var menuHovered = false
     /// While finding: the row the title and the field share, and the title's whole width with
     /// its worktree, which the field gives way to before the title does.
@@ -55,8 +59,9 @@ struct SessionTitleView: View {
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
         let worktree = session?.worktreeName
-        // The readout gives way to the column, which shows the same numbers, and to find's field.
-        let summary = files.isShown || find.isOpen ? nil : files.summary
+        // The readout gives way to the column, which shows the same numbers, to find's field, and
+        // to a viewed file's own changes.
+        let summary = files.isShown || find.isOpen || viewer.isShowing ? nil : files.summary
         let watch = Watch(root: filesRoot(), working: session?.state == .working)
         HStack(spacing: 8.scaled) {
             Group {
@@ -164,7 +169,13 @@ struct SessionTitleView: View {
         summary: ChangeSummary?,
     ) -> some View {
         HStack(spacing: 0) {
-            titleBlock(strip: strip, title: title, worktree: worktree)
+            if viewer.isShowing {
+                TitleBackButton(style: style, onFrame: onControlFrame, action: onCloseViewer) { hovered in
+                    titleBlock(strip: strip, title: title, worktree: worktree, dimmed: !hovered)
+                }
+            } else {
+                titleBlock(strip: strip, title: title, worktree: worktree)
+            }
             Spacer(minLength: summary == nil ? 0 : 8.scaled)
             if let summary {
                 ChangeReadoutView(summary: summary, style: style, action: actions.toggleFiles, onFrame: onControlFrame)
@@ -174,8 +185,10 @@ struct SessionTitleView: View {
 
     /// The group's mark and the two lines of text: the name, then the folder with the worktree
     /// after it. A plain shell has its folder as the name, so the worktree takes the second line
-    /// alone.
-    private func titleBlock(strip: (folder: String?, title: String?), title: String, worktree: String?) -> some View {
+    /// alone. `dimmed` while a file is open over the session.
+    private func titleBlock(
+        strip: (folder: String?, title: String?), title: String, worktree: String?, dimmed: Bool = false,
+    ) -> some View {
         let folder = strip.title == nil ? nil : strip.folder
         return HStack(spacing: 10.scaled) {
             // The group's own mark (the sidebar's GroupMark): a project's pixel tile, or the
@@ -191,7 +204,7 @@ struct SessionTitleView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .calmFont(size: 15, weight: .medium)
-                    .foregroundStyle(style.primary)
+                    .foregroundStyle(dimmed ? style.secondary : style.primary)
                     .truncationMode(.tail)
                     .accessibilityHidden(true)
                 if folder != nil || worktree != nil {
@@ -309,6 +322,36 @@ private struct ChangeReadoutView: View {
     }
 }
 
+/// The title while a file is open over the session: a click goes back to it, as esc does. A soft
+/// tile under the pointer, like the readout's.
+private struct TitleBackButton<Label: View>: View {
+    let style: SidebarStyle
+    let onFrame: (UUID, CGRect?) -> Void
+    let action: () -> Void
+    @ViewBuilder let label: (Bool) -> Label
+    @State private var hovered = false
+    /// Keys this view's frame, as the readout's: ViewThatFits keeps a copy per row it tries.
+    @State private var id = UUID()
+
+    var body: some View {
+        Button(action: action) {
+            label(hovered)
+                .padding(.horizontal, 6.scaled)
+                .padding(.vertical, 3.scaled)
+                .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(hovered ? style.selection : .clear))
+                .padding(.horizontal, -6.scaled)
+                .padding(.vertical, -3.scaled)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help("Back to the session (esc)")
+        .accessibilityLabel("Back to the session")
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("titleStrip")) } action: { onFrame(id, $0) }
+        .onDisappear { onFrame(id, nil) }
+    }
+}
+
 /// Hosts the title. It takes clicks only on its controls (the ⋯ button and the files readout), so
 /// the strip under the rest of it still drags the window and its double-click still reaches
 /// CalmWindow.
@@ -381,6 +424,8 @@ extension MainWindowController {
             onRestart: { [weak self] id in self?.restartAgent(in: id) },
             onCancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
             find: find,
+            viewer: fileViewer.presence,
+            onCloseViewer: { [weak self] in self?.fileViewer.close() },
         )
     }
 }

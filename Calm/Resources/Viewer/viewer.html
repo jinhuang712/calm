@@ -4,16 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Calm's file viewer (DESIGNS.md → Files and viewer): Markdown and code rendered offline with
-     markdown-it and highlight.js, in the colors Calm passes in. -->
+     markdown-it and highlight.js, in the colors Calm passes in; for a changed file, its changed
+     lines marked and its diff against the last commit, unified or split. -->
 <style>
   :root {
     --bg: #1e1e24; --fg: #d8d8dc; --muted: #9a9aa2; --faint: #6c6c74;
     --line: rgba(255, 255, 255, 0.08); --code-bg: rgba(255, 255, 255, 0.04); --mark: rgba(214, 180, 120, 0.18);
+    --added: #9cbf93; --removed: #bf9490; --modified: #92aecb;
+    /* Where code starts: under the file's name in the header (Calm passes its own). */
+    --gutter: 50px;
   }
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body { font: 15px/1.65 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; -webkit-font-smoothing: antialiased; }
-  main { max-width: 760px; margin: 0 auto; padding: 36px 32px 96px; }
-  main.code { max-width: none; padding: 20px 0 80px; }
+  main { max-width: 760px; margin: 0 auto; padding: 28px 32px 96px; }
+  main.code { max-width: none; padding: 8px 0 80px; }
   h1, h2, h3, h4 { font-weight: 600; line-height: 1.3; margin: 1.6em 0 0.6em; }
   h1 { font-size: 1.7em; } h2 { font-size: 1.35em; } h3 { font-size: 1.12em; }
   h1:first-child, h2:first-child { margin-top: 0; }
@@ -28,10 +32,10 @@
   th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
   th { font-weight: 600; }
   img { max-width: 100%; }
-  /* Code files: line numbers, and the line a link pointed at. */
-  .lines { font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace; counter-reset: line; }
-  .lines .l { display: block; padding: 0 24px 0 0; white-space: pre; }
-  .lines .l::before { counter-increment: line; content: counter(line); display: inline-block; width: 4.5em; padding-right: 1.2em; text-align: right; color: var(--faint); user-select: none; }
+
+  /* Code: no line numbers; the text starts under the file's name. */
+  .lines { font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace; tab-size: 4; }
+  .lines .l { display: block; position: relative; padding: 0 24px 0 var(--gutter); white-space: pre; }
   .lines .l.target { background: var(--mark); }
   /* Find (FEATURES.md → F16): Calm passes --find (the solid accent), --find-band, --find-track,
      --find-box and --find-tick (a lone tick's strength). Every match underlined, the current one
@@ -43,6 +47,49 @@
   #calm-find-map .tick { position: absolute; left: 1px; right: 1px; height: 2px; border-radius: 1px; background: var(--find); cursor: default; }
   #calm-find-map .tick.current { left: -2px; height: 4px; opacity: 1 !important; pointer-events: none; }
   #calm-find-map .box { position: absolute; left: 0; right: 0; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--find-box); pointer-events: none; }
+  /* Changed lines: a bar beside each, and a small wedge where lines were only removed. */
+  .lines .l.add::before, .lines .l.mod::before {
+    content: ""; position: absolute; left: calc(var(--gutter) - 12px); top: 0; bottom: 0; width: 3px; border-radius: 1px;
+  }
+  .lines .l.add::before { background: var(--added); }
+  .lines .l.mod::before { background: var(--modified); }
+  .lines .l.cut::after, .lines .l.cut-end::after {
+    content: ""; position: absolute; left: calc(var(--gutter) - 13px); top: -4px;
+    border: 4px solid transparent; border-left: 6px solid var(--removed); border-right: 0;
+  }
+  .lines .l.cut-end::after { top: auto; bottom: -4px; }
+
+  /* Diffs. */
+  .diff { font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace; tab-size: 4; }
+  .diff .r { display: block; position: relative; padding: 0 24px 0 var(--gutter); white-space: pre; min-height: 1.6em; }
+  .diff .r.del { background: color-mix(in srgb, var(--removed) 13%, transparent); }
+  .diff .r.add { background: color-mix(in srgb, var(--added) 12%, transparent); }
+  .diff .r.del::before, .diff .r.add::before {
+    position: absolute; left: calc(var(--gutter) - 22px); width: 12px; text-align: right;
+  }
+  .diff .r.del::before { content: "−"; color: var(--removed); }
+  .diff .r.add::before { content: "+"; color: var(--added); }
+  .diff .em-del { background: color-mix(in srgb, var(--removed) 34%, transparent); border-radius: 3px; }
+  .diff .em-add { background: color-mix(in srgb, var(--added) 32%, transparent); border-radius: 3px; }
+  .diff .h, .diff .g {
+    display: block; padding: 0 24px 0 var(--gutter); color: var(--faint);
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
+  }
+  .diff .h { white-space: pre; }
+  .diff .g { font: 12px/1.75 -apple-system, BlinkMacSystemFont, sans-serif; }
+  /* Split: the last commit on the left, now on the right; long lines wrap so both sides line up. */
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .split .side-title {
+    font: 600 11px/1 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0.06em; color: var(--faint);
+    padding: 4px 0 8px var(--gutter);
+  }
+  .split .side-title.right, .split .r.right { padding-left: 30px; }
+  .split .r { white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 16px; }
+  .split .r.right.del::before, .split .r.right.add::before { left: 8px; }
+  .split .r.left, .split .side-title.left { box-shadow: inset -1px 0 0 var(--line); }
+  .split .r.none { background: color-mix(in srgb, var(--fg) 3%, transparent); }
+  .split .h, .split .g { grid-column: 1 / -1; }
+
   /* highlight.js, in low-saturation tones. */
   .hljs-comment, .hljs-quote { color: var(--faint); font-style: italic; }
   .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type { color: #b7a6d6; }
@@ -69,29 +116,204 @@
     return escape(code);
   }
 
-  /// Called by Calm: { kind: "markdown" | "code" | "text", text, language?, line?, colors: {…} }
-  window.calmRender = function (document_) {
-    for (const [name, value] of Object.entries(document_.colors || {})) {
-      document.documentElement.style.setProperty(`--${name}`, value);
+  /// Highlighted HTML cut into lines, each closing the spans still open at its end and the next
+  /// reopening them, so a comment or string over several lines keeps its color on every one.
+  function splitLines(html) {
+    const lines = [];
+    const open = [];
+    let line = "";
+    const pattern = /(<span[^>]*>)|(<\/span>)|([^<\n]+|<|\n)/g;
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      if (match[1]) {
+        open.push(match[1]);
+        line += match[1];
+      } else if (match[2]) {
+        open.pop();
+        line += match[2];
+      } else if (match[3] === "\n") {
+        lines.push(line + "</span>".repeat(open.length));
+        line = open.join("");
+      } else {
+        line += match[3];
+      }
     }
-    if (document_.kind === "markdown") {
+    lines.push(line + "</span>".repeat(open.length));
+    return lines;
+  }
+
+  /// Wraps the characters from `start` to `end` of `element`'s text (UTF-16 offsets, as Calm
+  /// counts them) in spans of `className`, cutting through the highlight's spans as needed.
+  function emphasize(element, start, end, className) {
+    if (end <= start) return;
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    let offset = 0;
+    for (const node of nodes) {
+      const length = node.data.length;
+      const from = Math.max(start - offset, 0);
+      const to = Math.min(end - offset, length);
+      if (from < to) {
+        const middle = from > 0 ? node.splitText(from) : node;
+        if (to - from < middle.data.length) middle.splitText(to - from);
+        const mark = document.createElement("span");
+        mark.className = className;
+        middle.parentNode.insertBefore(mark, middle);
+        mark.appendChild(middle);
+      }
+      offset += length;
+    }
+  }
+
+  let doc = null;       // what Calm last asked to render
+  let changes = null;   // the file's changes against the last commit, once Calm has read them
+  let mode = "file";    // "file", "unified" or "split"
+
+  function textLines(text) {
+    const lines = text.split("\n");
+    if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+    return lines;
+  }
+
+  function highlightedLines(text) {
+    if (doc.kind === "code") return splitLines(highlight(text, doc.language));
+    if (doc.kind === "markdown") return splitLines(highlight(text, "markdown"));
+    return textLines(text).map(escape);
+  }
+
+  function renderFile() {
+    if (doc.kind === "markdown") {
       const md = window.markdownit({ html: false, linkify: true, typographer: false, highlight: (code, lang) => highlight(code, lang) });
       content.className = "";
-      content.innerHTML = md.render(document_.text);
+      content.innerHTML = md.render(doc.text);
       return;
     }
     content.className = "code";
-    const html = document_.kind === "code" ? highlight(document_.text, document_.language) : escape(document_.text);
-    // One element per line (keeping highlight spans that cross lines intact enough for reading).
-    const lines = html.split("\n");
-    content.innerHTML = `<div class="lines">${lines.map((line) => `<span class="l">${line || " "}</span>`).join("")}</div>`;
-    if (document_.line) {
-      const target = content.querySelectorAll(".l")[document_.line - 1];
+    const lines = doc.kind === "code" ? splitLines(highlight(doc.text, doc.language)) : doc.text.split("\n").map(escape);
+    const marks = changes ? changes.marks : {};
+    const cuts = new Set(changes ? changes.deletions : []);
+    const count = lines.length;
+    content.innerHTML = `<div class="lines">${lines.map((line, index) => {
+      const number = index + 1;
+      const classes = ["l"];
+      if (marks[number] === "added") classes.push("add");
+      if (marks[number] === "modified") classes.push("mod");
+      if (cuts.has(number)) classes.push("cut");
+      if (number === count && cuts.has(count + 1)) classes.push("cut-end");
+      return `<span class="${classes.join(" ")}">${line || " "}</span>`;
+    }).join("")}</div>`;
+    if (doc.line) {
+      const target = content.querySelectorAll(".l")[doc.line - 1];
       if (target) {
         target.classList.add("target");
         target.scrollIntoView({ block: "center" });
       }
     }
+  }
+
+  function gap(count) {
+    return count > 0 ? `<span class="g">⋯  ${count} unchanged line${count === 1 ? "" : "s"}</span>` : "";
+  }
+
+  /// The quiet rows between hunks: what's before the first, between each and after the last.
+  function gaps() {
+    const total = textLines(doc.text).length;
+    const result = [];
+    let next = 1;
+    for (const hunk of changes.hunks) {
+      result.push(hunk.newStart - next);
+      next = hunk.newStart + hunk.newCount;
+    }
+    result.push(total - next + 1);
+    return result;
+  }
+
+  function renderUnified() {
+    const oldLines = highlightedLines(changes.oldText);
+    const newLines = highlightedLines(doc.text);
+    const between = gaps();
+    let html = "";
+    changes.hunks.forEach((hunk, index) => {
+      html += gap(between[index]);
+      html += `<span class="h">${escape(hunk.header)}${hunk.section ? "  " + escape(hunk.section) : ""}</span>`;
+      for (const row of hunk.rows) {
+        const text = row.k === "del" ? oldLines[row.o - 1] : newLines[row.n - 1];
+        const kind = row.k === "ctx" ? "" : row.k;
+        html += `<span class="r ${kind}" data-em="${row.em ? row.em.join(",") : ""}">${text || " "}</span>`;
+      }
+    });
+    html += gap(between[between.length - 1]);
+    content.className = "code";
+    content.innerHTML = `<div class="diff">${html}</div>`;
+    for (const row of content.querySelectorAll(".r[data-em]:not([data-em=''])")) {
+      const [start, end] = row.dataset.em.split(",").map(Number);
+      emphasize(row, start, end, row.classList.contains("del") ? "em-del" : "em-add");
+    }
+  }
+
+  function renderSplit() {
+    const oldLines = highlightedLines(changes.oldText);
+    const newLines = highlightedLines(doc.text);
+    const between = gaps();
+    let html = `<div class="side-title left">LAST COMMIT</div><div class="side-title right">NOW</div>`;
+    const cell = (side, line, number, kind, em) => {
+      if (!line) return `<span class="r ${side} none"> </span>`;
+      const text = (side === "left" ? oldLines : newLines)[number - 1];
+      return `<span class="r ${side} ${kind}" data-em="${em ? em.join(",") : ""}">${text || " "}</span>`;
+    };
+    changes.hunks.forEach((hunk, index) => {
+      html += gap(between[index]);
+      html += `<span class="h">${escape(hunk.header)}${hunk.section ? "  " + escape(hunk.section) : ""}</span>`;
+      for (const pair of hunk.pairs) {
+        html += cell("left", pair.l, pair.l && pair.l.o, pair.l && pair.l.k, pair.l && pair.l.em);
+        html += cell("right", pair.r, pair.r && pair.r.n, pair.r && pair.r.k, pair.r && pair.r.em);
+      }
+    });
+    html += gap(between[between.length - 1]);
+    content.className = "code";
+    content.innerHTML = `<div class="diff split">${html}</div>`;
+    for (const row of content.querySelectorAll(".r[data-em]:not([data-em=''])")) {
+      const [start, end] = row.dataset.em.split(",").map(Number);
+      emphasize(row, start, end, row.classList.contains("del") ? "em-del" : "em-add");
+    }
+  }
+
+  function render() {
+    if (!doc) return;
+    if (mode !== "file" && changes) {
+      mode === "split" ? renderSplit() : renderUnified();
+      window.scrollTo(0, 0);
+    } else {
+      renderFile();
+    }
+    refind();
+  }
+
+  /// Called by Calm: { kind: "markdown" | "code" | "text", text, language?, line?, gutter?, colors: {…} }
+  window.calmRender = function (document_) {
+    for (const [name, value] of Object.entries(document_.colors || {})) {
+      document.documentElement.style.setProperty(`--${name}`, value);
+    }
+    if (document_.gutter) {
+      document.documentElement.style.setProperty("--gutter", `${document_.gutter}px`);
+    }
+    doc = document_;
+    render();
+  };
+
+  /// Called by Calm once it has read the file's changes: { marks: {line: "added" | "modified"},
+  /// deletions: [line], oldText, hunks: [{ header, section, newStart, newCount, rows, pairs }] }.
+  window.calmSetChanges = function (changes_) {
+    changes = changes_;
+    render();
+  };
+
+  /// Called by Calm when the header's switch changes: "file", "unified" or "split".
+  window.calmSetMode = function (mode_) {
+    if (mode_ === mode) return;
+    mode = mode_;
+    render();
   };
 
   // Find: the field in Calm's viewer header calls these, and each returns { total, current }.
@@ -99,6 +321,7 @@
   let finds = [];
   let current = -1;
   let map = null;
+  let findWords = "";   // what find is looking for, so a redraw can look again
 
   function clearFind() {
     for (const mark of finds) {
@@ -210,12 +433,29 @@
   });
   window.addEventListener("resize", () => drawMap());
 
+  /// After the page is drawn again (the switch between the file and its diff, or the changes
+  /// arriving), the old marks went with the old content: mark the words again and tell the field.
+  function refind() {
+    if (!findWords) return;
+    finds = [];
+    current = -1;
+    map?.remove();
+    map = null;
+    markAll(findWords);
+    if (finds.length) {
+      const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
+      select(first < 0 ? 0 : first, false);
+    }
+    window.webkit?.messageHandlers?.calmFind?.postMessage(findState());
+  }
+
   /// Marks `words` and makes the first match in view, or the first after it, the current one.
   window.calmFind = function (words, colors) {
     for (const [name, value] of Object.entries(colors || {})) {
       document.documentElement.style.setProperty(`--${name}`, value);
     }
     clearFind();
+    findWords = words || "";
     if (!words) return findState();
     markAll(words);
     if (finds.length) {
@@ -234,6 +474,7 @@
   };
 
   window.calmFindClose = function () {
+    findWords = "";
     clearFind();
     return findState();
   };

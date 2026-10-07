@@ -26,11 +26,33 @@ extension MainWindowController {
                 model.toggle(folder)
                 FileHandle.standardError
                     .write(Data("calm-selftest: files column folder \(folder) open \(model.expanded.contains(folder))\n".utf8))
-            } else if action.hasPrefix("files_open:") {
-                let path = String(action.dropFirst(11))
-                model.open(path)
+            } else if action.hasPrefix("files_open:") || action.hasPrefix("files_change:") {
+                // files_change:<file> is a click on its row in Changes, which opens its diff.
+                let fromChanges = action.hasPrefix("files_change:")
+                let path = String(action.drop(while: { $0 != ":" }).dropFirst())
+                model.open(path, fromChanges: fromChanges)
                 let viewed = model.viewedFile ?? "none"
                 FileHandle.standardError.write(Data("calm-selftest: files column opened \(path), viewing \(viewed)\n".utf8))
+            }
+        }
+
+        /// The viewer's self-test actions: viewer_text (the page's text), viewer_state (its
+        /// changes, mode and what the page drew), viewer_mode:file|unified|split (a click on the
+        /// header's switch).
+        func viewerForTesting(_ action: String) {
+            if action == "viewer_text" {
+                Task { @MainActor in
+                    let text = await fileViewer.renderedTextForTesting() ?? "no page"
+                    let head = text.prefix(80).replacingOccurrences(of: "\n", with: " ⏎ ")
+                    FileHandle.standardError.write(Data("calm-selftest: viewer text \(text.count) characters: \(head)\n".utf8))
+                }
+            } else if action == "viewer_state" {
+                Task { @MainActor in
+                    let state = await fileViewer.stateForTesting()
+                    FileHandle.standardError.write(Data("calm-selftest: viewer \(state)\n".utf8))
+                }
+            } else if action.hasPrefix("viewer_mode:"), let mode = ViewerModel.Mode(rawValue: String(action.dropFirst(12))) {
+                fileViewer.setMode(mode)
             }
         }
     #endif
@@ -141,15 +163,19 @@ extension MainWindowController {
     // MARK: Viewer
 
     /// Shows a file over the terminal area (FEATURES.md → F10); esc returns to the session.
-    /// Returns false for files Calm can't show.
+    /// `preferDiff` opens a changed file on its diff. Returns false for files Calm can't show.
     @discardableResult
-    func showFile(_ path: String, line: Int? = nil) -> Bool {
+    func showFile(_ path: String, line: Int? = nil, preferDiff: Bool = false) -> Bool {
         let session = focusedSession
-        let title = session?.displayTitle ?? "session"
+        // The terminal's own background, so the file takes the session's place on the same surface.
+        let background = focusedPane?.effectiveBackgroundColor
+            ?? TerminalEngine.shared.config?.backgroundColor
+            ?? NSColor(white: 0.15, alpha: 1)
         fileViewer.findColors = viewerFindColors
-        let shown = fileViewer.show(
-            path, line: line, over: mainArea, session: session?.id, sessionTitle: title, style: sidebarStyle,
-        ) { [weak self] in
+        let opening = FileViewer.Opening(
+            path: path, line: line, session: session?.id, projectRoot: focusedProjectPath, preferDiff: preferDiff,
+        )
+        let shown = fileViewer.show(opening, over: mainArea, background: background, style: sidebarStyle) { [weak self] in
             guard let self else { return }
             filesColumn.model.viewedFile = nil
             if let pane = focusedPane {

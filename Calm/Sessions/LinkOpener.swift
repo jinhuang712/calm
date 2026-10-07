@@ -106,6 +106,11 @@ enum LinkOpener {
         }
     }
 
+    /// A picture or a PDF from the viewer: the app macOS opens it with, not the code editor.
+    static func openInDefaultApp(_ path: String) {
+        perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+    }
+
     /// Headless self-tests never open other apps: they log what would be opened.
     private static func perform(_ description: String, _ action: () -> Void) {
         log.info("link: \(description, privacy: .public)")

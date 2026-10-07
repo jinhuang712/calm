@@ -38,31 +38,32 @@ struct FileViewerTests {
         return path
     }
 
-    @Test func `the viewer stays on the terminal area while the columns beside it slide`() throws {
+    @Test func `the viewer covers the terminal area, under the title strip, while the columns beside it slide`() throws {
         let path = try makeImage()
         defer { try? FileManager.default.removeItem(atPath: path) }
         let window = Window(leading: 550)
         let viewer = FileViewer(container: window.container)
         let style = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
-        #expect(viewer.show(path, line: nil, over: window.area, session: UUID(), sessionTitle: "Work", style: style) {})
+        #expect(viewer.show(FileViewer.Opening(path: path, session: UUID()), over: window.area, background: .black, style: style) {})
         let root = try #require(window.container.subviews.last)
         window.container.layoutSubtreeIfNeeded()
-        #expect(root.frame == NSRect(x: 550, y: 0, width: 450, height: 600))
+        // The strip above the area stays the session's.
+        #expect(root.frame == NSRect(x: 550, y: 0, width: 450, height: 572))
 
         // The files column closes: the terminal area grows to the left, and so does the viewer.
         window.leading.constant = 300
         window.container.layoutSubtreeIfNeeded()
-        #expect(root.frame == NSRect(x: 300, y: 0, width: 700, height: 600))
+        #expect(root.frame == NSRect(x: 300, y: 0, width: 700, height: 572))
         // Its header and content follow.
         #expect(root.subviews.allSatisfy { $0.frame.width == 700 })
 
         // The sidebar goes too, and the column opens again.
         window.leading.constant = 0
         window.container.layoutSubtreeIfNeeded()
-        #expect(root.frame == NSRect(x: 0, y: 0, width: 1000, height: 600))
+        #expect(root.frame == NSRect(x: 0, y: 0, width: 1000, height: 572))
         window.leading.constant = 272
         window.container.layoutSubtreeIfNeeded()
-        #expect(root.frame == NSRect(x: 272, y: 0, width: 728, height: 600))
+        #expect(root.frame == NSRect(x: 272, y: 0, width: 728, height: 572))
     }
 
     @Test func `the viewer remembers the session it was opened over until it closes`() throws {
@@ -74,12 +75,17 @@ struct FileViewerTests {
         let session = UUID()
         var closed = 0
         #expect(viewer.session == nil)
-        #expect(viewer.show(path, line: nil, over: window.area, session: session, sessionTitle: "Work", style: style) { closed += 1 })
+        #expect(viewer.show(FileViewer.Opening(path: path, session: session), over: window.area, background: .black, style: style) {
+            closed += 1
+        })
         #expect(viewer.isShowing)
         #expect(viewer.session == session)
+        // The title strip dims the session's name while the file is open.
+        #expect(viewer.presence.isShowing)
         viewer.close()
         #expect(!viewer.isShowing)
         #expect(viewer.session == nil)
+        #expect(!viewer.presence.isShowing)
         #expect(closed == 1)
     }
 }

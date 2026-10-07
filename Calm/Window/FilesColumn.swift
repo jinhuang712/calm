@@ -22,7 +22,8 @@ final class FilesModel {
     private var opened: Set<String> = []
     var style = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
     var viewedFile: String?
-    var onOpen: (String) -> Void = { _ in }
+    /// Opens a file in the viewer; true when it was opened from Changes, to show its diff.
+    var onOpen: (String, Bool) -> Void = { _, _ in }
     private var loading: Task<Void, Never>?
 
     /// Whether the column is on screen. The sidebar's footer row reads Hide Files while it is, and
@@ -77,10 +78,11 @@ final class FilesModel {
         }
     }
 
-    /// Opens a file of the tree (a path relative to `root`) in the viewer.
-    func open(_ path: String) {
+    /// Opens a file of the tree (a path relative to `root`) in the viewer; one opened from
+    /// Changes shows its diff.
+    func open(_ path: String, fromChanges: Bool = false) {
         guard let root else { return }
-        onOpen((root as NSString).appendingPathComponent(path))
+        onOpen((root as NSString).appendingPathComponent(path), fromChanges)
     }
 
     func isViewed(_ path: String) -> Bool {
@@ -283,7 +285,7 @@ final class FilesColumn {
         widthConstraint?.constant ?? 0
     }
 
-    init(onOpen: @escaping (String) -> Void) {
+    init(onOpen: @escaping (String, Bool) -> Void) {
         let model = model
         model.onOpen = onOpen
         host = NSHostingView(rootView: FilesColumnView(model: model))
@@ -363,7 +365,7 @@ struct FilesColumnView: View {
                         sectionHeader("Changes", count: model.changes.count, style: style)
                         ForEach(model.changes) { change in
                             FilesChangeRow(change: change, viewed: model.isViewed(change.path), style: style) {
-                                model.open(change.path)
+                                model.open(change.path, fromChanges: true)
                             }
                         }
                         Rectangle()

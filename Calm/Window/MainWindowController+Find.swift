@@ -42,7 +42,7 @@ extension MainWindowController {
         let accent = TerminalTheme.chromeColors(matching: terminal)?.findAccent
             ?? (palette.count == 16 ? palette[4].hexString : NSColor(sidebarStyle.accent).hexString)
         return FindColors(
-            background: NSColor(sidebarStyle.background).hexString, foreground: NSColor(sidebarStyle.primary).hexString, accent: accent,
+            background: terminal.withAlphaComponent(1).hexString, foreground: NSColor(sidebarStyle.primary).hexString, accent: accent,
         )
     }
 

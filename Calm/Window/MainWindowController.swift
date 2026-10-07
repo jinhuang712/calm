@@ -28,7 +28,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var sessionMenu = SessionMenuController(container: container)
     lazy var linkTag = LinkTag(container: container)
     lazy var fileViewer = FileViewer(container: container)
-    lazy var filesColumn = FilesColumn { [weak self] path in self?.showFile(path) }
+    lazy var filesColumn = FilesColumn { [weak self] path, fromChanges in self?.showFile(path, preferDiff: fromChanges) }
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
     lazy var welcomePage = WelcomePage(container: container)

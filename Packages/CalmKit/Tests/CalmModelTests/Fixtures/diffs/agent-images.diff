@@ -1,0 +1,24 @@
+diff --git a/agent-images.sh b/agent-images.sh
+index 52f8d7c..d18615a 100755
+--- a/agent-images.sh
++++ b/agent-images.sh
+@@ -6,16 +6,16 @@
+ # holding the tags (#9 has no file), and stands in for claude. It draws after Calm knows the
+ # agent, as the real one keeps redrawing.
+ set -euo pipefail
++trap 'rm -rf "$folder"' EXIT
+ : "${CLAUDE_CODE_TMPDIR:?run this in a self-test started with CLAUDE_CODE_TMPDIR set}"
+ session=selftest-images
+ folder="$CLAUDE_CODE_TMPDIR/claude-$(id -u)/-selftest/$session/images"
+ mkdir -p "$folder"
+-# A 1 × 1 PNG.
+ base64 -d > "$folder/1.png" <<< "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+ (
+-  sleep 2.5
++  sleep 3
+   "$CALM_CLI" status idle --agent claudeCode --agent-session "$session"
+   sleep 0.5
+-  printf '❯ [Image #1] which one? and [Image #9] has no file\n'
++  printf '❯ [Image #1] which one? and [Image #9] has no file — hover each\n'
+ ) &
+ exec "$(dirname "$0")/agent-standin.sh" claude 60

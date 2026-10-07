@@ -423,42 +423,22 @@ final class SessionManager {
         return workspace.selectedLayout?.focusedSessionID
     }
 
-    /// Applies a status report (from a hook or a terminal signal) and passes on what it means
-    /// for notifications.
-    func report(_ id: Session.ID, _ report: StatusReport) {
-        let previous = workspace.session(id)?.state
-        var effect = AttentionEffect.none
-        Motion.animate(.easeInOut(duration: 0.25)) {
-            effect = workspace.report(id, report, focusedSessionID: lookingAtSessionID)
+    /// Applies `change` to a copy of the workspace and writes it back only if it changed. Any write
+    /// to `workspace`, even a mutating call that leaves it as it was, has every view that reads it
+    /// render again: 13 to 20 million instructions for the sidebar, measured with one card and with
+    /// ten. Agents' hooks mostly repeat themselves (each tool call reports *working* twice, and
+    /// names its session and transcript again), and the model already ignores a repeat.
+    @discardableResult
+    func changeWorkspace(animation: Animation? = nil, _ change: (inout Workspace) -> Void) -> Bool {
+        var copy = workspace
+        change(&copy)
+        guard copy != workspace else { return false }
+        if let animation {
+            Motion.animate(animation) { workspace = copy }
+        } else {
+            workspace = copy
         }
-        Trace.reported(id, report, before: previous, after: workspace.session(id)?.state)
-        AttentionCenter.shared.apply(effect, for: id)
-        // Opted in (Agents panel): a turn finishing or failing where you aren't looking notifies too.
-        if settings.notifyStates == .all, let state = workspace.session(id)?.state, state != previous,
-           state == .done || state == .failed, id != lookingAtSessionID {
-            AttentionCenter.shared.notify(report.message, state: state, for: id)
-        }
-        // A restart that waited for this turn to end can go now.
-        if !restarts.isEmpty {
-            runDueRestarts()
-        }
-        scheduleSave()
-    }
-
-    /// A program in the session signalled something (DESIGNS.md → Attention → fallback signals).
-    /// Reports go in with source `terminal`, so an agent's hooks still outrank them.
-    func terminalSignal(_ id: Session.ID, _ signal: TerminalSignal) {
-        guard let session = workspace.session(id) else { return }
-        switch signal.outcome(currentState: session.state, hasAgent: session.agent != nil) {
-        case let .report(state, message):
-            report(id, StatusReport(state: state, message: message, source: .terminal))
-        case let .notify(message):
-            if id != lookingAtSessionID {
-                AttentionCenter.shared.notify(message, for: id)
-            }
-        case .ignore:
-            break
-        }
+        return true
     }
 
     /// A new reading of an agent's transcript. An interruption counts only if the transcript was
@@ -480,13 +460,6 @@ final class SessionManager {
            let state = tail.stateChange(from: current.state, after: current.lastReport, transcriptWritten: modified) {
             report(id, StatusReport(state: state, message: state == .done ? tail.lastMessage : nil, source: .terminal))
         }
-        scheduleSave()
-    }
-
-    func noteAgentSession(_ id: Session.ID, kind: AgentKind, agentSessionID: String?, transcriptPath: String?) {
-        let before = workspace.session(id)?.agent
-        workspace.noteAgentSession(id, kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath)
-        Trace.agentNamed(id, kind, before: before, after: workspace.session(id)?.agent)
         scheduleSave()
     }
 
@@ -670,7 +643,7 @@ final class SessionManager {
 
     // MARK: Saving
 
-    private func scheduleSave() {
+    func scheduleSave() {
         saveTask?.cancel()
         saveTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(400))

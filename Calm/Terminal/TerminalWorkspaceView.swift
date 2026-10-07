@@ -12,6 +12,8 @@ final class TerminalWorkspaceView: NSView {
     private let linkMarks = LinkMarksView()
     /// Find's underlines and band (FEATURES.md → F16), over the panes like the link marks.
     private let findMarks = FindMarksView()
+    /// Find's map, beside the pane being searched (one at a time).
+    private let findMap = FindMapView()
     /// The veils over the panes that recede in a split, above the panes and their marks
     /// (TerminalWorkspaceView+Dim).
     let veils = VeilsView()
@@ -211,6 +213,7 @@ final class TerminalWorkspaceView: NSView {
             guard let self, let pane else { return }
             linkMarks.update(pane)
             findMarks.update(pane)
+            updateFindMap(pane)
         }
         pane.links.onChange = redraw
         pane.find.onChange = redraw
@@ -222,6 +225,9 @@ final class TerminalWorkspaceView: NSView {
             pane.find.onChange = nil
             linkMarks.remove(pane.id)
             findMarks.remove(pane.id)
+            if findMap.paneID == pane.id {
+                findMap.hide()
+            }
             veilViews.removeValue(forKey: pane.id)?.removeFromSuperview()
             handleViews.removeValue(forKey: pane.id)?.removeFromSuperview()
             if hoveredID == pane.id {
@@ -256,6 +262,10 @@ final class TerminalWorkspaceView: NSView {
             addSubview(handles, positioned: .above, relativeTo: veils)
         }
         handles.frame = bounds
+        // The map takes the pointer, so it lies over everything else on the panes.
+        if subviews.last !== findMap {
+            addSubview(findMap, positioned: .above, relativeTo: nil)
+        }
         for pane in panes.values {
             if animated {
                 pane.resetLinkMarks() // the pane is about to change size; its text will move
@@ -263,9 +273,31 @@ final class TerminalWorkspaceView: NSView {
             } else {
                 linkMarks.update(pane)
                 findMarks.update(pane)
+                updateFindMap(pane)
             }
         }
     }
+
+    /// Shows `pane`'s map, or hides the map if it was `pane`'s and has nothing to show now.
+    private func updateFindMap(_ pane: TerminalSurfaceView) {
+        guard pane.showsFindMap, !pane.isHidden else {
+            if findMap.paneID == pane.id {
+                findMap.hide()
+            }
+            return
+        }
+        findMap.update(pane, frame: pane.frame, inSplit: hasSplits && zoomedPane == nil, colors: findMarks.colors(for: pane))
+    }
+
+    #if DEBUG
+        var findMapForTesting: String {
+            findMap.descriptionForTesting
+        }
+
+        func hoverFindMapForTesting(line: Int?) {
+            findMap.hoverForTesting(line: line)
+        }
+    #endif
 
     // MARK: Layout
 

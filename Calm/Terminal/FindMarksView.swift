@@ -12,11 +12,11 @@ final class FindMarksView: NSView {
         var underlines: [CALayer] = []
         let band = CALayer()
         let bar = CALayer()
-        /// The colors the marks were last drawn with, and what they came from.
-        var colors: (key: String, value: FindColors)?
     }
 
     private var panes: [UUID: Marks] = [:]
+    /// Each pane's colors, and what they came from.
+    private var colorCache: [UUID: (key: String, value: FindColors)] = [:]
 
     /// The underline's thickness, and its gap below the text's baseline.
     private static let thickness: CGFloat = 2
@@ -50,7 +50,7 @@ final class FindMarksView: NSView {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         let marks = panes[pane.id] ?? makeMarks(pane.id, in: layer)
-        let colors = colors(for: pane, marks: marks)
+        let colors = colors(for: pane)
         let solid = NSColor(hex: colors.solid)?.cgColor ?? NSColor.controlAccentColor.cgColor
 
         // Every match but the current one, which wears the pill. Under ⌘ a link wins: find's line
@@ -100,6 +100,7 @@ final class FindMarksView: NSView {
     }
 
     func remove(_ paneID: UUID) {
+        colorCache[paneID] = nil
         guard let marks = panes.removeValue(forKey: paneID) else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -121,7 +122,7 @@ final class FindMarksView: NSView {
     /// The pane's colors, worked out as Calm wrote the pill's: a Calm theme's accent, or palette
     /// color 4 for the user's own colors (TerminalTheme). libghostty can't hand the pill's color
     /// back: a terminal color has no C value.
-    private func colors(for pane: TerminalSurfaceView, marks: Marks) -> FindColors {
+    func colors(for pane: TerminalSurfaceView) -> FindColors {
         let config = pane.shownConfig
         let background = (pane.effectiveBackgroundColor ?? config?.backgroundColor ?? .black).hexString
         let foreground = (config?.color("foreground") ?? .textColor).hexString
@@ -129,11 +130,11 @@ final class FindMarksView: NSView {
         let accent = NSColor(hex: background).flatMap { TerminalTheme.chromeColors(matching: $0)?.findAccent }
             ?? (palette.count == 16 ? palette[4].hexString : foreground)
         let key = background + foreground + accent
-        if let cached = marks.colors, cached.key == key {
+        if let cached = colorCache[pane.id], cached.key == key {
             return cached.value
         }
         let colors = FindColors(background: background, foreground: foreground, accent: accent)
-        marks.colors = (key, colors)
+        colorCache[pane.id] = (key, colors)
         return colors
     }
 

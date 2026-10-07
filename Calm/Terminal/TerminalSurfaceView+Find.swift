@@ -47,6 +47,12 @@ final class PaneFind {
         let position: ScrollbackPosition?
         let count: Int
     }
+
+    /// Every line of the scrollback with a match, for the map (TerminalSurfaceView+FindMap).
+    var map: FindMap?
+    /// Bumped by each scan, so a scan the words have moved past is dropped.
+    var mapGeneration = 0
+    var isMapScanPending = false
 }
 
 extension TerminalSurfaceView {
@@ -70,9 +76,12 @@ extension TerminalSurfaceView {
 
     /// What find marks in this pane (`FindTarget`): the words, or nil for none, and the current match.
     func markFind(_ words: String?, selected: Int?) {
-        if words != find.words {
+        let isNew = words != find.words
+        let moved = selected != find.selected
+        if isNew {
             find.rows = []
             find.counted = nil
+            find.map = nil
         }
         find.words = words
         find.selected = selected
@@ -82,15 +91,25 @@ extension TerminalSurfaceView {
             find.onChange?()
             return
         }
+        if isNew {
+            // After a short pause in typing: each scan reads the whole scrollback.
+            scheduleMapScan(after: 0.15)
+        } else if moved {
+            find.onChange?() // the map's current tick, wherever the match is
+        }
         scheduleFindRefresh(after: 0)
     }
 
     func scrollPositionDidChange(_ position: ScrollbackPosition) {
         guard position != find.position else { return }
+        let grew = position.total != find.position?.total
         find.position = position
-        if find.words != nil {
-            scheduleFindRefresh()
+        guard find.words != nil else { return }
+        scheduleFindRefresh()
+        if grew {
+            scheduleMapScan(after: 1) // new output: at most a scan a second
         }
+        find.onChange?() // the map's box
     }
 
     /// Forgets where the marks were (the cells moved: a new font size, a pane growing) and looks again.

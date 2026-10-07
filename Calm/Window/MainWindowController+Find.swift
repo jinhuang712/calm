@@ -31,6 +31,15 @@ extension MainWindowController {
                 find.step(.newer)
             case "find_close":
                 find.close()
+            case "find_map":
+                let map = (focusedPane?.superview as? TerminalWorkspaceView)?.findMapForTesting ?? "no workspace"
+                FileHandle.standardError.write(Data("calm-selftest: find \(map)\n".utf8))
+            case let hover where hover.hasPrefix("find_map_hover:"):
+                (focusedPane?.superview as? TerminalWorkspaceView)?.hoverFindMapForTesting(line: Int(hover.dropFirst(15)))
+            case let click where click.hasPrefix("find_map_click:"):
+                if let line = Int(click.dropFirst(15)) {
+                    focusedPane?.goToFindLine(line)
+                }
             default:
                 let target = find.target.map { Trace.id($0.id) } ?? "none"
                 let state = "open \(find.isOpen), words \"\(find.query)\", total \(find.total.map(String.init) ?? "nil"), "

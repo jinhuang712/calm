@@ -7,6 +7,7 @@ import Foundation
 /// doesn't read as a selection (DESIGNS.md → Find).
 public struct FindColors: Equatable, Sendable {
     public let background: String
+    public let foreground: String
     /// The current match's pill, every match's underline, the edge bar and the map's current tick.
     public let solid: String
     /// The current line's band, as it looks over the background.
@@ -19,6 +20,7 @@ public struct FindColors: Equatable, Sendable {
     public init(background: String, foreground: String, solid: String) {
         let dark = Self.isDark(background)
         self.background = background
+        self.foreground = foreground
         self.solid = solid
         band = Self.band(background: background, hue: solid, dark: dark)
         tickAlpha = Self.tickAlpha(solid: solid, background: background, foreground: foreground, dark: dark)

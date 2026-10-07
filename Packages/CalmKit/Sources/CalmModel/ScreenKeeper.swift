@@ -45,12 +45,28 @@ public struct ScreenKeeper: Sendable {
     /// that was kept already.
     private var positions: [String: [Int]] = [:]
 
+    /// Where a program began, for the session page, which puts the shell's output before it first.
+    public struct Program: Equatable, Sendable {
+        /// Its first kept line, counted with the dropped ones.
+        public let firstLine: Int
+        /// How many lines the shell's screen had when it started (`SessionPage.shellLines`).
+        public let shellLines: Int
+    }
+
+    /// Each program that took the screen, in order.
+    public private(set) var programs: [Program] = []
+
     public init(limit: Int = 50000) {
         self.limit = limit
     }
 
     public var isEmpty: Bool {
         lines.isEmpty
+    }
+
+    /// A program took the screen, when the shell's screen had `shellLines` lines.
+    public mutating func startProgram(shellLines: Int) {
+        programs.append(Program(firstLine: dropped + lines.count, shellLines: shellLines))
     }
 
     /// The program's screen, `rows` as read at `time` in a pane `columns` wide.
@@ -142,10 +158,17 @@ public struct ScreenKeeper: Sendable {
 
     /// Keeps the screen's `rows`, in order, leaving out any run of them kept already.
     private mutating func keep(_ rows: [Int]) {
+        for row in rowsToKeep(rows) {
+            append(screen[row], shown: shown[row])
+        }
+    }
+
+    /// The screen's `rows` worth keeping, in order: any run of them kept already is left out, and
+    /// blank rows stay only between rows kept here, never before or after them.
+    private func rowsToKeep(_ rows: [Int]) -> [Int] {
         var index = 0
-        // Blank rows are kept between lines kept here, never before or after them.
+        var chosen: [Int] = []
         var pending: [Int] = []
-        var keptAny = false
         while index < rows.count {
             let row = rows[index]
             if !screen[row].isEmpty, let known = keptRun(rows[index...].map { screen[$0] }) {
@@ -154,18 +177,29 @@ public struct ScreenKeeper: Sendable {
                 continue
             }
             if screen[row].isEmpty {
-                if keptAny {
+                if !chosen.isEmpty {
                     pending.append(row)
                 }
             } else {
-                keptAny = true
-                for blank in pending {
-                    append("", shown: shown[blank])
-                }
+                chosen += pending
                 pending = []
-                append(screen[row], shown: shown[row])
+                chosen.append(row)
             }
             index += 1
+        }
+        return chosen
+    }
+
+    /// What's on the program's screen now and isn't kept yet: the session page's last lines.
+    public var screenLines: [Line] {
+        var first = startsPart
+        return rowsToKeep(Array(screen.indices)).map { row in
+            let text = screen[row]
+            let line = Line(text: text, shown: shown[row], startsPart: first && !text.isEmpty)
+            if !text.isEmpty {
+                first = false
+            }
+            return line
         }
     }
 

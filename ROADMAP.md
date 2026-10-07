@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M9 (find, further: patterns and the whole session), designed 2026-10-07. M8 (find) is built and waits on the author's use for its exit criteria. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); the author's use of OpenCode's new plugin (M3); and the *Later* list. OpenCode's search, resume and fork are built.
+**Current milestone:** M9 (find, further: patterns and the whole session), designed and built 2026-10-07; it and M8 (find) wait on the author's use for their exit criteria. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); the author's use of OpenCode's new plugin (M3); and the *Later* list. OpenCode's search, resume and fork are built.
 
 ## How to read this
 
@@ -26,7 +26,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
 | **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | 🟨 (built; exit criteria wait on the author's use) |
-| **M9** Find, further | `.*` patterns, and the whole session for full-screen programs | F16 | M8 | ⬜ |
+| **M9** Find, further | `.*` patterns, and the whole session for full-screen programs | F16 | M8 | 🟨 (built; exit criteria wait on the author's use) |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
 
@@ -237,15 +237,15 @@ A line in a long log is one ⌘F away, and it never looks like a selection. All 
 
 ---
 
-## M9 — Find, further (F16) ⬜
+## M9 — Find, further (F16) 🟨
 
 Find takes patterns, and in a full-screen program it can search everything the session showed, not just the screen. Designed with the author on the canvas (pages Regex and Whole session, 2026-10-07); FEATURES.md → F16, UIUX.md → Find, DESIGNS.md → Find. Each task ships on its own, in this order.
 
 - [x] **M9.1 `.*`:** the switch and ⌥⌘R, Calm's own search for patterns (marks, count, map), the pill painted by engine patch 0019, "Incomplete pattern", remembered per session, ⌘E plain words; patterns in the viewer's own page, no switch for PDFs and web pages. *Built (2026-10-07): `FindQuery` (plain or ICU pattern; unit-tested with `FindMatcher` and `FindMap`), find's own count and steps for a pattern, engine patch 0019 for the pill, the field's `.*`, Edit → Find → Regular Expression ⌥⌘R, JavaScript patterns in the viewer's page. Checked headless against the real engine: `(error|warn)\w*` found 27 in a made-up 121-line log, as counted by hand; stepping fourteen older scrolled the screen and painted the pill on the right word ("15 of 27") with the band and map; `warn(` read "Incomplete pattern"; switching back to plain words handed the search back to the engine; in a viewed file a pattern found 69, a half-typed one said so. Not seen: ⌥⌘R and a click on `.*` with a real keyboard and pointer.*
 - [x] **M9.2 Engine patch 0020:** read the primary screen while the alternate one is shown, for the shell's output before a full-screen program. *Built (2026-10-07): `ghostty_surface_read_primary_text`, `ghostty_surface_read_text` with the points resolved on the primary screen. Checked headless against the real engine: with `region-scroll.sh` on the alternate screen, the shell's last line behind it read "shell-before-the-program", as echoed before it started.*
 - [x] **M9.3 Keeping what a full-screen program shows:** the screen read at most every 0.2 s while it draws, scrolls and replaced views kept, changes in place not, in memory up to 50,000 lines with their times; a perf scenario with a streaming full-screen program, held to the budget. *Built (2026-10-07): `ScreenKeeper` (13 unit tests: scrolls, scrolling back and forth, in-place changes, replaced views, flicks and jumps, new sizes, the program leaving, blank lines, the limit), the pane's reads after frames or, hidden, while its session works, engine patch 0021 for half-drawn frames, perf scenarios `fullscreen` and `fullscreen-unseen`. Checked headless against the real engine with `region-scroll.sh`: shown, 60 lines scrolled by and all were kept in order, then the last view and the prompt when it quit (99 lines, none twice); hidden in a working session, all 120 of 120; hidden in an idle one, none after it was hidden. Nothing to see yet: the switch and the page are M9.4 and M9.5. Not seen: a real agent's full-screen view, whose redraws are its own.*
-- [ ] **M9.4 Screen | Session:** the switch (the field grows to 420 pt while it shows), the note's Search the whole session, the switch after the program quits while lines are kept.
-- [ ] **M9.5 The session page:** the kept lines as a page over the terminal with time marks, the same marks, count and map, patterns too; esc or Screen back to the live program.
+- [x] **M9.4 Screen | Session:** the switch (the field grows to 420 pt while it shows), the note's Search the whole session, the switch after the program quits while lines are kept. *Built (2026-10-07): the switch in the field after `.*` (`FindFieldView`), the field 440 pt in the strip while it shows, not narrowing (420 in the design, before `.*` took its room), the note's count from the session page, Search the whole session. Checked headless with `region-scroll.sh`: "line 503", scrolled off, read "None on screen" with the switch and "Nothing on screen matches. This session showed 70 more lines." over the button; after the program quit the switch stayed. Not seen: a click on Screen or Session with a real pointer.*
+- [x] **M9.5 The session page:** the kept lines as a page over the terminal with time marks, the same marks, count and map, patterns too; esc or Screen back to the live program. *Built (2026-10-07): `SessionPage` (CalmModel, 7 unit tests: the shell's output, each program where it started in it, the screen now last, nothing twice), the viewer's own page in the terminal's font with a time mark and hairline per part, opened at the bottom with the newest match current; the viewer's find with Session chosen; Screen and esc come back to the terminal's find in Screen with the page's words; closing find (⌘F, the cap) leaves the page. Checked headless: "line 503" found 1 of 1 on a 172-line page that began with the shell's line and ended with the prompt; "line 5" opened on 96 of 96 and stepped up and down; `line 50\d` with `.*` found 10 of 10; after the program quit, the shell's later lines came after the program's. Not seen: esc pressed on the page (its path is Screen's), a real agent's conversation on the page.*
 
 **Exit criteria**
 - In the author's use, a line Claude Code showed an hour earlier in its full-screen view is found with ⌘F, Session, without thought.

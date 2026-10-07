@@ -87,6 +87,11 @@ extension TerminalSurfaceView {
             return
         }
         keep.waits = 0
+        if !keep.isFullScreen {
+            // A program took the screen: the session page puts it after the shell's lines so far.
+            // One read of the shell's scrollback, as the program starts.
+            keep.keeper.startProgram(shellLines: SessionPage.shellLines(primaryScreenText() ?? "").count)
+        }
         keep.isFullScreen = true
         let size = ghostty_surface_size(surface)
         let height = Int(size.rows)
@@ -98,6 +103,20 @@ extension TerminalSurfaceView {
         if !drawsFrames, keep.isSessionWorking {
             scheduleKeep(after: Self.keepInterval)
         }
+    }
+
+    /// Whether the session showed more than the screen: a full-screen program is in front, or one
+    /// showed lines the scrollback doesn't hold (find's Screen | Session).
+    var showsMoreThanScreen: Bool {
+        guard let surface else { return false }
+        return ghostty_surface_alternate_screen(surface) || !keep.keeper.isEmpty
+    }
+
+    /// Everything the session showed, for the session page: the shell's output and what full-screen
+    /// programs showed, the one in front last (one read of the scrollback).
+    func sessionPage() -> SessionPage {
+        let running = surface.map { ghostty_surface_alternate_screen($0) } ?? false
+        return SessionPage(shell: primaryScreenText(), keeper: keep.keeper, running: running)
     }
 
     /// The shell's screen and its scrollback, which stay behind a full-screen program (engine

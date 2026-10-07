@@ -82,6 +82,8 @@ final class FileViewer: NSObject {
     let presence = ViewerPresence()
     /// The header's changes and the switch between the file and its diff.
     let model = ViewerModel()
+    /// Showing the session page rather than a file (`showSession`).
+    private(set) var isSessionPage = false
 
     init(container: NSView) {
         self.container = container
@@ -135,6 +137,80 @@ final class FileViewer: NSObject {
         find.reset(for: Self.searcher(for: kind, path: path))
         model.change = .unchanged
         model.mode = .file
+        present(content, header: ViewerHeader(
+            name: (path as NSString).lastPathComponent,
+            folder: Self.folder(of: path, in: opening.projectRoot),
+            detail: Self.detail(kind, path: path),
+            openTitle: Self.openTitle(kind, path: path),
+            style: style,
+            model: model,
+            find: find,
+            onMode: { [weak self] mode in self?.setMode(mode) },
+            onOpen: { [weak self] in self?.open(kind, line: opening.line) },
+            onBack: { [weak self] in self?.close() },
+        ), over: area, background: background)
+        switch kind {
+        case .markdown, .code, .text:
+            readChanges(of: path, preferDiff: opening.preferDiff)
+        case .html, .image, .pdf:
+            break
+        }
+        return true
+    }
+
+    /// What the session page shows (FEATURES.md → F16, the whole session).
+    struct SessionOpening {
+        var page: SessionPage
+        /// "Claude Code · since 14:02 · 1,240 lines"
+        var detail: String
+        /// The session it's opened over; going to another one leaves it.
+        var session: Session.ID?
+        /// The terminal's font, so the lines read as they did there; nil for the page's own.
+        var fontFamily: String?
+        var fontSize: Double
+    }
+
+    /// Shows what the session showed in Calm's page, over the terminal area as a file is shown,
+    /// the newest lines in view. Its find field has Screen | Session with Session chosen: Screen
+    /// and esc go back to the live program (the window's `find.onScreen`).
+    func showSession(
+        _ opening: SessionOpening,
+        over area: NSView,
+        background: NSColor,
+        style: SidebarStyle,
+        onClose: @escaping () -> Void,
+    ) {
+        guard let pageURL = Bundle.main.url(forResource: "viewer", withExtension: "html", subdirectory: "Viewer") else { return }
+        let background = background.withAlphaComponent(1)
+        hide(animated: false)
+        let web = makeWebView()
+        web.configuration.userContentController.add(findMessages, name: "calmFind")
+        web.loadFileURL(pageURL, allowingReadAccessTo: pageURL.deletingLastPathComponent())
+        pendingScripts = [Self.sessionScript(opening, background: background, style: style)]
+        pageLoaded = false
+        self.onClose = onClose
+        session = opening.session
+        isSessionPage = true
+        find.reset(for: .page, session: true)
+        model.change = .unchanged
+        model.mode = .file
+        present(web, header: ViewerHeader(
+            name: "What this session showed",
+            folder: opening.detail,
+            detail: nil,
+            openTitle: nil,
+            style: style,
+            model: model,
+            find: find,
+            onMode: { _ in },
+            onOpen: {},
+            onBack: { [weak self] in self?.find.onScreen?() },
+        ), over: area, background: background)
+    }
+
+    /// Puts `content` under `header` over `area`, on the terminal's `background`.
+    private func present(_ content: NSView, header headerView: ViewerHeader, over area: NSView, background: NSColor) {
+        guard let container else { return }
         presence.isShowing = true
         // The header and content follow the root's size by autoresizing; the root itself is pinned
         // below to the area's edges.
@@ -151,18 +227,7 @@ final class FileViewer: NSObject {
         root.layer?.borderColor = area.layer?.borderColor
 
         let headerHeight = 40.scaled
-        let header = NSHostingView(rootView: ViewerHeader(
-            name: (path as NSString).lastPathComponent,
-            folder: Self.folder(of: path, in: opening.projectRoot),
-            detail: Self.detail(kind, path: path),
-            openTitle: Self.openTitle(kind, path: path),
-            style: style,
-            model: model,
-            find: find,
-            onMode: { [weak self] mode in self?.setMode(mode) },
-            onOpen: { [weak self] in self?.open(kind, line: opening.line) },
-            onBack: { [weak self] in self?.close() },
-        ))
+        let header = NSHostingView(rootView: headerView)
         header.safeAreaRegions = []
         header.frame = NSRect(x: 0, y: frame.height - headerHeight, width: frame.width, height: headerHeight)
         header.autoresizingMask = [.width, .minYMargin]
@@ -185,13 +250,6 @@ final class FileViewer: NSObject {
             find.hidePictureNote()
             return event.type == .keyDown && handleKey(event) ? nil : event
         }
-        switch kind {
-        case .markdown, .code, .text:
-            readChanges(of: path, preferDiff: opening.preferDiff)
-        case .html, .image, .pdf:
-            break
-        }
-        return true
     }
 
     /// The viewer's keys, ahead of the terminal under it: esc closes find first, then the viewer;
@@ -199,7 +257,9 @@ final class FileViewer: NSObject {
     private func handleKey(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
         if event.keyCode == 53, modifiers.isEmpty {
-            if find.isOpen {
+            if isSessionPage {
+                find.onScreen?()
+            } else if find.isOpen {
                 find.close()
             } else {
                 close()
@@ -256,6 +316,7 @@ final class FileViewer: NSObject {
         reading = nil
         file = nil
         session = nil
+        isSessionPage = false
         pdfMatches = []
         pdfMarks = []
         find.reset(for: .page)
@@ -428,6 +489,32 @@ final class FileViewer: NSObject {
         }
     #endif
 
+    /// The page's lines, each with the time mark before it if it starts a part, in the terminal's font.
+    private static func sessionScript(_ opening: SessionOpening, background: NSColor, style: SidebarStyle) -> String {
+        let lines: [[String: String]] = opening.page.lines.map { line in
+            var item = ["t": line.text]
+            if let mark = line.mark {
+                item["m"] = clock(mark)
+            }
+            return item
+        }
+        return call("calmRender", [
+            "kind": "session",
+            "lines": lines,
+            "colors": style.viewerColors(background: background),
+            "gutter": Double(ViewerHeader.leading),
+            "font": opening.fontFamily ?? "",
+            "fontSize": opening.fontSize,
+        ])
+    }
+
+    /// A time as the system shows it ("14:02", or "2:02 PM"), with the day when it isn't today.
+    static func clock(_ date: Date) -> String {
+        Calendar.current.isDateInToday(date)
+            ? date.formatted(date: .omitted, time: .shortened)
+            : date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
     private static func renderScript(kind: ViewableKind, text: String, line: Int?, background: NSColor, style: SidebarStyle) -> String {
         var document: [String: Any] = [
             "text": text,
@@ -455,6 +542,10 @@ extension FileViewer: WKNavigationDelegate {
             webView.evaluateJavaScript(script)
         }
         pendingScripts = []
+        // Find opened before the page could search (the session page opens with the words).
+        if find.isOpen, !find.query.isEmpty {
+            find.onSearch?(find.query)
+        }
     }
 
     /// Links in a viewed file: web links open in the browser, local files in the viewer or outside.

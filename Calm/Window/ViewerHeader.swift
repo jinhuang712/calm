@@ -43,8 +43,8 @@ struct ViewerHeader: View {
     let folder: String?
     /// "PNG · 2000 × 302 · 84 KB", "PDF · 6 pages": what a picture or a document is.
     let detail: String?
-    /// "Open in Editor", or for a picture or a PDF the app that opens it.
-    let openTitle: String
+    /// "Open in Editor", or for a picture or a PDF the app that opens it; nil for the session page.
+    let openTitle: String?
     let style: SidebarStyle
     let model: ViewerModel
     let find: ViewerFindModel
@@ -95,9 +95,11 @@ struct ViewerHeader: View {
             }
             if find.isOpen {
                 FindFieldView(model: find, style: style) { _, _ in }
-                    .frame(width: 300.scaled)
+                    .frame(width: find.showsScope ? 380.scaled : 300.scaled)
             }
-            ViewerOpenButton(title: openTitle, style: style, action: onOpen)
+            if let openTitle {
+                ViewerOpenButton(title: openTitle, style: style, action: onOpen)
+            }
             if !find.isOpen {
                 ViewerBackKey(style: style, action: onBack)
             }

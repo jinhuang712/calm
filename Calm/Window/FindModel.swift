@@ -80,6 +80,13 @@ final class FindModel: FindFieldModel {
     private(set) var isFullScreen = false
     /// The agent running in the searched pane, by name, for the note; nil for any other program.
     var agentName: String?
+    /// The searched pane's session showed more than its screen: a full-screen program is in
+    /// front, or one showed lines its scrollback doesn't hold. Screen | Session shows.
+    var hasSession = false
+    /// How many lines the session showed that its screen doesn't, for the note; nil when unknown.
+    var moreLines: Int?
+    /// Session chosen: the window opens the session page with the words.
+    @ObservationIgnored var onSession: (() -> Void)?
     /// Where the field is in the title strip (top left origin), for the note under it.
     var fieldFrame: CGRect?
     /// Bumped to put the keyboard in the field, with what's in it selected.
@@ -111,11 +118,36 @@ final class FindModel: FindFieldModel {
         isOpen && isFullScreen && !query.isEmpty && total == 0
     }
 
-    /// What the note says: an agent keeps its conversation, which ⌘K searches; Calm knows only
+    /// What the note says: how much more the session showed, which Session searches; with
+    /// nothing more, an agent keeps its conversation, which ⌘K searches, and Calm knows only
     /// agents' names, so any other program is "this program".
     var noteText: String {
-        agentName.map { "\($0) keeps the conversation, not the terminal." }
+        if let moreLines, moreLines > 0 {
+            let lines = moreLines.formatted(.number.grouping(.automatic))
+            return "Nothing on screen matches. This session showed \(lines) more line\(moreLines == 1 ? "" : "s")."
+        }
+        return agentName.map { "\($0) keeps the conversation, not the terminal." }
             ?? "This program draws its own screen, so only what's on it can be searched."
+    }
+
+    /// The note's button: Search the whole session when the session showed more, Search all of
+    /// it ⌘K for an agent otherwise, nothing for another program.
+    var noteButton: NoteButton? {
+        if let moreLines, moreLines > 0 {
+            return .session
+        }
+        return agentName == nil ? nil : .searchAll
+    }
+
+    enum NoteButton {
+        case session, searchAll
+
+        var title: String {
+            switch self {
+            case .session: "Search the whole session"
+            case .searchAll: "Search all of it ⌘K"
+            }
+        }
     }
 
     var placeholder: String {
@@ -149,6 +181,21 @@ final class FindModel: FindFieldModel {
 
     var supportsPattern: Bool {
         true
+    }
+
+    var showsScope: Bool {
+        isOpen && hasSession
+    }
+
+    /// The terminal's field is always Screen; Session is the session page's.
+    var isSession: Bool {
+        false
+    }
+
+    func setScope(session: Bool) {
+        if session, isOpen {
+            onSession?()
+        }
     }
 
     /// `.*` or ⌥⌘R: plain words or a pattern, searched again.
@@ -270,7 +317,8 @@ final class FindModel: FindFieldModel {
         }
     }
 
-    private func open(_ target: FindTarget, query: String, isPattern: Bool) {
+    /// Opens find on `target` with `query`: from ⌘F and ⌘E, and coming back from the session page.
+    func open(_ target: FindTarget, query: String, isPattern: Bool) {
         if isOpen, self.target !== target {
             close()
         }
@@ -326,5 +374,7 @@ final class FindModel: FindFieldModel {
         isPatternIncomplete = false
         isFullScreen = false
         agentName = nil
+        hasSession = false
+        moreLines = nil
     }
 }

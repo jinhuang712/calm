@@ -37,6 +37,13 @@
   .lines { font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace; tab-size: 4; }
   .lines .l { display: block; position: relative; padding: 0 24px 0 var(--gutter); white-space: pre; }
   .lines .l.target { background: var(--mark); }
+  /* The session page (FEATURES.md → F16, the whole session): what the session showed, in the
+     terminal's font, with a hairline and the time where a program moved on. The time is drawn,
+     not text, so find never matches it. */
+  .session .lines { font-family: var(--term-font, "SF Mono"), "SF Mono", ui-monospace, Menlo, monospace; font-size: var(--term-size, 13px); }
+  .session .t { display: flex; align-items: center; gap: 10px; margin: 12px 24px 6px var(--gutter); font: 11px/1.2 -apple-system, BlinkMacSystemFont, sans-serif; color: var(--faint); }
+  .session .t::before { content: attr(data-time); flex: none; }
+  .session .t::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   /* Find (FEATURES.md → F16): Calm passes --find (the solid accent), --find-band, --find-track,
      --find-box and --find-tick (a lone tick's strength). Every match underlined, the current one
      a pill; in a code or text file its line gets the band and the edge bar. */
@@ -182,7 +189,23 @@
     return textLines(text).map(escape);
   }
 
+  function renderSession() {
+    if (doc.font) document.documentElement.style.setProperty("--term-font", JSON.stringify(doc.font));
+    if (doc.fontSize) document.documentElement.style.setProperty("--term-size", `${doc.fontSize}px`);
+    content.className = "code session";
+    content.innerHTML = `<div class="lines">${doc.lines.map((line) => {
+      const mark = line.m ? `<span class="t" data-time="${escape(line.m)}"></span>` : "";
+      return `${mark}<span class="l">${escape(line.t) || " "}</span>`;
+    }).join("")}</div>`;
+    // The newest lines first in view, as the terminal shows them.
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  }
+
   function renderFile() {
+    if (doc.kind === "session") {
+      renderSession();
+      return;
+    }
     if (doc.kind === "markdown") {
       const md = window.markdownit({ html: false, linkify: true, typographer: false, highlight: (code, lang) => highlight(code, lang) });
       content.className = "";
@@ -290,7 +313,8 @@
     refind();
   }
 
-  /// Called by Calm: { kind: "markdown" | "code" | "text", text, language?, line?, gutter?, colors: {…} }
+  /// Called by Calm: { kind: "markdown" | "code" | "text", text, language?, line?, gutter?, colors: {…} },
+  /// or { kind: "session", lines: [{ t: text, m?: time mark }], font, fontSize, gutter, colors }.
   window.calmRender = function (document_) {
     for (const [name, value] of Object.entries(document_.colors || {})) {
       document.documentElement.style.setProperty(`--${name}`, value);
@@ -393,6 +417,18 @@
 
   const findState = () => ({ total: finds.length, current: current });
 
+  function firstCurrent() {
+    if (doc && doc.kind === "session") {
+      let newest = -1;
+      finds.forEach((mark, index) => {
+        if (mark.getBoundingClientRect().top < window.innerHeight) newest = index;
+      });
+      return newest < 0 ? 0 : newest;
+    }
+    const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
+    return first < 0 ? 0 : first;
+  }
+
   function select(index, scroll) {
     const old = finds[current];
     if (old) {
@@ -466,10 +502,7 @@
     map?.remove();
     map = null;
     markAll(findWords, findExpression);
-    if (finds.length) {
-      const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
-      select(first < 0 ? 0 : first, false);
-    }
+    if (finds.length) select(firstCurrent(), false);
     window.webkit?.messageHandlers?.calmFind?.postMessage(findState());
   }
 
@@ -493,8 +526,7 @@
     if (!words) return findState();
     markAll(words, expression);
     if (finds.length) {
-      const first = finds.findIndex((mark) => mark.getBoundingClientRect().bottom >= 0);
-      select(first < 0 ? 0 : first, true);
+      select(firstCurrent(), true);
     } else {
       drawMap();
     }

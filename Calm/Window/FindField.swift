@@ -23,6 +23,11 @@ protocol FindFieldModel: AnyObject, Observable {
     var isPattern: Bool { get }
     var supportsPattern: Bool { get }
     func togglePattern()
+    /// Screen | Session (FEATURES.md → F16, the whole session): whether the switch shows, which
+    /// side is chosen, and choosing a side.
+    var showsScope: Bool { get }
+    var isSession: Bool { get }
+    func setScope(session: Bool)
     func step(up: Bool)
     func close()
 }
@@ -68,6 +73,9 @@ struct FindFieldView<Model: FindFieldModel>: View {
                 .padding(.horizontal, 4.scaled)
             if model.supportsPattern {
                 patternSwitch
+            }
+            if model.showsScope {
+                scopeSwitch
             }
             arrow("chevron.up", help: model.upHelp, disabled: model.upDisabled) { model.step(up: true) }
             arrow("chevron.down", help: model.downHelp, disabled: model.downDisabled) { model.step(up: false) }
@@ -137,6 +145,34 @@ struct FindFieldView<Model: FindFieldModel>: View {
         .help("Regular expression (⌥⌘R)")
         .accessibilityLabel("Regular expression")
         .accessibilityValue(pattern ? "On" : "Off")
+    }
+
+    /// Screen | Session: a two-way switch, the chosen side in the text color on a soft lift.
+    private var scopeSwitch: some View {
+        HStack(spacing: 0) {
+            scopeOption("Screen", chosen: !model.isSession, help: "Search what's on the screen") { model.setScope(session: false) }
+            scopeOption("Session", chosen: model.isSession, help: "Search everything this session showed") { model.setScope(session: true) }
+        }
+        .padding(2.scaled)
+        .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(style.primary.opacity(0.06)))
+        .fixedSize()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Search the screen or the whole session")
+    }
+
+    private func scopeOption(_ title: String, chosen: Bool, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .calmFont(size: 11)
+                .foregroundStyle(chosen ? style.primary : style.tertiary)
+                .padding(.horizontal, 7.scaled)
+                .padding(.vertical, 2.scaled)
+                .background(RoundedRectangle(cornerRadius: 4.scaled, style: .continuous).fill(style.primary.opacity(chosen ? 0.16 : 0)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private func arrow(_ symbol: String, help: String, disabled: Bool, action: @escaping () -> Void) -> some View {

@@ -59,4 +59,23 @@ struct ViewerFindModelTests {
         find.hidePictureNote()
         #expect(!find.showsPictureNote)
     }
+
+    @Test func `on the session page Session is chosen, and Screen goes back`() {
+        let find = ViewerFindModel()
+        var searched: [String] = []
+        var back = 0
+        find.onSearch = { searched.append($0) }
+        find.onScreen = { back += 1 }
+        find.reset(for: .page, session: true)
+        #expect(find.showsScope && find.isSession && find.placeholder == "Find in this session")
+        find.open(words: "line 5", isPattern: true)
+        #expect(find.isOpen && find.isPattern && searched == ["line 5"])
+        find.setScope(session: true) // already there
+        #expect(back == 0)
+        find.setScope(session: false)
+        #expect(back == 1)
+        // A file afterwards has no switch.
+        find.reset(for: .page)
+        #expect(!find.showsScope && find.placeholder == "Find in this file")
+    }
 }

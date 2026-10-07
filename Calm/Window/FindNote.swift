@@ -3,10 +3,11 @@ import Observation
 import SwiftUI
 
 /// The note under find's field when a full-screen program's screen has none of the words
-/// (FEATURES.md → F16, UIUX.md → Find): such a screen keeps no scrollback, so the rest of what
-/// it showed isn't there to search. For an agent, its conversation is, in ⌘K; the note's button
-/// takes the words there. It hangs under the field's right end, over the terminal, on the
-/// ⌘-link tag's surface, and shows only while `FindModel.showsNote`.
+/// (FEATURES.md → F16, UIUX.md → Find): such a screen keeps no scrollback, but Calm kept what the
+/// session showed, and the note's button searches all of it (the session page). With nothing kept,
+/// an agent's conversation is in ⌘K, and the button takes the words there. It hangs under the
+/// field's right end, over the terminal, on the ⌘-link tag's surface, and shows only while
+/// `FindModel.showsNote`.
 @MainActor
 final class FindNote {
     private weak var container: NSView?
@@ -17,6 +18,7 @@ final class FindNote {
     var style: () -> SidebarStyle = { SidebarStyle.derived(from: .black) }
     var background: () -> NSColor? = { nil }
     var onSearchAll: () -> Void = {}
+    var onSession: () -> Void = {}
 
     init(container: NSView, model: FindModel) {
         self.container = container
@@ -28,6 +30,7 @@ final class FindNote {
         withObservationTracking {
             _ = model.showsNote
             _ = model.noteText
+            _ = model.noteButton
             _ = model.fieldFrame
         } onChange: { [weak self] in
             DispatchQueue.main.async {
@@ -48,10 +51,17 @@ final class FindNote {
             return
         }
         let style = style()
+        let button = model.noteButton
         let view = FindNoteView(
-            text: model.noteText, searchesAll: model.agentName != nil, style: style,
+            text: model.noteText, button: button?.title, style: style,
             surface: Self.surface(on: background(), style: style),
-            onSearchAll: { [weak self] in self?.onSearchAll() },
+            onButton: { [weak self] in
+                switch button {
+                case .session: self?.onSession()
+                case .searchAll: self?.onSearchAll()
+                case nil: break
+                }
+            },
         )
         let host = host ?? {
             let created = NoteHost(rootView: view)
@@ -78,7 +88,7 @@ final class FindNote {
     #if DEBUG
         var descriptionForTesting: String {
             guard let host else { return "no note" }
-            return "note \"\(model.noteText)\", button \(model.agentName != nil), frame \(host.frame)"
+            return "note \"\(model.noteText)\", button \"\(model.noteButton?.title ?? "none")\", frame \(host.frame)"
         }
     #endif
 }
@@ -93,10 +103,10 @@ private final class NoteHost: NSHostingView<FindNoteView> {
 
 struct FindNoteView: View {
     let text: String
-    let searchesAll: Bool
+    let button: String?
     let style: SidebarStyle
     let surface: Color
-    let onSearchAll: () -> Void
+    let onButton: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6.scaled) {
@@ -104,9 +114,9 @@ struct FindNoteView: View {
                 .calmFont(size: 12)
                 .foregroundStyle(style.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if searchesAll {
-                Button(action: onSearchAll) {
-                    Text("Search all of it ⌘K")
+            if let button {
+                Button(action: onButton) {
+                    Text(button)
                         .calmFont(size: 12)
                         .foregroundStyle(style.primary)
                         .padding(.horizontal, 8.scaled)

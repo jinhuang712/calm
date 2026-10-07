@@ -17,6 +17,68 @@ extension MainWindowController {
             find.agentName = manager.workspace.session(view.id)?.agent?.kind.displayName
         }
         find.handle(event, from: view)
+        switch event {
+        case .start, .fullScreen:
+            updateFindSession(view)
+        default:
+            break
+        }
+    }
+
+    /// Whether find's field offers Screen | Session for `pane`, and, in a full-screen program, how
+    /// many more lines the session showed, for the note (one read of the scrollback).
+    private func updateFindSession(_ pane: TerminalSurfaceView) {
+        guard find.isSearching(pane) else { return }
+        find.hasSession = pane.showsMoreThanScreen
+        find.moreLines = find.hasSession && find.isFullScreen ? pane.sessionPage().moreCount : nil
+    }
+
+    /// Session, in the field or the note: what the session showed, as a page over the terminal
+    /// with find's words (FEATURES.md → F16, the whole session). The program goes on underneath.
+    func showSessionPage() {
+        guard let pane = (find.target as? TerminalSurfaceView) ?? focusedPane, !settingsPage.isShowing else { return }
+        let words = find.query
+        let pattern = find.isPattern
+        let page = pane.sessionPage()
+        find.close()
+        let background = pane.effectiveBackgroundColor
+            ?? TerminalEngine.shared.config?.backgroundColor
+            ?? NSColor(white: 0.15, alpha: 1)
+        fileViewer.findColors = viewerFindColors
+        let config = pane.shownConfig ?? TerminalEngine.shared.config
+        let agent = manager.workspace.session(pane.id)?.agent?.kind.displayName
+        let opening = FileViewer.SessionOpening(
+            page: page,
+            detail: Self.sessionPageDetail(page, agent: agent),
+            session: pane.id,
+            fontFamily: config?.string("font-family").flatMap { $0.isEmpty ? nil : $0 },
+            fontSize: Double(pane.fontSize ?? 13),
+        )
+        fileViewer.showSession(opening, over: mainArea, background: background, style: sidebarStyle) { [weak self, weak pane] in
+            if let pane {
+                self?.window?.makeFirstResponder(pane)
+            }
+        }
+        fileViewer.find.onScreen = { [weak self, weak pane] in self?.leaveSessionPage(to: pane) }
+        fileViewer.find.open(words: words, isPattern: pattern)
+    }
+
+    /// Screen or esc on the session page: back to the live program, find in Screen with the page's
+    /// words.
+    private func leaveSessionPage(to pane: TerminalSurfaceView?) {
+        let words = fileViewer.find.query
+        let pattern = fileViewer.find.isPattern
+        fileViewer.close()
+        guard let pane else { return }
+        find.open(pane, query: words, isPattern: pattern)
+        updateFindSession(pane)
+    }
+
+    /// The session page's header: "Claude Code · since 14:02 · 1,240 lines".
+    static func sessionPageDetail(_ page: SessionPage, agent: String?) -> String {
+        let count = page.lines.count
+        let lines = "\(count.formatted(.number.grouping(.automatic))) line\(count == 1 ? "" : "s")"
+        return [agent, page.since.map { "since \(FileViewer.clock($0))" }, lines].compactMap(\.self).joined(separator: " · ")
     }
 
     /// ⌥⌘R: switches find's words between plain and a pattern; with find closed, opens it with
@@ -92,6 +154,9 @@ extension MainWindowController {
         /// `find_open`, `find_type:<words>`, `find_older`, `find_newer`, `find_close` drive find as the
         /// keys would; `find_state` logs what the field shows.
         func findForTesting(_ action: String) {
+            if findSessionForTesting(action) {
+                return
+            }
             switch action {
             case "find_open":
                 focusedPane?.perform("start_search")
@@ -140,6 +205,46 @@ extension MainWindowController {
                 if let line = Int(click.dropFirst(15)) {
                     focusedPane?.goToFindLine(line)
                 }
+            default:
+                let target = find.target.map { Trace.id($0.id) } ?? "none"
+                let state = "open \(find.isOpen), pattern \(find.isPattern), words \"\(find.query)\", "
+                    + "total \(find.total.map(String.init) ?? "nil"), selected \(find.selected.map(String.init) ?? "nil"), "
+                    + "shows \"\(find.countText)\", "
+                    + "older \(find.olderDisabled ? "off" : "on"), newer \(find.newerDisabled ? "off" : "on"), pane \(target), "
+                    + "scope \(find.showsScope), more \(find.moreLines.map(String.init) ?? "nil")"
+                    + (focusedPane.map { pane in
+                        let marks = pane.find
+                        let rows = marks.matches.map { runs in
+                            runs.map { "\($0.row):\($0.columns.lowerBound)-\($0.columns.upperBound)" }.joined(separator: "+")
+                        }
+                        let geometry = marks.geometry.map { "origin \($0.origin) baseline \($0.baseline) cell \(pane.cellSize)" } ?? "none"
+                        return ", marks [\(rows.joined(separator: " "))], current \(marks.current.map(String.init) ?? "nil"), \(geometry)"
+                    } ?? "")
+                FileHandle.standardError.write(Data("calm-selftest: find \(state)\n".utf8))
+            }
+        }
+
+        /// The whole session: `find_session` and `find_screen` choose a side of the switch,
+        /// `find_page` logs the session page, `find_kept` every pane's kept lines. False for
+        /// any other action.
+        private func findSessionForTesting(_ action: String) -> Bool {
+            switch action {
+            case "find_session":
+                find.setScope(session: true)
+            case "find_screen":
+                fileViewer.find.setScope(session: false)
+            case "find_page":
+                Task { @MainActor in
+                    let script = "[document.querySelectorAll('.session .l').length, document.querySelectorAll('.session .t').length, "
+                        + "(document.querySelector('.session .l') || {}).textContent, "
+                        + "Array.from(document.querySelectorAll('.session .l')).slice(-5).map(l => l.textContent).join(' / '), "
+                        + "Math.round(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 2, "
+                        + "Array.from(document.querySelectorAll('.session .t')).map(t => t.dataset.time).join(' ')].join(' | ')"
+                    let page = await (try? fileViewer.webView?.evaluateJavaScript(script) as? String) ?? "no page"
+                    let state = "session \(fileViewer.isSessionPage), scope \(fileViewer.find.showsScope), "
+                        + "session chosen \(fileViewer.find.isSession), lines | marks | first | last five | at bottom | times: \(page)"
+                    FileHandle.standardError.write(Data("calm-selftest: find page \(state)\n".utf8))
+                }
             case "find_kept":
                 // Every pane's kept lines, and the last line of the shell's screen behind (patch 0020).
                 for pane in manager.panes.values {
@@ -151,21 +256,9 @@ extension MainWindowController {
                     FileHandle.standardError.write(Data("calm-selftest: kept \(state)\n".utf8))
                 }
             default:
-                let target = find.target.map { Trace.id($0.id) } ?? "none"
-                let state = "open \(find.isOpen), pattern \(find.isPattern), words \"\(find.query)\", "
-                    + "total \(find.total.map(String.init) ?? "nil"), selected \(find.selected.map(String.init) ?? "nil"), "
-                    + "shows \"\(find.countText)\", "
-                    + "older \(find.olderDisabled ? "off" : "on"), newer \(find.newerDisabled ? "off" : "on"), pane \(target)"
-                    + (focusedPane.map { pane in
-                        let marks = pane.find
-                        let rows = marks.matches.map { runs in
-                            runs.map { "\($0.row):\($0.columns.lowerBound)-\($0.columns.upperBound)" }.joined(separator: "+")
-                        }
-                        let geometry = marks.geometry.map { "origin \($0.origin) baseline \($0.baseline) cell \(pane.cellSize)" } ?? "none"
-                        return ", marks [\(rows.joined(separator: " "))], current \(marks.current.map(String.init) ?? "nil"), \(geometry)"
-                    } ?? "")
-                FileHandle.standardError.write(Data("calm-selftest: find \(state)\n".utf8))
+                return false
             }
+            return true
         }
     #endif
 }

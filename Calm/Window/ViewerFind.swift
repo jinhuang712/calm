@@ -47,9 +47,23 @@ final class ViewerFindModel: FindFieldModel {
     @ObservationIgnored var onSearch: ((String) -> Void)?
     @ObservationIgnored var onStep: ((Bool) -> Void)?
     @ObservationIgnored var onClose: (() -> Void)?
+    /// The viewer shows the session page (FEATURES.md → F16): Screen | Session shows, Session chosen.
+    private(set) var showsScope = false
+    /// Screen chosen on the session page: the window goes back to the live program.
+    @ObservationIgnored var onScreen: (() -> Void)?
 
     var placeholder: String {
-        "Find in this file"
+        showsScope ? "Find in this session" : "Find in this file"
+    }
+
+    var isSession: Bool {
+        showsScope
+    }
+
+    func setScope(session: Bool) {
+        if !session, showsScope {
+            onScreen?()
+        }
     }
 
     var countText: String {
@@ -163,8 +177,22 @@ final class ViewerFindModel: FindFieldModel {
         showsPictureNote = false
     }
 
-    /// The viewer went away or showed another file: find starts over, keeping the words.
-    func reset(for searcher: Searcher) {
+    /// Opens the field on the session page with the terminal's words, as they were.
+    func open(words: String, isPattern: Bool) {
+        self.isPattern = isPattern
+        isOpen = true
+        focusRequest += 1
+        if words != query {
+            query = words
+        } else if !query.isEmpty {
+            onSearch?(query)
+        }
+    }
+
+    /// The viewer went away or showed another file (`session` for the session page): find starts
+    /// over, keeping the words.
+    func reset(for searcher: Searcher, session: Bool = false) {
+        showsScope = session
         isOpen = false
         total = nil
         current = nil
@@ -198,7 +226,15 @@ extension FileViewer {
     func wireFind() {
         find.onSearch = { [weak self] words in self?.search(words) }
         find.onStep = { [weak self] up in self?.step(up: up) }
-        find.onClose = { [weak self] in self?.clearFind() }
+        find.onClose = { [weak self] in
+            guard let self else { return }
+            // The session page is for finding: its find closing (⌘F, the cap) leaves it.
+            if isSessionPage {
+                close()
+            } else {
+                clearFind()
+            }
+        }
     }
 
     private func search(_ words: String) {

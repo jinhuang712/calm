@@ -113,12 +113,18 @@ struct SessionTitleView: View {
     }
 
     /// While finding (UIUX.md → Find): the title and, at the right, the field. When the row is short
-    /// the field narrows from 340 to 240 pt first; then the worktree goes, the name shortens down to
+    /// the field narrows from 340 to 240 pt first (with Screen | Session it stays 440); then the worktree goes, the name shortens down to
     /// 96 pt, the name and folder go leaving the mark, and the mark goes. Only the title changes
     /// between ViewThatFits's children, so the field is never rebuilt and keeps the keyboard.
     private func findingRow(strip: (folder: String?, title: String?), title: String, worktree: String?) -> some View {
         let gap = 8.scaled
-        let field = Self.findFieldWidth(row: findRowWidth, title: findTitleWidth, gap: gap, widest: 340.scaled, narrowest: 240.scaled)
+        // With Screen | Session the field's fixed parts (the count, .*, the switch, the arrows and
+        // the cap) take about 360 pt, so it stays 440 pt and the title gives way (UIUX.md → Find).
+        let scope = find.showsScope
+        let field = Self.findFieldWidth(
+            row: findRowWidth, title: findTitleWidth, gap: gap,
+            widest: (scope ? 440 : 340).scaled, narrowest: (scope ? 440 : 240).scaled,
+        )
         return HStack(spacing: gap) {
             ViewThatFits(in: .horizontal) {
                 titleBlock(strip: strip, title: title, worktree: worktree)
@@ -402,6 +408,8 @@ extension MainWindowController {
         findNote
             .background = { [weak self] in self?.focusedPane?.effectiveBackgroundColor ?? TerminalEngine.shared.config?.backgroundColor }
         findNote.onSearchAll = { [weak self] in self?.searchAllOfFind() }
+        findNote.onSession = { [weak self] in self?.showSessionPage() }
+        find.onSession = { [weak self] in self?.showSessionPage() }
         findNote.start()
     }
 

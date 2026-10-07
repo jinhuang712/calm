@@ -230,4 +230,42 @@ struct FindModelTests {
         #expect(width(500, 300) == 240) // down to 240; the title gives way from here
         #expect(width(200, 300) == 200) // never wider than the row
     }
+
+    @Test func `the switch shows while the session showed more than its screen, and Session asks for the page`() {
+        let find = FindModel(), pane = FakePane()
+        var sessions = 0
+        find.onSession = { sessions += 1 }
+        #expect(!find.showsScope)
+        find.handle(.start(needle: ""), from: pane)
+        find.hasSession = true
+        #expect(find.showsScope && !find.isSession)
+        find.setScope(session: false) // Screen is where it is
+        #expect(sessions == 0)
+        find.setScope(session: true)
+        #expect(sessions == 1)
+        find.close()
+        #expect(!find.showsScope && !find.hasSession && find.moreLines == nil)
+    }
+
+    @Test func `the note offers the whole session when it showed more, else the agent's conversation`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        find.agentName = "Claude Code"
+        find.moreLines = 1240
+        #expect(find.noteText == "Nothing on screen matches. This session showed 1,240 more lines.")
+        #expect(find.noteButton == .session)
+        find.moreLines = 1
+        #expect(find.noteText == "Nothing on screen matches. This session showed 1 more line.")
+        find.moreLines = 0
+        #expect(find.noteText == "Claude Code keeps the conversation, not the terminal." && find.noteButton == .searchAll)
+        find.agentName = nil
+        #expect(find.noteButton == nil)
+    }
+
+    @Test func `coming back from the session page opens find on the pane with the page's words`() {
+        let find = FindModel(), pane = FakePane()
+        find.open(pane, query: "segfault", isPattern: true)
+        #expect(find.isSearching(pane) && find.query == "segfault" && find.isPattern)
+        #expect(pane.actions.last == "search:" && pane.marks.words == "segfault" && pane.marksPattern)
+    }
 }

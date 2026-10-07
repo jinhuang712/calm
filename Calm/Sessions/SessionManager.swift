@@ -60,6 +60,10 @@ final class SessionManager {
     /// Sessions whose agent runs an older version than the one installed (the title strip's
     /// update hint), from `checkAgentVersions`. Not saved.
     var agentUpdates: [Session.ID: AgentUpdate] = [:]
+    /// What each running agent runs, for the session menu's header; from the same checks. Not saved.
+    var runningVersions: [Session.ID: String] = [:]
+    /// A version check is out, off the main thread.
+    @ObservationIgnored var checkingVersions = false
 
     /// Once shown, the loading state stays at least this long, so a check that ends just after
     /// the window opens doesn't flash.
@@ -319,6 +323,7 @@ final class SessionManager {
         panes[id] = nil
         restarts[id] = nil
         agentUpdates[id] = nil
+        runningVersions[id] = nil
         workspace.removeSession(id)
         scheduleSave()
     }
@@ -485,6 +490,7 @@ final class SessionManager {
                 restarts[id] = nil
             }
             agentUpdates[id] = nil
+            runningVersions[id] = nil
         } else if let agent = session.agent, restarts[id] == .restarting {
             // Quitting to be started again: the card stays as it is for the second that takes,
             // rather than turning into a shell row and back (`finishRestart` ends the run if the
@@ -502,22 +508,11 @@ final class SessionManager {
                 restarts[id] = nil
             }
             agentUpdates[id] = nil
+            runningVersions[id] = nil
             Trace.probed(id, "\(agent.kind.rawValue) ended", before: session, after: workspace.session(id))
         } else {
             return
         }
-        scheduleSave()
-    }
-
-    /// A restart that didn't bring the agent back: its run ends as if it had exited, so the card
-    /// doesn't go on showing an agent that isn't there.
-    func endRestart(_ id: Session.ID) {
-        restarts[id] = nil
-        guard let agent = workspace.session(id)?.agent, ProcessInspector.snapshot(of: agent.processID) == nil else { return }
-        Motion.animate(.easeInOut(duration: 0.25)) {
-            workspace.endAgentRun(id)
-        }
-        Trace.note("restart \(Trace.id(id)): the agent didn't come back")
         scheduleSave()
     }
 
@@ -659,5 +654,20 @@ final class SessionManager {
         } catch {
             FileHandle.standardError.write(Data("calm: could not save state: \(error)\n".utf8))
         }
+    }
+}
+
+/// Here for the workspace's private setter; the rest of restarting is in SessionManager+Restart.
+extension SessionManager {
+    /// A restart that didn't bring the agent back: its run ends as if it had exited, so the card
+    /// doesn't go on showing an agent that isn't there.
+    func endRestart(_ id: Session.ID) {
+        restarts[id] = nil
+        guard let agent = workspace.session(id)?.agent, ProcessInspector.snapshot(of: agent.processID) == nil else { return }
+        Motion.animate(.easeInOut(duration: 0.25)) {
+            workspace.endAgentRun(id)
+        }
+        Trace.note("restart \(Trace.id(id)): the agent didn't come back")
+        scheduleSave()
     }
 }

@@ -152,8 +152,13 @@ struct PaletteCommandsTests {
         #expect(SessionActionSet.restartTitle(.claudeCode, state: .working, pending: true) == "Don't Restart Claude Code")
     }
 
-    @Test func `an agent Calm can't quit cleanly, or one not yet probed, has no restart`() {
-        #expect(!rows(for: running(.codex)).agent.contains { $0.id == "restart-agent" })
+    @Test func `every agent can be restarted, but not before it's probed or named`() {
+        for kind in AgentKind.allCases {
+            var session = running(kind)
+            // pi's resume names its session file.
+            session.agent?.transcriptPath = "/tmp/s.jsonl"
+            #expect(rows(for: session).agent.contains { $0.id == "restart-agent" }, "\(kind)")
+        }
         var unprobed = running(.claudeCode)
         unprobed.agent?.processID = 0
         #expect(!rows(for: unprobed).agent.contains { $0.id == "restart-agent" })

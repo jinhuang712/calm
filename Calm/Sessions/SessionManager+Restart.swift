@@ -22,7 +22,7 @@ extension SessionManager {
     /// and whose adapter knows how to quit it.
     nonisolated static func restartableAgent(_ session: Session) -> AgentKind? {
         guard let agent = session.agent, agent.processID > 0, agent.conversation != nil,
-              Agents.adapter(for: agent.kind)?.quitSignal != nil
+              Agents.adapter(for: agent.kind)?.quit != nil
         else { return nil }
         return agent.kind
     }
@@ -82,7 +82,7 @@ extension SessionManager {
     /// Asks the agent to quit, after reading how it was started (its argv is gone once it quits).
     private func beginRestart(_ id: Session.ID) {
         guard let agent = workspace.session(id)?.agent, let adapter = Agents.adapter(for: agent.kind),
-              let signal = adapter.quitSignal,
+              let quit = adapter.quit,
               let process = ProcessInspector.snapshot(of: agent.processID), Agents.detect(process) == agent.kind,
               let command = adapter.restartCommand(
                   arguments: process.arguments, agentSessionID: agent.agentSessionID, transcriptPath: agent.transcriptPath ?? "",
@@ -95,14 +95,44 @@ extension SessionManager {
         restarts[id] = .restarting
         let processID = process.processID
         Trace.note("restart \(Trace.id(id)): asking pid \(processID) to quit")
-        Darwin.kill(processID, signal)
+        var presses = 0
+        switch quit {
+        case let .signal(signal):
+            Darwin.kill(processID, signal)
+        case .controlC:
+            pressControlC(in: id)
+            presses = 1
+        }
         Task { [weak self] in
-            // Claude Code takes about 0.3 s. One still there after 5 s isn't quitting: leave it be.
-            let deadline = ContinuousClock.now + .seconds(5)
-            while ProcessInspector.snapshot(of: processID) != nil, ContinuousClock.now < deadline {
+            // The agents take under a second (Claude Code 0.3 s, Codex 0.5 s a press). One still
+            // there after 5 s isn't quitting: leave it be.
+            let started = ContinuousClock.now
+            var lastPress = started
+            while ProcessInspector.snapshot(of: processID) != nil, ContinuousClock.now < started + .seconds(5) {
                 try? await Task.sleep(for: .milliseconds(50))
+                // Again while it hasn't quit: a draft takes a press of its own.
+                if case let .controlC(times) = quit, presses < times, ContinuousClock.now - lastPress >= .milliseconds(500),
+                   ProcessInspector.snapshot(of: processID) != nil {
+                    self?.pressControlC(in: id)
+                    presses += 1
+                    lastPress = .now
+                }
             }
             self?.finishRestart(id, quit: ProcessInspector.snapshot(of: processID) == nil, command: command)
+        }
+    }
+
+    /// ⌃C in a session's terminal, as the keyboard sends it: through its pane, or as the raw byte
+    /// through zmx for a session with no pane. Self-tests press it too: it reaches only the stand-in
+    /// in their own terminal.
+    private func pressControlC(in id: Session.ID) {
+        if let pane = panes[id] {
+            pane.pressControlC()
+        } else if let session = workspace.session(id), persistenceEnabled {
+            PersistentShell.send(name: session.persistentName, text: "\u{3}")
+        }
+        if Headless.isOn {
+            FileHandle.standardError.write(Data("calm-selftest: pressed ⌃C in \(id)\n".utf8))
         }
     }
 
@@ -144,21 +174,50 @@ extension SessionManager {
     // MARK: Updates
 
     /// Checks each running agent against the installed one (`AgentUpdates`), from the probe every
-    /// few seconds. Only a change is published, so the title strip redraws only for news.
+    /// few seconds. Off the main thread: a program whose path names no version (OpenCode) is asked
+    /// with `--version`, once per file. Only a change is published, so the title strip and the
+    /// menu redraw only for news.
     func checkAgentVersions() {
-        var found: [Session.ID: AgentUpdate] = [:]
-        for session in workspace.sessions {
-            guard let agent = session.agent, agent.processID > 0,
-                  let process = ProcessInspector.snapshot(of: agent.processID), Agents.detect(process) == agent.kind,
-                  let update = AgentUpdates.check(process)
-            else { continue }
-            found[session.id] = update
+        guard !checkingVersions else { return }
+        struct Running: Sendable {
+            var id: Session.ID
+            var processID: Int32
+            var kind: AgentKind
         }
-        if found != agentUpdates {
-            for (id, update) in found where agentUpdates[id] != update {
+        let agents = workspace.sessions.compactMap { session -> Running? in
+            guard let agent = session.agent, agent.processID > 0 else { return nil }
+            return Running(id: session.id, processID: agent.processID, kind: agent.kind)
+        }
+        guard !agents.isEmpty else {
+            agentUpdates = [:]
+            runningVersions = [:]
+            return
+        }
+        checkingVersions = true
+        Task.detached(priority: .utility) { [weak self] in
+            var updates: [Session.ID: AgentUpdate] = [:]
+            var versions: [Session.ID: String] = [:]
+            for agent in agents {
+                guard let process = ProcessInspector.snapshot(of: agent.processID), Agents.detect(process) == agent.kind,
+                      let found = AgentUpdates.check(process)
+                else { continue }
+                updates[agent.id] = found.update
+                versions[agent.id] = found.running
+            }
+            await self?.publishVersions(updates: updates, versions: versions)
+        }
+    }
+
+    private func publishVersions(updates: [Session.ID: AgentUpdate], versions: [Session.ID: String]) {
+        checkingVersions = false
+        if updates != agentUpdates {
+            for (id, update) in updates where agentUpdates[id] != update {
                 Trace.note("update \(Trace.id(id)): \(update.running ?? "?") → \(update.installed ?? "?")")
             }
-            agentUpdates = found
+            agentUpdates = updates
+        }
+        if versions != runningVersions {
+            runningVersions = versions
         }
     }
 }

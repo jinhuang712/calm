@@ -338,3 +338,22 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
         }
     }
 }
+
+extension TerminalSurfaceView {
+    /// Presses ⌃C as the keyboard would, so Ghostty encodes it for whatever keyboard mode the program
+    /// asked for (Codex turns on kitty keys and bracketed paste: text sent as a paste would arrive
+    /// as pasted text, not as the key that quits it). A restart quits Codex this way.
+    func pressControlC() {
+        guard let surface else { return }
+        var key = ghostty_input_key_s()
+        key.action = GHOSTTY_ACTION_PRESS
+        key.keycode = 8 // C
+        key.mods = GHOSTTY_MODS_CTRL
+        key.consumed_mods = GHOSTTY_MODS_NONE
+        key.unshifted_codepoint = 99 // c
+        key.text = nil
+        _ = ghostty_surface_key(surface, key)
+        key.action = GHOSTTY_ACTION_RELEASE
+        _ = ghostty_surface_key(surface, key)
+    }
+}

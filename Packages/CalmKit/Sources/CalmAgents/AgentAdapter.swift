@@ -6,11 +6,15 @@ public struct ProcessSnapshot: Sendable, Equatable {
     public var processID: Int32
     public var executablePath: String
     public var arguments: [String]
+    /// The command the shell ran, from the `_` it puts in each command's environment (zsh and bash
+    /// do): what still names pi's script after pi overwrote its argv with its process title.
+    public var commandPath: String?
 
-    public init(processID: Int32, executablePath: String, arguments: [String]) {
+    public init(processID: Int32, executablePath: String, arguments: [String], commandPath: String? = nil) {
         self.processID = processID
         self.executablePath = executablePath
         self.arguments = arguments
+        self.commandPath = commandPath
     }
 
     /// Script runtimes: for these, the script they run names the program.
@@ -18,6 +22,11 @@ public struct ProcessSnapshot: Sendable, Equatable {
 
     private static func basename(_ path: String) -> String {
         (path as NSString).lastPathComponent
+    }
+
+    /// The executable is a script runtime (node, bun): the program is the script it runs.
+    var runsScript: Bool {
+        Self.runtimes.contains(Self.basename(executablePath))
     }
 
     /// The runtime's script, when the executable is a script runtime (`node …/bin/pi`).
@@ -69,10 +78,10 @@ public protocol AgentAdapter: Sendable {
     func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
     /// The shell command that starts a new conversation from a copy of one, if the agent can.
     func forkCommand(agentSessionID: String?, transcriptPath: String) -> String?
-    /// The signal that makes the running agent quit and leave the terminal as it found it, so it
-    /// can be started again on the same conversation; nil when Calm doesn't restart this agent
-    /// (no way to quit it has been checked).
-    var quitSignal: Int32? { get }
+    /// How to make the running agent quit and leave the terminal as it found it, so it can be
+    /// started again on the same conversation; nil when Calm doesn't restart this agent (no way to
+    /// quit it has been checked).
+    var quit: AgentQuit? { get }
     /// The shell command that starts the agent again on the conversation, with the options it was
     /// started with (`arguments`: the running process's argv): what a restart types once it quit.
     func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath: String) -> String?
@@ -117,7 +126,7 @@ public extension AgentAdapter {
         nil
     }
 
-    var quitSignal: Int32? {
+    var quit: AgentQuit? {
         nil
     }
 

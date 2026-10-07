@@ -67,10 +67,16 @@ struct SessionMenuTests {
         #expect(content.header == .init(agent: .claudeCode, version: nil))
     }
 
-    @Test func `an agent Calm can't restart keeps its fork tiles`() {
+    @Test func `codex restarts and forks like Claude Code`() {
         let content = menu(running(.codex))
-        #expect(content.tiles.map(\.title) == ["Fork", "Fork"])
+        #expect(content.tiles.map(\.title) == ["Restart", "Fork", "Fork"])
         #expect(content.header?.agent == .codex)
+    }
+
+    @Test func `an agent not yet probed keeps its fork tiles`() {
+        var session = running()
+        session.agent?.processID = 0
+        #expect(menu(session).tiles.map(\.title) == ["Fork", "Fork"])
     }
 
     @Test func `a plain shell has no header or tiles, and one copy without a label`() {

@@ -23,9 +23,10 @@ extension MainWindowController {
 
     func showSessionMenu(_ id: Session.ID, at anchor: SessionMenuAnchor) {
         guard let session = manager.workspace.session(id) else { return }
-        let running = session.agent.flatMap { $0.processID > 0 ? AgentUpdates.runningVersion(of: $0.processID) : nil }
+        // From the last version check (every 10 s, off the main thread): asking OpenCode its version
+        // here would hold the menu up.
         let content = SessionMenuContent.make(
-            for: session, phase: manager.restarts[id], update: manager.agentUpdates[id], runningVersion: running,
+            for: session, phase: manager.restarts[id], update: manager.agentUpdates[id], runningVersion: manager.runningVersions[id],
             projects: manager.workspace.orderedProjects, isFront: id == manager.workspace.selectedLayout?.focusedSessionID,
         )
         sessionMenu.show(content, for: id, at: anchor, style: sidebarStyle) { [weak self] action in

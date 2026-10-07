@@ -161,19 +161,7 @@ struct ClaudeCodeHookTests {
         #expect(hooks.contains("|| true"))
     }
 
-    @Test func `the plugin carries the mod`() throws {
-        let files = ClaudeCodeAdapter.pluginFiles()
-        let module = try #require(files["hooks/register.js"])
-        #expect(module.contains("export function register"))
-        let hooks = try #require(files["hooks/hooks.json"].flatMap { $0.data(using: .utf8) })
-        let object = try #require(try JSONSerialization.jsonObject(with: hooks) as? [String: Any])
-        #expect(object["modules"] as? [String] == ["./register.js"])
-        // The tests and the stand-alone manifest stay behind.
-        #expect(files.keys.allSatisfy { !$0.contains("test") })
-        #expect(ClaudeCodeAdapter.pastedImagesHandoffDirectory.lastPathComponent == "claude-code-images")
-    }
-
-    /// `calm doctor` checks the plugin by these names, since it can't read the mod's resource.
+    /// `calm doctor` checks the plugin by these names.
     @Test func `the plugin's names, which calm doctor checks, are the files it writes`() {
         #expect(Set(ClaudeCodeAdapter.pluginFiles().keys) == ClaudeCodeAdapter.pluginFileNames)
     }

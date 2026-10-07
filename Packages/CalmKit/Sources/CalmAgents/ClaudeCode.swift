@@ -153,16 +153,13 @@ extension ClaudeCodeAdapter: HookReporting {
             .appending(path: "Calm/agents/claude-code")
     }
 
-    /// The paths `pluginFiles` writes, without reading anything: what `calm doctor` checks are
-    /// there. The mod comes from CalmAgents' resource bundle through `Bundle.module`, which stops
-    /// the process when it can't find the bundle, and the `calm` inside Calm.app runs from
-    /// `Contents/Resources/bin`, where it doesn't look; so the CLI never calls `pluginFiles`.
-    public static let pluginFileNames: Set<String> = [".claude-plugin/plugin.json", "hooks/hooks.json", "hooks/register.js"]
+    /// The paths `pluginFiles` writes, without building them: what `calm doctor` checks are there.
+    /// (The CLI once couldn't call `pluginFiles`, when the plugin carried a mod read through
+    /// `Bundle.module`, which stops a `calm` that can't find its resource bundle.)
+    public static let pluginFileNames: Set<String> = [".claude-plugin/plugin.json", "hooks/hooks.json"]
 
-    /// The plugin's files: `.claude-plugin/plugin.json`, `hooks/hooks.json` and the mod,
-    /// `hooks/register.js` (pictures of pasted images above the prompt; see `ClaudeCodeMod`).
-    /// Hooks run synchronously so reports arrive in order; `calm hook` returns within a second
-    /// at most.
+    /// The plugin's files: `.claude-plugin/plugin.json` and `hooks/hooks.json`. Hooks run
+    /// synchronously so reports arrive in order; `calm hook` returns within a second at most.
     public static func pluginFiles() -> [String: String] {
         let command = #"[ -n "$CALM_CLI" ] && "$CALM_CLI" hook claude-code || true"#
         var hooks: [String: Any] = [:]
@@ -175,30 +172,14 @@ extension ClaudeCodeAdapter: HookReporting {
             "description": "Reports this session's state to Calm Terminal (only inside Calm).",
             "author": ["name": "Calm Terminal"],
         ]
-        var hooksFile: [String: Any] = [
+        let hooksFile: [String: Any] = [
             "description": "Calm Terminal: session state for the sidebar and notifications.",
             "hooks": hooks,
         ]
-        var files = [".claude-plugin/plugin.json": json(manifest)]
-        if let module = modSource {
-            hooksFile["modules"] = ["./register.js"]
-            files["hooks/register.js"] = module
-        }
-        files["hooks/hooks.json"] = json(hooksFile)
-        return files
-    }
-
-    /// The mod's hooks module, as `claude plugin test` checks it.
-    static var modSource: String? {
-        Bundle.module.url(forResource: "register", withExtension: "js", subdirectory: "ClaudeCodeMod/hooks")
-            .flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-    }
-
-    /// Where the mod tells Calm which folders a pane's pasted images are in:
-    /// `claude-code-images/<Calm session id>.json` beside the plugin, outside its folder, since
-    /// Claude Code reloads a plugin whose folder changes.
-    public static var pastedImagesHandoffDirectory: URL {
-        pluginDirectory.deletingLastPathComponent().appending(path: "claude-code-images")
+        return [
+            ".claude-plugin/plugin.json": json(manifest),
+            "hooks/hooks.json": json(hooksFile),
+        ]
     }
 
     private static func json(_ object: Any) -> String {

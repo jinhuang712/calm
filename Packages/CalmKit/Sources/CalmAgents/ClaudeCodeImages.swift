@@ -5,30 +5,23 @@ import Foundation
 /// - `<tmp>/claude-<uid>/<cwd as a project folder>/<sessionId>/images/<n>.png` holds the image
 ///   behind `[Image #n]` from the paste on, rewritten when the prompt is sent. `<tmp>` is
 ///   `CLAUDE_CODE_TMPDIR`, else `/tmp`.
-/// - A /clear starts a new session id but the numbers go on counting, so within one process a
-///   number names one image across its sessions; a new process starts again at 1.
-/// - Calm's mod writes the folders of the pane's sessions, newest first, to
-///   `claude-code-images/<pane>.json` beside the plugin (`hooks/register.js`). It knows them
-///   exactly; without it (mods off, an older Claude Code) the lookup goes by the session id in
-///   `sessions/<pid>.json` and the hooks', which can't see a /clear until the next prompt.
+/// - A /clear starts a new session id but the numbers go on counting, so a tag from before a
+///   /clear names an image in the old session's folder, which the lookup doesn't know: it finds
+///   nothing there rather than another image.
+///
+/// The session is the one in `sessions/<pid>.json` for the running process, else the hooks'.
 extension ClaudeCodeAdapter: PastedImageResolving {
     public var pastedImagePattern: String {
         #"\[Image #(\d+)\]"#
     }
 
     public func pastedImage(_ query: PastedImageQuery) -> URL? {
-        Self.pastedImage(query, handoff: Self.pastedImagesHandoffDirectory, uid: getuid())
+        Self.pastedImage(query, uid: getuid())
     }
 
-    static func pastedImage(_ query: PastedImageQuery, handoff: URL, uid: uid_t) -> URL? {
+    static func pastedImage(_ query: PastedImageQuery, uid: uid_t) -> URL? {
         guard query.number > 0 else { return nil }
         let name = "\(query.number).png"
-        for folder in handoffFolders(handoff.appending(path: "\(query.pane.uuidString).json")) {
-            let url = URL(filePath: folder).appending(path: name)
-            if FileManager.default.fileExists(atPath: url.path) {
-                return url
-            }
-        }
         let session = runningSession(processID: query.processID, home: query.home)
         var sessionIDs: [String] = []
         for id in [session?.id, query.agentSessionID].compactMap(\.self) where !sessionIDs.contains(id) {
@@ -42,13 +35,6 @@ extension ClaudeCodeAdapter: PastedImageResolving {
             }
         }
         return nil
-    }
-
-    private static func handoffFolders(_ file: URL) -> [String] {
-        guard let data = try? Data(contentsOf: file),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [] }
-        return object["folders"] as? [String] ?? []
     }
 
     private static func runningSession(processID: Int32, home: URL) -> (id: String, cwd: String?)? {

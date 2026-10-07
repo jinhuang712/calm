@@ -11,11 +11,9 @@ public protocol PastedImageResolving: AgentAdapter {
     func pastedImage(_ query: PastedImageQuery) -> URL?
 }
 
-/// Which tag, in which of Calm's sessions, and what Calm knows of the agent running there.
+/// Which tag, and what Calm knows of the agent running where it is.
 public struct PastedImageQuery: Sendable, Equatable {
     public var number: Int
-    /// Calm's session: the pane the tag is on.
-    public var pane: UUID
     /// The agent's process, 0 when only hooks have spoken.
     public var processID: Int32
     /// The agent's own conversation, as its hooks last reported it.
@@ -24,9 +22,8 @@ public struct PastedImageQuery: Sendable, Equatable {
     /// The environment the pane's shell started with.
     public var environment: [String: String]
 
-    public init(number: Int, pane: UUID, processID: Int32, agentSessionID: String?, home: URL, environment: [String: String]) {
+    public init(number: Int, processID: Int32, agentSessionID: String?, home: URL, environment: [String: String]) {
         self.number = number
-        self.pane = pane
         self.processID = processID
         self.agentSessionID = agentSessionID
         self.home = home

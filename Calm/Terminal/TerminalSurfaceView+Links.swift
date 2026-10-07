@@ -230,15 +230,13 @@ extension TerminalSurfaceView {
         return nil
     }
 
-    /// The agent's tag for a pasted image under `cell`, on the tag itself or anywhere in a tile
-    /// captioned with it (Calm's mod for Claude Code draws one above the prompt), with its number;
-    /// nil unless the image is there.
+    /// The agent's tag for a pasted image under `cell`, with its number; nil unless the image is there.
     private func pastedImageTag(at cell: (row: Int, column: Int), rows: [String]) -> (tag: LinkMatch, number: Int)? {
         guard let pattern = host?.pastedImagePattern(for: self) else { return nil }
         let grid = TextGrid(lines: rows)
         let line = lines(of: grid).first { $0.contains(cell.row) } ?? cell.row ..< cell.row + 1
-        let onTag = LinkMatcher.matches(of: pattern, in: grid, rows: line).first { $0.covers(row: cell.row, column: cell.column) }
-        guard let tag = onTag ?? FramedCaption.caption(at: cell, in: grid, matching: pattern),
+        let tags = LinkMatcher.matches(of: pattern, in: grid, rows: line)
+        guard let tag = tags.first(where: { $0.covers(row: cell.row, column: cell.column) }),
               let number = Self.pastedImageNumber(in: tag.text, pattern: pattern),
               host?.surface(self, pastedImage: number) != nil
         else { return nil }
@@ -262,8 +260,7 @@ extension TerminalSurfaceView {
         }
         if let (tag, number) = pastedImageTag(at: cell, rows: rows) {
             links.hoverRows = rows
-            // Over a tile's picture, the tag sits by its caption.
-            let anchor = tag.runs.first { $0.row == cell.row } ?? tag.runs[tag.runs.count - 1]
+            let anchor = tag.runs.first { $0.row == cell.row } ?? tag.runs[0]
             return LinkHover(text: tag.text, runs: tag.runs, anchor: anchor, isCalmOwned: true, pastedImage: number)
         }
         return nil

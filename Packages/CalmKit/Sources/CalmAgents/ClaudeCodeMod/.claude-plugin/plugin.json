@@ -1,6 +1,0 @@
-{
-  "name": "calm",
-  "version": "1.0.0",
-  "description": "Calm Terminal's mod, on its own so `claude plugin validate` and `claude plugin test` can check it; Calm ships its hooks module inside the plugin ClaudeCodeAdapter.pluginFiles() writes.",
-  "author": { "name": "Calm Terminal" }
-}

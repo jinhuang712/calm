@@ -30,8 +30,7 @@ enum PastedImageLookup {
     ) -> URL? {
         guard let agent = session.agent, let resolver = Agents.pastedImageResolver(for: agent.kind) else { return nil }
         return resolver.pastedImage(PastedImageQuery(
-            number: number, pane: session.id, processID: agent.processID, agentSessionID: agent.agentSessionID,
-            home: home, environment: environment,
+            number: number, processID: agent.processID, agentSessionID: agent.agentSessionID, home: home, environment: environment,
         ))
     }
 

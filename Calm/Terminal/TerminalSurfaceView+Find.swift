@@ -32,10 +32,15 @@ final class PaneFind {
     fileprivate(set) var current: Int?
     /// Where the grid starts and where the text's baseline sits in a cell, when the marks were found.
     fileprivate(set) var geometry: (origin: NSPoint, baseline: CGFloat)?
+    /// The last change was a step to another match on a still screen, so the band slides there;
+    /// any other change (the screen scrolled, output came, new words) places it at once.
+    fileprivate(set) var slides = false
     /// Where the screen is in the scrollback (`GHOSTTY_ACTION_SCROLLBAR`).
     fileprivate(set) var position: ScrollbackPosition?
     fileprivate var isRefreshPending = false
     fileprivate var rows: [String] = []
+    /// The scroll position's offset last seen, to tell a scroll from output arriving.
+    fileprivate var lastOffset: Int?
     /// The background the marks were drawn on: a new appearance redraws them in its colors.
     fileprivate var background: NSColor?
     /// The matches from the top of the screen to the newest row, for the words and position they
@@ -72,9 +77,20 @@ extension TerminalSurfaceView {
     /// A new frame: the text may have moved under the link and find marks.
     func frameDidChange() {
         scheduleLinkScan()
-        if find.words != nil {
-            scheduleFindRefresh()
-        }
+        guard find.words != nil else { return }
+        followFindGrid()
+        scheduleFindRefresh()
+    }
+
+    /// The marks ride with the grid on every frame while smooth scrolling slides it, before the
+    /// text is read again (a refresh is too late for a moving screen). Only the grid's position
+    /// is read, which is cheap; at rest it doesn't move, and nothing is redrawn.
+    private func followFindGrid() {
+        guard !find.matches.isEmpty, let geometry = gridGeometry(),
+              geometry.origin != find.geometry?.origin || geometry.baseline != find.geometry?.baseline else { return }
+        find.geometry = geometry
+        find.slides = false
+        find.onChange?()
     }
 
     /// What find marks in this pane (`FindTarget`): the words, or nil for none, and the current match.
@@ -109,7 +125,9 @@ extension TerminalSurfaceView {
         let grew = position.total != find.position?.total
         find.position = position
         guard find.words != nil else { return }
-        scheduleFindRefresh()
+        // The screen moved: read its rows at once, so the marks ride with the text from its first frame.
+        scheduleFindRefresh(after: position.offset != find.lastOffset ? 0 : Self.findRefreshDelay)
+        find.lastOffset = position.offset
         if grew {
             scheduleMapScan(after: 1) // new output: at most a scan a second
         }
@@ -140,6 +158,7 @@ extension TerminalSurfaceView {
         reportFindScreen()
         guard let geometry = gridGeometry() else { return }
         let rows = viewportRows()
+        let still = rows == find.rows && geometry.origin == find.geometry?.origin
         var matches = find.matches
         if rows != find.rows {
             find.rows = rows
@@ -151,6 +170,7 @@ extension TerminalSurfaceView {
         let moved = geometry.origin != find.geometry?.origin || geometry.baseline != find.geometry?.baseline
         let background = effectiveBackgroundColor ?? shownConfig?.backgroundColor
         guard matches != find.matches || current != find.current || moved || background != find.background else { return }
+        find.slides = still && current != find.current && find.current != nil && current != nil
         find.matches = matches
         find.current = current
         find.geometry = geometry

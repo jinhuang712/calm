@@ -224,7 +224,7 @@ final class TerminalWorkspaceView: NSView {
             pane.links.onChange = nil
             pane.find.onChange = nil
             linkMarks.remove(pane.id)
-            findMarks.remove(pane.id)
+            findMarks.forget(pane.id)
             if findMap.paneID == pane.id {
                 findMap.hide()
             }
@@ -282,7 +282,7 @@ final class TerminalWorkspaceView: NSView {
     private func updateFindMap(_ pane: TerminalSurfaceView) {
         guard pane.showsFindMap, !pane.isHidden else {
             if findMap.paneID == pane.id {
-                findMap.hide()
+                findMap.hide(fading: pane.find.words == nil)
             }
             return
         }
@@ -292,6 +292,10 @@ final class TerminalWorkspaceView: NSView {
     #if DEBUG
         var findMapForTesting: String {
             findMap.descriptionForTesting
+        }
+
+        func findMarksForTesting(_ paneID: UUID) -> String {
+            findMarks.descriptionForTesting(paneID)
         }
 
         func hoverFindMapForTesting(line: Int?) {

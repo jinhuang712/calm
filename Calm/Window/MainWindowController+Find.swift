@@ -53,6 +53,9 @@ extension MainWindowController {
             case let agent where agent.hasPrefix("find_agent:"):
                 // As if an agent ran in the pane: a test can't start a real one.
                 find.agentName = String(agent.dropFirst(11))
+            case "find_band":
+                let marks = focusedPane.flatMap { pane in (pane.superview as? TerminalWorkspaceView)?.findMarksForTesting(pane.id) }
+                FileHandle.standardError.write(Data("calm-selftest: find \(marks ?? "no workspace")\n".utf8))
             case "find_map":
                 let map = (focusedPane?.superview as? TerminalWorkspaceView)?.findMapForTesting ?? "no workspace"
                 FileHandle.standardError.write(Data("calm-selftest: find \(map)\n".utf8))

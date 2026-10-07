@@ -11,6 +11,8 @@ struct FindFieldView: View {
     let onFrame: (UUID, CGRect?) -> Void
     @FocusState private var focused: Bool
     @State private var id = UUID()
+    /// Faded in when find opens (UIUX.md → Find, motion).
+    @State private var shown = false
 
     var body: some View {
         HStack(spacing: 4.scaled) {
@@ -71,7 +73,16 @@ struct FindFieldView: View {
                 NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
             }
         }
-        .transition(.opacity)
+        // The strip swaps its whole row when find opens, so a transition here would never run: the
+        // field fades in as it appears. It goes at once on closing, as the readout comes back.
+        .opacity(shown ? 1 : 0)
+        .onAppear {
+            if Motion.isReduced {
+                shown = true
+            } else {
+                withAnimation(.easeOut(duration: 0.16)) { shown = true }
+            }
+        }
     }
 
     private func arrow(_ symbol: String, help: String, disabled: Bool, action: @escaping () -> Void) -> some View {

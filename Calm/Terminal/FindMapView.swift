@@ -8,9 +8,9 @@ import CalmModel
 @MainActor
 final class FindMapView: NSView {
     private weak var pane: TerminalSurfaceView?
-    /// The pane whose map this is, while it shows.
+    /// The pane whose map this is, while it shows (not while it fades away).
     var paneID: UUID? {
-        isHidden ? nil : pane?.id
+        isHidden || isFading ? nil : pane?.id
     }
 
     private var colors: FindColors?
@@ -18,6 +18,16 @@ final class FindMapView: NSView {
     private var hovered: Int?
     private var isWide = false
     private let currentTick = CALayer()
+    /// The current tick's line and its pane, so moving to another line slides it there.
+    private var currentTickLine: (pane: UUID, line: Int)?
+    /// New output's ticks, fading in over the map before the drawing takes them (`fresh`).
+    private let freshTicks = CAShapeLayer()
+    private var fresh: Set<Int> = []
+    /// The lines drawn last, by number, and for which pane and words.
+    private var drawn: (key: String, numbers: Set<Int>)?
+    private var isFading = false
+    /// Bumped by each show and hide, so a fade that finishes after the map came back leaves it.
+    private var generation = 0
     private let tagView = FindMapTag()
     private var trackingArea: NSTrackingArea?
 
@@ -30,11 +40,17 @@ final class FindMapView: NSView {
     private static let splitInset: CGFloat = 30
     /// Room on the left for the current tick, which sticks out 2 pt.
     private static let stickOut: CGFloat = 2
+    /// The current tick's slide, the widening under the pointer, new ticks' fade, closing's fade.
+    private static let slide: TimeInterval = 0.18
+    private static let widen: TimeInterval = 0.12
+    private static let fadeIn: TimeInterval = 0.15
+    private static let fadeOut: TimeInterval = 0.12
 
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
         currentTick.cornerRadius = 1
+        layer?.addSublayer(freshTicks)
         layer?.addSublayer(currentTick)
     }
 
@@ -49,6 +65,12 @@ final class FindMapView: NSView {
 
     /// Shows `pane`'s map beside it (`frame` is the pane's, in the superview), or hides it.
     func update(_ pane: TerminalSurfaceView, frame paneFrame: NSRect, inSplit: Bool, colors: FindColors) {
+        if isFading || isHidden {
+            generation += 1
+            isFading = false
+            layer?.removeAnimation(forKey: "calm.fade")
+            alphaValue = 1
+        }
         self.pane = pane
         self.colors = colors
         text = NSColor(hex: colors.foreground) ?? .textColor
@@ -59,6 +81,7 @@ final class FindMapView: NSView {
             width: width, height: max(paneFrame.height - Self.inset - top, 0),
         )
         isHidden = false
+        fadeInNewTicks(of: pane)
         placeCurrentTick()
         needsDisplay = true
         if hovered != nil {
@@ -66,13 +89,88 @@ final class FindMapView: NSView {
         }
     }
 
-    func hide() {
-        guard !isHidden else { return }
-        isHidden = true
+    /// Hides the map: fading when find closes, at once otherwise.
+    func hide(fading: Bool = false) {
+        guard !isHidden, !isFading else { return }
         hovered = nil
-        isWide = false
         tagView.removeFromSuperview()
+        currentTickLine = nil
+        drawn = nil
+        generation += 1
+        guard fading, !Motion.isReduced, let layer else {
+            finishHiding()
+            return
+        }
+        isFading = true
+        let generation = generation
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == generation else { return }
+                self.finishHiding()
+            }
+        }
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1
+        fade.toValue = 0
+        fade.duration = Self.fadeOut
+        fade.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        layer.opacity = 0
+        layer.add(fade, forKey: "calm.fade")
+        CATransaction.commit()
+    }
+
+    private func finishHiding() {
+        isHidden = true
+        isFading = false
+        isWide = false
+        alphaValue = 1
+        layer?.opacity = 1
         pane = nil
+    }
+
+    /// Ticks for lines new since the map was last drawn (output arriving) fade in; the box stays
+    /// where the user is reading. A map whose lines mostly changed (new words, a scrollback
+    /// full enough to drop its top lines and number them again) appears at once.
+    private func fadeInNewTicks(of pane: TerminalSurfaceView) {
+        guard let map = pane.find.map else { return }
+        let key = pane.id.uuidString + (pane.find.words ?? "")
+        let numbers = Set(map.lines.map(\.number))
+        defer { drawn = (key, numbers) }
+        guard let drawn, drawn.key == key, !Motion.isReduced, let position = pane.find.position, let colors,
+              let solid = NSColor(hex: colors.solid) else { return }
+        let new = numbers.subtracting(drawn.numbers)
+        guard !new.isEmpty, new.count * 2 <= numbers.count else { return }
+        let track = track
+        let path = CGMutablePath()
+        for (index, line) in map.lines.enumerated() where new.contains(line.number) {
+            guard let y = map.y(of: index, height: Double(track.height), total: position.total) else { continue }
+            let top = min((CGFloat(y) / 2).rounded(.down) * 2, track.height - 2)
+            path.addRect(CGRect(x: track.minX + 1, y: top, width: track.width - 2, height: 2))
+        }
+        fresh.formUnion(new)
+        let generation = generation
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak self] in
+            MainActor.assumeIsolated {
+                // Faded in: the drawing takes them over.
+                guard let self, self.generation == generation else { return }
+                self.fresh = []
+                self.freshTicks.path = nil
+                self.needsDisplay = true
+            }
+        }
+        CATransaction.setDisableActions(true)
+        freshTicks.frame = bounds
+        freshTicks.path = path
+        freshTicks.fillColor = solid.withAlphaComponent(colors.tickAlpha).cgColor
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 0
+        fade.toValue = 1
+        fade.duration = Self.fadeIn
+        fade.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        freshTicks.add(fade, forKey: "calm.fade")
+        CATransaction.commit()
     }
 
     // MARK: Drawing
@@ -90,7 +188,8 @@ final class FindMapView: NSView {
         // One tick per matching line; lines sharing a 2 pt slot draw darker.
         let height = Double(track.height)
         let hoveredY = hovered.flatMap { map.y(of: $0, height: height, total: position.total) }
-        for tick in map.ticks(height: height, total: position.total) {
+        let hidden = fresh.isEmpty ? nil : FindMap(lines: map.lines.filter { !fresh.contains($0.number) }, rows: map.rows)
+        for tick in (hidden ?? map).ticks(height: height, total: position.total) {
             let strength = tick.lines >= 3 ? 0.95 : tick.lines == 2 ? 0.78 : colors.tickAlpha
             let isHovered = hoveredY.map { abs($0 - tick.y) < 2 } ?? false
             (isHovered ? text : solid.withAlphaComponent(strength)).setFill()
@@ -118,7 +217,16 @@ final class FindMapView: NSView {
               let y = pane.find.map?.y(of: line, height: Double(bounds.height), total: position.total),
               let solid = colors.flatMap({ NSColor(hex: $0.solid) }) else {
             currentTick.isHidden = true
+            currentTickLine = nil
             return
+        }
+        // Another line of the same pane's map: the tick slides there, as the band does.
+        let slides = !currentTick.isHidden && currentTickLine?.pane == pane.id && currentTickLine?.line != line && !Motion.isReduced
+        currentTickLine = (pane.id, line)
+        if slides {
+            CATransaction.setDisableActions(false)
+            CATransaction.setAnimationDuration(Self.slide)
+            CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
         }
         currentTick.isHidden = false
         currentTick.backgroundColor = solid.cgColor
@@ -173,7 +281,12 @@ final class FindMapView: NSView {
         isWide = wide
         let paneFrame = pane.convert(pane.bounds, to: superview)
         let width = (wide ? Self.wideWidth : Self.width) + Self.stickOut
-        frame = NSRect(x: paneFrame.maxX - Self.edge - width, y: frame.minY, width: width, height: frame.height)
+        let target = NSRect(x: paneFrame.maxX - Self.edge - width, y: frame.minY, width: width, height: frame.height)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Motion.duration(Self.widen)
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            animator().frame = target
+        }
         placeCurrentTick()
         needsDisplay = true
     }

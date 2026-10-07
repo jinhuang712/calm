@@ -9,6 +9,8 @@ import CalmModel
 @MainActor
 final class FindMarksView: NSView {
     private final class Marks {
+        /// Holds the pane's marks, so closing find fades them together.
+        let group = CALayer()
         var underlines: [CALayer] = []
         let band = CALayer()
         let bar = CALayer()
@@ -23,6 +25,10 @@ final class FindMarksView: NSView {
     private static let gap: CGFloat = 1.5
     /// The edge bar's width.
     private static let barWidth: CGFloat = 3
+    /// Stepping to a match on the same screen: the band and the bar slide to its line.
+    private static let slide: TimeInterval = 0.18
+    /// Closing find: the marks fade.
+    private static let fadeOut: TimeInterval = 0.12
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -38,18 +44,21 @@ final class FindMarksView: NSView {
         nil
     }
 
-    /// Draws `pane`'s marks where its matches are now. Nothing moves on its own here: marks appear,
-    /// go and change place at once (the motion is UIUX.md → Find's, M8.6).
+    /// Draws `pane`'s marks where its matches are now (UIUX.md → Find, motion). Only a step to a
+    /// match on the same screen moves something: the band and the bar slide to its line. Marks
+    /// that come with typing, output or a scroll are where their text is at once, so they ride
+    /// with it; closing find fades them.
     func update(_ pane: TerminalSurfaceView) {
         let find = pane.find
         guard !pane.isHidden, find.words != nil, !find.matches.isEmpty, let geometry = find.geometry, let layer else {
-            remove(pane.id)
+            remove(pane.id, fading: find.words == nil && !pane.isHidden)
             return
         }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         let marks = panes[pane.id] ?? makeMarks(pane.id, in: layer)
+        marks.group.frame = layer.bounds
         let colors = colors(for: pane)
         let solid = NSColor(hex: colors.solid)?.cgColor ?? NSColor.controlAccentColor.cgColor
 
@@ -71,7 +80,7 @@ final class FindMarksView: NSView {
         while marks.underlines.count < frames.count {
             let line = CALayer()
             line.cornerRadius = Self.thickness / 2
-            layer.addSublayer(line)
+            marks.group.addSublayer(line)
             marks.underlines.append(line)
         }
         for (line, frame) in zip(marks.underlines, frames) {
@@ -87,9 +96,17 @@ final class FindMarksView: NSView {
             let line = NSRect(x: 0, y: bottom.minY, width: pane.bounds.width, height: top.maxY - bottom.minY)
             let frame = convert(line, from: pane)
             let tint = colors.bandLayer
+            let slides = find.slides && !marks.band.isHidden && !Motion.isReduced
+            CATransaction.begin()
+            if slides {
+                CATransaction.setDisableActions(false)
+                CATransaction.setAnimationDuration(Self.slide)
+                CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
+            }
             marks.band.frame = frame
-            marks.band.backgroundColor = CGColor(srgbRed: tint.red, green: tint.green, blue: tint.blue, alpha: tint.alpha)
             marks.bar.frame = NSRect(x: frame.minX, y: frame.minY, width: Self.barWidth, height: frame.height)
+            CATransaction.commit()
+            marks.band.backgroundColor = CGColor(srgbRed: tint.red, green: tint.green, blue: tint.blue, alpha: tint.alpha)
             marks.bar.backgroundColor = solid
             marks.band.isHidden = false
             marks.bar.isHidden = false
@@ -99,22 +116,42 @@ final class FindMarksView: NSView {
         }
     }
 
-    func remove(_ paneID: UUID) {
-        colorCache[paneID] = nil
+    /// Takes `paneID`'s marks away: fading when find closes, at once otherwise (no matches while
+    /// typing, the pane going away).
+    func remove(_ paneID: UUID, fading: Bool = false) {
         guard let marks = panes.removeValue(forKey: paneID) else { return }
+        let group = marks.group
+        guard fading, !Motion.isReduced else {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            group.removeFromSuperlayer()
+            CATransaction.commit()
+            return
+        }
         CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        marks.underlines.forEach { $0.removeFromSuperlayer() }
-        marks.band.removeFromSuperlayer()
-        marks.bar.removeFromSuperlayer()
+        CATransaction.setCompletionBlock { group.removeFromSuperlayer() }
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1
+        fade.toValue = 0
+        fade.duration = Self.fadeOut
+        fade.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        group.opacity = 0
+        group.add(fade, forKey: "calm.fade")
         CATransaction.commit()
+    }
+
+    func forget(_ paneID: UUID) {
+        remove(paneID)
+        colorCache[paneID] = nil
     }
 
     private func makeMarks(_ paneID: UUID, in layer: CALayer) -> Marks {
         let marks = Marks()
+        marks.group.frame = layer.bounds
         // The band lies under the underlines, so they stay crisp on it.
-        layer.insertSublayer(marks.band, at: 0)
-        layer.addSublayer(marks.bar)
+        marks.group.addSublayer(marks.band)
+        marks.group.addSublayer(marks.bar)
+        layer.addSublayer(marks.group)
         panes[paneID] = marks
         return marks
     }
@@ -137,6 +174,16 @@ final class FindMarksView: NSView {
         colorCache[pane.id] = (key, colors)
         return colors
     }
+
+    #if DEBUG
+        /// The band's place and where it's drawn right now, mid-slide or not.
+        func descriptionForTesting(_ paneID: UUID) -> String {
+            guard let marks = panes[paneID] else { return "no marks" }
+            let shown = marks.band.presentation()?.frame ?? marks.band.frame
+            return "band \(marks.band.frame), drawn at \(shown), sliding \(marks.band.animationKeys() ?? []), "
+                + "\(marks.underlines.count) underlines"
+        }
+    #endif
 
     /// To the nearest half point, so a 2 pt line stays sharp on a Retina screen.
     private static func half(_ value: CGFloat) -> CGFloat {

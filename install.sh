@@ -87,18 +87,26 @@ if [[ $was_running -eq 1 && $restart -eq 1 ]]; then
 fi
 
 # Copy next to the old app first, then swap with two renames, so a failed copy never leaves no
-# Calm at all and a running Calm finds its files missing for no more than an instant.
+# Calm at all. The old app is moved aside, not deleted, while a Calm still runs from it: a
+# running app whose own file is gone can't show macOS who it is, and macOS refuses it the
+# folder picker (New Project did nothing, 2026-10-07: SecCodeCopyGuestWithAttributes failed,
+# ENOENT). Moved, the file is found under its new name (`codesign -vv <pid>` stays valid).
+# Old copies go at a later install, once no Calm runs from them.
 step "Installing to $target"
 mkdir -p "$app_dir"
 staging="$app_dir/.Calm.app.installing"
-previous="$app_dir/.Calm.app.previous"
-rm -rf "$staging" "$previous"
+rm -rf "$staging"
 ditto "$built" "$staging"
 if [[ -e "$target" ]]; then
-  mv "$target" "$previous"
+  mv "$target" "$app_dir/.Calm.app.previous-$(date +%Y%m%d-%H%M%S)-$$"
 fi
 mv "$staging" "$target"
-rm -rf "$previous"
+# lsof names each running Calm's program file where it is now, moved or not.
+in_use="$(lsof -a -c Calm -d txt -Fn 2>/dev/null | sed -n 's/^n//p' || true)"
+for old in "$app_dir"/.Calm.app.previous*; do
+  [[ -e "$old" ]] || continue
+  grep -qF "$old/" <<<"$in_use" || rm -rf "$old"
+done
 
 if [[ $link_cli -eq 1 ]]; then
   mkdir -p "$bin_dir"

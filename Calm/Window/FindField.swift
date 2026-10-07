@@ -42,6 +42,7 @@ struct FindFieldView: View {
                 Text("⌘F")
                     .calmFont(size: 11)
                     .foregroundStyle(style.tertiary)
+                    .fixedSize() // the words give way at the field's narrowest, never the cap
                     .padding(.horizontal, 6.scaled)
                     .frame(height: 20.scaled)
                     .background(RoundedRectangle(cornerRadius: 5.scaled, style: .continuous).fill(style.primary.opacity(0.07)))
@@ -55,8 +56,14 @@ struct FindFieldView: View {
         .padding(.trailing, 4.scaled)
         .frame(height: 30.scaled)
         .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).fill(style.primary.opacity(0.07)))
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("titleStrip")) } action: { onFrame(id, $0) }
-        .onDisappear { onFrame(id, nil) }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("titleStrip")) } action: { frame in
+            onFrame(id, frame)
+            model.fieldFrame = frame
+        }
+        .onDisappear {
+            onFrame(id, nil)
+            model.fieldFrame = nil
+        }
         .onChange(of: model.focusRequest, initial: true) {
             focused = true
             // What's in it is selected, so typing replaces the last search (FEATURES.md → F16).

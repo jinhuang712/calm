@@ -354,6 +354,12 @@ extension MainWindowController {
             title.heightAnchor.constraint(equalToConstant: CalmWindow.titleStripHeight),
         ])
         titleHost = title
+        findNote.strip = { [weak self] in self?.titleHost?.frame }
+        findNote.style = { [weak self] in self?.sidebarStyle ?? SidebarStyle.derived(from: .black) }
+        findNote
+            .background = { [weak self] in self?.focusedPane?.effectiveBackgroundColor ?? TerminalEngine.shared.config?.backgroundColor }
+        findNote.onSearchAll = { [weak self] in self?.searchAllOfFind() }
+        findNote.start()
     }
 
     /// Where the traffic lights end, from the window's left edge (70 if AppKit has none to measure).

@@ -34,6 +34,9 @@ enum FindEvent: Equatable {
     case total(Int?)
     /// Which match is the current one, counted from the newest (0); nil when none is.
     case selected(Int?)
+    /// The pane shows a full-screen program's screen (true), which keeps no scrollback, or its
+    /// own again (false). Reported by the pane, not libghostty (engine patch 0018).
+    case fullScreen(Bool)
 }
 
 /// Find in a session (FEATURES.md → F16): the title strip's field and the one pane it searches.
@@ -61,6 +64,13 @@ final class FindModel {
 
     private(set) var total: Int?
     private(set) var selected: Int?
+    /// The searched pane shows a full-screen program's screen, which keeps no scrollback, so only
+    /// what's on it is searched and the count says so.
+    private(set) var isFullScreen = false
+    /// The agent running in the searched pane, by name, for the note; nil for any other program.
+    var agentName: String?
+    /// Where the field is in the title strip (top left origin), for the note under it.
+    var fieldFrame: CGRect?
     /// Bumped to put the keyboard in the field, with what's in it selected.
     private(set) var focusRequest = 0
 
@@ -70,12 +80,28 @@ final class FindModel {
     /// Set by a new search: the first total selects the newest match, so the count reads "1 of N".
     @ObservationIgnored private var selectsNewest = false
 
-    /// "3 of 11", "No matches", or nothing before the first count.
+    /// "3 of 11", "No matches", or nothing before the first count; in a full-screen program,
+    /// "3 of 11 on screen" and "None on screen".
     var countText: String {
         guard !query.isEmpty, let total else { return "" }
-        guard total > 0 else { return "No matches" }
-        guard let selected else { return total == 1 ? "1 match" : "\(total) matches" }
-        return "\(min(selected, total - 1) + 1) of \(total)"
+        guard total > 0 else { return isFullScreen ? "None on screen" : "No matches" }
+        guard let selected else {
+            return isFullScreen ? "\(total) on screen" : total == 1 ? "1 match" : "\(total) matches"
+        }
+        return "\(min(selected, total - 1) + 1) of \(total)" + (isFullScreen ? " on screen" : "")
+    }
+
+    /// The note under the field: a full-screen program's screen has none of the words, and the
+    /// rest of what it showed isn't in the terminal (UIUX.md → Find).
+    var showsNote: Bool {
+        isOpen && isFullScreen && !query.isEmpty && total == 0
+    }
+
+    /// What the note says: an agent keeps its conversation, which ⌘K searches; Calm knows only
+    /// agents' names, so any other program is "this program".
+    var noteText: String {
+        agentName.map { "\($0) keeps the conversation, not the terminal." }
+            ?? "This program draws its own screen, so only what's on it can be searched."
     }
 
     /// The oldest match is current (it stops there, no wrapping), or there's nothing to go to.
@@ -125,6 +151,9 @@ final class FindModel {
             guard isSearching(target) else { return }
             selected = index
             target.markFind(query.isEmpty ? nil : query, selected: index)
+        case let .fullScreen(isFullScreen):
+            guard isSearching(target) else { return }
+            self.isFullScreen = isFullScreen
         }
     }
 
@@ -161,6 +190,7 @@ final class FindModel {
         }
         self.target = target
         isOpen = true
+        isFullScreen = false // until the pane says
         if self.query == query {
             search()
         } else {
@@ -189,5 +219,7 @@ final class FindModel {
         total = nil
         selected = nil
         selectsNewest = false
+        isFullScreen = false
+        agentName = nil
     }
 }

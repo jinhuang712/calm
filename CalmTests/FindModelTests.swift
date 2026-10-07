@@ -22,6 +22,30 @@ private final class FakePane: FindTarget {
 
 @MainActor
 struct FindModelTests {
+    @Test func `a full-screen program's screen: the count says on screen, the note only when nothing matches`() {
+        let find = FindModel(), pane = FakePane()
+        find.handle(.start(needle: ""), from: pane)
+        find.query = "segfault"
+        find.handle(.fullScreen(true), from: pane)
+        find.handle(.total(0), from: pane)
+        #expect(find.countText == "None on screen")
+        #expect(find.showsNote)
+        #expect(find.noteText == "This program draws its own screen, so only what's on it can be searched.")
+        find.agentName = "Claude Code"
+        #expect(find.noteText == "Claude Code keeps the conversation, not the terminal.")
+        find.query = "error"
+        find.handle(.total(3), from: pane)
+        #expect(find.countText == "3 on screen")
+        #expect(!find.showsNote)
+        find.handle(.selected(0), from: pane)
+        #expect(find.countText == "1 of 3 on screen")
+        // The program quits: its own screen again, with its scrollback.
+        find.handle(.fullScreen(false), from: pane)
+        #expect(find.countText == "1 of 3")
+        find.close()
+        #expect(!find.isFullScreen && find.agentName == nil && !find.showsNote)
+    }
+
     @Test func `the searched pane marks the words and the current match, and nothing once find closes`() {
         let find = FindModel(), pane = FakePane()
         find.handle(.start(needle: ""), from: pane)

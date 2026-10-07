@@ -8,7 +8,22 @@ extension MainWindowController {
         if case .start = event, fileViewer.isShowing || settingsPage.isShowing {
             return
         }
+        if case .fullScreen(true) = event, find.isSearching(view) {
+            // For the note: an agent keeps its conversation, which ⌘K searches.
+            find.agentName = manager.workspace.session(view.id)?.agent?.kind.displayName
+        }
         find.handle(event, from: view)
+    }
+
+    /// The note's Search all of it ⌘K: the words go to ⌘K, which searches the agent's whole
+    /// conversation, and find closes.
+    func searchAllOfFind() {
+        let words = find.query
+        find.close()
+        if searchHost != nil {
+            hideSearch()
+        }
+        toggleSearch(query: words)
     }
 
     /// A key without ⌘ went to `view`: back to work, so find closes (the key still reaches the program).
@@ -31,6 +46,13 @@ extension MainWindowController {
                 find.step(.newer)
             case "find_close":
                 find.close()
+            case "find_note":
+                FileHandle.standardError.write(Data("calm-selftest: find \(findNote.descriptionForTesting)\n".utf8))
+            case "find_search_all":
+                searchAllOfFind()
+            case let agent where agent.hasPrefix("find_agent:"):
+                // As if an agent ran in the pane: a test can't start a real one.
+                find.agentName = String(agent.dropFirst(11))
             case "find_map":
                 let map = (focusedPane?.superview as? TerminalWorkspaceView)?.findMapForTesting ?? "no workspace"
                 FileHandle.standardError.write(Data("calm-selftest: find \(map)\n".utf8))

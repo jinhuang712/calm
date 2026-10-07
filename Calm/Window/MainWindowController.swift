@@ -36,6 +36,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var settingsPage = SettingsPage(container: container)
     /// ⌘F's field in the title strip and the pane it searches (MainWindowController+Find).
     let find = FindModel()
+    /// Find's note for a full-screen program's screen, under the field.
+    lazy var findNote = FindNote(container: container, model: find)
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
     /// Off until the saved size is back, so restoring it isn't taken for the user leaving the
     /// filled or full-screen state that is about to be restored (see `restoreFrame`).

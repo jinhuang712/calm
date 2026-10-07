@@ -48,6 +48,9 @@ final class PaneFind {
         let count: Int
     }
 
+    /// Whether the pane showed a full-screen program's screen when find last looked; nil before
+    /// a search has looked, so each new one reports it.
+    fileprivate var isFullScreen: Bool?
     /// Every line of the scrollback with a match, for the map (TerminalSurfaceView+FindMap).
     var map: FindMap?
     /// Bumped by each scan, so a scan the words have moved past is dropped.
@@ -82,6 +85,7 @@ extension TerminalSurfaceView {
             find.rows = []
             find.counted = nil
             find.map = nil
+            find.isFullScreen = nil
         }
         find.words = words
         find.selected = selected
@@ -132,7 +136,9 @@ extension TerminalSurfaceView {
 
     private func refreshFind() {
         find.isRefreshPending = false
-        guard let words = find.words, window != nil, let geometry = gridGeometry() else { return }
+        guard let words = find.words, window != nil else { return }
+        reportFindScreen()
+        guard let geometry = gridGeometry() else { return }
         let rows = viewportRows()
         var matches = find.matches
         if rows != find.rows {
@@ -150,6 +156,18 @@ extension TerminalSurfaceView {
         find.geometry = geometry
         find.background = background
         find.onChange?()
+    }
+
+    /// Tells find when the pane starts or stops showing a full-screen program's screen (the
+    /// alternate one, which keeps no scrollback): its count then says "on screen", and a note
+    /// explains when nothing there matches. libghostty reports which screen is shown only when
+    /// asked (engine patch 0018), so the pane asks each time it looks at its matches.
+    private func reportFindScreen() {
+        guard let surface else { return }
+        let isFullScreen = ghostty_surface_alternate_screen(surface)
+        guard isFullScreen != find.isFullScreen else { return }
+        find.isFullScreen = isFullScreen
+        host?.surface(self, didFind: .fullScreen(isFullScreen))
     }
 
     /// Which match on screen is libghostty's current one. Its number counts from the newest match,

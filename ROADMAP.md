@@ -2,7 +2,7 @@
 
 Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
 
-**Current milestone:** M8 (find), built 2026-10-07 and waiting on the author's use for its exit criteria. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); the author's use of OpenCode's new plugin (M3); and the *Later* list. OpenCode's search, resume and fork are built.
+**Current milestone:** M9 (find, further: patterns and the whole session), designed 2026-10-07. M8 (find) is built and waits on the author's use for its exit criteria. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); the author's use of OpenCode's new plugin (M3); and the *Later* list. OpenCode's search, resume and fork are built.
 
 ## How to read this
 
@@ -26,6 +26,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
 | **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | 🟨 (built; exit criteria wait on the author's use) |
+| **M9** Find, further | `.*` patterns, and the whole session for full-screen programs | F16 | M8 | ⬜ |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
 
@@ -233,6 +234,22 @@ A line in a long log is one ⌘F away, and it never looks like a selection. All 
 **Exit criteria**
 - In the author's use, a line in a long build log is found with ⌘F, and in Claude Code's full-screen view the note sends them to ⌘K, without either needing thought.
 - Calm at rest costs what it did before (`mise run perf`).
+
+---
+
+## M9 — Find, further (F16) ⬜
+
+Find takes patterns, and in a full-screen program it can search everything the session showed, not just the screen. Designed with the author on the canvas (pages Regex and Whole session, 2026-10-07); FEATURES.md → F16, UIUX.md → Find, DESIGNS.md → Find. Each task ships on its own, in this order.
+
+- [ ] **M9.1 `.*`:** the switch and ⌥⌘R, Calm's own search for patterns (marks, count, map), the pill through the engine stepped to the current match's text, "Incomplete pattern", remembered per session, ⌘E plain words; patterns in the viewer's own page, no switch for PDFs and web pages.
+- [ ] **M9.2 Engine patch 0019:** read the primary screen while the alternate one is shown, for the shell's output before a full-screen program.
+- [ ] **M9.3 Keeping what a full-screen program shows:** the screen read at most every 0.2 s while it draws, scrolls and replaced views kept, changes in place not, in memory up to 50,000 lines with their times; a perf scenario with a streaming full-screen program, held to the budget.
+- [ ] **M9.4 Screen | Session:** the switch (the field grows to 420 pt while it shows), the note's Search the whole session, the switch after the program quits while lines are kept.
+- [ ] **M9.5 The session page:** the kept lines as a page over the terminal with time marks, the same marks, count and map, patterns too; esc or Screen back to the live program.
+
+**Exit criteria**
+- In the author's use, a line Claude Code showed an hour earlier in its full-screen view is found with ⌘F, Session, without thought.
+- Calm with a streaming full-screen program costs no more than its budget (`mise run perf`).
 
 ---
 

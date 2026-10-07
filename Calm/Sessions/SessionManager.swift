@@ -315,6 +315,9 @@ final class SessionManager {
                 recentlyClosed.push(closed)
             }
             PersistentShell.kill(name: session.persistentName)
+            // That ended the agent before it could clean up after itself: an empty worktree it
+            // made for this session goes too (`claude -w`).
+            WorktreeCleanup.afterClose(session, open: workspace.sessions)
             if let folder = session.scratchFolder, !workspace.sessions.contains(where: { $0.id != id && $0.scratchFolder == folder }) {
                 ScratchFolders.discard(folder)
             }

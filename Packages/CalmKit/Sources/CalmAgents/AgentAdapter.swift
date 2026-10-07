@@ -95,6 +95,11 @@ public protocol AgentAdapter: Sendable {
     /// The options Settings → Agents offers as chips, each one of the agent's own flags, in the
     /// order they're typed.
     var launchOptions: [LaunchOption] { get }
+    /// The process that made and holds a git worktree, read from the reason the agent locked it
+    /// with (`git worktree list --porcelain`), or nil when the agent didn't make it. Calm removes
+    /// such a worktree when its session closes, once that process is gone and the worktree is
+    /// still empty (`WorktreeCleanup`); any other worktree is never touched.
+    func worktreeOwner(lockReason: String) -> Int32?
     /// Variables for the shells Calm starts, so the agent fits in there; nothing is written to its
     /// config. `inherited` is Calm's own environment, which also locates the agent's config.
     func shellEnvironment(home: URL, inherited: [String: String]) -> [String: String]
@@ -144,6 +149,10 @@ public extension AgentAdapter {
 
     var launchOptions: [LaunchOption] {
         []
+    }
+
+    func worktreeOwner(lockReason _: String) -> Int32? {
+        nil
     }
 
     func shellEnvironment(home _: URL, inherited _: [String: String]) -> [String: String] {

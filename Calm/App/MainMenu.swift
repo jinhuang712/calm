@@ -100,6 +100,21 @@ enum MainMenu {
         menu.addItem(withTitle: "Select All", action: #selector(NSResponder.selectAll(_:)), keyEquivalent: "a")
         menu.addItem(.separator())
         menu.addItem(terminalItem("Clear Screen", "clear_screen", key: "k", mods: [.command, .shift])) // ⌘K is Search Sessions
+        menu.addItem(.separator())
+        menu.addItem(submenu(findMenu()))
+        return menu
+    }
+
+    /// Find in a session (FEATURES.md → F16). libghostty's own bindings take these keys while a
+    /// pane has the keyboard; the items take them while find's field has it, so both run the same
+    /// binding actions. Find… reads Hide Find while find is open (`validateMenuItem`).
+    private static func findMenu() -> NSMenu {
+        let menu = NSMenu(title: "Find")
+        menu.addItem(terminalItem("Find…", "start_search", key: "f"))
+        menu.addItem(terminalItem("Find Next", "navigate_search:next", key: "g"))
+        menu.addItem(terminalItem("Find Previous", "navigate_search:previous", key: "g", mods: [.command, .shift]))
+        menu.addItem(.separator())
+        menu.addItem(terminalItem("Use Selection for Find", "search_selection", key: "e"))
         return menu
     }
 
@@ -276,6 +291,12 @@ extension TerminalMenuTarget: NSMenuItemValidation {
             // With no agent to start, ⌘N opens a plain shell, as ⌘T does.
             let agent = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings)
             item.title = agent.map { "New \($0.displayName) Session" } ?? "New Session"
+        }
+        let finding = TerminalWindowManager.shared.focusedController?.find.isOpen == true
+        switch item.representedObject as? String {
+        case "start_search": item.title = finding ? "Hide Find" : "Find…"
+        case "navigate_search:next", "navigate_search:previous": return finding
+        default: break
         }
         return switch item.action {
         case #selector(reopenClosedSession(_:)): SessionManager.shared.canReopenClosedSession

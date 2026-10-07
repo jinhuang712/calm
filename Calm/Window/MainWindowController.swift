@@ -34,6 +34,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var welcomePage = WelcomePage(container: container)
     lazy var noSessionPage = NoSessionPage(mainArea: mainArea)
     lazy var settingsPage = SettingsPage(container: container)
+    /// ⌘F's field in the title strip and the pane it searches (MainWindowController+Find).
+    let find = FindModel()
     private(set) var sidebarStyle = SidebarStyle.derived(from: NSColor(white: 0.12, alpha: 1))
     /// Off until the saved size is back, so restoring it isn't taken for the user leaving the
     /// filled or full-screen state that is about to be restored (see `restoreFrame`).
@@ -235,6 +237,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // and a file open over the one you were in.
         hideSettings()
         closeViewer()
+        // Going to another session closes find (FEATURES.md → F16).
+        if find.isOpen, find.target?.id != id {
+            find.close()
+        }
         let previous = manager.workspace.selectedLayoutID
         let previousSession = manager.workspace.selectedLayout?.focusedSessionID
         if let previousSession, previousSession != id {
@@ -318,6 +324,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     private func closeSession(_ id: Session.ID) {
         guard let layout = manager.workspace.layout(containing: id) else { return }
         closePrompt.dismiss()
+        if find.target?.id == id {
+            find.close()
+        }
         let workspace = workspaces[layout.id]
         if let pane = manager.panes[id] {
             workspace?.detach(pane)
@@ -532,6 +541,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // to stay up over the old pane, with its ⌘W swallowed, so the new pane couldn't be closed.
         closePrompt.dismiss()
         traceFocus("focus arrived", view)
+        // Find stays on the pane it searches; the keyboard going elsewhere closes it.
+        find.focusDidMove(to: view)
         manager.setFocused(view.id)
         applyAppearance()
     }

@@ -289,9 +289,9 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 
 **Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (six for the four agents today), in Settings → Agents; stored as `new-session` under `[agents]`, and `skip-permissions`, `worktree` and `trust-project-files` in each agent's section (`[agents.claude-code]`, `[agents.codex]`, `[agents.opencode]`, `[agents.pi]`). Two in the config file only: `flags` and `command`, per agent.
 
-## F16 — Find in a session (⌘F) 📝
+## F16 — Find in a session (⌘F) 🚧
 
-Designed with the author step by step, 2026-10-06 and 07, on a design canvas (claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf); not built. Looks in UIUX.md → Find, the engine and the plan in DESIGNS.md → Find.
+Designed with the author step by step, 2026-10-06 and 07, on a design canvas (claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf). Looks in UIUX.md → Find, the engine and the plan in DESIGNS.md → Find. Built so far (M8.1, 2026-10-07): the field, its keys and its count, as below, with matches in Ghostty's own yellow and orange. Still to come (ROADMAP.md → M8): Calm's own marks, the map, the "on screen" count and note for full-screen programs, and find in a viewed file.
 
 - **⌘F** opens find for the session you're in (in a split, the pane you're in; each pane keeps its own search). The field takes the right of the title strip, where the files readout was. The pane's last search comes back selected, so typing replaces it; **⌘E** finds the selected text. **⌘F again closes it**, from the field or from the terminal. The Edit menu has Find… (Hide Find while it's open), Find Next ⌘G, Find Previous ⌘⇧G and Use Selection for Find ⌘E; ⌘P leaves it out, since everyone knows ⌘F.
 - Matches are marked as you type. Case doesn't matter for the letters A to Z (Ghostty's engine). No options: no case, regex or whole-word switches.

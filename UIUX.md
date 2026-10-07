@@ -205,7 +205,7 @@ The fourth is its own bundle identifier, `com.jinhuang.calm.dev` (the installed 
 
 ## Find (⌘F)
 
-Designed 2026-10-06 and 07, not built (FEATURES.md → F16). The look is Calm's own, drawn over the terminal: a flat fill, all a terminal can paint, read as a selection.
+Designed 2026-10-06 and 07 (FEATURES.md → F16). The look is Calm's own, drawn over the terminal: a flat fill, all a terminal can paint, read as a selection. As built so far (M8.1): the field below; matches are still Ghostty's own yellow fill and the current one its orange, until M8.3 draws the marks.
 
 - **The field** stands in the title strip where the files readout was (the readout steps away while find is open; ⋯ stays), in the sidebar's search field's look: a soft fill (the text color at 7%), 8 pt corners, 30 pt tall. A quiet magnifier, what you type in 13.5 pt, the count in 12 pt tertiary with even-width digits ("3 of 11", "No matches"), ↑ and ↓ (22 pt; the arrow at an end at 35%), and a **⌘F** key cap that closes it. It is 340 pt wide; when the strip is short of room, in this order: the field narrows to 240 pt; the worktree label goes, whole; the name shortens with "…" and the folder loses its front, down to 96 pt; the name and folder go and the group's mark stays; the mark goes (only with the sidebar hidden, in a window at its narrowest). The count never goes. It fades in over 0.16 s.
 - **Every match:** a solid 2 pt underline in the accent, rounded at the ends, 1.5 pt under the text. Nothing filled; the text keeps its own colors.
@@ -350,6 +350,9 @@ Rules: one line of help text per setting at most; no setting that only shows or 
 | Shortcut | Action |
 |---|---|
 | ⌘K | Search sessions |
+| ⌘F | Find in the session; ⌘F again closes it (↵ / ⇧↵ older / newer match in the field, esc closes) |
+| ⌘G / ⌘⇧G | The older / newer match while find is open |
+| ⌘E | Find the selected text |
 | ⌘P | Command palette |
 | ⌘N | New session running the agent chosen in Settings → Agents |
 | ⌘T / ⌘D / ⌘⇧D | New session / split right / split down |

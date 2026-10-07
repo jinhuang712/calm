@@ -177,6 +177,8 @@
                 }
             case "who":
                 whoHasFocusForTesting()
+            case let action where action.hasPrefix("find_"):
+                findForTesting(action)
             default:
                 return performSessionActionForTesting(action)
             }

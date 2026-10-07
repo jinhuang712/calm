@@ -5,7 +5,7 @@ import GhosttyKit
 
 /// Whoever lays out terminal panes (a window's split container) and reacts to their requests.
 @MainActor
-protocol TerminalSurfaceHost: AnyObject {
+protocol TerminalSurfaceHost: AnyObject, FindHost {
     func surfaceRequestsNewTab(_ view: TerminalSurfaceView)
     func surface(_ view: TerminalSurfaceView, requestsSplit direction: SplitTree<UUID>.Direction)
     func surface(_ view: TerminalSurfaceView, requestsFocus target: PaneFocusTarget) -> Bool

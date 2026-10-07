@@ -52,6 +52,10 @@ enum CalmDefaults {
         // ⌘⇧T reopens the last closed session. Ghostty binds it to undo, which Calm doesn't do; that
         // binding would take the key first and pass it on to the shell.
         lines.append("keybind = super+shift+t=unbind")
+        // Esc always reaches the program, so it still interrupts Claude Code while find is open.
+        // Ghostty binds it to end_search, which takes the key whenever a search is active; find's
+        // field takes esc itself, and typing into the session closes find (FEATURES.md → F16).
+        lines.append("keybind = escape=unbind")
         // ⌘N starts the agent chosen in Settings → Agents. Ghostty binds it to new_window, which in
         // Calm's one window was a second ⌘T; left bound, Ghostty would take the key before the menu.
         lines.append("keybind = super+n=unbind")

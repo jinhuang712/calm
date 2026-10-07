@@ -305,6 +305,13 @@ final class TerminalEngine {
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { view.host?.surfaceChildExited(view) }
             }
+        case GHOSTTY_ACTION_START_SEARCH, GHOSTTY_ACTION_END_SEARCH, GHOSTTY_ACTION_SEARCH_TOTAL, GHOSTTY_ACTION_SEARCH_SELECTED:
+            // Find (FEATURES.md → F16). Later, so the window's answer (a new search, a step to the
+            // newest match) isn't a binding action run from inside libghostty's own call.
+            guard let view, let event = Self.findEvent(action) else { return false }
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { view.host?.surface(view, didFind: event) }
+            }
         case GHOSTTY_ACTION_COLOR_CHANGE:
             let change = action.action.color_change
             guard change.kind == GHOSTTY_ACTION_COLOR_KIND_BACKGROUND else { return true }
@@ -315,6 +322,22 @@ final class TerminalEngine {
             return nil
         }
         return true
+    }
+
+    /// A search action as find reads it. libghostty's counts are signed, -1 when there is none.
+    nonisolated static func findEvent(_ action: ghostty_action_s) -> FindEvent? {
+        switch action.tag {
+        case GHOSTTY_ACTION_START_SEARCH:
+            .start(needle: action.action.start_search.needle.map { String(cString: $0) } ?? "")
+        case GHOSTTY_ACTION_END_SEARCH:
+            .end
+        case GHOSTTY_ACTION_SEARCH_TOTAL:
+            .total(action.action.search_total.total < 0 ? nil : Int(action.action.search_total.total))
+        case GHOSTTY_ACTION_SEARCH_SELECTED:
+            .selected(action.action.search_selected.selected < 0 ? nil : Int(action.action.search_selected.selected))
+        default:
+            nil
+        }
     }
 
     private func configDidChange(_ raw: ghostty_config_t?, target: ghostty_target_s, view: TerminalSurfaceView?) {

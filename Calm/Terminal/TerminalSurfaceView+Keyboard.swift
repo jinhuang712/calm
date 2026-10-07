@@ -9,6 +9,10 @@ extension TerminalSurfaceView: @preconcurrency NSTextInputClient {
 
     override func keyDown(with event: NSEvent) {
         host?.surfaceDidReceiveInput(self)
+        // Typing into the session closes find; ⌘ keys (⌘F, ⌘G, ⌘E) are find's own and pass by.
+        if !event.modifierFlags.contains(.command) {
+            host?.surfaceDidType(self)
+        }
         updateCellOutline([]) // typing puts it away, as it does a link's tag
         guard let surface else {
             interpretKeyEvents([event])

@@ -36,7 +36,13 @@ struct SessionTitleView: View {
     /// The update hint's click: restart the agent, or take back a restart still waiting.
     var onRestart: (Session.ID) -> Void = { _ in }
     var onCancelRestart: (Session.ID) -> Void = { _ in }
+    /// Find (FEATURES.md → F16): while it's open its field takes the readout's place.
+    let find: FindModel
     @State private var menuHovered = false
+    /// While finding: the row the title and the field share, and the title's whole width with
+    /// its worktree, which the field gives way to before the title does.
+    @State private var findRowWidth: CGFloat = 0
+    @State private var findTitleWidth: CGFloat = 0
 
     /// What the files readout follows: the project, and whether an agent is working in it.
     private struct Watch: Equatable {
@@ -49,21 +55,25 @@ struct SessionTitleView: View {
         // Alone (a plain shell), the folder is the title and takes its line.
         let title = strip.title ?? strip.folder ?? ""
         let worktree = session?.worktreeName
-        // The readout gives way to the column: it shows the same numbers.
-        let summary = files.isShown ? nil : files.summary
+        // The readout gives way to the column, which shows the same numbers, and to find's field.
+        let summary = files.isShown || find.isOpen ? nil : files.summary
         let watch = Watch(root: filesRoot(), working: session?.state == .working)
         HStack(spacing: 8.scaled) {
             Group {
-                // The worktree and the readout join the title's lines and show whole or not at
-                // all: the name and the folder come first, so a long one never trades for them,
-                // and the readout goes before the worktree does (which worktree you're in is
-                // part of where you are; the count is news). Four explicit children:
-                // ViewThatFits mustn't get an empty or optional one.
-                ViewThatFits(in: .horizontal) {
-                    titleRow(strip: strip, title: title, worktree: worktree, summary: summary)
-                    titleRow(strip: strip, title: title, worktree: worktree, summary: nil)
-                    titleRow(strip: strip, title: title, worktree: nil, summary: summary)
-                    titleRow(strip: strip, title: title, worktree: nil, summary: nil)
+                if find.isOpen {
+                    findingRow(strip: strip, title: title, worktree: worktree)
+                } else {
+                    // The worktree and the readout join the title's lines and show whole or not at
+                    // all: the name and the folder come first, so a long one never trades for them,
+                    // and the readout goes before the worktree does (which worktree you're in is
+                    // part of where you are; the count is news). Four explicit children:
+                    // ViewThatFits mustn't get an empty or optional one.
+                    ViewThatFits(in: .horizontal) {
+                        titleRow(strip: strip, title: title, worktree: worktree, summary: summary)
+                        titleRow(strip: strip, title: title, worktree: worktree, summary: nil)
+                        titleRow(strip: strip, title: title, worktree: nil, summary: summary)
+                        titleRow(strip: strip, title: title, worktree: nil, summary: nil)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,6 +105,55 @@ struct SessionTitleView: View {
         // The project's changes are read again when it changes and when an agent starts or stops
         // working in it (files.watchSummary).
         .onChange(of: watch, initial: true) { _, watch in files.watchSummary(of: watch.root, working: watch.working) }
+    }
+
+    /// While finding (UIUX.md → Find): the title and, at the right, the field. When the row is short
+    /// the field narrows from 340 to 240 pt first; then the worktree goes, the name shortens down to
+    /// 96 pt, the name and folder go leaving the mark, and the mark goes. Only the title changes
+    /// between ViewThatFits's children, so the field is never rebuilt and keeps the keyboard.
+    private func findingRow(strip: (folder: String?, title: String?), title: String, worktree: String?) -> some View {
+        let gap = 8.scaled
+        let field = Self.findFieldWidth(row: findRowWidth, title: findTitleWidth, gap: gap, widest: 340.scaled, narrowest: 240.scaled)
+        return HStack(spacing: gap) {
+            ViewThatFits(in: .horizontal) {
+                titleBlock(strip: strip, title: title, worktree: worktree)
+                titleBlock(strip: strip, title: title, worktree: nil)
+                titleBlock(strip: strip, title: title, worktree: nil)
+                    .frame(minWidth: 96.scaled, idealWidth: 96.scaled, maxWidth: .infinity, alignment: .leading)
+                groupMark
+                Color.clear.frame(width: 0, height: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            FindFieldView(model: find, style: style, onFrame: onControlFrame)
+                .frame(width: field)
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { findRowWidth = $0 }
+        .background(alignment: .leading) {
+            // The title's whole width, measured where it can't be seen.
+            titleBlock(strip: strip, title: title, worktree: worktree)
+                .fixedSize()
+                .hidden()
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { findTitleWidth = $0 }
+        }
+    }
+
+    /// The find field's width in a row `row` wide whose title wants `title`: `widest` at most,
+    /// giving way to the title down to `narrowest`, and never wider than the row.
+    nonisolated static func findFieldWidth(row: CGFloat, title: CGFloat, gap: CGFloat, widest: CGFloat, narrowest: CGFloat) -> CGFloat {
+        guard row > 0 else { return narrowest }
+        return min(row, min(widest, max(narrowest, row - title - gap)))
+    }
+
+    /// The group's mark alone: what's left of the title in a short row while finding.
+    @ViewBuilder private var groupMark: some View {
+        if let project {
+            GroupMark(project: project, style: style, side: Self.markSide)
+                .foregroundStyle(style.tertiary)
+                .frame(width: Self.markSide.scaled, height: Self.markSide.scaled)
+                .accessibilityHidden(true)
+        } else {
+            Color.clear.frame(width: 0, height: 0)
+        }
     }
 
     /// The title block with, at the right of the strip's room, the readout when there is one.
@@ -315,6 +374,7 @@ extension MainWindowController {
             onControlFrame: { [weak self] id, frame in self?.titleHost?.setControlFrame(frame, for: id) },
             onRestart: { [weak self] id in self?.restartAgent(in: id) },
             onCancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
+            find: find,
         )
     }
 }

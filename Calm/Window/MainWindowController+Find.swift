@@ -1,0 +1,43 @@
+import AppKit
+
+/// Find in a session (FEATURES.md → F16, DESIGNS.md → Find): libghostty's reports about a pane's
+/// search reach the window's FindModel, whose field sits in the title strip.
+extension MainWindowController {
+    func surface(_ view: TerminalSurfaceView, didFind event: FindEvent) {
+        // The viewer and Settings cover the strip; find in a viewed file comes later (M8.7).
+        if case .start = event, fileViewer.isShowing || settingsPage.isShowing {
+            return
+        }
+        find.handle(event, from: view)
+    }
+
+    /// A key without ⌘ went to `view`: back to work, so find closes (the key still reaches the program).
+    func surfaceDidType(_ view: TerminalSurfaceView) {
+        find.didType(in: view)
+    }
+
+    #if DEBUG
+        /// `find_open`, `find_type:<words>`, `find_older`, `find_newer`, `find_close` drive find as the
+        /// keys would; `find_state` logs what the field shows.
+        func findForTesting(_ action: String) {
+            switch action {
+            case "find_open":
+                focusedPane?.perform("start_search")
+            case let words where words.hasPrefix("find_type:"):
+                find.query = String(words.dropFirst(10))
+            case "find_older":
+                find.step(.older)
+            case "find_newer":
+                find.step(.newer)
+            case "find_close":
+                find.close()
+            default:
+                let target = find.target.map { Trace.id($0.id) } ?? "none"
+                let state = "open \(find.isOpen), words \"\(find.query)\", total \(find.total.map(String.init) ?? "nil"), "
+                    + "selected \(find.selected.map(String.init) ?? "nil"), shows \"\(find.countText)\", "
+                    + "older \(find.olderDisabled ? "off" : "on"), newer \(find.newerDisabled ? "off" : "on"), pane \(target)"
+                FileHandle.standardError.write(Data("calm-selftest: find \(state)\n".utf8))
+            }
+        }
+    #endif
+}

@@ -9,7 +9,7 @@
 #
 # Runs are isolated from a Calm the user may be running: headless by default (no window, no
 # focus taken, see Calm/App/Headless.swift), and with their own state file, socket, config,
-# generated Ghostty files and zmx directory. The user's Ghostty config is left out unless
+# generated Ghostty files, Claude Code plugin and zmx directory. The user's Ghostty config is left out unless
 # --ghostty-config is given, so runs don't depend on it. Nothing is written into agents' config
 # folders (a connected agent's files, OpenCode's theme) unless --agent-files is given. Only the
 # instance this script starts is ever stopped.
@@ -96,11 +96,14 @@ if [[ -z "$search_home" ]]; then
   mkdir -p "$search_home"
 fi
 
-# Calm writes its generated Ghostty files (defaults, themes) here instead of Application Support.
+# Calm writes its generated Ghostty files (defaults, themes) and Claude Code's plugin here instead
+# of Application Support, so a test never changes the hooks a real Calm's Claude sessions run.
 support_dir="$out/$name.support"
 rm -rf "$support_dir"
 
-env \
+# Run from a shell inside Calm, this script inherits the real Calm's plugin in
+# CLAUDE_CODE_PLUGIN_DIRS; dropped, so a Claude in the test loads the test's plugin alone.
+env -u CLAUDE_CODE_PLUGIN_DIRS \
   CALM_STATE_FILE="$state" \
   CALM_SUPPORT_DIR="$support_dir" \
   CALM_GHOSTTY_CONFIG="$ghostty_config" \

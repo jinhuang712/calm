@@ -147,10 +147,26 @@ extension ClaudeCodeAdapter: HookReporting {
     }
 
     /// Where Calm writes the plugin, at each launch: its shells load it through
-    /// `CLAUDE_CODE_PLUGIN_DIRS`, and `calm doctor` checks it's there.
+    /// `CLAUDE_CODE_PLUGIN_DIRS`, and `calm doctor` checks it's there. It lives in Calm's support
+    /// folder, which a self-test moves (`CALM_SUPPORT_DIR`): when it didn't, every self-test of
+    /// any branch rewrote the hooks the real Calm's Claude sessions run (seen 2026-10-07).
     public static var pluginDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "Calm/agents/claude-code")
+        pluginDirectory(in: supportDirectory(environment: ProcessInfo.processInfo.environment))
+    }
+
+    /// The plugin's folder inside a Calm support folder.
+    public static func pluginDirectory(in support: URL) -> URL {
+        support.appending(path: "agents/claude-code", directoryHint: .isDirectory)
+    }
+
+    /// `~/Library/Application Support/Calm`, or `CALM_SUPPORT_DIR` when a self-test sets it (a
+    /// self-test's shells, and the `calm` they run, inherit it from its Calm).
+    static func supportDirectory(environment: [String: String]) -> URL {
+        if let override = environment["CALM_SUPPORT_DIR"], !override.isEmpty {
+            return URL(filePath: override, directoryHint: .isDirectory)
+        }
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appending(path: "Calm", directoryHint: .isDirectory)
     }
 
     /// The paths `pluginFiles` writes, without building them: what `calm doctor` checks are there.

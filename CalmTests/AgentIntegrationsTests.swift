@@ -19,6 +19,15 @@ struct AgentIntegrationsTests {
         #expect(environment["OPENCODE_CLI_CONFIG_CONTENT"] == #"{"theme":{"name":"system"}}"#)
     }
 
+    /// A test's Calm writing the real Calm's plugin changed the hooks its Claude sessions run.
+    @Test func `a test's Calm keeps Claude Code's plugin in its own folder`() {
+        let real = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "Calm")
+        let ours = AgentIntegrations.claudeCodePluginDirectory.path
+        #expect(!ours.hasPrefix(real.path))
+        #expect(ours.hasPrefix(CalmDefaults.directory.path))
+        #expect(ours.hasSuffix("agents/claude-code") || ours.hasSuffix("agents/claude-code/"))
+    }
+
     @Test func `turning Claude Code's hooks off leaves OpenCode's theme`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }

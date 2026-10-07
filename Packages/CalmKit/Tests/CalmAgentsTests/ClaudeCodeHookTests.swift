@@ -161,6 +161,14 @@ struct ClaudeCodeHookTests {
         #expect(hooks.contains("|| true"))
     }
 
+    @Test func `a self-test's support folder holds its own plugin`() {
+        let moved = ClaudeCodeAdapter.supportDirectory(environment: ["CALM_SUPPORT_DIR": "/tmp/calm-selftest/run.support"])
+        #expect(ClaudeCodeAdapter.pluginDirectory(in: moved).path == "/tmp/calm-selftest/run.support/agents/claude-code")
+        let real = ClaudeCodeAdapter.supportDirectory(environment: [:])
+        #expect(real.path.hasSuffix("/Library/Application Support/Calm"))
+        #expect(ClaudeCodeAdapter.supportDirectory(environment: ["CALM_SUPPORT_DIR": ""]) == real)
+    }
+
     /// `calm doctor` checks the plugin by these names.
     @Test func `the plugin's names, which calm doctor checks, are the files it writes`() {
         #expect(Set(ClaudeCodeAdapter.pluginFiles().keys) == ClaudeCodeAdapter.pluginFileNames)

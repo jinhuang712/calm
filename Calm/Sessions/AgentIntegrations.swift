@@ -26,8 +26,10 @@ enum AgentIntegrations {
         return environment["XCTestConfigurationFilePath"] == nil && environment["CALM_AGENT_FILES"] != "none"
     }
 
+    /// In Calm's support folder, so a self-test's or a unit test's Calm writes its own and never the
+    /// real Calm's (CalmDefaults.isolatedDirectory).
     static var claudeCodePluginDirectory: URL {
-        ClaudeCodeAdapter.pluginDirectory
+        ClaudeCodeAdapter.pluginDirectory(in: CalmDefaults.directory)
     }
 
     /// Writes the plugin files, so a moved or updated app still leaves a valid plugin behind for

@@ -161,6 +161,18 @@ struct ClaudeCodeHookTests {
         #expect(hooks.contains("|| true"))
     }
 
+    @Test func `the plugin carries the mod`() throws {
+        let files = ClaudeCodeAdapter.pluginFiles()
+        let module = try #require(files["hooks/register.js"])
+        #expect(module.contains("export function register"))
+        let hooks = try #require(files["hooks/hooks.json"].flatMap { $0.data(using: .utf8) })
+        let object = try #require(try JSONSerialization.jsonObject(with: hooks) as? [String: Any])
+        #expect(object["modules"] as? [String] == ["./register.js"])
+        // The tests and the stand-alone manifest stay behind.
+        #expect(files.keys.allSatisfy { !$0.contains("test") })
+        #expect(ClaudeCodeAdapter.pastedImagesHandoffDirectory.lastPathComponent == "claude-code-images")
+    }
+
     @Test func `the hook name finds the adapter`() {
         #expect(Agents.hookReporter(named: "claude-code")?.kind == .claudeCode)
         #expect(Agents.hookReporter(named: "nothing") == nil)

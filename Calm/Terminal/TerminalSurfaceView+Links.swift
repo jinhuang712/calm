@@ -10,9 +10,12 @@ struct LinkHover: Equatable {
     /// Its cells, one run per row; `anchor` is the run under the pointer.
     let runs: [CellRun]
     let anchor: CellRun
-    /// A link a program cut across rows (`HardWrap`). libghostty sees only pieces of it, so the pane
-    /// found it itself and draws its underline and cursor too.
-    var isJoined = false
+    /// A link libghostty doesn't know whole, so the pane found it itself and draws its underline and
+    /// cursor, and takes its ⌘-click: one a program cut across rows (`HardWrap`), of which
+    /// libghostty sees only pieces, or an agent's tag for a pasted image, which it doesn't see at all.
+    var isCalmOwned = false
+    /// The number in an agent's tag for a pasted image (`[Image #4]`), when that's what this is.
+    var pastedImage: Int?
 
     func overlaps(_ match: LinkMatch) -> Bool {
         runs.contains { match.overlaps(row: $0.row, columns: $0.columns) }
@@ -173,7 +176,25 @@ extension TerminalSurfaceView {
                 marks[mark] = mark.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
             }
         }
+        markPastedImageTags(in: grid, lines: lines, origin: origin, marks: &marks)
         return marks
+    }
+
+    /// The agent's tags for pasted images whose images are there, added to `marks`.
+    private func markPastedImageTags(in grid: TextGrid, lines: [Range<Int>], origin: NSPoint, marks: inout [LinkMatch: [NSRect]]) {
+        guard let pattern = host?.pastedImagePattern(for: self) else { return }
+        var found: [Int: Bool] = [:]
+        for line in lines {
+            for tag in LinkMatcher.matches(of: pattern, in: grid, rows: line) {
+                guard marks.count < Self.markLimit else { return }
+                guard let number = Self.pastedImageNumber(in: tag.text, pattern: pattern) else { continue }
+                let isThere = found[number] ?? (host?.surface(self, pastedImage: number) != nil)
+                found[number] = isThere
+                if isThere {
+                    marks[tag] = tag.runs.compactMap { rect(row: $0.row, columns: $0.columns, origin: origin) }
+                }
+            }
+        }
     }
 
     /// The longest text of `match` that opens, as ⌘-click tries it, cut to those cells; nil when none does.
@@ -209,25 +230,65 @@ extension TerminalSurfaceView {
         return nil
     }
 
-    private func joinedHover(at cell: (row: Int, column: Int)) -> LinkHover? {
+    /// The agent's tag for a pasted image under `cell`, on the tag itself or anywhere in a tile
+    /// captioned with it (Calm's mod for Claude Code draws one above the prompt), with its number;
+    /// nil unless the image is there.
+    private func pastedImageTag(at cell: (row: Int, column: Int), rows: [String]) -> (tag: LinkMatch, number: Int)? {
+        guard let pattern = host?.pastedImagePattern(for: self) else { return nil }
+        let grid = TextGrid(lines: rows)
+        let line = lines(of: grid).first { $0.contains(cell.row) } ?? cell.row ..< cell.row + 1
+        let onTag = LinkMatcher.matches(of: pattern, in: grid, rows: line).first { $0.covers(row: cell.row, column: cell.column) }
+        guard let tag = onTag ?? FramedCaption.caption(at: cell, in: grid, matching: pattern),
+              let number = Self.pastedImageNumber(in: tag.text, pattern: pattern),
+              host?.surface(self, pastedImage: number) != nil
+        else { return nil }
+        return (tag, number)
+    }
+
+    private static func pastedImageNumber(in text: String, pattern: NSRegularExpression) -> Int? {
+        let range = NSRange(location: 0, length: (text as NSString).length)
+        guard let match = pattern.firstMatch(in: text, range: range), match.numberOfRanges > 1 else { return nil }
+        let group = match.range(at: 1)
+        return group.location == NSNotFound ? nil : Int((text as NSString).substring(with: group))
+    }
+
+    /// A link under `cell` that the pane finds itself (`LinkHover.isCalmOwned`).
+    private func calmOwnedHover(at cell: (row: Int, column: Int)) -> LinkHover? {
         let rows = viewportRows()
-        guard let link = joinedLink(at: cell, rows: rows) else { return nil }
-        links.hoverRows = rows
-        let anchor = link.runs.first { $0.row == cell.row } ?? link.runs[0]
-        return LinkHover(text: link.text, runs: link.runs, anchor: anchor, isJoined: true)
+        if let link = joinedLink(at: cell, rows: rows) {
+            links.hoverRows = rows
+            let anchor = link.runs.first { $0.row == cell.row } ?? link.runs[0]
+            return LinkHover(text: link.text, runs: link.runs, anchor: anchor, isCalmOwned: true)
+        }
+        if let (tag, number) = pastedImageTag(at: cell, rows: rows) {
+            links.hoverRows = rows
+            // Over a tile's picture, the tag sits by its caption.
+            let anchor = tag.runs.first { $0.row == cell.row } ?? tag.runs[tag.runs.count - 1]
+            return LinkHover(text: tag.text, runs: tag.runs, anchor: anchor, isCalmOwned: true, pastedImage: number)
+        }
+        return nil
     }
 
-    /// ⌘-click on a link a program cut across rows opens the whole of it, before libghostty sees the
-    /// click. False when the click isn't on one.
-    func openJoinedLink(at point: NSPoint) -> Bool {
-        guard let cell = cell(at: point), let link = joinedLink(at: cell, rows: viewportRows()) else { return false }
-        setLinkHover(nil)
-        host?.surface(self, requestsOpenLink: link.text)
-        return true
+    /// ⌘-click on a link the pane finds itself opens it whole, before libghostty sees the click.
+    /// False when the click isn't on one.
+    func openCalmOwnedLink(at point: NSPoint) -> Bool {
+        guard let cell = cell(at: point) else { return false }
+        let rows = viewportRows()
+        if let link = joinedLink(at: cell, rows: rows) {
+            setLinkHover(nil)
+            host?.surface(self, requestsOpenLink: link.text)
+            return true
+        }
+        if let (_, number) = pastedImageTag(at: cell, rows: rows) {
+            setLinkHover(nil)
+            host?.surface(self, requestsOpenPastedImage: number)
+            return true
+        }
+        return false
     }
 
-    /// Looks for a link a program cut across rows under ⌘ and the pointer, when either moved. Only
-    /// when the cell changes, since it reads the screen.
+    /// Looks for a link the pane finds itself under ⌘ and the pointer, when either moved. Only when
+    /// the cell changes, since it reads the screen.
     func refreshJoinedLinkHover() {
         var pointed: (row: Int, column: Int)?
         if links.isCommandDown, let pointer = links.pointer {
@@ -236,9 +297,9 @@ extension TerminalSurfaceView {
         let checked = pointed.map { CellRun(row: $0.row, columns: $0.column ..< $0.column + 1) }
         guard checked != links.joinedCheck else { return }
         links.joinedCheck = checked
-        if let pointed, let hover = joinedHover(at: pointed) {
+        if let pointed, let hover = calmOwnedHover(at: pointed) {
             setLinkHover(hover)
-        } else if links.hovered?.isJoined == true {
+        } else if links.hovered?.isCalmOwned == true {
             setLinkHover(nil)
         }
     }
@@ -291,9 +352,10 @@ extension TerminalSurfaceView {
             setLinkHover(nil)
             return
         }
-        // A link a program cut across rows is Calm's whole, wherever libghostty sees a piece of it.
-        if links.isCommandDown, let joined = joinedHover(at: cell) {
-            setLinkHover(joined)
+        // A link a program cut across rows is Calm's whole, wherever libghostty sees a piece of it; an
+        // agent's image tag is Calm's alone. Checked first, since libghostty reports nil over both.
+        if links.isCommandDown, let owned = calmOwnedHover(at: cell) {
+            setLinkHover(owned)
             return
         }
         guard let text, !text.isEmpty else {
@@ -319,9 +381,9 @@ extension TerminalSurfaceView {
 
     private func setLinkHover(_ hover: LinkHover?) {
         guard hover != links.hovered else { return }
-        let hadHand = links.hovered?.isJoined == true
+        let hadHand = links.hovered?.isCalmOwned == true
         links.hovered = hover
-        if hadHand != (hover?.isJoined == true) {
+        if hadHand != (hover?.isCalmOwned == true) {
             window?.invalidateCursorRects(for: self) // the hand is Calm's to show for a link libghostty doesn't know whole
         }
         host?.surface(self, hoversLink: hover)

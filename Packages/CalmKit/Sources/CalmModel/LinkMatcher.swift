@@ -104,6 +104,25 @@ public enum LinkMatcher {
     /// program carried the line on in by itself (`HardWrap`): the indent in front of their text is
     /// left out, so a word it cut reads whole.
     public static func matches(in grid: TextGrid, rows: Range<Int>, continuations: Set<Int> = []) -> [LinkMatch] {
+        matches(in: grid, rows: rows, continuations: continuations, finding: ranges(in:))
+    }
+
+    public static func matches(in grid: TextGrid, row: Int) -> [LinkMatch] {
+        matches(in: grid, rows: row ..< row + 1)
+    }
+
+    /// What `expression` matches in one line of the screen, with the cells each covers, the way
+    /// links are found: an agent's own tag for a pasted image (`[Image #4]`), say.
+    public static func matches(of expression: NSRegularExpression, in grid: TextGrid, rows: Range<Int>) -> [LinkMatch] {
+        matches(in: grid, rows: rows, continuations: []) { line in
+            // NSRegularExpression counts UTF-16, as the cells' offsets do.
+            expression.matches(in: line, range: NSRange(location: 0, length: (line as NSString).length)).map(\.range)
+        }
+    }
+
+    private static func matches(
+        in grid: TextGrid, rows: Range<Int>, continuations: Set<Int>, finding: (String) -> [NSRange],
+    ) -> [LinkMatch] {
         var line = ""
         // Where each character is, by its UTF-16 offset (what NSRegularExpression counts).
         var cells: [Int: LinkMatch.Cell] = [:]
@@ -123,15 +142,11 @@ public enum LinkMatcher {
                 offset += cell.utf16.count
             }
         }
-        return ranges(in: line).compactMap { range in
+        return finding(line).compactMap { range in
             let characters = offsets.filter { $0 >= range.location && $0 < range.location + range.length }.compactMap { cells[$0] }
             guard !characters.isEmpty, cells[range.location] != nil else { return nil }
             return LinkMatch(text: (line as NSString).substring(with: range), characters: characters)
         }
-    }
-
-    public static func matches(in grid: TextGrid, row: Int) -> [LinkMatch] {
-        matches(in: grid, rows: row ..< row + 1)
     }
 
     private static func ranges(in line: String) -> [NSRange] {

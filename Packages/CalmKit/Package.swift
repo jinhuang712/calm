@@ -21,7 +21,13 @@ let package = Package(
         // to add. Package-internal.
         .target(name: "CalmSQLite"),
         // Marks: an agent's own animation frames, where it has them (AgentMarkArt.Frames).
-        .target(name: "CalmAgents", dependencies: ["CalmModel", "CalmSQLite"], resources: [.copy("Marks")]),
+        // ClaudeCodeMod: the hooks module Calm's Claude Code plugin carries, kept as a plugin of
+        // its own so `claude plugin validate` and `claude plugin test` check it.
+        .target(
+            name: "CalmAgents",
+            dependencies: ["CalmModel", "CalmSQLite"],
+            resources: [.copy("Marks"), .copy("ClaudeCodeMod")],
+        ),
         .target(name: "CalmSearch", dependencies: ["CalmAgents", "CalmModel", "CalmSQLite"]),
         .testTarget(name: "CalmModelTests", dependencies: ["CalmModel"], resources: [.copy("Fixtures")]),
         .testTarget(name: "CalmControlTests", dependencies: ["CalmControl"], resources: [.copy("Fixtures")]),

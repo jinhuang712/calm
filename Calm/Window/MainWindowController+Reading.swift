@@ -62,6 +62,10 @@ extension MainWindowController {
             linkTag.hide(animated: true)
             return
         }
+        if let number = hover.pastedImage {
+            showPastedImageTag(number, in: view, cells: cells)
+            return
+        }
         let folders = linkFolders(of: view)
         let link = LinkOpener.resolve(hover.text, directory: folders.directory, projectDirectory: folders.project)
         let preview = LinkOpener.preview(of: link, text: hover.text)
@@ -90,6 +94,48 @@ extension MainWindowController {
             return
         }
         LinkOpener.openOutside(link)
+    }
+
+    // MARK: Pasted images
+
+    func pastedImagePattern(for view: TerminalSurfaceView) -> NSRegularExpression? {
+        manager.workspace.session(view.id)?.agent.flatMap { PastedImageLookup.pattern(for: $0.kind) }
+    }
+
+    func surface(_ view: TerminalSurfaceView, pastedImage number: Int) -> URL? {
+        manager.workspace.session(view.id).flatMap { PastedImageLookup.image(number, in: $0) }
+    }
+
+    func surface(_ view: TerminalSurfaceView, requestsOpenPastedImage number: Int) {
+        linkTag.hide(animated: false)
+        guard let image = surface(view, pastedImage: number) else {
+            CopyToast.show("Image not found", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
+            return
+        }
+        if LinkOpener.prefersViewer, showFile(image.path) {
+            return
+        }
+        LinkOpener.openOutside(.file(path: image.path, line: nil, column: nil))
+    }
+
+    /// The tag for a pasted image: the picture large, named by its tag, with its size.
+    private func showPastedImageTag(_ number: Int, in view: TerminalSurfaceView, cells: NSRect) {
+        guard let image = surface(view, pastedImage: number) else {
+            linkTag.hide(animated: true)
+            return
+        }
+        var preview = LinkOpener.preview(of: .file(path: image.path, line: nil, column: nil), text: image.path)
+        preview.title = "Image #\(number)"
+        preview.detail = PastedImageLookup.pixelSize(of: image)
+        linkTag.show(
+            preview,
+            image: image.path,
+            isLarge: true,
+            under: view.convert(cells, to: container),
+            in: view.convert(view.bounds, to: container),
+            background: view.effectiveBackgroundColor,
+            style: sidebarStyle,
+        )
     }
 
     // MARK: Viewer

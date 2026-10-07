@@ -17,6 +17,8 @@ Frameworks/
 # Local tools
 .serena/
 .claude/settings.local.json
+# The API types Claude Code lays beside a mod it loads with --plugin-dir
+Packages/CalmKit/Sources/CalmAgents/ClaudeCodeMod/.claude-plugin/types/
 
 # Worktrees
 .claude/worktrees/

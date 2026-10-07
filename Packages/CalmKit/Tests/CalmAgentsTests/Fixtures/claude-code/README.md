@@ -6,6 +6,8 @@ Built from the fields in Claude Code's hooks documentation (code.claude.com/docs
 
 `session-status-*.json` add the fields Claude Code 2.1.284 writes for a live process (`status`, `statusUpdatedAt` in milliseconds, `updatedAt`, `waitingFor` when it waits), read from real `~/.claude/sessions/<pid>.json` files on 2026-09-29: `busy` and `idle` were seen on disk; `waiting` is in the 2.1.283 binary but was not seen on disk, so that fixture is built from the binary's wording. No values were copied from the files except the timestamps.
 
+`session-2.1.291.json` has the keys Claude Code 2.1.291 writes to `~/.claude/sessions/<pid>.json`, read from a real file on 2026-10-06 (its `peerFeatures` cut to one); the values are made up apart from the shape of the timestamps.
+
 `transcript-recap.jsonl` ends with the `away_summary` record Claude Code 2.1.284 writes for its "※ recap:" line, with the keys, the records before it and the "(disable recaps in /config)" hint as seen in real files on 2026-09-30 (246 recaps in the author's history); its text is made up.
 
 `PreCompact-*.json` and `PostCompact-*.json` are payloads captured from Claude Code 2.1.291 on 2026-10-06 (a scratch home whose hooks logged their payloads, a local stand-in for the Messages API, so no model call), with the session id, paths and summary swapped for made-up ones. `transcript-compacting.jsonl`, `transcript-compacted.jsonl` and `transcript-compact-cancelled.jsonl` are the conversation records the same runs wrote (a `/compact`, then a reply reporting ~985k tokens of context, then a compaction Claude began on its own; and a `/compact` cancelled with Esc), with paths, ids and the logging hook swapped for the fixtures' own; their text is the stand-in's.

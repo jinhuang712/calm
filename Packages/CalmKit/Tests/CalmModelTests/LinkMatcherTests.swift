@@ -98,6 +98,25 @@ struct LinkMatcherTests {
         #expect(matches[9].runs == [CellRun(row: 12, columns: 28 ..< 52)])
     }
 
+    @Test func `an agent's image tag is found by its own pattern, cells and all`() throws {
+        let tag = try NSRegularExpression(pattern: #"\[Image #(\d+)\]"#)
+        // The prompt as Claude Code draws it after two pastes (seen in Calm, 2026-10-06).
+        let prompt = TextGrid(lines: ["❯ [Image #4] [Image #5] looks like this"])
+        let found = LinkMatcher.matches(of: tag, in: prompt, rows: 0 ..< 1)
+        #expect(found.map(\.text) == ["[Image #4]", "[Image #5]"])
+        #expect(found.map(\.runs) == [[CellRun(row: 0, columns: 2 ..< 12)], [CellRun(row: 0, columns: 13 ..< 23)]])
+        // Wide characters before it move its cells, not its text.
+        let wide = LinkMatcher.matches(of: tag, in: TextGrid(lines: ["看这个 [Image #1]"]), rows: 0 ..< 1)
+        #expect(wide.first?.runs == [CellRun(row: 0, columns: 7 ..< 17)])
+        // A tag the terminal wrapped is one tag on two rows.
+        let wrapped = LinkMatcher.matches(of: tag, in: TextGrid(lines: ["see [Ima", "ge #12] now"]), rows: 0 ..< 2)
+        #expect(wrapped.map(\.text) == ["[Image #12]"])
+        #expect(wrapped.first?.runs == [CellRun(row: 0, columns: 4 ..< 8), CellRun(row: 1, columns: 0 ..< 7)])
+        // Links don't count as tags, nor tags as links.
+        #expect(LinkMatcher.matches(of: tag, in: TextGrid(lines: ["see ./Image.png"]), rows: 0 ..< 1).isEmpty)
+        #expect(LinkMatcher.matches(in: prompt, row: 0).isEmpty)
+    }
+
     @Test func `a link the terminal wrapped onto the next row is one link on two rows`() {
         let grid = TextGrid(lines: ["see Packages/CalmKit/Sou", "rces/Marks/spinner.png ok"])
         let matches = LinkMatcher.matches(in: grid, rows: 0 ..< 2)

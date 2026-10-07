@@ -32,6 +32,13 @@ protocol TerminalSurfaceHost: AnyObject {
     func surface(_ view: TerminalSurfaceView, resolveLink text: String) -> Link?
     /// A link is under the pointer while ⌘ is held; nil when it no longer is.
     func surface(_ view: TerminalSurfaceView, hoversLink hover: LinkHover?)
+    /// The tag the agent running in the pane puts in for a pasted image (`[Image #4]`), its number
+    /// the one capture group; nil when the pane runs no agent that has one.
+    func pastedImagePattern(for view: TerminalSurfaceView) -> NSRegularExpression?
+    /// The image behind the agent's tag `number` in the pane, or nil if it can't be found.
+    func surface(_ view: TerminalSurfaceView, pastedImage number: Int) -> URL?
+    /// The agent's tag `number` for a pasted image was ⌘-clicked.
+    func surface(_ view: TerminalSurfaceView, requestsOpenPastedImage number: Int)
     /// A table cell, or part of one (`whole` false), was copied (Copy Cell); `point` is in the view's coordinates.
     func surfaceDidCopyCell(_ view: TerminalSurfaceView, at point: NSPoint, whole: Bool)
 }
@@ -299,9 +306,9 @@ final class TerminalSurfaceView: NSView {
     /// What libghostty last asked for.
     private var shapeCursor: NSCursor = .iBeam
 
-    /// A hand over a link libghostty doesn't know whole (`LinkHover.isJoined`), else libghostty's shape.
+    /// A hand over a link libghostty doesn't know whole (`LinkHover.isCalmOwned`), else libghostty's shape.
     private var currentCursor: NSCursor {
-        links.hovered?.isJoined == true ? .pointingHand : shapeCursor
+        links.hovered?.isCalmOwned == true ? .pointingHand : shapeCursor
     }
 
     override func resetCursorRects() {
@@ -526,8 +533,9 @@ final class TerminalSurfaceView: NSView {
         // ⌥ over a table cell: held back until it's a click (Copy Cell) or a drag.
         guard !holdsCellPress(event) else { return }
         sendMousePosition(event)
-        // ⌘-click on a link a program cut across rows: libghostty would open a piece of it.
-        if event.modifierFlags.contains(.command), openJoinedLink(at: convert(event.locationInWindow, from: nil)) {
+        // ⌘-click on a link a program cut across rows (libghostty would open a piece of it), or on an
+        // agent's tag for a pasted image (libghostty doesn't see one).
+        if event.modifierFlags.contains(.command), openCalmOwnedLink(at: convert(event.locationInWindow, from: nil)) {
             suppressNextLeftMouseUp = true
             return
         }

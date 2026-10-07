@@ -93,10 +93,11 @@ final class LinkMarksView: NSView {
         selections[pane.id] = bands
     }
 
-    /// The underline of a ⌘-hovered link that a program cut across rows: libghostty underlines only
-    /// the piece of it it sees, so Calm draws the whole (a solid line where the resting mark is).
+    /// The underline of a ⌘-hovered link that libghostty doesn't know whole (a program cut it across
+    /// rows, or it's an agent's tag for a pasted image): libghostty underlines only the piece of it it
+    /// sees, if any, so Calm draws the whole (a solid line where the resting mark is).
     private func updateUnderline(_ pane: TerminalSurfaceView, color: NSColor) {
-        let runs = pane.isHidden ? [] : pane.links.hovered.map { $0.isJoined ? $0.runs : [] } ?? []
+        let runs = pane.isHidden ? [] : pane.links.hovered.map { $0.isCalmOwned ? $0.runs : [] } ?? []
         let frames = runs.compactMap { pane.rect(row: $0.row, columns: $0.columns) }
             .map { pane.convert(NSRect(x: $0.minX, y: $0.minY, width: $0.width, height: 3), to: self) }
         var lines = underlines[pane.id] ?? []

@@ -289,6 +289,24 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 
 **Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (six for the four agents today), in Settings → Agents; stored as `new-session` under `[agents]`, and `skip-permissions`, `worktree` and `trust-project-files` in each agent's section (`[agents.claude-code]`, `[agents.codex]`, `[agents.opencode]`, `[agents.pi]`). Two in the config file only: `flags` and `command`, per agent.
 
+## F16 — Find in a session (⌘F) 📝
+
+Designed with the author step by step, 2026-10-06 and 07, on a design canvas (claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf); not built. Looks in UIUX.md → Find, the engine and the plan in DESIGNS.md → Find.
+
+- **⌘F** opens find for the session you're in (in a split, the pane you're in; each pane keeps its own search). The field takes the right of the title strip, where the files readout was. The pane's last search comes back selected, so typing replaces it; **⌘E** finds the selected text. **⌘F again closes it**, from the field or from the terminal. The Edit menu has Find… (Hide Find while it's open), Find Next ⌘G, Find Previous ⌘⇧G and Use Selection for Find ⌘E; ⌘P leaves it out, since everyone knows ⌘F.
+- Matches are marked as you type. Case doesn't matter for the letters A to Z (Ghostty's engine). No options: no case, regex or whole-word switches.
+- **Newest first:** "1 of 11" is the match nearest the bottom. ↵ or ⌘G goes to the older one, ⇧↵ or ⌘⇧G to the newer; it stops at the ends instead of wrapping, and the arrow at an end dims.
+- **The marks:** every match is underlined in the accent, and the current one is a solid accent pill on a band across its line, with an accent bar at the pane's edge. Calm draws them over the terminal: a flat colored fill, all a terminal can paint on its own, read as a text selection (the author, 2026-10-06).
+- **The map:** while find has matches and there is more log than the screen holds, a thin strip along the pane's right edge has a tick for every matching line in the whole scrollback and a box for the part on screen. Under the pointer it widens and names the line under it; a click makes that match the current one. New matches' ticks fade in at the bottom while the box stays where you are reading. Output that fits on the screen has no map: every match is in view.
+- **Links:** two marks never share a letter. Under a match, find's line wins and the link keeps its dots on the rest; while ⌘ is held over a link, the link's underline and tag show and find's line under it steps aside until ⌘ is let go; no dots cross the current match's pill.
+- **Leaving:** ⌘F, esc in the field, or typing into the session (the key still reaches the program) closes find, and the view stays where it is. Esc in the terminal always goes to the program: Ghostty's own esc-ends-the-search is turned off, so esc still interrupts Claude Code. Going to another session or pane closes it.
+- **Full-screen programs** (Claude Code's full-screen view, vim, less, htop) keep no scrollback in the terminal, so find sees the screen only, and the count says so: "2 of 3 on screen", "None on screen". When nothing on screen matches, a note says what to do: for an agent, "Claude Code keeps the conversation, not the terminal." with a **Search all of it ⌘K** button that opens ⌘K with the same words; for any other program, "This program draws its own screen, so only what's on it can be searched." (Calm knows agents' names, not other programs'). There is no map.
+- **A viewed file** (F10): ⌘F finds in the file, with the field in the viewer's header where the strip's would be, the same marks (no band in rendered Markdown, whose lines reflow) and the map. Esc closes find before it closes the viewer, and the header's "esc · Back to…" steps away while find is open. PDFs are searched by PDFKit; HTML and SVG files use the web view's own find, which shows no count; a picture has nothing to find, and ⌘F leaves the quiet note "Nothing to find in a picture".
+- A narrow strip gives the field room first: it narrows from 340 to 240 pt, then the worktree goes, then the name shortens, then the name goes and the group's mark stays (UIUX.md → Find). The window's narrowest (UIUX.md → Layout) always leaves the whole field.
+- Not this: searching the scrollback of every open session at once (Later, below); ⌘K searches every agent's conversations (F7).
+
+**Settings:** none.
+
 ## Later, if needed
 
 | Idea | Note |

@@ -25,6 +25,7 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ✅ |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
+| **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | ⬜ |
 
 M4 and M5 can run in parallel with M3 once M2 is done.
 
@@ -213,6 +214,24 @@ Conversations can be renamed, resumed and forked.
 - Resuming or forking a conversation is one right-click.
 
 *Status: built and self-tested headless with stand-in conversations. Resume and fork worked with a real agent in the author's use (2026-09-30), which meets the exit criterion; not every agent was checked one by one. OpenCode resumes with `opencode --session <id>` and forks through its own API, since 2.0.19's interface has no `--fork` (2026-09-30; neither run with a real OpenCode yet).*
+
+---
+
+## M8 — Find (F16) ⬜
+
+A line in a long log is one ⌘F away, and it never looks like a selection. Designed with the author step by step (2026-10-06 and 07, design canvas claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf); FEATURES.md → F16, UIUX.md → Find, DESIGNS.md → Find. Each task ships on its own, in this order.
+
+- [ ] **M8.1 The field and the keys:** ⌘F toggles the field in the title strip (the readout steps away; the strip's give-way order), Ghostty's four search actions handled, "3 of 11", ↵ ⇧↵ ⌘G ⌘⇧G and the arrows, ⌘E, the Edit menu's Find items, esc in the field only (Calm's defaults unbind `escape=end_search`), typing into the pane closes it, each pane its own search. Ghostty's own match colors for now.
+- [ ] **M8.2 Decision: where the current match is on screen.** A small engine patch forwarding the selected match's position, or Calm's own scrollback search (M8.4) finding it. Record the outcome in DESIGNS.md → Find.
+- [ ] **M8.3 The marks:** Ghostty's match fill off, Calm's underlines, band and edge bar over the panes, the pill through Ghostty's selected-match colors; colors from the theme with a unit test of the checks on all five themes, light and dark; matches and links never mark the same letters.
+- [ ] **M8.4 The map:** Calm's search of the scrollback (one read, off the main thread, new lines only while output arrives), rows counted through soft wraps, the box from `GHOSTTY_ACTION_SCROLLBAR`, density, the pointer's tag, a click to go there; only when the log is longer than the screen; below the split icon in a split.
+- [ ] **M8.5 Full-screen programs:** "on screen" in the count, the note when nothing there matches, Search all of it ⌘K carrying the words into ⌘K.
+- [ ] **M8.6 Motion:** the band and the map's tick slide, the fades, Reduce Motion; `mise run perf` shows no cost at rest.
+- [ ] **M8.7 The viewer:** find in Calm's own page (Markdown, code, text), PDFs through PDFKit, HTML and SVG through the web view's find, the note for pictures; esc closes find before the viewer.
+
+**Exit criteria**
+- In the author's use, a line in a long build log is found with ⌘F, and in Claude Code's full-screen view the note sends them to ⌘K, without either needing thought.
+- Calm at rest costs what it did before (`mise run perf`).
 
 ---
 

@@ -140,6 +140,15 @@ targets:
             mkdir -p "$dest/bin"
             rm -f "$dest/bin/calm"
             cp "${BUILT_PRODUCTS_DIR}/calm" "$dest/bin/calm"
+            # A command-line tool looks for its packages' resource bundles beside itself
+            # (Bundle.main.bundleURL), not in Resources, and `Bundle.module` stops it when one
+            # isn't there: a link to each, so CalmKit code the CLI runs can read its resources
+            # (`calm doctor` died that way, 2026-10-07). Named from the built bundles, since
+            # Xcode copies them into Resources only after this script runs.
+            for bundle in "${BUILT_PRODUCTS_DIR}"/CalmKit_*.bundle; do
+              [[ -e "$bundle" ]] || continue
+              ln -sfn "../$(basename "$bundle")" "$dest/bin/$(basename "$bundle")"
+            done
           fi
           # zmx keeps shells alive across quits (scripts/zmx.sh).
           if [[ -x "${PROJECT_DIR}/Frameworks/bin/zmx" ]]; then

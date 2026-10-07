@@ -68,10 +68,15 @@ public extension PiAdapter {
 }
 
 public extension AgentAdapter {
-    /// What ⌘N types: the agent's command, the flags config.toml adds, then the options that are
-    /// on. An option that needs a git repository is left out anywhere else (the home folder of
-    /// the welcome page, a scratch folder), where the agent would refuse to start.
+    /// What ⌘N types: the command config.toml gives this agent, exactly as written (nothing is added
+    /// or left out, a worktree flag in it included); else the agent's name, the flags config.toml
+    /// adds, then the options that are on. An option that needs a git repository is left out
+    /// anywhere else (the home folder of the welcome page, a scratch folder), where the agent
+    /// would refuse to start.
     func launchCommand(settings: CalmSettings, inGitRepository: Bool) -> String {
+        if let command = settings.command(of: kind) {
+            return command
+        }
         var parts = [launchCommand]
         if let extra = settings.extraFlags(of: kind) {
             parts.append(extra)
@@ -100,7 +105,7 @@ public extension Agents {
         settings.newSessionAgent ?? installed.first
     }
 
-    /// Every key `calm config` knows: Calm's own, and each agent's options (`agents.<agent>-<id>`),
+    /// Every key `calm config` knows: Calm's own, and each agent's options (`agents.<agent>.<id>`),
     /// which the adapters declare.
     static var settingsKeys: [CalmSettings.Key] {
         CalmSettings.keys + adapters.flatMap { adapter in

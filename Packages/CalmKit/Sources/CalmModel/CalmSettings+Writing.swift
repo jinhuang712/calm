@@ -84,11 +84,17 @@ public extension CalmSettings {
         bool("session-cards-fit", default: false)
     }
 
+    /// The `[section]` a key lives in and its name there: everything before the last dot, so
+    /// `agents.claude-code.worktree` is `worktree` in `[agents.claude-code]`.
+    private static func sectionAndName(_ key: String) -> (section: String, name: String) {
+        guard let dot = key.lastIndex(of: ".") else { return ("", key) }
+        return (String(key[..<dot]), String(key[key.index(after: dot)...]))
+    }
+
     /// Sets one key in config.toml text, keeping every other line and comment as it is. `key` is
     /// `section.name` or a top-level `name`; strings are quoted, booleans and numbers aren't.
     static func setting(_ key: String, to value: String, in text: String) -> String {
-        let parts = key.split(separator: ".", maxSplits: 1).map(String.init)
-        let (section, name) = parts.count == 2 ? (parts[0], parts[1]) : ("", parts[0])
+        let (section, name) = sectionAndName(key)
         let escaped = value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let rendered = ["true", "false"].contains(value) || Double(value) != nil ? value : "\"\(escaped)\""
         let entry = "\(name) = \(rendered)"
@@ -140,8 +146,7 @@ public extension CalmSettings {
 
     /// Removes one key from config.toml text, keeping every other line (the default applies again).
     static func removing(_ key: String, in text: String) -> String {
-        let parts = key.split(separator: ".", maxSplits: 1).map(String.init)
-        let (section, name) = parts.count == 2 ? (parts[0], parts[1]) : ("", parts[0])
+        let (section, name) = sectionAndName(key)
         var current = ""
         var lines = text.components(separatedBy: "\n")
         lines.removeAll { line in

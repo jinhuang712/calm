@@ -32,22 +32,39 @@ public extension CalmSettings {
         values["agents.new-session"].flatMap { AgentKind(configName: $0) }
     }
 
-    /// `agents.<agent>-<option>`: whether that agent starts with that option.
+    /// `agents.<agent>.<option>` (a `[agents.<agent>]` section in config.toml): whether that agent
+    /// starts with that option.
     static func launchOptionKey(_ option: String, of kind: AgentKind) -> String {
-        "agents.\(kind.configName)-\(option)"
+        "agents.\(kind.configName).\(option)"
     }
 
     func isOn(_ option: String, of kind: AgentKind) -> Bool {
         bool(Self.launchOptionKey(option, of: kind), default: false)
     }
 
-    /// `agents.<agent>-flags`: anything else to start the agent with, typed as written. There are
-    /// chips only for the options most people want; this is for the rest (`--model opus`).
+    /// `agents.<agent>.flags`: anything else to start the agent with, typed as written after its
+    /// name. There are chips only for the options most people want; this is for the rest
+    /// (`--model opus`).
     static func extraFlagsKey(of kind: AgentKind) -> String {
-        "agents.\(kind.configName)-flags"
+        "agents.\(kind.configName).flags"
     }
 
     func extraFlags(of kind: AgentKind) -> String? {
-        values[Self.extraFlagsKey(of: kind)].flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        text(Self.extraFlagsKey(of: kind))
+    }
+
+    /// `agents.<agent>.command`: the whole command ⌘N types for that agent, as written, in place of
+    /// its name, flags and chips. Set with `calm config` only (Settings shows it, but has no field
+    /// for it): a way out for whoever wants the line exactly so.
+    static func commandKey(of kind: AgentKind) -> String {
+        "agents.\(kind.configName).command"
+    }
+
+    func command(of kind: AgentKind) -> String? {
+        text(Self.commandKey(of: kind))
+    }
+
+    private func text(_ key: String) -> String? {
+        values[key].flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
     }
 }

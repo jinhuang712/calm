@@ -8,7 +8,7 @@ import Foundation
 /// as Settings writes them, then asks the running Calm to apply them as
 /// Reload Configuration does. It never starts Calm: a change waits for its next launch.
 enum ConfigCommand {
-    static let usage = "calm config [list [--json] | get <key> | set <key> <value> | unset <key>]"
+    static let usage = "calm config [list [--json] | get <key> | set <key> <value…> | unset <key>]"
 
     static func run(_ words: [String]) -> Never {
         switch words.first {
@@ -20,9 +20,12 @@ enum ConfigCommand {
             guard words.count == 2 else { fail(usage, code: 64) }
             print(CalmSettings.load().value(of: key(words[1])))
         case "set":
-            guard words.count == 3 else { fail(usage, code: 64) }
+            guard words.count >= 3 else { fail(usage, code: 64) }
             let key = key(words[1])
-            switch CalmSettings.change(words[2], for: key, themes: themeNames()) {
+            // The rest of the line is the value, so a command needs no quotes:
+            // `calm config set agents.claude-code.command claude -w`.
+            let value = words.dropFirst(2).joined(separator: " ")
+            switch CalmSettings.change(value, for: key, themes: themeNames()) {
             case let .success(.write(value)):
                 save(key, value)
                 print("\(key.name) = \(value)")

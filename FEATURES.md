@@ -244,7 +244,7 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 - `calm notify <message>` — show a notification for the current session.
 - `calm doctor` — check that Calm, this `calm` and the agents' hooks work: which Calm answers, a second copy, an install waiting for a restart, the `calm` on `PATH`, each agent's link, and this session's last report. Reads only; exits 1 on a problem.
 - `calm trace` — print Calm's trace (what decided each session's row) from the unified log: `--last 10m`, `--session <id>`, `--follow`.
-- `calm config` — list Calm's settings (each value, its default, what it takes); `get`, `set` and `unset` one, written to config.toml as Settings writes it and applied by the running Calm at once. ⌘N's agent and each agent's options are among them (F15), so the agent in a session can be asked to change them: `calm config set agents.claude-code-worktree true`.
+- `calm config` — list Calm's settings (each value, its default, what it takes); `get`, `set` and `unset` one, written to config.toml as Settings writes it and applied by the running Calm at once. ⌘N's agent and each agent's options are among them (F15), so the agent in a session can be asked to change them: `calm config set agents.claude-code.worktree true`.
 - Talks to the running app over a local socket. `open` and `list` start Calm if it isn't running: the Calm the CLI came with.
 
 **Settings:** none.
@@ -277,12 +277,13 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
   | OpenCode 2.0.20 | Auto-approve | `--auto` |
   | pi 0.99.1 | none: pi doesn't ask before it acts | |
 
-  Pointing at a chip names its flag. **New worktree** is added only when the session's folder is in a git repository: ⌘N on the welcome page starts in the home folder, and ⌘⇧N in a scratch folder, where the agent would refuse. Any other flag goes in config.toml, as `<agent>-flags` under `[agents]` (`claude-code-flags = "--model opus"`), typed as written before the chips' flags.
+  Pointing at a chip names its flag. **New worktree** is added only when the session's folder is in a git repository: ⌘N on the welcome page starts in the home folder, and ⌘⇧N in a scratch folder, where the agent would refuse. Any other flag goes in config.toml, as `flags` in the agent's own section (`[agents.claude-code]`, `flags = "--model opus"`), typed as written before the chips' flags.
+- **The whole command**, a hidden way out: `calm config set agents.claude-code.command claude -w` makes ⌘N type exactly that for Claude Code, in place of its name, flags and chips. Settings has no field for it; while it's set, the agent's row shows the command in place of its chips, and `calm config unset agents.claude-code.command` brings them back. It is typed as written everywhere, a scratch folder included: a worktree flag in it isn't left out outside a git repository, as the chip's is.
 - **Another agent:** the ⌄ beside ⌘N's row in the sidebar's footer, on the first launch's rows and in the start line offers the other agents installed, then Choose What ⌘N Starts… (Settings → Agents); ⌘P has a New *Agent* Session row for each (F1); the Shell menu names the agent: **New Claude Code Session ⌘N**.
-- **From an agent:** these are `calm config` keys (F13), so the agent in a session can be asked to "start Claude in a worktree on ⌘N": `calm config set agents.claude-code-worktree true`. Teaching agents about `calm` (a plugin) is for later.
+- **From an agent:** these are `calm config` keys (F13), so the agent in a session can be asked to "start Claude in a worktree on ⌘N": `calm config set agents.claude-code.worktree true`. Teaching agents about `calm` (a plugin) is for later.
 - A new version of an agent can rename or drop a flag. The agent then refuses to start and says why in the session, and the chip's flag changes in its adapter; Calm doesn't check the flags against the agent's `--help`.
 
-**Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (five for the four agents today), in Settings → Agents; stored as `new-session`, `<agent>-skip-permissions` and `<agent>-worktree` under `[agents]`. One in the config file only: `<agent>-flags`.
+**Settings:** over the budget, the author's call (2026-10-06): ⌘N's agent, and one switch per chip (five for the four agents today), in Settings → Agents; stored as `new-session` under `[agents]`, and `skip-permissions` and `worktree` in each agent's section (`[agents.claude-code]`, `[agents.codex]`, `[agents.opencode]`). Two in the config file only: `flags` and `command`, per agent.
 
 ## Later, if needed
 

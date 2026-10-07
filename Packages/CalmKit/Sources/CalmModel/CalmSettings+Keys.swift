@@ -139,13 +139,21 @@ public extension CalmSettings {
             defaultValue: AgentKind.claudeCode.configName,
             about: "The agent ⌘N and ⌘⇧N start; unset, Claude Code, or the first agent installed",
         ),
-    ] + AgentKind.allCases.map { kind in
-        Key(
-            name: extraFlagsKey(of: kind),
-            kind: .text,
-            defaultValue: "",
-            about: "More flags \(kind.displayName) starts with on ⌘N, typed as written",
-        )
+    ] + AgentKind.allCases.flatMap { kind in
+        [
+            Key(
+                name: extraFlagsKey(of: kind),
+                kind: .text,
+                defaultValue: "",
+                about: "More flags \(kind.displayName) starts with on ⌘N, typed as written after its name",
+            ),
+            Key(
+                name: commandKey(of: kind),
+                kind: .text,
+                defaultValue: "",
+                about: "The whole command ⌘N types for \(kind.displayName), as written; set, its flags and options don't apply",
+            ),
+        ]
     }
 
     static func key(named name: String) -> Key? {

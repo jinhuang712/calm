@@ -339,7 +339,18 @@ private struct AgentRow: View {
                 Text(row.id.displayName)
                     .calmFont(size: SettingsMetrics.label)
                     .foregroundStyle(style.primary)
-                if !row.adapter.launchOptions.isEmpty {
+                if let command = settings.command(of: row.id) {
+                    // Set with `calm config` only: Settings shows it, in place of the chips it
+                    // overrides, and has no field for it.
+                    Text(command)
+                        .calmFont(size: 13, design: .monospaced)
+                        .foregroundStyle(style.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help("⌘N types this, as written (calm config set \(CalmSettings.commandKey(of: row.id))). "
+                            + "calm config unset \(CalmSettings.commandKey(of: row.id)) brings the options back.")
+                        .accessibilityLabel("\(row.id.displayName) starts with \(command)")
+                } else if !row.adapter.launchOptions.isEmpty {
                     HStack(spacing: 8.scaled) {
                         ForEach(row.adapter.launchOptions) { option in
                             LaunchChip(option: option, isOn: settings.isOn(option.id, of: row.id), style: style) {

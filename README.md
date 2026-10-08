@@ -4,7 +4,7 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Download it from [Releases](https://github.com/jinhuang712/calm/releases), or build it from source.
+> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Install it with [Homebrew](#homebrew) or the [disk image](#download), or [build it from source](#build-from-source).
 
 ## What it does
 
@@ -30,7 +30,9 @@ brew install --cask jinhuang712/tap/calm
 xattr -dr com.apple.quarantine /Applications/Calm.app
 ```
 
-Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr` line takes the download mark off. The cask also puts the `calm` command on your `PATH`. To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → Restart Calm (your shells keep running).
+Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr` line takes the download mark off. The cask also puts the `calm` command on your `PATH`. If Calm is already in Applications (from the disk image or `./install.sh`), add `--force` to the first `brew install` to replace it.
+
+To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → Restart Calm (your shells keep running).
 
 ### Download
 
@@ -41,7 +43,7 @@ Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr
    xattr -dr com.apple.quarantine /Applications/Calm.app
    ```
 
-3. Open Calm. To use the `calm` command in other terminals too (Calm's own shells have it):
+3. Open Calm. To type the `calm` command in a terminal, Calm's included, link it into a folder on your `PATH`, here `~/.local/bin` (agents' hooks find it without this):
 
    ```sh
    mkdir -p ~/.local/bin && ln -sf /Applications/Calm.app/Contents/Resources/bin/calm ~/.local/bin/calm
@@ -54,6 +56,7 @@ To update, quit Calm (your shells keep running), drag the new version over the o
 Requirements: Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 
 ```sh
+git clone https://github.com/jinhuang712/calm.git && cd calm
 xcodebuild -downloadComponent MetalToolchain   # once, for Ghostty's shaders
 mise run setup                                 # tools, GhosttyKit, zmx, Xcode project
 mise run build                                 # or: mise run run
@@ -63,6 +66,15 @@ mise run test
 The first `setup` builds Ghostty's engine from source, about 8 minutes on a 3-core machine; later runs reuse the cached build.
 
 To install, `./install.sh` builds a Release copy into `/Applications` and links the `calm` command into `~/.local/bin` (`--help` for options). A running Calm isn't quit; the new version starts the next time you open Calm, or when you choose Calm → Restart Calm, which is worth doing soon, because until then the running Calm is out of date and its shells can lose access to Documents, Desktop and Downloads. `--restart` quits and reopens it instead (your shells stay alive either way).
+
+### Uninstall
+
+Quitting Calm keeps your shells running, so close the sessions you want ended first (⌘W). Then:
+
+- **Homebrew:** `brew uninstall --cask calm`. Add `--zap` to also move Calm's settings and saved sessions to the Trash.
+- **Disk image or `./install.sh`:** drag Calm from Applications to the Trash, and `rm ~/.local/bin/calm` if you linked it. Calm keeps its settings in `~/.config/calm` and its saved sessions in `~/Library/Application Support/Calm`.
+
+Calm adds files to an agent's own folders only for what you turned on in **Calm → Agents…** (Connect for pi and OpenCode, Send with ⌘ Return). Turn those off there before uninstalling.
 
 ### Good to know
 

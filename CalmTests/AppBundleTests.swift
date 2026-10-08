@@ -18,4 +18,21 @@ struct AppBundleTests {
             #expect(Bundle(url: bin.appending(path: name)) != nil, "\(name) isn't reachable from bin")
         }
     }
+
+    /// The download carries the license of everything it bundles (scripts/licenses.sh), and NOTICE
+    /// says what each is for, so a text NOTICE doesn't name, or a name with no text, is a gap.
+    @Test func `NOTICE names every license text the app carries, and each one it names is there`() throws {
+        let resources = try #require(Bundle.main.resourceURL)
+        let notice = try String(contentsOf: resources.appending(path: "NOTICE"), encoding: .utf8)
+        let texts = try FileManager.default.contentsOfDirectory(atPath: resources.appending(path: "Licenses").path)
+            .filter { $0.hasSuffix(".txt") }
+        #expect(texts.count > 30)
+        for text in texts {
+            #expect(notice.contains(text), "NOTICE doesn't name Licenses/\(text)")
+        }
+        let named = try Regex(#"[A-Za-z0-9._-]+\.txt"#)
+        for match in notice.matches(of: named) {
+            #expect(texts.contains(String(notice[match.range])), "NOTICE names \(notice[match.range]), which isn't in Licenses")
+        }
+    }
 }

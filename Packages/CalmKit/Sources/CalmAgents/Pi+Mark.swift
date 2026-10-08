@@ -1,6 +1,7 @@
 public extension PiAdapter {
     /// pi's pixel π: a coral bar over a blue and a gold leg.
-    /// Source: pi.dev/logo-auto.svg; the mark is pi's.
+    /// Source: pi.dev/logo-auto.svg; the mark is pi's. The same pixels are in pi's MIT-licensed
+    /// repository (pi-logo.ts; NOTICE → Agent marks).
     var mark: AgentMarkArt {
         AgentMarkArt(
             viewBox: .init(x: 150, y: 150, side: 500),

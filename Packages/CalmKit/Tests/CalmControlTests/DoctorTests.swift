@@ -88,7 +88,10 @@ struct DoctorTests {
     @Test func `the calm on PATH: missing is a note, someone else's is a problem`() {
         var facts = healthy()
         facts.pathCalm = nil
-        #expect(Doctor.checks(facts).contains { $0.verdict == .note && $0.text.hasPrefix("No calm on PATH.") })
+        let missing = Doctor.checks(facts).first { $0.text.hasPrefix("No calm on PATH.") }
+        #expect(missing?.verdict == .note)
+        // A downloaded Calm has no install.sh, so the hint links this Calm's own calm.
+        #expect(missing?.hint?.contains("ln -sf '/Applications/Calm.app/Contents/Resources/bin/calm' ~/.local/bin/calm") == true)
         #expect(problems(facts).isEmpty)
         facts.pathCalm = "/opt/old/Calm.app/Contents/Resources/bin/calm"
         #expect(problems(facts).first?.text

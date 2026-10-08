@@ -4,7 +4,7 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). There is no download for now: Calm is built from source.
+> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Download it from [Releases](https://github.com/jinhuang712/calm/releases), or build it from source.
 
 ## What it does
 
@@ -21,7 +21,28 @@ Exact behavior is in [FEATURES.md](FEATURES.md).
 
 ## Install
 
-Requirements: macOS 26 on Apple silicon, Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
+Calm needs macOS 26 on Apple silicon.
+
+### Download
+
+1. Download `Calm-<version>.dmg` from the newest release on [Releases](https://github.com/jinhuang712/calm/releases), open it, and drag Calm onto Applications.
+2. Calm isn't signed by Apple yet, so macOS won't open it as downloaded. Run this once in Terminal to take the download mark off:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Calm.app
+   ```
+
+3. Open Calm. To use the `calm` command in other terminals too (Calm's own shells have it):
+
+   ```sh
+   mkdir -p ~/.local/bin && ln -sf /Applications/Calm.app/Contents/Resources/bin/calm ~/.local/bin/calm
+   ```
+
+To update, quit Calm (your shells keep running), drag the new version over the old one, run the `xattr` line again, and open Calm.
+
+### Build from source
+
+Requirements: Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev).
 
 ```sh
 xcodebuild -downloadComponent MetalToolchain   # once, for Ghostty's shaders
@@ -30,20 +51,20 @@ mise run build                                 # or: mise run run
 mise run test
 ```
 
-The first `setup` builds Ghostty's engine from source and takes a few minutes; later runs reuse the cached build.
+The first `setup` builds Ghostty's engine from source, about 8 minutes on a 3-core machine; later runs reuse the cached build.
 
 To install, `./install.sh` builds a Release copy into `/Applications` and links the `calm` command into `~/.local/bin` (`--help` for options). A running Calm isn't quit; the new version starts the next time you open Calm, or when you choose Calm → Restart Calm, which is worth doing soon, because until then the running Calm is out of date and its shells can lose access to Documents, Desktop and Downloads. `--restart` quits and reopens it instead (your shells stay alive either way).
 
 ### Good to know
 
-- **A build you make yourself is signed ad hoc**, so to macOS every install is a new app: it asks again for access to Desktop, Documents and Downloads after each one. A Developer ID signed and notarized download, which keeps those answers across updates, comes later (see the end of [ROADMAP.md](ROADMAP.md)).
+- **Calm is signed ad hoc**, downloaded or built yourself, so to macOS every install is a new app: it asks again for access to Desktop, Documents and Downloads after each one. A Developer ID signed and notarized download, which keeps those answers across updates, comes later (see the end of [ROADMAP.md](ROADMAP.md)).
 - **Agents need no setup to be seen.** Calm detects them from their process. To get their exact state (a question waiting, a turn finished), connect their hooks from **Calm → Agents…**; each one asks first and can be undone.
 - **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code makes no network requests, and there is no update check yet. The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
 
 ## Known limits
 
 - Apple silicon and macOS 26 or later only.
-- Built from source only, for now.
+- The download isn't signed by Apple: opening it takes the `xattr` line above, and each update asks again for folder access.
 - Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → Themes).
 - OpenCode's plugin, which reports its state, has not had real use yet.
 - A window left in full screen came back filled but not in full screen once in six test launches; the cause isn't known.

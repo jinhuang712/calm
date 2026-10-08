@@ -4,7 +4,7 @@ Copyright 2026 Jin Huang
 This product includes software from the following projects. Their full license texts are in
 Calm.app/Contents/Resources/Licenses (and Calm/Resources/Licenses in the source).
 
-Ghostty (https://github.com/ghostty-org/ghostty), MIT License.
+Ghostty (https://github.com/ghostty-org/ghostty), MIT License (Ghostty.txt).
 Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors.
 Calm's terminal engine is built from Ghostty's source. The link pattern in
 Packages/CalmKit/Sources/CalmModel/LinkMatcher.swift is adapted from Ghostty's src/config/url.zig,
@@ -19,15 +19,60 @@ Copyright (c) Zig contributors.
 Used while building Ghostty's engine. A copy of the pinned source is kept in
 scripts/ghostty-mirror, so that building doesn't depend on Codeberg being up.
 
-zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License.
+Ghostty's engine
+The engine is built from Ghostty's source together with the libraries Ghostty builds into it, at
+the versions its build.zig.zon files pin (scripts/licenses.sh copies their licenses from that
+source). Each license's full text is in Licenses, under the name given here.
+- FreeType 2.13.2 (https://freetype.org), FreeType License (FreeType.txt). Portions of this
+  software are copyright © 2023 The FreeType Project (www.freetype.org). All rights reserved.
+- zlib (https://zlib.net), zlib License (zlib.txt). Copyright (C) 1995-2022 Jean-loup Gailly and
+  Mark Adler.
+- libpng (http://www.libpng.org), PNG Reference Library License version 2 (libpng.txt).
+- Oniguruma (https://github.com/kkos/oniguruma), BSD 2-Clause License (Oniguruma.txt).
+- glslang (https://github.com/KhronosGroup/glslang), BSD 3-Clause and the other licenses its
+  file lists (glslang.txt).
+- SPIRV-Cross (https://github.com/KhronosGroup/SPIRV-Cross), Apache-2.0 (SPIRV-Cross.txt).
+- simdutf (https://github.com/simdutf/simdutf), MIT License (simdutf.txt).
+- Highway (https://github.com/google/highway), Apache-2.0 (Highway.txt).
+- Wuffs (https://github.com/google/wuffs), MIT License (wuffs.txt).
+- stb_image (https://github.com/nothings/stb), MIT License (stb.txt).
+- Dear ImGui (https://github.com/ocornut/imgui), MIT License (Dear-ImGui.txt), with C bindings
+  made by Dear Bindings (https://github.com/dearimgui/dear_bindings), MIT License
+  (dear_bindings.txt).
+- GNU libintl, from gettext 0.24 (https://www.gnu.org/software/gettext/), GNU Lesser General
+  Public License 2.1 or later (libintl-LGPL-2.1.txt). It is linked statically. Its source is
+  gettext 0.24's gettext-runtime/intl, unmodified, which the build downloads from
+  https://deps.files.ghostty.org/gettext-0.24.tar.gz; Calm's source and its build steps
+  (README → Install) let you relink Calm with a changed copy.
+- z2d 0.12.1 (https://github.com/vancluever/z2d), Mozilla Public License 2.0 (z2d-MPL-2.0.txt).
+  Its source, unmodified, is at that address.
+- libxev (https://github.com/mitchellh/libxev), libvaxis (https://github.com/rockorager/libvaxis),
+  zigimg (https://github.com/zigimg/zigimg), zf (https://github.com/natecraddock/zf) and zig-objc
+  (https://github.com/mitchellh/zig-objc), MIT License (libxev.txt, vaxis.txt, zigimg.txt, zf.txt,
+  zig-objc.txt).
+- uucode (https://github.com/jacobsandlund/uucode), MIT License (uucode.txt), with Unicode data
+  under the Unicode License v3 (Unicode.txt) and Bjoern Hoehrmann's UTF-8 decoder
+  (Bjoern-Hoehrmann.txt).
+- The Zig standard library (https://ziglang.org), MIT License (Zig.txt).
+- Fonts embedded in the engine: JetBrains Mono (https://github.com/JetBrains/JetBrainsMono), SIL
+  Open Font License 1.1 (JetBrains-Mono-OFL.txt), Copyright 2020 The JetBrains Mono Project
+  Authors; Symbols Nerd Font (https://www.nerdfonts.com), MIT License (Symbols-Nerd-Font.txt).
+- Shipped beside the engine, in Calm.app/Contents/Resources/ghostty: Ghostty's color themes, from
+  iTerm2-Color-Schemes (https://github.com/mbadolato/iTerm2-Color-Schemes), MIT License
+  (iTerm2-Color-Schemes.txt); and Ghostty's shell integration scripts. Those are Ghostty's (MIT),
+  except the bash and zsh ones, which began as kitty's and are GNU General Public License 3.0 or
+  later (GPL-3.0.txt; each script is its own source), and bash-preexec
+  (https://github.com/rcaloras/bash-preexec), MIT License (bash-preexec.txt).
+
+zmx (https://zmx.sh, https://github.com/neurosnap/zmx), MIT License (zmx.txt).
 Copyright (c) 2025 Eric Bower.
 Bundled to keep shells running while Calm is closed.
 
-markdown-it (https://github.com/markdown-it/markdown-it), MIT License.
+markdown-it (https://github.com/markdown-it/markdown-it), MIT License (markdown-it.txt).
 Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
 Used by the file viewer to render Markdown.
 
-highlight.js (https://highlightjs.org), BSD 3-Clause License.
+highlight.js (https://highlightjs.org), BSD 3-Clause License (highlight.js.txt).
 Copyright (c) 2006, Ivan Sagalaev.
 Used by the file viewer to highlight code.
 
@@ -42,4 +87,8 @@ is not affiliated with or endorsed by these projects, and the marks remain their
   Apache-2.0 (Licenses/Codex.txt). OpenAI Codex, Copyright 2025 OpenAI.
 - The OpenCode mark is OpenCode's, from https://github.com/anomalyco/opencode
   (packages/identity/mark.svg), MIT License (Licenses/OpenCode.txt), Copyright (c) 2025 opencode.
-- The pi mark is pi's, from https://pi.dev/logo-auto.svg. The site states no license for it.
+- The pi mark is pi's. The same pixel design is in pi's repository
+  (https://github.com/badlogic/pi-mono,
+  packages/coding-agent/src/modes/interactive/components/pi-logo.ts), MIT License
+  (Licenses/pi.txt), Copyright (c) 2025 Mario Zechner; its colors are those of
+  https://pi.dev/logo-auto.svg.

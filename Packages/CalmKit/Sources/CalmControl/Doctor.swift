@@ -191,8 +191,12 @@ public enum Doctor {
             checks.append(Check(.note, "This calm isn't inside an app (a development build?)."))
         }
         guard let onPath = facts.pathCalm else {
+            // A Calm from the download has no install.sh to link it, so say how.
+            let app = running ?? facts.cliApp ?? "/Applications/Calm.app"
+            let link = "mkdir -p ~/.local/bin && ln -sf '\(app)/Contents/Resources/bin/calm' ~/.local/bin/calm"
             checks.append(Check(
-                .note, "No calm on PATH. Calm's own shells have $CALM_CLI; ./install.sh links calm into ~/.local/bin.",
+                .note, "No calm on PATH. Calm's own shells have $CALM_CLI.",
+                hint: "For other terminals: \(link) (./install.sh does this).",
             ))
             return checks
         }

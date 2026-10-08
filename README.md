@@ -4,7 +4,7 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Install it with [Homebrew](#homebrew) or the [disk image](#download), or [build it from source](#build-from-source).
+> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Install it with [one line](#one-line), [Homebrew](#homebrew) or the [disk image](#download), or [build it from source](#build-from-source).
 
 ## What it does
 
@@ -23,14 +23,22 @@ Exact behavior is in [FEATURES.md](FEATURES.md).
 
 Calm needs macOS 26 on Apple silicon.
 
+### One line
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
+```
+
+[`get.sh`](get.sh) downloads the newest release's disk image, puts Calm in Applications, takes macOS's download mark off (Calm isn't signed by Apple yet, so macOS won't open it with the mark on), and links the `calm` command into `~/.local/bin`. Run it again to update; a running Calm keeps going on the old version until you choose Calm → Restart Calm (your shells keep running). `| bash -s -- --help` lists its options: a version, another folder, no `calm` link.
+
 ### Homebrew
 
 ```sh
 brew install --cask jinhuang712/tap/calm
-xattr -dr com.apple.quarantine /Applications/Calm.app
+/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app
 ```
 
-Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr` line takes the download mark off. The cask also puts the `calm` command on your `PATH`. If Calm is already in Applications (from the disk image or `./install.sh`), add `--force` to the first `brew install` to replace it.
+Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr` line takes the download mark off (the one in `/usr/bin`: Homebrew's own `xattr` package has no `-r`). The cask also puts the `calm` command on your `PATH`. If Calm is already in Applications (from the disk image or `./install.sh`), add `--force` to the first `brew install` to replace it.
 
 To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → Restart Calm (your shells keep running).
 
@@ -40,7 +48,7 @@ To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → 
 2. Calm isn't signed by Apple yet, so macOS won't open it as downloaded. Run this once in Terminal to take the download mark off:
 
    ```sh
-   xattr -dr com.apple.quarantine /Applications/Calm.app
+   /usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app
    ```
 
 3. Open Calm. To type the `calm` command in a terminal, Calm's included, link it into a folder on your `PATH`, here `~/.local/bin` (agents' hooks find it without this):
@@ -72,7 +80,7 @@ To install, `./install.sh` builds a Release copy into `/Applications` and links 
 Quitting Calm keeps your shells running, so close the sessions you want ended first (⌘W). Then:
 
 - **Homebrew:** `brew uninstall --cask calm`. Add `--zap` to also move Calm's settings and saved sessions to the Trash.
-- **Disk image or `./install.sh`:** drag Calm from Applications to the Trash, and `rm ~/.local/bin/calm` if you linked it. Calm keeps its settings in `~/.config/calm` and its saved sessions in `~/Library/Application Support/Calm`.
+- **One line, disk image or `./install.sh`:** drag Calm from Applications to the Trash, and `rm ~/.local/bin/calm` if it's linked. Calm keeps its settings in `~/.config/calm` and its saved sessions in `~/Library/Application Support/Calm`.
 
 Calm adds files to an agent's own folders only for what you turned on in **Calm → Agents…** (Connect for pi and OpenCode, Send with ⌘ Return). Turn those off there before uninstalling.
 
@@ -85,7 +93,7 @@ Calm adds files to an agent's own folders only for what you turned on in **Calm 
 ## Known limits
 
 - Apple silicon and macOS 26 or later only.
-- The download isn't signed by Apple: opening it takes the `xattr` line above, from Homebrew too, and each update asks again for folder access. So Calm isn't in Homebrew's own list of casks, which takes only signed apps; it comes from its own tap.
+- The download isn't signed by Apple: opening it takes the `xattr` line above (`get.sh` runs it for you), from Homebrew too, and each update asks again for folder access. So Calm isn't in Homebrew's own list of casks, which takes only signed apps; it comes from its own tap.
 - Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → Themes).
 - OpenCode's plugin, which reports its state, has not had real use yet.
 - A window left in full screen came back filled but not in full screen once in six test launches; the cause isn't known.

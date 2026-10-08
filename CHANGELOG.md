@@ -6,7 +6,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 The first release, a public preview, for macOS 26 on Apple silicon. Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so expect rough edges (README → Known limits). Exact behavior of everything below is in [FEATURES.md](FEATURES.md).
 
-**Download** `Calm-0.1.0.dmg` below, open it and drag Calm onto Applications. Calm isn't signed by Apple yet, so run `xattr -dr com.apple.quarantine /Applications/Calm.app` once before opening it ([README → Download](README.md#download)), and macOS asks again for Desktop, Documents and Downloads after each update. Or build it from source (README → Build from source).
+**Download** `Calm-0.1.0.dmg` below, open it and drag Calm onto Applications. Calm isn't signed by Apple yet, so run `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app` once before opening it ([README → Download](README.md#download)), and macOS asks again for Desktop, Documents and Downloads after each update. Or build it from source (README → Build from source).
 
 ### The terminal
 - Ghostty's engine (libghostty): it reads your Ghostty config for fonts, colors and keybindings.

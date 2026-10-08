@@ -1,0 +1,75 @@
+name: Get
+
+# Runs get.sh, the one-line install, on a clean macOS runner and checks what it put in place: the
+# newest release's app, with no download mark, signed as built, the version the release names,
+# `calm` linked and Calm starting. Then again while that Calm runs, which must keep the running
+# app aside and say to restart, and once more for a version into another folder.
+# release.yml starts it once it has published (fetching get.sh as the README does); it also runs
+# when get.sh changes (piping this checkout's, since raw.githubusercontent.com caches).
+
+on:
+  push:
+    branches: [main]
+    paths: [get.sh, .github/workflows/get.yml]
+  workflow_dispatch:
+
+jobs:
+  get:
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      # get.sh asks GitHub's API for the newest release; a runner's address shares 60 requests
+      # an hour without a token.
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            bash < get.sh
+          else
+            curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/get.sh" | bash
+          fi
+
+      - name: Check
+        run: |
+          app=/Applications/Calm.app
+          version="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName')"
+          version="${version#v}"
+          if /usr/bin/xattr -r -l "$app" | grep -q com.apple.quarantine; then
+            echo "::error::get.sh left a download mark on Calm.app"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$app"
+          built="$(defaults read "$app/Contents/Info" CFBundleShortVersionString)"
+          cli="$("$HOME/.local/bin/calm" --version)"
+          if [[ "$built" != "$version" || "$cli" != "calm $version" ]]; then
+            echo "::error::the newest release is $version, the app says $built and calm says '$cli'"
+            exit 1
+          fi
+          # `calm list` starts the Calm it came with when none answers; a first launch on a fresh
+          # machine can take longer than its 5 seconds, so it asks again for up to a minute.
+          for _ in $(seq 12); do
+            if "$HOME/.local/bin/calm" list; then
+              listed=1
+              break
+            fi
+            sleep 5
+          done
+          [[ "${listed:-}" == 1 ]] || { echo "::error::Calm didn't start and answer"; exit 1; }
+
+      # Calm is still running from the first install.
+      - name: Install over a running Calm
+        run: |
+          bash < get.sh | tee "$RUNNER_TEMP/again.txt"
+          grep -q "Restart Calm soon" "$RUNNER_TEMP/again.txt"
+          ls -d /Applications/.Calm.app.previous-*
+          [[ -d /Applications/Calm.app ]]
+          pkill -x Calm || true
+
+      - name: Install a version elsewhere
+        run: |
+          version="$(defaults read /Applications/Calm.app/Contents/Info CFBundleShortVersionString)"
+          bash -s -- --version "$version" --dir "$RUNNER_TEMP/Apps" --no-cli < get.sh
+          [[ "$(defaults read "$RUNNER_TEMP/Apps/Calm.app/Contents/Info" CFBundleShortVersionString)" == "$version" ]]

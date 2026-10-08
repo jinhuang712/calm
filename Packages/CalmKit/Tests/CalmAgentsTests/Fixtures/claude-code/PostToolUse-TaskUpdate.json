@@ -1,0 +1,1 @@
+{"session_id":"4f6b2c1e-0000-4000-8000-000000000001","transcript_path":"/Users/me/.claude/projects/-Users-me-src-app/4f6b2c1e-0000-4000-8000-000000000001.jsonl","cwd":"/Users/me/src/app","permission_mode":"default","hook_event_name":"PostToolUse","tool_name":"TaskUpdate","tool_use_id":"toolu_03","tool_input":{"taskId":"2","status":"in_progress"},"tool_response":{"ok":true}}

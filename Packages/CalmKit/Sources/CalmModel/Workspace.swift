@@ -100,6 +100,11 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     public var resumesWhenOpened: Bool?
     /// The agent's latest compaction while its card shows it; not saved (`CodingKeys`, `Compaction`).
     public var compaction: Compaction?
+    /// When the agent's current turn began: it went to work from rest. Kept while it asks you
+    /// (that's part of the turn), cleared when the turn ends; the working card's corner counts
+    /// from it. Saved, so a restart doesn't start the count over. (What the agent is doing this
+    /// moment, `LiveLine`, is the app's, kept apart from the workspace.)
+    public var turnStartedAt: Date?
 
     public var isScratch: Bool {
         scratchFolder != nil
@@ -222,7 +227,7 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
 extension Session {
     private enum CodingKeys: String, CodingKey {
         case id, projectID, title, workingDirectory, isPinned, state, stateSince, lastReport, agent, createdAt
-        case customName, lastConversation, scratchFolder, resumesWhenOpened
+        case customName, lastConversation, scratchFolder, resumesWhenOpened, turnStartedAt
     }
 
     /// Decodes as the compiler would, except for the agent fields: a state file that names an
@@ -245,6 +250,7 @@ extension Session {
         lastConversation = try? container.decodeIfPresent(AgentConversation.self, forKey: .lastConversation)
         scratchFolder = try container.decodeIfPresent(String.self, forKey: .scratchFolder)
         resumesWhenOpened = try container.decodeIfPresent(Bool.self, forKey: .resumesWhenOpened)
+        turnStartedAt = try container.decodeIfPresent(Date.self, forKey: .turnStartedAt)
     }
 }
 
@@ -663,38 +669,5 @@ public extension Workspace {
         guard value != windowFullScreen else { return false }
         windowFullScreen = value
         return true
-    }
-}
-
-/// Path helpers shared by the model. Pure string operations: no file system access.
-public enum WorkspacePath {
-    public static func standardize(_ path: String) -> String {
-        var result = (path as NSString).expandingTildeInPath
-        result = (result as NSString).standardizingPath
-        while result.count > 1, result.hasSuffix("/") {
-            result.removeLast()
-        }
-        return result
-    }
-
-    /// A folder with the home folder written as "~": "~/dev/calm", "/opt/tools".
-    public static func abbreviated(_ path: String, home: String = NSHomeDirectory()) -> String {
-        let path = standardize(path)
-        let home = standardize(home)
-        guard home != "/", isInside(path, folder: home) else { return path }
-        return "~" + path.dropFirst(home.count)
-    }
-
-    public static func isInside(_ directory: String, folder: String) -> Bool {
-        directory == folder || directory.hasPrefix(folder == "/" ? "/" : folder + "/")
-    }
-
-    public static func displayName(for path: String) -> String {
-        let standardized = standardize(path)
-        if standardized == standardize("~") {
-            return "~"
-        }
-        let name = (standardized as NSString).lastPathComponent
-        return name.isEmpty ? standardized : name
     }
 }

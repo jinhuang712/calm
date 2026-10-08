@@ -29,6 +29,9 @@ final class SessionManager {
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// The last few sessions closed, for ⌘⇧T. Kept in memory only.
     @ObservationIgnored private var recentlyClosed = ClosedSessions()
+    /// Each session's working line, apart from the workspace so a tool call redraws one card
+    /// (`LiveLineBox`, `liveLine(for:)`). Not observed itself: each card observes its own box.
+    @ObservationIgnored var liveLines: [Session.ID: LiveLineBox] = [:]
 
     /// Turned off for the rest of the run if persistent shells fail to start.
     @ObservationIgnored var persistenceEnabled = true
@@ -341,6 +344,7 @@ final class SessionManager {
         restarts[id] = nil
         agentUpdates[id] = nil
         runningVersions[id] = nil
+        liveLines[id] = nil
         workspace.removeSession(id)
         scheduleSave()
     }

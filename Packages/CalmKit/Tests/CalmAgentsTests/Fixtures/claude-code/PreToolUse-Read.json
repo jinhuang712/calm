@@ -1,0 +1,1 @@
+{"session_id":"4f6b2c1e-0000-4000-8000-000000000001","transcript_path":"/Users/me/.claude/projects/-Users-me-src-app/4f6b2c1e-0000-4000-8000-000000000001.jsonl","cwd":"/Users/me/src/app","permission_mode":"default","hook_event_name":"PreToolUse","tool_name":"Read","tool_use_id":"toolu_02","tool_input":{"file_path":"/Users/me/src/app/Sources/App/SessionCard.swift","limit":60}}

@@ -417,6 +417,7 @@ struct SidebarView: View {
                 isConfirming: manager.confirming.contains(session.id),
                 inView: manager.workspace.sessionsInView.contains(session.id),
                 restart: manager.restarts[session.id],
+                live: manager.liveLine(for: session.id),
             )
         } else {
             SessionRow(

@@ -12,14 +12,23 @@ struct SessionCardTests {
         #expect(RelativeTimeText.format(4 * 86400) == "4d")
     }
 
-    @MainActor @Test func `working names the agent's step and leaves the minutes to the corner`() {
+    @MainActor @Test func `working says what the agent is doing, and its todo keeps a line of its own`() {
         var session = Session(projectID: UUID(), workingDirectory: "/tmp", state: .working)
         session.stateSince = Date(timeIntervalSinceNow: -10 * 60)
         let style = SidebarStyle.derived(from: .black)
-        #expect(SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style).workingLine == "Working")
+        let live = LiveLineBox()
+        func line() -> String {
+            SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style, live: live).workingLine
+        }
+        // An agent whose hooks don't say.
+        #expect(line() == "Working")
+        live.set(LiveLine(thinkingAt: Date(timeIntervalSinceNow: -60)))
+        #expect(line() == "Thinking")
         session.agent = AgentRun(kind: .claudeCode, processID: 0)
-        session.agent?.tail = TranscriptTail(step: "Adding tests")
-        #expect(SessionCard(session: session, agent: .claudeCode, isSelected: false, style: style).workingLine == "Working · Adding tests")
+        session.agent?.tail = TranscriptTail(step: "Adding tests", progress: TodoProgress(done: 2, total: 5))
+        // The todo isn't on the line any more: it's the quiet line under it.
+        #expect(line() == "Thinking")
+        #expect(session.todoLine == "2 of 5 · Adding tests")
     }
 
     @MainActor @Test func `only minimal cards color the time, and never while restoring`() {

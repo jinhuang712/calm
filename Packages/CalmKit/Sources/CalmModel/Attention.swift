@@ -100,8 +100,12 @@ public extension Workspace {
     /// - *Done* and *failed* stay put even where the user is looking; the session settles when
     ///   they leave it (`Workspace.select`, `settle`).
     /// - A compaction's start and end are kept on the session for its card (`Compaction`).
+    /// - `newTurn` (a prompt came in) starts the turn over even from *needs you*: a question left
+    ///   unanswered (Esc sends no hook) isn't part of the next turn.
     @discardableResult
-    mutating func report(_ id: Session.ID, _ report: StatusReport, focusedSessionID: Session.ID?) -> AttentionEffect {
+    mutating func report(
+        _ id: Session.ID, _ report: StatusReport, focusedSessionID: Session.ID?, newTurn: Bool = false,
+    ) -> AttentionEffect {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return .none }
         let previous = sessions[index]
         if report.source == .terminal, previous.lastReport?.source == .hook {
@@ -117,6 +121,7 @@ public extension Workspace {
         }
         if previous.state != newState {
             sessions[index].stateSince = report.date
+            noteTurn(index, from: newTurn ? .idle : previous.state, to: newState, at: report.date)
         }
         sessions[index].state = newState
         sessions[index].lastReport = report
@@ -137,9 +142,23 @@ public extension Workspace {
         }
         sessions[index].agent = nil
         sessions[index].compaction = nil
+        sessions[index].turnStartedAt = nil
         sessions[index].lastReport?.source = .terminal
         if sessions[index].state == .working {
             sessions[index].state = .idle
+        }
+    }
+
+    /// A turn begins when the agent goes to work from rest, and goes on while it asks you; any
+    /// other state ends it (`LiveLine.after` follows the same rule).
+    mutating func noteTurn(_ index: Int, from previous: SessionState, to state: SessionState, at date: Date) {
+        switch (previous, state) {
+        case (.needsYou, .working), (_, .needsYou):
+            break
+        case (_, .working):
+            sessions[index].turnStartedAt = date
+        default:
+            sessions[index].turnStartedAt = nil
         }
     }
 

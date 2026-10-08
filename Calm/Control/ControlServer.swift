@@ -185,7 +185,13 @@ final class ControlServer {
             return open(request.path)
         case .status:
             guard let id = session(request.session) else { return .failure("No such session.") }
-            guard let state = request.state.flatMap(SessionState.init(reportName:)) else {
+            let activity = request.activity.flatMap {
+                ActivityChange(reportName: $0, words: request.activityWords, group: request.activityGroup)
+            }
+            // A hook that only moves the working line along (a failed tool call) names no state.
+            let lineOnly = request.state == nil ? activity : nil
+            let state = request.state.flatMap(SessionState.init(reportName:))
+            guard lineOnly != nil || state != nil else {
                 return .failure("Unknown state '\(request.state ?? "")'; use working, needs-you, done, failed or idle.")
             }
             if let kind = request.agent.flatMap(AgentKind.init(rawValue:)) {
@@ -198,10 +204,17 @@ final class ControlServer {
                 }
                 manager.noteAgentSession(id, kind: kind, agentSessionID: request.agentSession, transcriptPath: request.transcript)
             }
+            guard let state else {
+                if let lineOnly {
+                    manager.noteActivity(id, lineOnly)
+                }
+                return .success()
+            }
             manager.report(id, StatusReport(
                 state: state, message: request.message, source: .hook, backgroundShells: request.shells ?? 0,
                 compaction: request.compaction.flatMap(CompactionReport.init(reportName:)),
-            ))
+            ), activity: activity)
+            SessionProbe.shared.readSoon(id)
             return .success()
         case .search:
             return SearchService.respond(to: request)

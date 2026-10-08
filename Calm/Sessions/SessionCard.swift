@@ -24,6 +24,9 @@ struct SessionCard: View {
     var inView = false
     /// A restart waiting for the turn to end, or under way: a footnote on the state line.
     var restart: RestartPhase?
+    /// What the agent is doing this moment (`LiveLineBox`): observed here alone, so a tool call
+    /// redraws this card and nothing else.
+    var live: LiveLineBox?
     /// The clock the compaction bar is read against: moved on when a drained bar is due to go.
     @State private var now = Date()
 
@@ -38,7 +41,7 @@ struct SessionCard: View {
                 if showsStateMarkByTime {
                     StateMark(state: session.state, style: style, compact: true)
                 }
-                if let date = session.lastReport?.date ?? session.agent?.startedAt {
+                if let date = session.cornerDate {
                     RelativeTimeText(date: date)
                         .calmFont(size: 12, weight: timeColor == nil ? nil : .medium)
                         .foregroundStyle(timeColor ?? style.tertiary)
@@ -66,6 +69,19 @@ struct SessionCard: View {
         .help(tooltip)
         .animation(.easeInOut(duration: 0.25), value: session.state)
         .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.45), value: isConfirming)
+        .task(id: live?.line) {
+            // The working line moves on by itself only when words waited out the hold, or the
+            // agent went quiet (`LiveLine`): one wake for that, nothing in between. A change that
+            // came due while the card's clock stood still shows first.
+            if let line = live?.line, line.words(at: .now) != line.words(at: now) {
+                now = .now
+            }
+            while let next = live?.line?.nextChange(after: .now), !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(max(next.timeIntervalSinceNow, 0.05)))
+                guard !Task.isCancelled else { return }
+                now = .now
+            }
+        }
         .task(id: session.compactionBarEnds) {
             // A drained bar goes by itself a few seconds after the compaction (`compactionBar`).
             guard let ends = session.compactionBarEnds, ends > .now else { return }
@@ -104,8 +120,12 @@ struct SessionCard: View {
                 CompactionBarLine(bar: bar, isRunning: session.isCompacting, style: style)
                     .padding(.leading, Self.indent)
                     .transition(.opacity)
-            } else if !isConfirming, let progress = session.agent?.tail?.progress, progress.total > 0 {
-                TodoProgressLine(progress: progress, style: style)
+            } else if !isConfirming, let todo = session.todoLine {
+                Text(todo)
+                    .calmFont(size: 12)
+                    .monospacedDigit()
+                    .foregroundStyle(style.tertiary)
+                    .lineLimit(1)
                     .padding(.leading, Self.indent)
                     .transition(.opacity)
             }
@@ -146,8 +166,9 @@ struct SessionCard: View {
         }
     }
 
-    /// Compact's line: the state, then what the agent last said. While it works, "Working · step"
-    /// or "Working · the recap", with the todo count at the end; a card that waits for a look
+    /// Compact's line: the state, then what the agent last said. While it works, what it's doing
+    /// and the recap ("Running swift test · The double close…"), with the todo count at the end
+    /// (its step is in the tooltip); a card that waits for a look
     /// gives its question or answer a second line. An idle card has the line only while its
     /// agent's shells run: "2 shells running · the recap".
     @ViewBuilder
@@ -173,11 +194,8 @@ struct SessionCard: View {
             }
         } else if session.state == .working {
             HStack(spacing: 5.scaled) {
-                ShimmerText(text: workingLine, color: style.working, highlight: style.workingHighlight)
-                    .calmFont(size: 13, weight: .medium)
-                    .lineLimit(1)
-                    .layoutPriority(1)
-                if session.workingStep == nil, let recap = session.recap {
+                liveText
+                if let recap = session.recap {
                     Text("·")
                         .calmFont(size: 13)
                         .foregroundStyle(style.tertiary)
@@ -274,13 +292,14 @@ struct SessionCard: View {
         timeColor != nil && AccessibilitySettings.differentiateWithoutColor
     }
 
-    /// What a smaller card leaves out: the whole recap and the worktree, and at Minimal, that the
-    /// agent is compacting or left shells running (there's no line to say it).
+    /// What a smaller card leaves out: the whole recap, the todo and the worktree, and at Minimal,
+    /// what the agent is doing or that it left shells running (there's no line to say it).
     private var tooltip: String {
         guard size != .full else { return "" }
-        let compacting = size == .minimal && session.isCompacting ? workingLine : nil
+        let working = size == .minimal && session.state == .working ? workingLine : nil
         let shells = size == .minimal ? Self.shellsLine(session.shellsStillRunning) : nil
-        return [compacting, shells, session.recap, session.worktreeName.map { "Worktree: \($0)" }]
+        let todo = session.state == .working ? session.todoLine : nil
+        return [working, todo, shells, session.recap, session.worktreeName.map { "Worktree: \($0)" }]
             .compactMap(\.self)
             .joined(separator: "\n")
     }
@@ -305,10 +324,7 @@ struct SessionCard: View {
     private var stateLine: some View {
         if session.state == .working {
             HStack(spacing: 7.scaled) {
-                ShimmerText(text: workingLine, color: style.working, highlight: style.workingHighlight)
-                    .calmFont(size: 13, weight: .medium)
-                    .lineLimit(1)
-                    .layoutPriority(1)
+                liveText
                 restartFootnote
             }
         } else {
@@ -359,10 +375,25 @@ struct SessionCard: View {
         }
     }
 
-    /// "Working · Fixing the token mock", "Working · Compacting", or "Working" when the agent names
-    /// no step. No minutes: the time in the card's corner already counts them.
+    /// What the agent is doing, in place of "Working" (chosen by the author on 2026-10-09: the
+    /// tint and the moving mark already say working): "Reading SessionCard.swift", "Compacting",
+    /// "Thinking", or "Working" when its hooks don't say. No minutes: the corner counts the turn.
     var workingLine: String {
-        session.workingStep.map { "\(SessionState.working.label) · \($0)" } ?? SessionState.working.label
+        session.liveWords(live?.line, at: now)
+    }
+
+    /// The working line, crossfading when its words change: old and new share one place, so the
+    /// line never shifts while they pass.
+    private var liveText: some View {
+        ZStack(alignment: .leading) {
+            ShimmerText(text: workingLine, color: style.working, highlight: style.workingHighlight)
+                .calmFont(size: 13, weight: .medium)
+                .lineLimit(1)
+                .id(workingLine)
+                .transition(.opacity)
+        }
+        .layoutPriority(1)
+        .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: workingLine)
     }
 
     /// The compaction bar shown now, if any (never while the state is being checked).
@@ -506,32 +537,6 @@ struct CompactionBarLine: View {
         }
         .animation(Motion.isReduced ? nil : .easeOut(duration: 0.6), value: bar)
         .accessibilityHidden(true)
-    }
-}
-
-/// A thin bar and "3 of 5": the agent's todo list.
-struct TodoProgressLine: View {
-    let progress: TodoProgress
-    let style: SidebarStyle
-
-    var body: some View {
-        HStack(spacing: 8.scaled) {
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(style.selection)
-                    Capsule()
-                        .fill(style.secondary)
-                        .frame(width: geometry.size.width * CGFloat(progress.done) / CGFloat(max(progress.total, 1)))
-                }
-            }
-            .frame(height: 4.scaled)
-            Text("\(progress.done) of \(progress.total)")
-                .calmFont(size: 12)
-                .monospacedDigit()
-                .foregroundStyle(style.tertiary)
-                .fixedSize()
-        }
-        .animation(.easeInOut(duration: 0.3), value: progress)
     }
 }
 

@@ -13,6 +13,11 @@ public struct HookReport: Equatable, Sendable {
     public var backgroundShells: Int
     /// A compaction starting or ending (the agent summarizing its conversation to make room).
     public var compaction: CompactionReport?
+    /// What the working line shows: a step beginning or ending, or the agent thinking.
+    public var activity: ActivityChange?
+    /// False for a hook that only moves the working line along (a failed tool call): `state` is
+    /// then no news, and `calm hook` sends none.
+    public var changesState = true
 
     public init(
         state: SessionState,
@@ -21,6 +26,7 @@ public struct HookReport: Equatable, Sendable {
         transcriptPath: String? = nil,
         backgroundShells: Int = 0,
         compaction: CompactionReport? = nil,
+        activity: ActivityChange? = nil,
     ) {
         self.state = state
         self.message = message
@@ -28,6 +34,7 @@ public struct HookReport: Equatable, Sendable {
         self.transcriptPath = transcriptPath
         self.backgroundShells = backgroundShells
         self.compaction = compaction
+        self.activity = activity
     }
 
     /// Long agent messages are cut for a one- or two-line recap.

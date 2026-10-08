@@ -40,7 +40,7 @@ struct CompactionTests {
         let session = workspace.session(id)
         #expect(session?.state == .working)
         #expect(session?.isCompacting == true)
-        #expect(session?.workingStep == "Compacting")
+        #expect(session?.liveWords(nil, at: start + 90) == "Compacting")
         #expect(session?.compactionBar(now: start + 90) == .full(tokens: 968_495))
         #expect(session?.compactionBar(now: start + 90)?.label == "968k")
         // It runs until the agent says it ended, however long.
@@ -60,8 +60,8 @@ struct CompactionTests {
         #expect(session?.compactionBar(now: start + 100)?.label == "968k → 13k")
         #expect(session?.compactionBarEnds == start + 104)
         #expect(session?.compactionBar(now: start + 104) == nil)
-        // The turn goes on with its own step.
-        #expect(session?.workingStep == nil)
+        // The turn goes on with its own words (a hook-less agent's, here).
+        #expect(session?.liveWords(nil, at: start + 104) == "Working")
     }
 
     @Test func `a record read before the agent's report ends it too`() {

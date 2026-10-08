@@ -46,6 +46,20 @@ struct SessionManagerReportTests {
         #expect(manager.workspace.session(id)?.state == .working)
     }
 
+    @Test func `a tool call moves the card's line along and leaves the workspace alone`() throws {
+        let (manager, id) = try manager()
+        let reading = ActivityChange.began(AgentActivity("Reading SessionCard.swift", group: "Reading # files"))
+        let written = writesWorkspace(manager) {
+            manager.report(id, StatusReport(state: .working, source: .hook), activity: reading)
+            manager.report(id, StatusReport(state: .working, source: .hook), activity: .ended)
+        }
+        #expect(!written)
+        #expect(manager.liveLine(for: id).line?.words(at: .now) == "Reading SessionCard.swift")
+        // The turn ending clears it, with the report that ends it.
+        manager.report(id, StatusReport(state: .done, message: "Fixed.", source: .hook))
+        #expect(manager.liveLine(for: id).line == nil)
+    }
+
     @Test func `a hook that changes something still updates it`() throws {
         let (manager, id) = try manager()
         let finished = writesWorkspace(manager) {

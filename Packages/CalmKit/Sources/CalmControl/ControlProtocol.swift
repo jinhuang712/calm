@@ -50,6 +50,11 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var shells: Int?
     /// From a hook about a compaction: "start:manual", "end:auto" (`CompactionReport`; nil for none).
     public var compaction: String?
+    /// From a hook, for the working line (`ActivityChange`): "began" with what the agent is
+    /// doing and what several add up to ("Reading # files"), "ended" or "thinking"; nil for none.
+    public var activity: String?
+    public var activityWords: String?
+    public var activityGroup: String?
     /// For `search`.
     public var query: String?
     /// For `fork`: stay where you are, the fork waiting in the sidebar.
@@ -66,6 +71,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         transcript: String? = nil,
         shells: Int? = nil,
         compaction: String? = nil,
+        activity: String? = nil,
+        activityWords: String? = nil,
+        activityGroup: String? = nil,
         query: String? = nil,
         background: Bool? = nil,
     ) {
@@ -80,6 +88,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.transcript = transcript
         self.shells = shells
         self.compaction = compaction
+        self.activity = activity
+        self.activityWords = activityWords
+        self.activityGroup = activityGroup
         self.query = query
         self.background = background
     }

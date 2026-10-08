@@ -126,12 +126,6 @@ public extension Session {
         state == .working && compaction != nil && compaction?.endedAt == nil
     }
 
-    /// What the working line names after "Working": the compaction while it runs, else the
-    /// agent's task.
-    var workingStep: String? {
-        isCompacting ? "Compacting" : agent?.tail?.step
-    }
-
     /// The compaction bar the card shows at `now`, if any (`compactionBarEnds` says when it goes
     /// by itself).
     func compactionBar(now: Date) -> CompactionBar? {

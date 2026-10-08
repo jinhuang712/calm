@@ -86,6 +86,7 @@ public extension Workspace {
         default: nil
         }
         guard let corrected else { return }
+        noteTurn(index, from: state, to: corrected, at: status.since)
         sessions[index].state = corrected
         sessions[index].stateSince = status.since
         sessions[index].lastReport = StatusReport(state: corrected, source: .hook, date: status.since)

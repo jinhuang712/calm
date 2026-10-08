@@ -8,12 +8,19 @@ import SwiftUI
 /// (`changeWorkspace`).
 extension SessionManager {
     /// Applies a status report (from a hook or a terminal signal) and passes on what it means
-    /// for notifications.
-    func report(_ id: Session.ID, _ report: StatusReport) {
+    /// for notifications. The session's working line follows: the report's state change, then
+    /// `activity` (from a hook), so a turn's first step lands on the line that turn started. The
+    /// line lives outside the workspace (`LiveLineBox`): a tool call redraws its card, not the
+    /// sidebar, and schedules no save.
+    func report(_ id: Session.ID, _ report: StatusReport, activity: ActivityChange? = nil) {
         let previous = workspace.session(id)?.state
         var effect = AttentionEffect.none
         let changed = changeWorkspace(animation: .easeInOut(duration: 0.25)) {
-            effect = $0.report(id, report, focusedSessionID: lookingAtSessionID)
+            effect = $0.report(id, report, focusedSessionID: lookingAtSessionID, newTurn: activity == .thinking)
+        }
+        if let state = workspace.session(id)?.state, state != previous || activity != nil {
+            let box = liveLine(for: id)
+            box.set(LiveLine.after(box.line, from: previous, to: state, change: activity, at: report.date))
         }
         Trace.reported(id, report, before: previous, after: workspace.session(id)?.state)
         AttentionCenter.shared.apply(effect, for: id)
@@ -29,6 +36,24 @@ extension SessionManager {
         if changed {
             scheduleSave()
         }
+    }
+
+    /// A hook that only moves the working line along, saying nothing of the state (a failed tool
+    /// call): it counts only while the session works.
+    func noteActivity(_ id: Session.ID, _ change: ActivityChange) {
+        guard workspace.session(id)?.state == .working else { return }
+        let box = liveLine(for: id)
+        box.set(LiveLine.after(box.line, from: .working, to: .working, change: change, at: Date()))
+    }
+
+    /// A session's working line, for its card; made the first time it's asked for.
+    func liveLine(for id: Session.ID) -> LiveLineBox {
+        if let box = liveLines[id] {
+            return box
+        }
+        let box = LiveLineBox()
+        liveLines[id] = box
+        return box
     }
 
     /// A program in the session signalled something (DESIGNS.md → Attention → fallback signals).

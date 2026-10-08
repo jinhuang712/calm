@@ -28,6 +28,13 @@ final class SessionProbe {
     private var readingTranscripts: Set<Session.ID> = []
     /// When Calm last looked for each session's transcript.
     private var lastDiscoveries: [Session.ID: Date] = [:]
+    /// When each session's transcript was last read (or found unchanged), for `readSoon`.
+    private var lastReads: [Session.ID: Date] = [:]
+    /// The least time between two reads of one transcript: the tick's.
+    private static let readSpacing: TimeInterval = 2
+    /// Reads a hook asked for, waiting their moment; and ones asked for while a read ran.
+    private var soonReads: Set<Session.ID> = []
+    private var rereads: Set<Session.ID> = []
     /// The launch pass is still out, with rows showing as loading (`settleSavedRuns`).
     private var savedRunsPending = false
     /// Polls so far, for the work done every few of them.
@@ -168,7 +175,8 @@ final class SessionProbe {
             }
         }
         for session in manager.workspace.sessions {
-            if let agent = session.agent {
+            // A hook's read a moment ago stands for this tick's (`readSoon`).
+            if let agent = session.agent, Date().timeIntervalSince(lastReads[session.id] ?? .distantPast) > Self.readSpacing - 0.5 {
                 readTranscriptIfChanged(session.id, agent)
             }
         }
@@ -184,6 +192,35 @@ final class SessionProbe {
         foregroundJobs = foregroundJobs.filter { live.contains($0.key) }
         transcriptStamps = transcriptStamps.filter { live.contains($0.key) }
         lastDiscoveries = lastDiscoveries.filter { live.contains($0.key) }
+        lastReads = lastReads.filter { live.contains($0.key) }
+    }
+
+    /// An agent's hook just spoke: what it did is usually in its transcript by now, so read it
+    /// in a moment rather than at the next tick, and the card's recap keeps up with the working
+    /// line. No more often than the tick reads (every `readSpacing`, which the tick then skips
+    /// too): a changed tail writes the workspace, and that redraws the whole sidebar. A hook
+    /// while a read runs gets one more after it. The tick stays: it's what notices an Esc (no
+    /// hook says so), and agents coming and going.
+    func readSoon(_ id: Session.ID) {
+        guard !soonReads.contains(id) else { return }
+        if readingTranscripts.contains(id) {
+            rereads.insert(id)
+            return
+        }
+        soonReads.insert(id)
+        let spaced = lastReads[id].map { $0.addingTimeInterval(Self.readSpacing).timeIntervalSinceNow } ?? 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.25, spaced)) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.soonReads.remove(id)
+                guard let agent = SessionManager.shared.workspace.session(id)?.agent else { return }
+                if self.readingTranscripts.contains(id) {
+                    self.rereads.insert(id)
+                } else {
+                    self.readTranscriptIfChanged(id, agent)
+                }
+            }
+        }
     }
 
     /// Re-reads an agent's transcript when it changed. The reading is file work (a Codex or pi
@@ -202,6 +239,7 @@ final class SessionProbe {
         if discover {
             lastDiscoveries[id] = Date()
         }
+        lastReads[id] = Date()
         readingTranscripts.insert(id)
         let previous = transcriptStamps[id]
         let processID = agent.processID
@@ -249,6 +287,9 @@ final class SessionProbe {
 
     private func finishReading(_ id: Session.ID, kind: AgentKind, _ read: TranscriptRead) {
         readingTranscripts.remove(id)
+        if rereads.remove(id) != nil {
+            readSoon(id)
+        }
         let manager = SessionManager.shared
         // The agent may have exited, or another started, while the file was being read.
         guard manager.workspace.session(id)?.agent?.kind == kind else { return }

@@ -25,15 +25,15 @@ extension ClaudeCodeAdapter: HookReporting {
 
     /// The events Calm listens to, each running `calm hook claude-code` with the payload on stdin.
     public static let hookEvents = [
-        "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "StopFailure",
-        "PreCompact", "PostCompact",
+        "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PermissionRequest", "Notification", "Stop",
+        "StopFailure", "PreCompact", "PostCompact",
     ]
 
     /// Payload fields (stdin JSON): `hook_event_name`, `session_id`, `transcript_path`, and per
     /// event `tool_name`/`tool_input`, `notification_type`/`message`, `last_assistant_message`
     /// and `background_tasks`, `error`/`error_details`, and for compaction `trigger` ("manual" for
     /// `/compact`, "auto"; captured from 2.1.291 on 2026-10-06).
-    private struct Payload: Decodable {
+    struct Payload: Decodable {
         var hookEventName: String?
         var sessionId: String?
         var transcriptPath: String?
@@ -48,11 +48,47 @@ extension ClaudeCodeAdapter: HookReporting {
         var error: String?
         var errorDetails: String?
         var trigger: String?
+        /// PostToolUseFailure: the tool stopped because you pressed Esc.
+        var isInterrupt: Bool?
 
+        /// The tool's own arguments; only the ones that name what it works on are read
+        /// (`ClaudeCodeAdapter.activity`). Each one that isn't a string (an MCP tool's `url` can be
+        /// anything) reads as absent, rather than the payload failing and the hook, a permission
+        /// request even, saying nothing.
         struct ToolInput: Decodable {
             var command: String?
             var filePath: String?
+            var notebookPath: String?
             var description: String?
+            var url: String?
+            var skill: String?
+
+            private enum CodingKeys: String, CodingKey {
+                case command, filePath, notebookPath, description, url, skill
+            }
+
+            init(
+                command: String? = nil, filePath: String? = nil, notebookPath: String? = nil, description: String? = nil,
+                url: String? = nil, skill: String? = nil,
+            ) {
+                self.command = command
+                self.filePath = filePath
+                self.notebookPath = notebookPath
+                self.description = description
+                self.url = url
+                self.skill = skill
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                func text(_ key: CodingKeys) -> String? {
+                    try? container.decodeIfPresent(String.self, forKey: key)
+                }
+                self.init(
+                    command: text(.command), filePath: text(.filePath), notebookPath: text(.notebookPath),
+                    description: text(.description), url: text(.url), skill: text(.skill),
+                )
+            }
         }
 
         /// `id`, `description` and `command` are not read. Seen in captured payloads:
@@ -92,6 +128,7 @@ extension ClaudeCodeAdapter: HookReporting {
         // that quotes a command someone is asked to allow, and stays as it is.
         func report(
             _ state: SessionState, _ message: String? = nil, prose: Bool = false, shells: Int = 0, compaction: CompactionReport? = nil,
+            activity: ActivityChange? = nil,
         ) -> HookReport {
             HookReport(
                 state: state,
@@ -100,14 +137,31 @@ extension ClaudeCodeAdapter: HookReporting {
                 transcriptPath: hook.transcriptPath,
                 backgroundShells: shells,
                 compaction: compaction,
+                activity: activity,
             )
         }
         // A trigger Calm doesn't know reads as Claude's own: that never ends the turn as done.
         let trigger = Compaction.Trigger(rawValue: hook.trigger ?? "") ?? .auto
         switch event {
-        case "UserPromptSubmit", "PreToolUse", "PostToolUse":
-            // After an approval the tool runs, so these also clear a *needs you*.
-            return report(.working)
+        // After an approval the tool runs, so these also clear a *needs you*. Each says what the
+        // working line shows: a step begins or ends. A bookkeeping tool's does neither, so the two
+        // halves of a call always match.
+        case "UserPromptSubmit":
+            return report(.working, activity: .thinking)
+        case "PreToolUse":
+            return report(.working, activity: Self.activity(tool: hook.toolName, input: hook.toolInput).map(ActivityChange.began))
+        case "PostToolUse":
+            return report(.working, activity: Self.activity(tool: hook.toolName, input: hook.toolInput) == nil ? nil : .ended)
+        case "PostToolUseFailure":
+            // PostToolUse is only for a call that worked (Claude Code's own hook docs, 2.1.294), so
+            // without this a failed call (tests that fail) never ended its step, and the line never
+            // reached "Thinking" again that turn. It ends the step and says nothing of the state:
+            // Claude may go on, or stop for you, and its next hook says which. An Esc says nothing
+            // at all; the transcript's interruption settles the card, as it always has.
+            guard hook.isInterrupt != true, Self.activity(tool: hook.toolName, input: hook.toolInput) != nil else { return nil }
+            var ended = report(.working, activity: .ended)
+            ended.changesState = false
+            return ended
         case "PermissionRequest":
             let detail = hook.toolInput?.command ?? hook.toolInput?.filePath ?? hook.toolInput?.description
             let tool = hook.toolName ?? "a tool"

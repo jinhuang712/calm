@@ -132,21 +132,56 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.title == "Pick a cache library")
     }
 
-    @Test func `a recap older than the latest turn is no summary`() throws {
+    /// The tail of a transcript made of these records, oldest first.
+    private func reading(_ records: [[String: Any]]) throws -> TranscriptTail {
         let folder = FileManager.default.temporaryDirectory.appending(path: "calm-claude-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        let records: [[String: Any]] = [
-            ["type": "assistant", "message": ["role": "assistant", "content": [["type": "text", "text": "Picked the first one."]]]],
-            ["type": "system", "subtype": "away_summary", "content": "You're choosing a cache library. (disable recaps in /config)"],
-            ["type": "user", "message": ["role": "user", "content": "now benchmark it"]],
-        ]
         let transcript = folder.appending(path: "t.jsonl")
         let lines = try records.map { try JSONSerialization.data(withJSONObject: $0) + Data("\n".utf8) }
         try lines.reduce(Data(), +).write(to: transcript)
-        let tail = try #require(adapter.readTail(of: transcript, agentSessionID: sessionID, home: folder))
+        return try #require(adapter.readTail(of: transcript, agentSessionID: sessionID, home: folder))
+    }
+
+    private let reply: [String: Any] = [
+        "type": "assistant", "message": ["role": "assistant", "content": [["type": "text", "text": "Picked the first one."]]],
+    ]
+    private let recap: [String: Any] = [
+        "type": "system", "subtype": "away_summary", "content": "You're choosing a cache library. (disable recaps in /config)",
+    ]
+    private let prompt: [String: Any] = ["type": "user", "message": ["role": "user", "content": "now benchmark it"]]
+
+    @Test func `a recap older than the latest reply is no summary`() throws {
+        let tail = try reading([recap, prompt, reply])
         #expect(tail.summary == nil)
         #expect(tail.lastMessage == "Picked the first one.")
+        #expect(tail.newTurnSinceMessage == false)
+    }
+
+    @Test func `a turn that hasn't replied yet keeps the recap, and says its message is older`() throws {
+        let tail = try reading([reply, recap, prompt])
+        #expect(tail.summary == "You're choosing a cache library.")
+        #expect(tail.lastMessage == "Picked the first one.")
+        #expect(tail.newTurnSinceMessage == true)
+    }
+
+    @Test func `what starts a turn`() {
+        func user(_ content: Any, _ flags: [String: Any] = [:]) -> [String: Any] {
+            flags.merging(["type": "user", "message": ["role": "user", "content": content]]) { $1 }
+        }
+        // Each shape as counted in the author's recent transcripts (2026-10-09).
+        #expect(ClaudeCodeAdapter.startsTurn(user("now benchmark it")))
+        #expect(ClaudeCodeAdapter.startsTurn(user([["type": "image"], ["type": "text", "text": "[Image #1] this"]])))
+        #expect(ClaudeCodeAdapter.startsTurn(user("<command-name>/compact</command-name>")))
+        #expect(ClaudeCodeAdapter.startsTurn(user("<command-message>review</command-message>")))
+        #expect(ClaudeCodeAdapter.startsTurn(user("<task-notification><task-id>b1</task-id>")))
+        #expect(!ClaudeCodeAdapter.startsTurn(user([["type": "tool_result", "tool_use_id": "t1", "content": "ok"]])))
+        #expect(!ClaudeCodeAdapter.startsTurn(user([["type": "text", "text": "[Request interrupted by user]"]])))
+        #expect(!ClaudeCodeAdapter.startsTurn(user("<local-command-stdout>Set model</local-command-stdout>")))
+        #expect(!ClaudeCodeAdapter.startsTurn(user("<bash-stdout>ok</bash-stdout>")))
+        #expect(!ClaudeCodeAdapter.startsTurn(user("Caveat: the messages below…", ["isMeta": true])))
+        #expect(!ClaudeCodeAdapter.startsTurn(user("This session is being continued…", ["isCompactSummary": true])))
+        #expect(!ClaudeCodeAdapter.startsTurn(user("subagent's task", ["isSidechain": true])))
     }
 
     @Test func `a recap reads the same with or without the hint`() {
@@ -205,6 +240,39 @@ struct ClaudeCodeTranscriptTests {
         #expect(tail.contextTokens == 985_010)
         // The /compact earlier in the conversation, with its sizes.
         #expect(try tail.lastCompaction == CompactedContext(date: date("2026-10-06T15:42:47.166Z"), tokensBefore: 5010, tokensAfter: 1165))
+    }
+
+    @Test func `a stand-in reply saw no context, and an error from an earlier turn is no message`() throws {
+        // The card on 2026-10-09: the Mac slept mid-reply, and the next prompt began a compaction.
+        // It showed "0" for the conversation's size and the five-hour-old error under *working*.
+        let tail = try compactionTail("transcript-asleep")
+        #expect(tail.contextTokens == 968_100 + 700 + 2 + 113)
+        #expect(tail.lastMessage == "The receipt now has a torn edge.")
+        #expect(tail.newTurnSinceMessage == true)
+        #expect(tail.summary == "The receipt popup is nearly done. Next, check the torn edge in dark mode.")
+    }
+
+    @Test func `an error that ended the newest turn is its message`() throws {
+        let error: [String: Any] = [
+            "type": "assistant", "isApiErrorMessage": true,
+            "message": [
+                "role": "assistant", "model": "<synthetic>",
+                "content": [["type": "text", "text": "API Error: Your computer went to sleep mid-response."]],
+                "usage": ["input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0],
+            ],
+        ]
+        let tail = try reading([prompt, reply, error])
+        #expect(tail.lastMessage == "API Error: Your computer went to sleep mid-response.")
+        #expect(tail.newTurnSinceMessage == false)
+        #expect(tail.contextTokens == nil)
+    }
+
+    @Test func `"No response requested." is never the message`() throws {
+        let standIn: [String: Any] = [
+            "type": "assistant",
+            "message": ["role": "assistant", "model": "<synthetic>", "content": [["type": "text", "text": "No response requested."]]],
+        ]
+        #expect(try reading([prompt, reply, standIn]).lastMessage == "Picked the first one.")
     }
 
     @Test func `a compaction that finished is recorded, and its summary is no message`() throws {

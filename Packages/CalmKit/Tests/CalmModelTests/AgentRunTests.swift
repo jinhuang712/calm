@@ -49,6 +49,22 @@ struct AgentRunTests {
         #expect(workspace.session(id)?.recap == "Allow Bash: swift test")
     }
 
+    @Test func `a turn that hasn't said anything shows where things stood, not the last turn's words`() {
+        var (workspace, id) = workspaceWithSession()
+        workspace.startAgentRun(id, AgentRun(kind: .claudeCode, processID: 1))
+        let older = TranscriptTail(
+            lastMessage: "API Error: Your computer went to sleep mid-response.",
+            summary: "The receipt popup is nearly done.",
+            newTurnSinceMessage: true,
+        )
+        workspace.updateTranscriptTail(id, older)
+        workspace.report(id, StatusReport(state: .working, source: .hook), focusedSessionID: nil)
+        #expect(workspace.session(id)?.recap == "The receipt popup is nearly done.")
+        // Once the turn says something, that's what the card shows.
+        workspace.updateTranscriptTail(id, TranscriptTail(lastMessage: "Checking dark mode.", newTurnSinceMessage: false))
+        #expect(workspace.session(id)?.recap == "Checking dark mode.")
+    }
+
     @Test func `an idle card with no summary keeps the latest message`() {
         var (workspace, id) = workspaceWithSession()
         workspace.startAgentRun(id, AgentRun(kind: .codex, processID: 1))

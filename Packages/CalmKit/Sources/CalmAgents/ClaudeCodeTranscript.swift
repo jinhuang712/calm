@@ -22,6 +22,14 @@ import Foundation
 ///   `compactMetadata` holds `trigger`, `preTokens`, `postTokens` and `durationMs`, then a `user`
 ///   record with `isCompactSummary`. One cancelled with Esc leaves only a `user` record. Every
 ///   record carries an ISO 8601 `timestamp`.
+/// - Stand-ins (seen 2026-10-09, 20 in the author's recent history): `assistant` records Claude
+///   Code writes itself, `message.model` "<synthetic>" with every usage count 0. Either an error
+///   (`isApiErrorMessage`, "API Error: Your computer went to sleep mid-response…") or "No
+///   response requested.".
+/// - A turn starts with a `user` record holding what the person typed (text, pictures, a slash
+///   command as `<command-name>`) or `<task-notification>` (a background task woke Claude). The
+///   other `user` records are tool results, interruptions, compaction summaries and Claude
+///   Code's own notes (`isMeta`, a local command's output).
 extension ClaudeCodeAdapter: TranscriptReading {
     public func transcript(forProcess processID: Int32, home: URL) -> (agentSessionID: String, url: URL)? {
         let claude = home.appending(path: ".claude")
@@ -52,6 +60,7 @@ extension ClaudeCodeAdapter: TranscriptReading {
         var customTitle: String?
         var aiTitle: String?
         var sawConversation = false
+        var sawTurnStart = false
         var sawRecord = false
         for record in JSONLTail(transcript) { // newest first
             sawRecord = true
@@ -66,11 +75,15 @@ extension ClaudeCodeAdapter: TranscriptReading {
             case "ai-title" where aiTitle == nil:
                 aiTitle = record["aiTitle"] as? String
             case "assistant":
-                if tail.lastMessage == nil {
+                // A stand-in is no reply: it saw no context, and only an error that ended the
+                // newest turn is news.
+                let standIn = Self.isStandIn(record)
+                if tail.lastMessage == nil, !standIn || (record["isApiErrorMessage"] as? Bool == true && !sawTurnStart) {
                     // Lines kept apart, so the cleaning can tell a heading from what follows it.
                     tail.lastMessage = MessageText.recap(Self.texts(of: record).joined(separator: "\n"))
+                    tail.newTurnSinceMessage = sawTurnStart
                 }
-                if tail.contextTokens == nil, record["isSidechain"] as? Bool != true {
+                if tail.contextTokens == nil, record["isSidechain"] as? Bool != true, !standIn {
                     tail.contextTokens = Self.contextTokens(of: record)
                 }
                 tail.newestMessageAt = tail.newestMessageAt ?? Self.date(of: record)
@@ -85,6 +98,7 @@ extension ClaudeCodeAdapter: TranscriptReading {
                     tail.interrupted = Self.texts(of: record).contains { $0.hasPrefix("[Request interrupted") }
                 }
                 sawConversation = true
+                sawTurnStart = sawTurnStart || Self.startsTurn(record)
             case "system" where record["subtype"] as? String == "compact_boundary":
                 if tail.lastCompaction == nil, let date = Self.date(of: record) {
                     let metadata = record["compactMetadata"] as? [String: Any]
@@ -93,8 +107,9 @@ extension ClaudeCodeAdapter: TranscriptReading {
                     )
                 }
             case "system" where record["subtype"] as? String == "away_summary":
-                // Only a recap newer than every message: a turn after it has moved on.
-                if !sawConversation, tail.summary == nil {
+                // Only a recap newer than the latest message: a reply after it has moved on. A
+                // prompt after it hasn't yet, so a turn that hasn't said anything keeps it.
+                if tail.lastMessage == nil, tail.summary == nil {
                     tail.summary = Self.summary(record["content"] as? String)
                 }
             default:
@@ -144,11 +159,46 @@ extension ClaudeCodeAdapter: TranscriptReading {
     }
 
     /// The context the reply saw: everything sent to the model, cached or not, and what it wrote.
+    /// A reply that counted nothing saw nothing anyone could measure.
     static func contextTokens(of record: [String: Any]) -> Int? {
         guard let usage = (record["message"] as? [String: Any])?["usage"] as? [String: Any] else { return nil }
-        let counts = ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"]
+        let total = ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"]
             .compactMap { usage[$0] as? Int }
-        return counts.isEmpty ? nil : counts.reduce(0, +)
+            .reduce(0, +)
+        return total > 0 ? total : nil
+    }
+
+    /// An `assistant` record Claude Code wrote itself, not the model.
+    static func isStandIn(_ record: [String: Any]) -> Bool {
+        (record["message"] as? [String: Any])?["model"] as? String == "<synthetic>"
+    }
+
+    /// A `user` record that starts a turn: what the person typed (text, pictures, a slash command)
+    /// or a background task waking Claude.
+    static func startsTurn(_ record: [String: Any]) -> Bool {
+        guard record["isMeta"] as? Bool != true, record["isCompactSummary"] as? Bool != true,
+              record["isSidechain"] as? Bool != true,
+              let message = record["message"] as? [String: Any]
+        else { return false }
+        if let text = message["content"] as? String {
+            return startsTurn(text)
+        }
+        let blocks = message["content"] as? [[String: Any]] ?? []
+        if blocks.contains(where: { $0["type"] as? String == "tool_result" }) {
+            return false
+        }
+        return blocks.contains { block in
+            block["type"] as? String == "image" || (block["text"] as? String).map(startsTurn) == true
+        }
+    }
+
+    /// Typed words start a turn, and of the tagged texts only a command or a task's notice: the
+    /// rest are a local command's output and Claude Code's own notes.
+    private static func startsTurn(_ text: String) -> Bool {
+        if text.hasPrefix("<") {
+            return ["<command-name>", "<command-message>", "<task-notification>"].contains { text.hasPrefix($0) }
+        }
+        return !text.hasPrefix("[Request interrupted")
     }
 
     /// A record's `timestamp`: "2026-10-06T15:42:35.880Z", sometimes without the milliseconds.

@@ -77,6 +77,10 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
     /// recap), only while nothing has been said since it was written. It's for a session you've
     /// read: what you need then is where you were, not the tail end of the last answer.
     public var summary: String?
+    /// A turn began after `lastMessage` (a prompt, a slash command, a background task waking the
+    /// agent), so that message belongs to an earlier one. Optional only so that a tail saved
+    /// before it was added still decodes.
+    public var newTurnSinceMessage: Bool?
     /// What it's doing now: the task in progress.
     public var step: String?
     public var progress: TodoProgress?
@@ -102,6 +106,7 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         title: String? = nil,
         lastMessage: String? = nil,
         summary: String? = nil,
+        newTurnSinceMessage: Bool? = nil,
         step: String? = nil,
         progress: TodoProgress? = nil,
         interrupted: Bool = false,
@@ -114,6 +119,7 @@ public struct TranscriptTail: Codable, Hashable, Sendable {
         self.title = title
         self.lastMessage = lastMessage
         self.summary = summary
+        self.newTurnSinceMessage = newTurnSinceMessage
         self.step = step
         self.progress = progress
         self.interrupted = interrupted
@@ -195,8 +201,11 @@ public extension Session {
 
     /// The recap a card and the arrival card show: what the agent asked while it waits for you;
     /// once you've read it (idle), the agent's own summary of where things stand, if it wrote one
-    /// after its last message; otherwise the latest thing it said. A `/compact` that ended as
-    /// *done* says so: the last thing the agent said came before it.
+    /// after its last message; otherwise the latest thing it said. A turn that hasn't said
+    /// anything yet is no different from idle: its latest message is the last turn's, and under
+    /// *working* it would read as this one's (an "API Error" from five hours before, seen
+    /// 2026-10-09). A `/compact` that ended as *done* says so: the last thing the agent said
+    /// came before it.
     var recap: String? {
         let tail = agent?.tail
         if state == .done, compaction?.trigger == .manual, compaction?.endedAt != nil, let message = lastReport?.message {
@@ -204,7 +213,8 @@ public extension Session {
         }
         switch state {
         case .needsYou: return lastReport?.message ?? tail?.lastMessage
-        case .idle: return tail?.summary ?? tail?.lastMessage ?? lastReport?.message
+        case .working where tail?.newTurnSinceMessage == true, .idle:
+            return tail?.summary ?? tail?.lastMessage ?? lastReport?.message
         case .working, .done, .failed: return tail?.lastMessage ?? lastReport?.message
         }
     }

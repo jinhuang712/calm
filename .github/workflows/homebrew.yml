@@ -1,0 +1,69 @@
+name: Homebrew
+
+# Points the cask in jinhuang712/homebrew-tap at a published release's disk image: its version and
+# the sha256 of the file as GitHub serves it. release.yml starts this once it has published; run
+# it by hand to do it again. The tap's own workflow then installs the cask on a clean runner.
+# It pushes with HOMEBREW_TAP_KEY, a deploy key that can write to the tap and nothing else.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The release's version, X.Y.Z
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew
+  cancel-in-progress: false
+
+jobs:
+  cask:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Disk image
+        id: dmg
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$VERSION' isn't a version like 0.1.0"
+            exit 1
+          fi
+          gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --pattern "Calm-$VERSION.dmg" --dir "$RUNNER_TEMP"
+          echo "sha256=$(sha256sum "$RUNNER_TEMP/Calm-$VERSION.dmg" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Update the cask
+        env:
+          TAP_KEY: ${{ secrets.HOMEBREW_TAP_KEY }}
+          VERSION: ${{ inputs.version }}
+          SHA256: ${{ steps.dmg.outputs.sha256 }}
+        run: |
+          key="$RUNNER_TEMP/tap-key"
+          printf '%s\n' "$TAP_KEY" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          tap="$RUNNER_TEMP/tap"
+          git clone --depth 1 git@github.com:jinhuang712/homebrew-tap.git "$tap"
+          cask="$tap/Casks/calm.rb"
+          sed -i -E "s/^  version \"[^\"]*\"$/  version \"$VERSION\"/; s/^  sha256 \"[^\"]*\"$/  sha256 \"$SHA256\"/" "$cask"
+          if ! grep -qx "  version \"$VERSION\"" "$cask" || ! grep -qx "  sha256 \"$SHA256\"" "$cask"; then
+            echo "::error::the cask's version and sha256 lines weren't where this expects them"
+            exit 1
+          fi
+          cd "$tap"
+          if git diff --quiet; then
+            # Already there; still prove the key can push, so a broken key shows now, not at the
+            # next release.
+            echo "The cask is already calm $VERSION."
+            git push --dry-run origin HEAD:main
+            exit 0
+          fi
+          git diff
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -am "calm $VERSION"
+          git push origin HEAD:main

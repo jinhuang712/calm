@@ -261,7 +261,7 @@ Find takes patterns, and in a full-screen program it can search everything the s
 
 ## Later
 
-- Release, beyond 0.1.0. 0.1.0 (2026-10-08) is a public preview with a disk image, signed ad hoc (CHANGELOG.md); a pushed tag builds and publishes a release (DESIGNS.md → Distribution). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle updates and a Homebrew cask. The licenses of what the engine builds in and the pi mark were settled before the disk image (NOTICE; DESIGNS.md → Licensing and references).
+- Release, beyond 0.1.0. 0.1.0 (2026-10-08) is a public preview with a disk image, signed ad hoc (CHANGELOG.md); a pushed tag builds and publishes a release (DESIGNS.md → Distribution). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle updates and a cask in Homebrew's own list, which takes only apps that pass Gatekeeper (Calm's own tap has the cask since 2026-10-08). The licenses of what the engine builds in and the pi mark were settled before the disk image (NOTICE; DESIGNS.md → Licensing and references).
 - Copy an attach command, to reach a session over SSH from another device.
 - Spotlight integration (semantic index on macOS 27+).
 - Scrollback search across open sessions; paste history.

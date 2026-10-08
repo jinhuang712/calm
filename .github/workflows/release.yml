@@ -4,9 +4,10 @@ name: Release
 # that commit the way the README tells a new user to, with nothing cached: Ghostty's engine from
 # source, its downloads from their hosts. It runs the tests, builds the Release app install.sh
 # installs, puts that app on a disk image and checks it as a download, and only then publishes
-# the version's CHANGELOG section as the release's notes, with the disk image attached. The app
-# is signed ad hoc, as every build here is: Developer ID signing waits for an Apple Developer
-# account (ROADMAP.md → Later), and README → Install says how to open it until then.
+# the version's CHANGELOG section as the release's notes, with the disk image attached, and has
+# homebrew.yml point the Homebrew cask at it. The app is signed ad hoc, as every build here is:
+# Developer ID signing waits for an Apple Developer account (ROADMAP.md → Later), and
+# README → Install says how to open it until then.
 # Run it by hand (workflow_dispatch) for a dry run: everything but the publishing, with the disk
 # image kept as the run's artifact.
 
@@ -17,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # to start homebrew.yml
 
 concurrency:
   group: release-${{ github.ref }}
@@ -192,3 +194,12 @@ jobs:
           [[ "$VERSION" == 0.* ]] && prerelease=(--prerelease)
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "Calm Terminal $VERSION" \
             --notes-file "$NOTES" "${prerelease[@]}" "$DMG"
+
+      # The Homebrew cask follows the release (homebrew.yml, which a run started this way may
+      # start, unlike one a push by this token would).
+      - name: Homebrew
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh workflow run homebrew.yml --ref main -f version="$VERSION"

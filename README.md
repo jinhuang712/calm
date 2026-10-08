@@ -23,6 +23,15 @@ Exact behavior is in [FEATURES.md](FEATURES.md).
 
 Calm needs macOS 26 on Apple silicon.
 
+### Homebrew
+
+```sh
+brew install --cask jinhuang712/tap/calm
+xattr -dr com.apple.quarantine /Applications/Calm.app
+```
+
+Calm isn't signed by Apple yet, so macOS won't open it as downloaded: the `xattr` line takes the download mark off. The cask also puts the `calm` command on your `PATH`. To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → Restart Calm (your shells keep running).
+
 ### Download
 
 1. Download `Calm-<version>.dmg` from the newest release on [Releases](https://github.com/jinhuang712/calm/releases), open it, and drag Calm onto Applications.
@@ -64,7 +73,7 @@ To install, `./install.sh` builds a Release copy into `/Applications` and links 
 ## Known limits
 
 - Apple silicon and macOS 26 or later only.
-- The download isn't signed by Apple: opening it takes the `xattr` line above, and each update asks again for folder access.
+- The download isn't signed by Apple: opening it takes the `xattr` line above, from Homebrew too, and each update asks again for folder access. So Calm isn't in Homebrew's own list of casks, which takes only signed apps; it comes from its own tap.
 - Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → Themes).
 - OpenCode's plugin, which reports its state, has not had real use yet.
 - A window left in full screen came back filled but not in full screen once in six test launches; the cause isn't known.

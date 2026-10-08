@@ -80,7 +80,7 @@ struct SessionCard: View {
 
     /// What goes under the title, by the saved state, so a card being restored keeps its size.
     private var layout: SessionCardLayout {
-        SessionCardLayout(size: size, state: session.state)
+        SessionCardLayout(size: size, state: session.state, shellsRunning: session.shellsStillRunning > 0)
     }
 
     @ViewBuilder
@@ -118,8 +118,8 @@ struct SessionCard: View {
 
     @ViewBuilder
     private func recapText(lines: Int) -> some View {
-        if let message = session.recap {
-            Text(message)
+        if let message = recapLine {
+            message
                 .calmFont(size: 13)
                 .lineSpacing(1.5)
                 .foregroundStyle(isConfirming ? style.tertiary : style.secondary)
@@ -129,9 +129,27 @@ struct SessionCard: View {
         }
     }
 
+    /// The recap, after "2 shells running ·" on an idle card whose agent's last turn left shells
+    /// running: one that ends wakes the agent, so the card isn't as finished as it looks. A done
+    /// card says it on its state line instead.
+    private var recapLine: Text? {
+        let shells = session.state == .idle ? Self.shellsLine(session.shellsStillRunning) : nil
+        switch (shells, session.recap) {
+        case (nil, nil):
+            return nil
+        case let (nil, recap?):
+            return Text(recap)
+        case let (shells?, nil):
+            return Text(shells).foregroundStyle(style.tertiary)
+        case let (shells?, recap?):
+            return Text("\(Text("\(shells) ·").foregroundStyle(style.tertiary)) \(Text(recap))")
+        }
+    }
+
     /// Compact's line: the state, then what the agent last said. While it works, "Working · step"
     /// or "Working · the recap", with the todo count at the end; a card that waits for a look
-    /// gives its question or answer a second line.
+    /// gives its question or answer a second line. An idle card has the line only while its
+    /// agent's shells run: "2 shells running · the recap".
     @ViewBuilder
     private func mergedLine(lines: Int) -> some View {
         if isConfirming {
@@ -144,6 +162,14 @@ struct SessionCard: View {
                         .foregroundStyle(style.tertiary)
                         .lineLimit(lines)
                 }
+            }
+        } else if session.state == .idle {
+            // Only while the agent's shells run (`SessionCardLayout`): no state to say, just them.
+            if let line = recapLine {
+                line
+                    .calmFont(size: 13)
+                    .foregroundStyle(style.secondary)
+                    .lineLimit(1)
             }
         } else if session.state == .working {
             HStack(spacing: 5.scaled) {
@@ -249,11 +275,12 @@ struct SessionCard: View {
     }
 
     /// What a smaller card leaves out: the whole recap and the worktree, and at Minimal, that the
-    /// agent is compacting (there's no line to say it).
+    /// agent is compacting or left shells running (there's no line to say it).
     private var tooltip: String {
         guard size != .full else { return "" }
         let compacting = size == .minimal && session.isCompacting ? workingLine : nil
-        return [compacting, session.recap, session.worktreeName.map { "Worktree: \($0)" }]
+        let shells = size == .minimal ? Self.shellsLine(session.shellsStillRunning) : nil
+        return [compacting, shells, session.recap, session.worktreeName.map { "Worktree: \($0)" }]
             .compactMap(\.self)
             .joined(separator: "\n")
     }

@@ -109,6 +109,7 @@ final class SidebarCardFit {
         SessionCardLayout.nominalHeight(
             size: size, state: session.state, hasRecap: session.recap != nil,
             hasProgress: (session.agent?.tail?.progress?.total ?? 0) > 0, hasWorktree: session.worktreeName != nil,
+            shellsRunning: session.shellsStillRunning > 0,
         )
     }
 
@@ -126,6 +127,8 @@ final class SidebarCardFit {
             hasher.combine(card.recap != nil)
             hasher.combine(card.agent?.tail?.progress?.total ?? 0)
             hasher.combine(card.worktreeName)
+            // An idle card with shells running has a line more at Compact.
+            hasher.combine(card.shellsStillRunning > 0)
         }
         hasher.combine(groups)
         hasher.combine(open)

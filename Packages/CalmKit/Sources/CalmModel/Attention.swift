@@ -15,7 +15,7 @@ public struct StatusReport: Codable, Hashable, Sendable {
     public var source: Source
     public var date: Date
     /// Shells the agent's turn left running (a *done* report only). A snapshot from one report,
-    /// so it isn't saved: after a restart it may no longer be true, and *done* alone still is.
+    /// so it isn't saved: after a restart it may no longer be true, and *done* or idle alone still is.
     public var backgroundShells = 0
     /// What the report says of a compaction (Claude Code's PreCompact and PostCompact). Not saved,
     /// as the compaction itself isn't.
@@ -44,10 +44,12 @@ public struct StatusReport: Codable, Hashable, Sendable {
 }
 
 public extension Session {
-    /// Shells the agent's turn left running, while the card says *done* ("Done · 2 shells
-    /// running"); none once it has moved on to another state or been settled by a visit.
+    /// Shells the agent's last turn left running, on the card while it says *done* ("Done · 2
+    /// shells running") and after a visit settles it ("2 shells running · …"): a shell that ends
+    /// wakes Claude, whose next turn reports the count again. None once the agent works, asks,
+    /// fails or exits.
     var shellsStillRunning: Int {
-        guard state == .done, lastReport?.source == .hook else { return 0 }
+        guard state == .done || state == .idle, lastReport?.source == .hook else { return 0 }
         return lastReport?.backgroundShells ?? 0
     }
 }

@@ -34,6 +34,19 @@ struct SessionCardFitTests {
         #expect(height(.compact, .working, worktree: true) == 66)
     }
 
+    @Test func `an idle card whose agent left shells running is guessed with its line`() {
+        func height(_ size: Size, recap: Bool) -> Double {
+            SessionCardLayout.nominalHeight(
+                size: size, state: .idle, hasRecap: recap, hasProgress: false, hasWorktree: false, shellsRunning: true,
+            )
+        }
+        #expect(height(.compact, recap: true) == 66)
+        #expect(height(.full, recap: true) == 65)
+        // The shells alone still make Full's line.
+        #expect(height(.full, recap: false) == 65)
+        #expect(height(.minimal, recap: true) == 40)
+    }
+
     @Test func `too many sessions step the cards down one size at a time`() {
         var fit = SessionCardFit(size: .full)
         #expect(step(&fit, 1200, in: 700, contents: 1, at: 0))

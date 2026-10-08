@@ -138,7 +138,7 @@ struct AttentionTests {
         }
     }
 
-    @Test func `shells a turn leaves running show while it is done, and no longer`() {
+    @Test func `shells a turn leaves running show while it is done and after it settles`() {
         let fixture = Fixture()
         var workspace = fixture.workspace
         let (watched, other) = (fixture.watched, fixture.other)
@@ -154,10 +154,29 @@ struct AttentionTests {
         #expect(workspace.session(other)?.shellsStillRunning == 1)
         #expect(workspace.session(other)?.stateSince == start)
 
-        // Leaving the card settles it to idle, and the footnote goes with the state.
+        // Leaving the card settles it to idle, and the shells still run: one that ends wakes the
+        // agent, so the count stays until the next report.
         workspace.select(other)
         workspace.select(watched)
         #expect(workspace.session(other)?.state == .idle)
+        #expect(workspace.session(other)?.shellsStillRunning == 1)
+
+        // The turn a finished shell starts reports again, here with none left.
+        workspace.report(other, hook(.working), focusedSessionID: watched)
+        #expect(workspace.session(other)?.shellsStillRunning == 0)
+        workspace.report(other, done(0, at: start + 120), focusedSessionID: watched)
+        workspace.settle(other)
+        #expect(workspace.session(other)?.shellsStillRunning == 0)
+    }
+
+    @Test func `an idle card loses its shells when the agent exits`() {
+        let fixture = Fixture()
+        var workspace = fixture.workspace
+        let (watched, other) = (fixture.watched, fixture.other)
+        workspace.report(other, StatusReport(state: .done, source: .hook, backgroundShells: 2), focusedSessionID: watched)
+        workspace.settle(other)
+        #expect(workspace.session(other)?.shellsStillRunning == 2)
+        workspace.endAgentRun(other)
         #expect(workspace.session(other)?.shellsStillRunning == 0)
     }
 

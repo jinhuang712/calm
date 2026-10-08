@@ -2,7 +2,8 @@
 /// Full is every line; Compact puts the state and the recap on one line; Minimal is the title
 /// alone. At the smaller sizes a card that waits for a look (needs you, done, failed) grows a
 /// line, so what it asks or did is never cut away, and settles once it's answered or seen.
-/// The saved state decides, so a card being restored keeps the size it will have.
+/// The saved state decides, so a card being restored keeps the size it will have. An idle
+/// Compact card whose agent left shells running keeps a line to say so.
 public enum SessionCardLayout: Equatable, Sendable {
     /// The title line alone.
     case titleOnly
@@ -15,12 +16,14 @@ public enum SessionCardLayout: Equatable, Sendable {
     /// todo count sits at the end of a one-line run.
     case merged(lines: Int)
 
-    public init(size: CalmSettings.SessionCardSize, state: SessionState) {
+    /// `shellsRunning`: the agent's last turn left shells running (`Session.shellsStillRunning`).
+    /// Full's idle card says so at the start of its recap line; Minimal leaves it to the tooltip.
+    public init(size: CalmSettings.SessionCardSize, state: SessionState, shellsRunning: Bool = false) {
         let waits = Self.waitsForALook(state)
         switch (size, state) {
         case (.full, .idle): self = .recap(lines: 1)
         case (.full, _): self = .stacked
-        case (.compact, .idle): self = .titleOnly
+        case (.compact, .idle): self = shellsRunning ? .merged(lines: 1) : .titleOnly
         case (.compact, _): self = .merged(lines: waits ? 2 : 1)
         case (.minimal, _): self = waits ? .recap(lines: 1) : .titleOnly
         }

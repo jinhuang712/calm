@@ -14,6 +14,15 @@ struct SessionCardLayoutTests {
         #expect(SessionCardLayout(size: .compact, state: .working) == .merged(lines: 1))
     }
 
+    @Test func `an idle compact card keeps a line while its agent's shells run`() {
+        #expect(SessionCardLayout(size: .compact, state: .idle, shellsRunning: true) == .merged(lines: 1))
+        // Full's idle card says it on the recap line it already has; Minimal in the tooltip.
+        #expect(SessionCardLayout(size: .full, state: .idle, shellsRunning: true) == .recap(lines: 1))
+        #expect(SessionCardLayout(size: .minimal, state: .idle, shellsRunning: true) == .titleOnly)
+        // A done card already says it on its state line.
+        #expect(SessionCardLayout(size: .compact, state: .done, shellsRunning: true) == .merged(lines: 2))
+    }
+
     @Test func `minimal is the title alone unless the card waits for a look`() {
         #expect(SessionCardLayout(size: .minimal, state: .idle) == .titleOnly)
         #expect(SessionCardLayout(size: .minimal, state: .working) == .titleOnly)

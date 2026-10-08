@@ -149,17 +149,20 @@ public extension SessionCardLayout {
     /// sidebar would rather stay a size too small than scroll.
     static func nominalHeight(
         size: CalmSettings.SessionCardSize, state: SessionState, hasRecap: Bool, hasProgress: Bool, hasWorktree: Bool,
+        shellsRunning: Bool = false,
     ) -> Double {
         let title = 26.0
         let line = 17.0
         let twoLines = 33.0
         let worktree = size == .full && hasWorktree ? 6 + 16.0 : 0
-        switch SessionCardLayout(size: size, state: state) {
+        switch SessionCardLayout(size: size, state: state, shellsRunning: shellsRunning) {
         case .titleOnly:
             return 14 + title
         case let .recap(lines):
             let gap = size == .full ? 6.0 : 4
-            return 16 + title + (hasRecap ? gap + (lines > 1 ? twoLines : line) : 0) + worktree
+            // An idle card's line also holds the shells, so it shows with no recap.
+            let hasLine = hasRecap || (state == .idle && shellsRunning)
+            return 16 + title + (hasLine ? gap + (lines > 1 ? twoLines : line) : 0) + worktree
         case .stacked:
             return 24 + title + 6 + 16 + (hasProgress ? 6 + 16 : 0) + (hasRecap ? 6 + twoLines : 0) + worktree
         case let .merged(lines):

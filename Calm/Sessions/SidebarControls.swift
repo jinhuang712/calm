@@ -1,3 +1,4 @@
+import CalmModel
 import SwiftUI
 
 // The sidebar's small controls: the footer's rows and handle, and a group header's hover glyphs.
@@ -52,13 +53,24 @@ struct FooterHandle: View {
 /// One of a group header's hover controls: a small glyph that lights up under the pointer.
 struct GroupControl: View {
     let style: SidebarStyle
-    let systemImage: String
+    let glyph: GroupControlLabel.Glyph
     let help: String
     let action: () -> Void
 
+    init(style: SidebarStyle, glyph: GroupControlLabel.Glyph, help: String, action: @escaping () -> Void) {
+        self.style = style
+        self.glyph = glyph
+        self.help = help
+        self.action = action
+    }
+
+    init(style: SidebarStyle, systemImage: String, help: String, action: @escaping () -> Void) {
+        self.init(style: style, glyph: .symbol(systemImage), help: help, action: action)
+    }
+
     var body: some View {
         Button(action: action) {
-            GroupControlLabel(style: style, systemImage: systemImage)
+            GroupControlLabel(style: style, glyph: glyph)
         }
         .buttonStyle(.plain)
         .help(help)
@@ -67,18 +79,48 @@ struct GroupControl: View {
 }
 
 struct GroupControlLabel: View {
+    /// What the control shows: a symbol, an agent's own mark (a session running it), or `>_` (a
+    /// plain shell), so the two ways to start in a group say which is which.
+    enum Glyph {
+        case symbol(String)
+        case agent(AgentKind)
+        case shell
+    }
+
     let style: SidebarStyle
-    let systemImage: String
+    let glyph: Glyph
     @State private var hovering = false
 
+    init(style: SidebarStyle, glyph: Glyph) {
+        self.style = style
+        self.glyph = glyph
+    }
+
+    init(style: SidebarStyle, systemImage: String) {
+        self.init(style: style, glyph: .symbol(systemImage))
+    }
+
     var body: some View {
-        Image(systemName: systemImage)
-            .calmFont(size: 11, weight: .semibold)
+        content
             .foregroundStyle(hovering ? style.primary : style.tertiary)
             .frame(width: 22.scaled, height: 22.scaled)
             .background(RoundedRectangle(cornerRadius: 6.scaled, style: .continuous).fill(hovering ? style.selection : .clear))
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch glyph {
+        case let .symbol(name):
+            Image(systemName: name)
+                .calmFont(size: 11, weight: .semibold)
+        case let .agent(kind):
+            AgentLogo(agent: kind, size: 16, style: style)
+        case .shell:
+            Text(">_")
+                .calmFont(size: 10.5, weight: .semibold, design: .monospaced)
+        }
     }
 }
 

@@ -69,6 +69,15 @@ enum SearchService {
         return index.search(query, limit: resultLimit, currentProject: currentProject)
     }
 
+    /// A project's past sessions, for its home: the ones that ran in its folder, newest first.
+    static func recent(inside folder: String, limit: Int, refreshing: Bool = true) -> [SearchResult] {
+        guard let index else { return [] }
+        if refreshing {
+            _ = index.update(home: home)
+        }
+        return index.recent(inside: folder, limit: limit)
+    }
+
     /// ⌘K's answer: every matching session with the messages behind its matches, each with the
     /// group it's shown under; with nothing typed, the most recent, for the switcher to pick from.
     /// A word naming a group counts as found in all of it ("calm scroll").

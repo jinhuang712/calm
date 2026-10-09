@@ -333,10 +333,9 @@ final class ControlServer {
             }
             return .success()
         }
+        // A folder: the project, and its home, as ⌘O shows it; what to start there is the user's.
         let project = SessionManager.shared.addProject(path: standardized)
-        let controller = TerminalWindowManager.shared.openMainWindow()
-        let session = SessionManager.shared.newSession(in: standardized, placement: .project(project.id))
-        controller.select(session.id)
+        TerminalWindowManager.shared.openMainWindow().showProjectHome(project.id)
         return .success()
     }
 }

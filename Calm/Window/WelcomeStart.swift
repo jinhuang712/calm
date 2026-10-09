@@ -89,21 +89,21 @@ extension HintButton where MenuContent == EmptyView {
     }
 }
 
-/// One of the three ways to start on the first-run page, drawn like the list rows and the
-/// sidebar's footer. The first is the selected row: the one to press.
+/// One of the ways to start on the first-run page, drawn like the list rows and the sidebar's
+/// footer. None is drawn as chosen: a filled first row read as picked for the user, though no key
+/// pressed it. The first is first; the pointer lights the one it's on.
 struct WelcomeActionRow: View {
     let title: String
     let symbol: String
     /// ⌘N's row shows the agent's mark instead of a symbol, and leaves room for its ⌄.
     var agent: AgentKind?
     let keys: String
-    let isMain: Bool
     let style: SidebarStyle
     let action: () -> Void
     @State private var hovering = false
 
     private var fill: Color {
-        isMain ? (hovering ? style.primary.opacity(0.11) : style.selection) : (hovering ? style.primary.opacity(0.06) : .clear)
+        hovering ? style.primary.opacity(0.06) : .clear
     }
 
     var body: some View {

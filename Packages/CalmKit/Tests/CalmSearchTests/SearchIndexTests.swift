@@ -274,6 +274,21 @@ struct SearchIndexTests {
         #expect(SearchQuery.snippet("Needle first", around: "needle") == "\u{2}Needle\u{3} first")
     }
 
+    @Test func `a folder's recent sessions are the ones inside it, newest first`() throws {
+        let fixture = Fixture()
+        let now = Date()
+        try fixture.write(
+            ".claude/projects/-a/old.jsonl", [Self.claudeUser("old", cwd: "/work/app")], modified: now.addingTimeInterval(-86400),
+        )
+        try fixture.write(".claude/projects/-b/new.jsonl", [Self.claudeUser("new", cwd: "/work/app/web")], modified: now)
+        try fixture.write(".claude/projects/-c/other.jsonl", [Self.claudeUser("other", cwd: "/work/application")], modified: now)
+        fixture.index.update(home: fixture.home)
+        // A folder whose name only starts the same isn't inside it.
+        #expect(fixture.index.recent(inside: "/work/app").map(\.directory) == ["/work/app/web", "/work/app"])
+        #expect(fixture.index.recent(inside: "/work/app", limit: 1).map(\.directory) == ["/work/app/web"])
+        #expect(fixture.index.recent(inside: "/elsewhere").isEmpty)
+    }
+
     @Test func `recency, titles and the current project lift results`() throws {
         let fixture = Fixture()
         let now = Date()

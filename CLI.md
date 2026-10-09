@@ -59,7 +59,7 @@ Opens Calm: starts it if it isn't running, and brings its window to the front. I
 
 Three branches, one for each thing you open. `calm open` alone, or with a path and no branch, prints the three and exits 64.
 
-*Replaces:* `calm open <folder|file>`, which guessed from the path: a folder became a project with a new session in it, a file opened in the viewer.
+*Replaces:* `calm open <folder|file>`, which guesses from the path: a folder becomes a project and shows its home (until 2026-10-09, with a new session in it), a file opens in the viewer.
 
 #### `calm open file <path>[:line]`
 
@@ -77,8 +77,7 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 #### `calm open project [folder] [--new-session]`
 
 - Makes the folder a project (the current folder if none is given), the same as ⌘O: it stays in the sidebar with its mark, even with no sessions, until you remove it.
-- A new project opens with one session in it, and takes you there.
-- A folder that is already a project takes you to its most recent session, opening one only if it has none, so running it twice doesn't pile up shells. `--new-session` opens a new session in it instead.
+- Shows the project's home, as ⌘O does, and starts nothing, a folder that is already a project included, so running it twice doesn't pile up shells. `--new-session` opens a new session in it instead.
 - A folder inside another project becomes a project of its own, as with ⌘O.
 - Fails for a missing folder or a file.
 

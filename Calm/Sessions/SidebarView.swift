@@ -141,7 +141,6 @@ struct SidebarView: View {
     @State private var draftName = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var hoveredSessionID: Session.ID?
-    @State private var hoveredGroupID: Project.ID?
     @State private var hoveringFooter = false
     /// What the footer's handle chose, until the saved setting catches up (or forever in a peek,
     /// which isn't rebuilt when the setting is saved).
@@ -243,58 +242,13 @@ struct SidebarView: View {
     private func projectSection(_ project: Project) -> some View {
         let sessions = manager.workspace.sessions(in: project.id)
         let summary = GroupSummary(sessions.map(\.state))
-        let tinted = project.isCollapsed && summary.needsYou
         return VStack(alignment: .leading, spacing: 6.scaled) {
-            Button {
-                manager.toggleCollapsed(project.id)
-            } label: {
-                HStack(spacing: 8.scaled) {
-                    Image(systemName: "chevron.down")
-                        .calmFont(size: 9, weight: .semibold)
-                        .rotationEffect(.degrees(project.isCollapsed ? -90 : 0))
-                        .frame(width: 10.scaled)
-                    GroupMark(project: project, style: style) { manager.shuffleMark(project.id) }
-                    VStack(alignment: .leading, spacing: 1.scaled) {
-                        groupName(project)
-                        if let location = project.location() {
-                            // Where the folder is, so two groups with the same name can be told
-                            // apart. Cut at the front: the folders nearest it say the most.
-                            Text(location)
-                                .calmFont(size: 11)
-                                .foregroundStyle(style.tertiary)
-                                .lineLimit(1)
-                                .truncationMode(.head)
-                        }
-                    }
-                    Spacer(minLength: 4)
-                    if hoveredGroupID == project.id {
-                        // Room for the hover controls laid over this end of the header.
-                        Color.clear.frame(width: groupControlsWidth(project), height: 1)
-                    } else if project.isCollapsed {
-                        GroupSummaryView(summary: summary, style: style)
-                    }
-                }
-                .foregroundStyle(style.tertiary)
-                .padding(.horizontal, 8.scaled)
-                .padding(.vertical, project.location() == nil ? 0 : 3.scaled)
-                .frame(minHeight: 26.scaled)
-                .background(
-                    // A shell row's *needs you* tint, so folding a group never hides one.
-                    RoundedRectangle(cornerRadius: 8.scaled, style: .continuous)
-                        .fill(tinted ? style.attention.opacity(0.14) : .clear)
-                        .animation(.easeInOut(duration: 0.25), value: tinted),
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(groupHelp(project, summary))
-            .overlay(alignment: .trailing) {
-                if hoveredGroupID == project.id {
-                    groupControls(project).padding(.trailing, 4.scaled)
-                }
-            }
-            .onHover { hoveredGroupID = $0 ? project.id : (hoveredGroupID == project.id ? nil : hoveredGroupID) }
-            .contextMenu { groupMenu(project) }
+            SidebarGroupHeader(
+                project: project, summary: summary, isHome: editing.homeProjectID == project.id, style: style,
+                agent: startAgents.chosen, actions: actions,
+                toggleCollapsed: { manager.toggleCollapsed(project.id) },
+                shuffleMark: { manager.shuffleMark(project.id) },
+            )
 
             if !project.isCollapsed {
                 ForEach(sessions) { session in
@@ -307,75 +261,6 @@ struct SidebarView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func groupMenu(_ project: Project) -> some View {
-        switch project.kind {
-        case .scratch:
-            Button("New Scratch Session") { actions.newScratchSession() }
-        case .project:
-            Button("New Session Here") { actions.newSessionIn(project) }
-        case .directory:
-            Button("Make Project") { actions.makeProject(project.id) }
-            Button("New Session Here") { actions.newSessionIn(project) }
-        }
-        Button(project.isCollapsed ? "Expand" : "Collapse") { manager.toggleCollapsed(project.id) }
-        if project.kind == .project {
-            Divider()
-            // Only the grouping goes: sessions stay open and files stay put, so no confirmation.
-            Button("Remove Project") { actions.removeProject(project.id) }
-        }
-    }
-
-    /// A group's own actions, shown on hover in the place of its summary (UIUX.md → Layout):
-    /// + starts a session there; ⋯ holds what changes the group itself, one step away.
-    private func groupControls(_ project: Project) -> some View {
-        HStack(spacing: 2.scaled) {
-            GroupControl(style: style, systemImage: "plus", help: project.kind == .scratch ? "New Scratch Session" : "New Session Here") {
-                if project.kind == .scratch {
-                    actions.newScratchSession()
-                } else {
-                    actions.newSessionIn(project)
-                }
-            }
-            if project.kind != .scratch {
-                Menu {
-                    switch project.kind {
-                    case .directory: Button("Make Project") { actions.makeProject(project.id) }
-                    case .project: Button("Remove Project") { actions.removeProject(project.id) }
-                    case .scratch: EmptyView()
-                    }
-                } label: {
-                    GroupControlLabel(style: style, systemImage: "ellipsis")
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help(project.kind == .project ? "Remove Project" : "Make Project")
-            }
-        }
-    }
-
-    private func groupControlsWidth(_ project: Project) -> CGFloat {
-        project.kind == .scratch ? 22 : 46
-    }
-
-    @ViewBuilder
-    private func groupName(_ project: Project) -> some View {
-        if project.kind == .directory {
-            // A folder's own name, as it is on disk.
-            Text(project.name)
-                .calmFont(size: 13.5, weight: .medium)
-                .foregroundStyle(style.secondary)
-                .lineLimit(1)
-        } else {
-            Text(project.name.uppercased())
-                .calmFont(size: 12, weight: .semibold)
-                .tracking(0.7)
-                .lineLimit(1)
         }
     }
 
@@ -426,14 +311,6 @@ struct SidebarView: View {
                 inView: manager.workspace.sessionsInView.contains(session.id),
             )
         }
-    }
-
-    /// The folder, and for a folded group its line in words, since hovering swaps the marks for
-    /// the group's controls. A scratch group's folder is Calm's business; the others show theirs.
-    private func groupHelp(_ project: Project, _ summary: GroupSummary) -> String {
-        [project.kind == .scratch ? nil : project.path, project.isCollapsed ? summary.words : nil]
-            .compactMap(\.self)
-            .joined(separator: "\n")
     }
 
     /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.

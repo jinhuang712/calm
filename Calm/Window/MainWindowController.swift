@@ -33,6 +33,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     let sidebarEditing = SidebarEditing()
     lazy var welcomePage = WelcomePage(container: container)
     lazy var noSessionPage = NoSessionPage(mainArea: mainArea)
+    lazy var projectHomePage = ProjectHomePage(mainArea: mainArea)
     lazy var settingsPage = SettingsPage(container: container)
     /// ⌘F's field in the title strip and the pane it searches (MainWindowController+Find).
     let find = FindModel()
@@ -158,6 +159,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     /// Shows the selected layout's workspace, building its panes on first use, and hides the rest.
     func showSelectedLayout(animated: Bool) {
         closePrompt.dismiss()
+        // Going to a session (a click, a new one, ⌘1…9) leaves a project's home, and so does the
+        // project going.
+        if manager.workspace.selectedLayout != nil || (homeProjectID != nil && homeProject == nil) {
+            sidebarEditing.homeProjectID = nil
+        }
         updatePages()
         // A new, reopened or closed-into session isn't the one a file was opened over.
         closeViewer(unlessOver: manager.workspace.selectedLayout?.focusedSessionID)
@@ -189,7 +195,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         workspaces.values.forEach { $0.isHidden = true }
         restorePaneVisibility()
         if filesColumn.isShown {
-            filesColumn.model.follow(nil)
+            // A project's home is that project's: the files column shows it.
+            filesColumn.model.follow(homeProject?.path)
         }
         applyAppearance()
     }
@@ -267,6 +274,31 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         showSelectedLayout(animated: true)
     }
 
+    /// A project's home in the main area (UIUX.md → Project home): what opening a project shows,
+    /// and a click on its header. Like closing the session in front, it chooses no session; every
+    /// session keeps running.
+    func showProjectHome(_ id: Project.ID) {
+        guard manager.workspace.project(id) != nil else { return }
+        hideSettings()
+        closeViewer()
+        if find.isOpen {
+            find.close()
+        }
+        if let left = manager.workspace.selectedLayout?.focusedSessionID {
+            arrivalCard.noteLeft(left)
+        }
+        let wasShowing = projectHomePage.isShowing
+        sidebarEditing.homeProjectID = id
+        if manager.workspace.selectedLayout != nil {
+            manager.deselect()
+        }
+        showSelectedLayout(animated: true)
+        // Already up for another project: it shows this one now, and the keys stay on it.
+        if wasShowing {
+            projectHomePage.focus()
+        }
+    }
+
     /// Gives every pane of the split on screen a session of its own in the sidebar. Nothing
     /// closes: each pane keeps its shell and moves to a workspace view of its own.
     func unsplit() {
@@ -300,6 +332,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
     @discardableResult
     func newSession(inheriting pane: TerminalSurfaceView? = nil) -> Session {
+        // ⌘T and ⌘N on a project's home start in that project, as its start line says.
+        if pane == nil, focusedPane == nil, let project = homeProject {
+            return newSession(in: project)
+        }
         hideSettings()
         let source = pane ?? focusedPane
         let (placement, directory) = placementAndFolder(

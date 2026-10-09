@@ -188,10 +188,13 @@ final class WelcomeModel {
         selected = walk.first
     }
 
-    /// After the rows changed: while the user hasn't moved, the selection is the top hit;
-    /// afterwards it stays on its row for as long as that is there.
+    /// After the rows changed: while the user hasn't moved, nothing is chosen with nothing typed
+    /// (a filled first row looked chosen for them), and a search's top hit is, so ↵ opens it;
+    /// afterwards the selection stays on its row for as long as that is there.
     func sync() {
-        if !navigated || selected.map({ !walk.contains($0) }) ?? true {
+        if !navigated {
+            selected = terms.isEmpty ? nil : walk.first
+        } else if selected.map({ !walk.contains($0) }) ?? true {
             selectFirst()
         }
     }
@@ -227,7 +230,7 @@ final class WelcomeModel {
             }
         case let .project(id)?:
             if let project = projects.first(where: { $0.id == id }) {
-                actions.newSessionIn(project)
+                actions.openProject(project)
             }
         case .newProject?:
             actions.newProject()

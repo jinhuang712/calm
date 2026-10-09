@@ -514,6 +514,18 @@ public final class SearchIndex: @unchecked Sendable {
         }
     }
 
+    /// The most recent sessions that ran in `folder` or a folder inside it, newest first: a
+    /// project's home lists what was done there before.
+    public func recent(inside folder: String, limit: Int = 20) -> [SearchResult] {
+        queue.sync {
+            loadSessions().values
+                .filter { session in session.directory.map { WorkspacePath.isInside($0, folder: folder) } ?? false }
+                .sorted { $0.lastActive > $1.lastActive }
+                .prefix(limit)
+                .map { $0.result(snippet: $0.firstPrompt ?? "", score: 0) }
+        }
+    }
+
     private struct Match {
         var rank: Double
         /// The message's rowid.

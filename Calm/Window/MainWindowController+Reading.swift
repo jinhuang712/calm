@@ -5,9 +5,9 @@ import CalmModel
 extension MainWindowController {
     // MARK: Files column
 
-    /// ⌘\: the focused session's project files.
+    /// ⌘\: the focused session's project files, or with a project's home up, that project's.
     func toggleFiles() {
-        filesColumn.toggle(project: focusedProjectPath, isScratch: focusedSession?.isScratch == true, in: container) {
+        filesColumn.toggle(project: focusedProjectPath ?? homeProject?.path, isScratch: focusedSession?.isScratch == true, in: container) {
             updateMinimumSize()
         }
     }
@@ -173,14 +173,13 @@ extension MainWindowController {
             ?? NSColor(white: 0.15, alpha: 1)
         fileViewer.findColors = viewerFindColors
         let opening = FileViewer.Opening(
-            path: path, line: line, session: session?.id, projectRoot: focusedProjectPath, preferDiff: preferDiff,
+            path: path, line: line, session: session?.id, projectRoot: focusedProjectPath ?? homeProject?.path, preferDiff: preferDiff,
         )
         let shown = fileViewer.show(opening, over: mainArea, background: background, style: sidebarStyle) { [weak self] in
             guard let self else { return }
             filesColumn.model.viewedFile = nil
-            if let pane = focusedPane {
-                window?.makeFirstResponder(pane)
-            }
+            // Back to the session's pane, or to the page under the file (a project's home).
+            refocus()
         }
         if shown {
             filesColumn.model.viewedFile = path

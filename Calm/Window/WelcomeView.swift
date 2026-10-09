@@ -15,7 +15,8 @@ struct WelcomeView: View {
         let newSession: () -> Void
         let newScratchSession: () -> Void
         let newProject: () -> Void
-        let newSessionIn: (Project) -> Void
+        /// A project's row: its home, where the user starts what they want there.
+        let openProject: (Project) -> Void
         let open: (SearchPanelModel.Item) -> Void
     }
 
@@ -88,6 +89,8 @@ struct WelcomeView: View {
         .onAppear { fieldFocused = true }
         .onChange(of: model.focusRequests) { fieldFocused = true }
         .onChange(of: model.walk, initial: true) { model.sync() }
+        // Typing chooses the top match even when the rows haven't changed; clearing unchooses it.
+        .onChange(of: model.query) { model.sync() }
         .onKeyPress(.downArrow) { move(1) }
         .onKeyPress(.upArrow) { move(-1) }
         .onKeyPress(.rightArrow) { cross(to: .projects) }
@@ -153,7 +156,7 @@ struct WelcomeView: View {
                 if let agent = actions.agents.chosen {
                     ZStack(alignment: .trailing) {
                         WelcomeActionRow(
-                            title: "Start \(agent.displayName)", symbol: "", agent: agent, keys: "⌘N", isMain: true,
+                            title: "Start \(agent.displayName)", symbol: "", agent: agent, keys: "⌘N",
                             style: style, action: { actions.newAgentSession(nil) },
                         )
                         Menu {
@@ -166,21 +169,21 @@ struct WelcomeView: View {
                         .accessibilityLabel("More ways to start")
                     }
                     WelcomeActionRow(
-                        title: "Start a shell", symbol: "square.and.pencil", keys: "⌘T", isMain: false,
+                        title: "Start a shell", symbol: "square.and.pencil", keys: "⌘T",
                         style: style, action: actions.newSession,
                     )
                 } else {
                     WelcomeActionRow(
-                        title: "Start a session", symbol: "square.and.pencil", keys: "⌘T", isMain: true,
+                        title: "Start a session", symbol: "square.and.pencil", keys: "⌘T",
                         style: style, action: actions.newSession,
                     )
                 }
                 WelcomeActionRow(
-                    title: "Try a scratch session", symbol: "square.dashed", keys: "⌘⇧N", isMain: false,
+                    title: "Try a scratch session", symbol: "square.dashed", keys: "⌘⇧N",
                     style: style, action: actions.newScratchSession,
                 )
                 WelcomeActionRow(
-                    title: "Open a project", symbol: "plus", keys: "⌘O", isMain: false,
+                    title: "Open a project", symbol: "plus", keys: "⌘O",
                     style: style, action: actions.newProject,
                 )
             }
@@ -357,7 +360,7 @@ struct WelcomeView: View {
                         style: style,
                     ) {
                         model.selected = .project(project.id)
-                        actions.newSessionIn(project)
+                        actions.openProject(project)
                     }
                     .id(WelcomeModel.Target.project(project.id))
                 }

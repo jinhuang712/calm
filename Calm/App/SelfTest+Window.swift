@@ -21,6 +21,7 @@
             let frames = "sidebar \(sidebarHost?.frame ?? .zero), main \(mainArea.frame), title \(titleHost?.frame ?? .zero), "
                 + "overlays \(overlays)"
             return "\(frames); \(chrome); welcome \(welcomePage.isShowing); no-session page \(noSessionPage.isShowing); "
+                + "project home \(projectHomePage.isShowing); "
                 + "window title \(window?.title ?? ""); \(titleMenuForTesting)"
         }
 
@@ -414,7 +415,7 @@
                 }
             case "welcome_project":
                 guard let project = model.projects.first(where: { $0.name == argument }) else { return false }
-                welcomeActions.newSessionIn(project)
+                welcomeActions.openProject(project)
             case "welcome_session":
                 guard let index = Int(argument), model.sessions.indices.contains(index) else { return false }
                 welcomeActions.open(model.sessions[index])

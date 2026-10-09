@@ -34,4 +34,8 @@ struct SidebarActions {
     var cancelRestart: (Session.ID) -> Void = { _ in }
     /// Opens the session menu at a point in the window (a right-click on a card or a shell row).
     var showMenu: (Session.ID, CGPoint) -> Void = { _, _ in }
+    /// A click on a project's header: its home in the main area (UIUX.md → Project home).
+    var showProjectHome: (Project.ID) -> Void = { _ in }
+    /// A group header's agent mark: a session there running ⌘N's agent.
+    var newAgentSessionIn: (Project) -> Void = { _ in }
 }

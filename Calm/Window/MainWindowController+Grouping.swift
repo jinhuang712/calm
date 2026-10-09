@@ -79,11 +79,20 @@ extension MainWindowController {
 
     // MARK: Projects
 
-    /// Projects for `urls`, and a session in the last one, which stays in it (FEATURES.md → F2).
+    /// Projects for `urls`, and the last one's home (FEATURES.md → F2): what to start there is the
+    /// user's to choose, so no session opens by itself.
     func addProjects(_ urls: [URL]) {
         let projects = urls.map { manager.addProject(path: $0.path) }
-        if let project = projects.last, manager.workspace.sessions(in: project.id).isEmpty {
-            newSession(in: project)
+        if let project = projects.last {
+            showProjectHome(project.id)
+        }
+    }
+
+    /// Remove Project. Its home goes with it, since there is no project left to show.
+    func removeProject(_ id: Project.ID) {
+        manager.removeProject(id)
+        if homeProjectID == id {
+            leaveProjectHome()
         }
     }
 
@@ -103,10 +112,61 @@ extension MainWindowController {
     }
 
     /// A new session in a project the user made, which it stays in; or in a directory group's folder.
-    func newSession(in project: Project) {
+    @discardableResult
+    func newSession(in project: Project) -> Session {
         hideSettings()
-        manager.newSession(in: project.path, placement: project.kind == .project ? .project(project.id) : .directory)
+        let session = manager.newSession(in: project.path, placement: project.kind == .project ? .project(project.id) : .directory)
         showSelectedLayout(animated: true)
+        return session
+    }
+
+    /// A session in `project` running `kind`, ⌘N's agent unless given (a group header's agent mark,
+    /// a project home's start line), or a plain shell when no agent is installed.
+    func newAgentSession(in project: Project, kind: AgentKind? = nil) {
+        let session = newSession(in: project)
+        if let agent = kind ?? newSessionAgent {
+            startAgent(agent, in: session)
+        }
+    }
+
+    // MARK: Project home
+
+    /// The project whose home the main area shows (UIUX.md → Project home), nil otherwise.
+    var homeProjectID: Project.ID? {
+        sidebarEditing.homeProjectID
+    }
+
+    /// The project whose home is up, while it still exists.
+    var homeProject: Project? {
+        homeProjectID.flatMap { manager.workspace.project($0) }
+    }
+
+    /// Esc on a home: it goes, and the main area shows what it would with no session chosen (with
+    /// none open, the welcome page).
+    func leaveProjectHome() {
+        guard homeProjectID != nil else { return }
+        sidebarEditing.homeProjectID = nil
+        showSelectedLayout(animated: false)
+    }
+
+    func updateProjectHome() {
+        guard manager.workspace.selectedLayout == nil, let project = homeProject else {
+            projectHomePage.hide()
+            return
+        }
+        let background = TerminalEngine.shared.config?.backgroundColor ?? NSColor(white: 0.15, alpha: 1)
+        projectHomePage.show(project: project, style: sidebarStyle, background: background, actions: projectHomeActions(project))
+    }
+
+    private func projectHomeActions(_ project: Project) -> ProjectHomeView.Actions {
+        ProjectHomeView.Actions(
+            agents: startAgents,
+            newAgentSession: { [weak self] kind in self?.newAgentSession(in: project, kind: kind) },
+            chooseNewSessionAgent: { [weak self] in self?.showSettings(.agents) },
+            newShell: { [weak self] in self?.newSession(in: project) },
+            open: { [weak self] item in self?.openSearchResult(item) },
+            leave: { [weak self] in self?.leaveProjectHome() },
+        )
     }
 
     /// The placement and folder a session opened from `id` (⌘T, a split) gets: a project
@@ -125,7 +185,8 @@ extension MainWindowController {
 
     /// Shows the welcome page while no session is open, and takes it away once one is.
     func updateWelcomePage() {
-        guard manager.workspace.sessions.isEmpty else {
+        // A project's home stands beside the sidebar even with no session open.
+        guard manager.workspace.sessions.isEmpty, homeProject == nil else {
             welcomePage.hide()
             return
         }
@@ -140,12 +201,14 @@ extension MainWindowController {
     /// with none chosen.
     func updatePages() {
         updateWelcomePage()
+        updateProjectHome()
         updateNoSessionPage()
     }
 
-    /// Sessions are open but none is chosen: the main area shows what waits, or search.
+    /// Sessions are open but none is chosen, and no project's home is up: the main area shows what
+    /// waits, or search.
     func updateNoSessionPage() {
-        guard manager.workspace.selectedLayout == nil, !manager.workspace.sessions.isEmpty else {
+        guard manager.workspace.selectedLayout == nil, !manager.workspace.sessions.isEmpty, homeProject == nil else {
             noSessionPage.hide()
             return
         }
@@ -164,6 +227,8 @@ extension MainWindowController {
     func refocus() {
         if let focusedPane {
             window?.makeFirstResponder(focusedPane)
+        } else if projectHomePage.isShowing {
+            projectHomePage.focus()
         } else {
             noSessionPage.focus()
         }
@@ -193,7 +258,7 @@ extension MainWindowController {
             newSession: { [weak self] in self?.newSession() },
             newScratchSession: { [weak self] in self?.newScratchSession() },
             newProject: { [weak self] in self?.chooseNewProject() },
-            newSessionIn: { [weak self] project in self?.newSession(in: project) },
+            openProject: { [weak self] project in self?.showProjectHome(project.id) },
             open: { [weak self] item in self?.openSearchResult(item) },
         )
     }

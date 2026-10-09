@@ -61,7 +61,7 @@ extension MainWindowController {
             newSessionIn: { [weak self] project in self?.newSession(in: project) },
             addProjects: { [weak self] urls in self?.addProjects(urls) },
             makeProject: { [weak self] id in self?.manager.makeProject(id) },
-            removeProject: { [weak self] id in self?.manager.removeProject(id) },
+            removeProject: { [weak self] id in self?.removeProject(id) },
             move: { [weak self] id, project in self?.manager.move(id, to: project) },
             followFolder: { [weak self] id in self?.manager.followFolder(id) },
             keepScratch: { [weak self] id in self?.keepScratchAsProject(id) },
@@ -71,6 +71,8 @@ extension MainWindowController {
             restart: { [weak self] id in self?.restartAgent(in: id) },
             cancelRestart: { [weak self] id in self?.manager.cancelRestart(id) },
             showMenu: { [weak self] id, point in self?.showSessionMenu(id, atWindowPoint: point) },
+            showProjectHome: { [weak self] id in self?.showProjectHome(id) },
+            newAgentSessionIn: { [weak self] project in self?.newAgentSession(in: project) },
         )
     }
 
@@ -210,9 +212,12 @@ extension MainWindowController {
     }
 }
 
-/// The sidebar's inline rename (UIUX.md → Session cards): which session's name is being edited.
+/// What the sidebar shows that the workspace doesn't hold: which session's name is being edited
+/// (UIUX.md → Session cards), and the project whose home is in the main area, whose header is
+/// drawn selected (UIUX.md → Project home).
 @MainActor
 @Observable
 final class SidebarEditing {
     var renamingSessionID: Session.ID?
+    var homeProjectID: Project.ID?
 }

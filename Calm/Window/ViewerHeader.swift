@@ -28,9 +28,10 @@ final class ViewerModel {
 }
 
 /// The file's row under the title strip (UIUX.md → Viewing files): its name and folder, lined up
-/// under the session's name; at the right, for a changed file its `+3 −3` and the switch between
-/// the file and its diff, find's field while it's open (FEATURES.md → F16), then Open in Editor and
-/// the esc key cap that goes back (it steps away while find is open, since esc closes find first).
+/// under the session's name, with the back button at its left, under the session's mark (it steps
+/// away while find is open, since esc closes find first); at the right,
+/// for a changed file its `+3 −3` and the switch between the file and its diff, find's field while
+/// it's open (FEATURES.md → F16), then Open in Editor.
 struct ViewerHeader: View {
     /// Where the name starts: under the title strip's name (its inset, the group's mark and the gap).
     @MainActor
@@ -54,6 +55,15 @@ struct ViewerHeader: View {
 
     var body: some View {
         HStack(spacing: 10.scaled) {
+            // The button's slot is the mark's width and gap, so the name stays under the session's
+            // name, and the button is as wide as the mark. Its space stays while find is open, so
+            // the name doesn't move.
+            ZStack {
+                if !find.isOpen {
+                    ViewerBackButton(style: style, action: onBack)
+                }
+            }
+            .frame(width: SessionTitleView.markSide.scaled)
             Text(name)
                 .calmFont(size: 14, weight: .medium)
                 .foregroundStyle(style.primary)
@@ -100,12 +110,9 @@ struct ViewerHeader: View {
             if let openTitle {
                 ViewerOpenButton(title: openTitle, style: style, action: onOpen)
             }
-            if !find.isOpen {
-                ViewerBackKey(style: style, action: onBack)
-            }
         }
         .lineLimit(1)
-        .padding(.leading, Self.leading)
+        .padding(.leading, SessionTitleView.leadingInset)
         .padding(.trailing, 12.scaled)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, style.isDark ? .dark : .light)
@@ -182,29 +189,25 @@ private struct ViewerOpenButton: View {
     }
 }
 
-/// The esc key cap: what esc does, and a click does the same.
-private struct ViewerBackKey: View {
+/// The way back, what esc does: a quiet chevron with no box, and a soft tile under the pointer.
+private struct ViewerBackButton: View {
     let style: SidebarStyle
     let action: () -> Void
     @State private var hovered = false
 
     var body: some View {
         Button(action: action) {
-            Text("esc")
-                .calmFont(size: 11)
+            Image(systemName: "chevron.left")
+                .calmFont(size: 12, weight: .semibold)
                 .foregroundStyle(hovered ? style.primary : style.secondary)
-                .padding(.horizontal, 7.scaled)
-                .frame(height: 22.scaled)
-                .background(
-                    RoundedRectangle(cornerRadius: 6.scaled, style: .continuous)
-                        .strokeBorder(style.primary.opacity(hovered ? 0.35 : 0.22), lineWidth: 1),
-                )
+                .frame(width: SessionTitleView.markSide.scaled, height: SessionTitleView.markSide.scaled)
+                .background(RoundedRectangle(cornerRadius: 7.scaled, style: .continuous).fill(style.primary.opacity(hovered ? 0.11 : 0)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .fixedSize()
         .onHover { hovered = $0 }
-        .help("Back to the session")
+        .help("Back to the session · esc")
         .accessibilityLabel("Back to the session")
     }
 }

@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Trace.note("agent integrations ready")
             SearchService.start()
             Trace.note("search started")
+            // A check a few seconds later, and only when one is due (UpdateChecker).
+            UpdateChecker.shared.start()
             TerminalWindowManager.shared.openMainWindow()
             Trace.note("window open")
             // Headless self-tests run without a Dock icon.

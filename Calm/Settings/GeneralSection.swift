@@ -13,6 +13,7 @@ final class GeneralSettingsModel {
     private(set) var installed: [Editor] = []
     private(set) var opensInViewer = true
     private(set) var autoGrouping = true
+    private(set) var checksForUpdates = true
     /// config.toml's lines Calm couldn't read ("line 12: expected key = value").
     private(set) var problems: [String] = []
     /// "JetBrains Mono · 13 pt": set in the Ghostty config, which is where it's changed.
@@ -24,6 +25,7 @@ final class GeneralSettingsModel {
         editor = EditorSetting(configured: settings.string("files.editor"))
         opensInViewer = LinkOpener.prefersViewer
         autoGrouping = settings.autoGrouping
+        checksForUpdates = settings.checksForUpdates
         problems = settings.problems
         terminalFont = TerminalConfig.fontDescription
     }
@@ -63,6 +65,11 @@ final class GeneralSettingsModel {
         save("sidebar.auto-grouping", value ? nil : "false")
     }
 
+    func setChecksForUpdates(_ value: Bool) {
+        checksForUpdates = value
+        save("updates.check", value ? nil : "false")
+    }
+
     /// `set:<key>=<value>` in self-tests goes through here, like a click.
     func set(_ key: String, _ value: String) {
         switch key {
@@ -70,6 +77,7 @@ final class GeneralSettingsModel {
         case "editor-app": setEditorApplication(URL(filePath: value)) // what the picker hands back
         case "open-in": setOpensInViewer(value != "editor")
         case "auto-grouping": setAutoGrouping(value != "false")
+        case "updates": setChecksForUpdates(value != "false")
         default: break
         }
     }
@@ -114,6 +122,23 @@ struct GeneralSection: View {
                     Toggle(
                         "Group sessions by folder",
                         isOn: Binding(get: { model.autoGrouping }, set: { model.setAutoGrouping($0) }),
+                    )
+                    .toggleStyle(CalmSwitchStyle(style: style))
+                    .labelsHidden()
+                }
+            }
+            GroupHeading(title: "Updates", style: style)
+                .padding(.top, 30.scaled)
+            SettingsGroup(style: style) {
+                SettingsRow(
+                    title: "Check for updates",
+                    note: "Once a day Calm asks GitHub which release is newest. The request carries only Calm's version.",
+                    symbol: "arrow.down.circle",
+                    style: style,
+                ) {
+                    Toggle(
+                        "Check for updates",
+                        isOn: Binding(get: { model.checksForUpdates }, set: { model.setChecksForUpdates($0) }),
                     )
                     .toggleStyle(CalmSwitchStyle(style: style))
                     .labelsHidden()

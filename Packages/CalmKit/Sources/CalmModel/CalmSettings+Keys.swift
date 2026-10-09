@@ -98,6 +98,12 @@ public extension CalmSettings {
             about: "Sessions move between projects when their folder changes",
         ),
         Key(
+            name: "updates.check",
+            kind: .bool,
+            defaultValue: "true",
+            about: "Calm asks GitHub once a day whether a newer release is out; checking by hand always works",
+        ),
+        Key(
             name: "files.editor",
             kind: .editor,
             defaultValue: "automatic",

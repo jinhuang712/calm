@@ -67,6 +67,12 @@ public struct CalmSettings: Equatable, Sendable {
         bool("sidebar.auto-grouping", default: true)
     }
 
+    /// Calm asks GitHub once a day whether a newer release is out (FEATURES.md → Updates). Checking
+    /// by hand from the Calm menu doesn't depend on it.
+    public var checksForUpdates: Bool {
+        bool("updates.check", default: true)
+    }
+
     public enum MotionLevel: String, Sendable, CaseIterable {
         case full, reduced, off
     }

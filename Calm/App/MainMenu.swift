@@ -26,6 +26,9 @@ enum MainMenu {
         let name = BuildVariant.appName
         let menu = NSMenu(title: name)
         menu.addItem(withTitle: "About \(name)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(TerminalMenuTarget.checkForUpdates(_:)), keyEquivalent: "")
+        updates.target = TerminalMenuTarget.shared
+        menu.addItem(updates)
         menu.addItem(.separator())
         let settings = NSMenuItem(title: "Settings…", action: #selector(TerminalMenuTarget.showSettings(_:)), keyEquivalent: ",")
         settings.target = TerminalMenuTarget.shared
@@ -268,6 +271,11 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func showAgentsPanel(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().showSettings(.agents)
+    }
+
+    /// Calm → Check for Updates…: asks GitHub now and says what it found.
+    @objc func checkForUpdates(_: Any?) {
+        UpdateAlert.checkByHand()
     }
 
     /// Quit and open again; shells stay alive in between (see Restart).

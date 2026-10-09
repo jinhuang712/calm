@@ -119,6 +119,8 @@ struct SidebarView: View {
 
     let manager: SessionManager
     let style: SidebarStyle
+    /// Observed, so the notice in the strip appears when a check finds a newer release.
+    private let updates = UpdateChecker.shared
     /// The footer's setting, passed in like `style`: `manager.settings` isn't observed, so a read
     /// in the body would go stale when the setting changes.
     let showsFooter: Bool
@@ -175,9 +177,17 @@ struct SidebarView: View {
             // As tall as the window's title strip, so the search field and the terminal start level.
             Color.clear.frame(height: CalmWindow.titleStripHeight)
                 .overlay(alignment: .trailing) {
-                    if BuildVariant.isDev {
-                        DevTag(isDark: style.isDark)
+                    // The update notice (and, in the dev build, its tag after it) at the strip's
+                    // trailing edge; the tag brings its own inset.
+                    HStack(spacing: 12.scaled) {
+                        if let offer = updates.offer {
+                            UpdateNotice(release: offer, style: style)
+                        }
+                        if BuildVariant.isDev {
+                            DevTag(isDark: style.isDark)
+                        }
                     }
+                    .padding(.trailing, BuildVariant.isDev ? 0 : 20.scaled)
                 }
             searchField
                 .padding(.horizontal, 14.scaled)

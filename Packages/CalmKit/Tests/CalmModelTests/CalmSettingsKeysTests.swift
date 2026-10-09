@@ -19,6 +19,7 @@ struct CalmSettingsKeysTests {
         #expect(try key("sidebar.cards-fit").defaultValue == String(empty.sessionCardsFit))
         #expect(try key("sidebar.footer").defaultValue == String(empty.sidebarFooter))
         #expect(try key("sidebar.auto-grouping").defaultValue == String(empty.autoGrouping))
+        #expect(try key("updates.check").defaultValue == String(empty.checksForUpdates))
         #expect(try key("agents.sound").defaultValue == String(empty.notificationSound))
         #expect(try key("agents.send-with-cmd-return").defaultValue == String(empty.sendWithCommandReturn))
         #expect(try key("motion").kind == .choice(CalmSettings.MotionLevel.allCases.map(\.rawValue)))

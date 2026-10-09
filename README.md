@@ -88,7 +88,7 @@ Calm adds files to an agent's own folders only for what you turned on in **Calm 
 
 - **Calm is signed ad hoc**, downloaded or built yourself, so to macOS every install is a new app: it asks again for access to Desktop, Documents and Downloads after each one. A Developer ID signed and notarized download, which keeps those answers across updates, comes later (see the end of [ROADMAP.md](ROADMAP.md)).
 - **Agents need no setup to be seen.** Calm detects them from their process. To get their exact state (a question waiting, a turn finished), connect their hooks from **Calm → Agents…**; each one asks first and can be undone.
-- **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code makes no network requests, and there is no update check yet. The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
+- **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code makes one network request: once a day it asks GitHub which release of Calm is newest, sending only its version, and Settings → General → Check for updates turns that off. The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
 
 ## Known limits
 

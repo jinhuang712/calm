@@ -270,7 +270,7 @@ What is built, below. Every command in full, with the planned ones: [CLI.md](CLI
 - ⌘, turns the whole window into Settings (UIUX.md → Settings screen); ⌘, again or esc goes back to the session exactly as it was. A list of sections stands where the sidebar was: **Appearance, Agents, General, Shortcuts**.
   - **Appearance:** a live miniature of the window, the theme picker and the window options (F11).
   - **Agents:** **⌘N starts** (the agent ⌘N and ⌘⇧N start), then one row per installed agent: its mark (moving while one of its sessions works), its name with a chip under it for each option it starts with (F15), and on the right only what needs a hand (Connect, Left alone, Set Up…), or ••• for Disconnect where Calm added a file; then which states notify, and sound. When macOS blocks Calm's notifications it says so, with a button to System Settings. Calm → Agents… opens it.
-  - **General:** the editor paths open in (automatic, one of the editors installed, or any application chosen with Choose Application…), whether viewable files open in Calm or the editor, auto-grouping, and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
+  - **General:** the editor paths open in (automatic, one of the editors installed, or any application chosen with Choose Application…), whether viewable files open in Calm or the editor, auto-grouping, whether Calm checks for updates (F17), and the config files: Calm's config.toml (with any line Calm couldn't read), the Ghostty config (with the font it sets) and the themes folder, each with Open.
   - **Shortcuts:** Calm's shortcuts; keys are changed in the Ghostty config (Open Ghostty Config), where a keybinding wins over Calm's.
 - Going to any session leaves Settings. After a hand edit, Calm → Reload Configuration updates the page.
 - Everything else lives in the config file, reachable through General → Calm settings → Open.
@@ -323,6 +323,19 @@ Designed with the author step by step, 2026-10-06 and 07, on a design canvas (cl
 - Not this: searching the scrollback of every open session at once (Later, below); ⌘K searches every agent's conversations (F7).
 
 **Settings:** none.
+
+## F17 — Updates ✅
+
+- **A newer release shows as `↑ 0.2.0`** in quiet text at the right end of the sidebar's top strip, level with the traffic lights (UIUX.md → The update notice). Nothing else changes: no dialog, no sound, no badge on the Dock icon. A click opens a small menu: **Release Notes** (the release's page on GitHub), **Copy Update Command** (the one that fits how Calm was installed: `brew upgrade --cask calm` when Homebrew installed it, else the one-line install from the README, which replaces Calm in Applications and clears macOS's download mark; restart Calm afterwards) and **Skip 0.2.0** (hides the notice until a newer release comes out).
+- **Calm only tells.** It doesn't download or install itself: the app is ad-hoc signed, and replacing a running app that isn't notarized is Sparkle's job (ROADMAP.md → Later).
+- **When it looks.** A few seconds after launch and whenever Calm comes forward, but only when a check is due: once a day, or an hour after a failure. No timer runs in between, so a Calm left open for weeks costs nothing. The saved answer shows at the next launch with no request.
+- **What it sends.** One GET of GitHub's list of Calm's releases (`api.github.com/repos/jinhuang712/calm/releases`: not `/releases/latest`, which leaves out pre-releases and answers 404 while every release is one), with Calm's version as the User-Agent and the last answer's ETag. No account and nothing else; GitHub sees the address it comes from, as with any request. A failure is quiet.
+- **What counts as newer.** The highest `vMAJOR.MINOR.PATCH` among the releases that aren't drafts. GitHub's pre-release flag isn't looked at (every 0.x release has it); other tags are ignored.
+- **Calm → Check for Updates…** asks now, whatever the schedule and the setting, and answers in a dialog: up to date, a newer release (Release Notes, Copy Update Command, Not Now), or why it couldn't. A release that was skipped is offered again.
+- **One setting:** Settings → General → **Check for updates** (config `updates.check`, on by default). Off, Calm never asks on its own, and the menu item still works.
+- **Not in the Dev build or in self-tests.** They never look on their own. `CALM_UPDATE_FEED` points a run at a file or a local server, which takes the real path without the network.
+
+---
 
 ## Later, if needed
 

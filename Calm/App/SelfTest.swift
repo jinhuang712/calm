@@ -133,12 +133,8 @@
             let title = ProcessInfo.processInfo.environment["CALM_SNAPSHOT_WINDOW"].flatMap { $0.isEmpty ? nil : $0 }
             let titled = title.flatMap { title in NSApp.windows.first { $0.title == title && $0.isVisible } }
             guard let window = titled ?? NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible),
-                  let frameView = window.contentView?.superview
+                  let png = WindowSnapshot.png(of: window)
             else { return false }
-            let bounds = frameView.bounds
-            guard let rep = frameView.bitmapImageRepForCachingDisplay(in: bounds) else { return false }
-            frameView.cacheDisplay(in: bounds, to: rep)
-            guard let png = rep.representation(using: .png, properties: [:]) else { return false }
             return (try? png.write(to: url)) != nil
         }
     }

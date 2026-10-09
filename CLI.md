@@ -23,6 +23,7 @@ Status: ✅ built and working as described · 📝 planned, in the order under *
 | `calm config` | Reads and changes Calm's settings | ✅ |
 | `calm doctor` | Checks that Calm and the agents' hooks work | ✅ |
 | `calm trace` | Prints Calm's timeline log | ✅ |
+| `calm screenshot [<file>]` | Saves a PNG of Calm's window | ✅ |
 | `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state | ✅ |
 | `calm --help`, `calm --version` | Help, and the CLI's version | ✅ |
 
@@ -256,6 +257,14 @@ Checks that Calm works and reaches you, one line per check: ✓ fine, ✗ a prob
 - The last 5 minutes unless `--last` says otherwise (`30s`, `10m`, `2h`, `1d`). `--session` keeps one session's lines (its id, or the first 8 hex digits the trace uses); `--follow` prints new ones as they come.
 - Only the Calm this `calm` came with: every launch of that app, so both sides of a restart and any second copy, but not a Debug build's or a self-test's. A `calm` outside an app shows every Calm's.
 - Works whether or not Calm is running. When nothing matches, it says so on stderr. Dump Logs (⌘P) puts the last 30 minutes of the running Calm's trace in a file.
+
+### `calm screenshot [<file>]` ✅
+
+- Saves a PNG of Calm's window, title bar included, at the screen's pixel density, and prints the file's absolute path. With no `<file>` it is `calm-<yyyyMMdd-HHmmss>.png` in the current folder, so two shots never overwrite each other. A relative name starts from the current folder, and `~` is the home folder.
+- For whoever must see what Calm shows: an agent checking its own change, or a bug report. It is the same capture the self-tests use (`WindowSnapshot`): the window's own views drawn into a bitmap, so it needs no Screen Recording permission, shows only Calm (not what is in front of it) and works while Calm is covered by other windows.
+- Calm draws it and sends the PNG back over the socket, so the file is written by the caller's own permissions. Whatever is on screen is in the picture, so it shows what the sessions show, to anyone who can run `calm` in a Calm shell, an agent included. It is read-only: it never opens, moves or focuses a window.
+- Never starts Calm: with Calm not running, it says so and exits 1. Exits 1 too when Calm has no window, and 64 for more than one file name. A Calm older than the CLI can't read the request and says to restart it.
+- Only the main window; a Settings window or a panel isn't captured.
 
 ## For agents' hooks ✅
 

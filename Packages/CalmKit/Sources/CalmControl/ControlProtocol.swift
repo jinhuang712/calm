@@ -34,6 +34,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         /// Fork `session`'s conversation into a new session (`calm fork`): `message` is the fork's
         /// first prompt, `path` its folder, `background` keeps the user where they are.
         case fork
+        /// A PNG of Calm's main window, in `ControlResponse.image` (`calm screenshot`).
+        case screenshot
     }
 
     public var v: Int
@@ -188,13 +190,19 @@ public struct ControlResponse: Codable, Sendable, Equatable {
     public var sessions: [SessionInfo]?
     public var results: [SearchHit]?
     public var info: AppInfo?
+    /// A PNG, base64 encoded, from `screenshot`.
+    public var image: String?
 
     public static func success(sessions: [SessionInfo]? = nil, results: [SearchHit]? = nil, info: AppInfo? = nil) -> ControlResponse {
-        ControlResponse(ok: true, error: nil, sessions: sessions, results: results, info: info)
+        ControlResponse(ok: true, error: nil, sessions: sessions, results: results, info: info, image: nil)
+    }
+
+    public static func screenshot(png: Data) -> ControlResponse {
+        ControlResponse(ok: true, error: nil, sessions: nil, results: nil, info: nil, image: png.base64EncodedString())
     }
 
     public static func failure(_ message: String) -> ControlResponse {
-        ControlResponse(ok: false, error: message, sessions: nil, results: nil, info: nil)
+        ControlResponse(ok: false, error: message, sessions: nil, results: nil, info: nil, image: nil)
     }
 }
 

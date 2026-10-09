@@ -229,6 +229,13 @@ final class ControlServer {
             return .success()
         case .fork:
             return fork(request)
+        case .screenshot:
+            // The main window as it is; a screenshot must not open one.
+            guard let window = TerminalWindowManager.shared.mainController?.window else {
+                return .failure("Calm has no window to capture.")
+            }
+            guard let png = WindowSnapshot.png(of: window) else { return .failure("Couldn't draw the window.") }
+            return .screenshot(png: png)
         case .info:
             // For `calm doctor`: which Calm answers (a second copy, an old build) and whether this
             // session's agent reports reach it.

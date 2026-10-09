@@ -25,6 +25,7 @@ Usage:
   calm config set <key> <value…>    Change a setting in config.toml; Calm applies it at once
   calm config unset <key>           Put a setting back to its default
   calm doctor [--json]              Check that Calm, this calm and the agents' hooks work
+  calm screenshot [<file>]          Save a PNG of Calm's window (default: ./calm-<time>.png)
   calm trace [--last 5m] [--session <id>] [--follow]
                                     Print Calm's trace: what decided each session's row
   calm --version                    Print the version
@@ -185,6 +186,8 @@ case "show":
     ShowCommand.run(Array(arguments.dropFirst()))
 case "doctor":
     DoctorCommand.run(Array(arguments.dropFirst()), cliVersion: version)
+case "screenshot":
+    ScreenshotCommand.run(Array(arguments.dropFirst()))
 case "trace":
     TraceCommand.run(Array(arguments.dropFirst()))
 default:

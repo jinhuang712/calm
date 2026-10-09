@@ -56,6 +56,8 @@ final class UpdateChecker {
     private let now: () -> Date
     private let settingIsOn: @MainActor () -> Bool
     private var started = false
+    /// The launch's first seconds are over (`settle`).
+    private var settled = false
 
     init(
         defaults: UserDefaults = .standard,
@@ -116,13 +118,27 @@ final class UpdateChecker {
         guard !started, Self.looksOnItsOwn else { return }
         started = true
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated { UpdateChecker.shared.checkIfDue() }
+            MainActor.assumeIsolated { _ = UpdateChecker.shared.cameForward() }
         }
         // After the first frame and the sessions, so the check never competes with them.
         Task {
             try? await Task.sleep(for: .seconds(8))
-            checkIfDue()
+            _ = settle()
         }
+    }
+
+    /// The first seconds are over: the launch's check may run now, and coming forward counts again.
+    @discardableResult
+    func settle() -> Task<Void, Never>? {
+        settled = true
+        return checkIfDue()
+    }
+
+    /// Calm came forward. Calm becomes active as it launches, which is not a look at it: that one
+    /// waits for `settle`.
+    @discardableResult
+    func cameForward() -> Task<Void, Never>? {
+        settled ? checkIfDue() : nil
     }
 
     /// The setting is on, and a day has passed since the last answer (or an hour since a failure).
@@ -135,9 +151,10 @@ final class UpdateChecker {
             )
     }
 
-    func checkIfDue() {
-        guard isDue else { return }
-        Task { await check(byHand: false) }
+    @discardableResult
+    func checkIfDue() -> Task<Void, Never>? {
+        guard isDue else { return nil }
+        return Task { await check(byHand: false) }
     }
 
     /// Looks now. By hand (Calm → Check for Updates…) it ignores the schedule and the setting,

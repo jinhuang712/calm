@@ -182,6 +182,26 @@ struct UpdateCheckerTests {
         #expect(!off.checker.isDue)
     }
 
+    @Test func `coming forward as Calm launches doesn't check, settling does, and later looks follow the schedule`() async throws {
+        let rig = try makeRig()
+        rig.feed.answer(versions: ["0.1.0"])
+
+        // Calm becomes active while it launches: not a look, so nothing is asked yet.
+        #expect(rig.checker.cameForward() == nil)
+        #expect(rig.feed.requests.isEmpty)
+
+        // The first seconds are over: the launch's check runs.
+        await rig.checker.settle()?.value
+        #expect(rig.feed.requests.count == 1)
+
+        // Coming forward soon after changes nothing, a day later it checks again.
+        #expect(rig.checker.cameForward() == nil)
+        rig.clock.now.addTimeInterval(UpdateSchedule.interval)
+        rig.feed.answer(versions: ["0.1.0"])
+        await rig.checker.cameForward()?.value
+        #expect(rig.feed.requests.count == 2)
+    }
+
     @Test func `the cask's record in Homebrew's Caskroom, in either of its two places, means Homebrew installed it`() {
         #expect(UpdateChecker.installedByHomebrew(exists: { $0 == "/opt/homebrew/Caskroom/calm" }))
         #expect(UpdateChecker.installedByHomebrew(exists: { $0 == "/usr/local/Caskroom/calm" }))

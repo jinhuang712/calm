@@ -4,6 +4,11 @@ import Foundation
 /// main thread (the files column's listing, the cleanup of an agent's empty worktree).
 enum GitCommand {
     static func run(_ arguments: [String], in folder: String) -> String? {
+        data(arguments, in: folder).flatMap { String(bytes: $0, encoding: .utf8) }
+    }
+
+    /// The same, as bytes: for output that may be long enough that decoding it all is the cost.
+    static func data(_ arguments: [String], in folder: String) -> Data? {
         let process = Process()
         process.executableURL = URL(filePath: "/usr/bin/git")
         process.arguments = ["-C", folder] + arguments
@@ -18,6 +23,6 @@ enum GitCommand {
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else { return nil }
-        return String(bytes: data, encoding: .utf8)
+        return data
     }
 }

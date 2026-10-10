@@ -85,6 +85,9 @@ public struct ChangedFile: Identifiable, Sendable, Equatable {
     public var change: GitChange
     /// Nil when git can't count them (a binary file, a repository without commits).
     public var lines: LineCounts?
+    /// For an untracked folder with too many files to list (`UntrackedFolder`): how many it
+    /// holds. The row stands for all of them, and has no lines.
+    public var files: Int?
 
     public var id: String {
         path
@@ -105,10 +108,11 @@ public struct ChangedFile: Identifiable, Sendable, Equatable {
         (folder as NSString).lastPathComponent
     }
 
-    /// Every change, in the natural order of its path (`View2` before `View10`).
-    public static func list(changes: [String: GitChange], lines: [String: LineCounts]) -> [ChangedFile] {
+    /// Every change, in the natural order of its path (`View2` before `View10`). `collapsed` are
+    /// the untracked folders that stand as one change, with their file counts.
+    public static func list(changes: [String: GitChange], lines: [String: LineCounts], collapsed: [String: Int] = [:]) -> [ChangedFile] {
         changes
-            .map { ChangedFile(path: $0.key, change: $0.value, lines: lines[$0.key]) }
+            .map { ChangedFile(path: $0.key, change: $0.value, lines: lines[$0.key], files: collapsed[$0.key]) }
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
     }
 }
@@ -132,6 +136,9 @@ public struct FileNode: Identifiable, Sendable, Equatable {
     public var children: [FileNode]?
     /// The file's change, or for a folder, whether anything inside changed (`.modified`).
     public var change: GitChange?
+    /// For an untracked folder left unlisted because it holds too many files (`UntrackedFolder`):
+    /// how many. It is a folder with nothing to open, and untracked.
+    public var unlisted: Int?
 
     public var id: String {
         path
@@ -158,8 +165,10 @@ public struct FileNode: Identifiable, Sendable, Equatable {
     /// A tree from relative paths (as `git ls-files` lists them): folders first, then files, each
     /// in a case-insensitive order. Folders holding changes are marked. `unread` are folders the
     /// listing left unread on purpose (`GuardedFolders`): they appear as empty folders, to be
-    /// read when opened.
-    public static func tree(paths: [String], changes: [String: GitChange], unread: [String] = []) -> [FileNode] {
+    /// read when opened. `collapsed` are untracked folders left unlisted, with their file counts.
+    public static func tree(
+        paths: [String], changes: [String: GitChange], unread: [String] = [], collapsed: [String: Int] = [:],
+    ) -> [FileNode] {
         final class Folder {
             var folders: [String: Folder] = [:]
             var files: [String] = []
@@ -182,13 +191,20 @@ public struct FileNode: Identifiable, Sendable, Equatable {
         for path in unread where !path.isEmpty {
             _ = folder(at: path.split(separator: "/").map(String.init))
         }
+        for path in collapsed.keys where !path.isEmpty {
+            _ = folder(at: path.split(separator: "/").map(String.init))
+        }
         func nodes(_ folder: Folder, prefix: String) -> [FileNode] {
             let sorted: (String, String) -> Bool = { $0.localizedStandardCompare($1) == .orderedAscending }
             let folders = folder.folders.keys.sorted(by: sorted).map { name -> FileNode in
                 let path = prefix + name
                 let children = nodes(folder.folders[name]!, prefix: path + "/")
-                let changed = children.contains { $0.change != nil }
-                return FileNode(path: path, name: name, children: children, change: changed ? .modified : nil)
+                let unlisted = collapsed[path]
+                let changed = unlisted != nil || children.contains { $0.change != nil }
+                return FileNode(
+                    path: path, name: name, children: children, change: unlisted != nil ? .untracked : changed ? .modified : nil,
+                    unlisted: unlisted,
+                )
             }
             let files = folder.files.sorted(by: sorted).map { name in
                 FileNode(path: prefix + name, name: name, children: nil, change: changes[prefix + name])

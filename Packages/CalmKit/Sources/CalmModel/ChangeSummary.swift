@@ -8,10 +8,11 @@ public struct ChangeSummary: Sendable, Equatable {
     /// Nil when git couldn't count any (a repository without commits, only binary files).
     public var lines: LineCounts?
 
-    /// Nil when nothing changed: a clean project has nothing to report.
-    public init?(changes: [String: GitChange], lines: [String: LineCounts]) {
+    /// Nil when nothing changed: a clean project has nothing to report. A collapsed folder
+    /// (`UntrackedFolder`) counts for the files in it, as git would list them.
+    public init?(changes: [String: GitChange], lines: [String: LineCounts], collapsed: [String: Int] = [:]) {
         guard !changes.isEmpty else { return nil }
-        count = changes.count
+        count = changes.count - collapsed.count + collapsed.values.reduce(0, +)
         self.lines = LineCounts.total(changes.keys.compactMap { lines[$0] })
     }
 

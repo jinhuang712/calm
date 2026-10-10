@@ -137,12 +137,12 @@ final class FilesModel {
             let listing = await Task.detached(priority: .utility) { FilesListing.read(root, opened: opened) }.value
             guard !Task.isCancelled, let self, self.root == root else { return }
             unread = Set(listing.unread)
-            nodes = FileNode.tree(paths: listing.paths, changes: listing.changes, unread: listing.unread)
+            nodes = FileNode.tree(paths: listing.paths, changes: listing.changes, unread: listing.unread, collapsed: listing.collapsed)
             branch = listing.branch
-            changes = ChangedFile.list(changes: listing.changes, lines: listing.lines)
+            changes = ChangedFile.list(changes: listing.changes, lines: listing.lines, collapsed: listing.collapsed)
             // The readout reads what the open column found, and is right when it closes.
             summaryRoot = root
-            summary = ChangeSummary(changes: listing.changes, lines: listing.lines)
+            summary = ChangeSummary(changes: listing.changes, lines: listing.lines, collapsed: listing.collapsed)
         }
     }
 }
@@ -155,6 +155,9 @@ enum FilesListing {
         var changes: [String: GitChange] = [:]
         /// The lines each change adds and removes, against the last commit.
         var lines: [String: LineCounts] = [:]
+        /// Untracked folders too big to list (`UntrackedFolder`), with their file counts. Each is
+        /// also one entry of `changes`, and none of what is inside is in `paths`.
+        var collapsed: [String: Int] = [:]
         var branch: String?
         /// Folders the walk left unread because macOS guards them (`GuardedFolders`), relative
         /// to the folder; the user reads one by opening it.
@@ -165,9 +168,11 @@ enum FilesListing {
     static func read(_ root: String, opened: Set<String> = []) -> Result {
         guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return walk(root, opened: opened) }
         var result = Result()
-        result.paths = (git(["ls-files", "-co", "--exclude-standard", "-z"], in: root) ?? "")
-            .split(separator: "\0").map(String.init)
         readChanges(into: &result, prefix: prefix, in: root)
+        // The tracked files, and the untracked ones `readChanges` found: a folder it left
+        // collapsed is not read here, which is the point (`ls-files -o` would list all of it).
+        result.paths = (git(["ls-files", "-z"], in: root) ?? "").split(separator: "\0").map(String.init)
+            + Array(result.changes.filter { $0.value == .untracked && result.collapsed[$0.key] == nil }.keys)
         result.branch = git(["branch", "--show-current"], in: root)?.trimmingCharacters(in: .whitespacesAndNewlines)
         return result
     }
@@ -179,30 +184,47 @@ enum FilesListing {
         guard let prefix = git(["rev-parse", "--show-prefix"], in: root) else { return nil }
         var result = Result()
         readChanges(into: &result, prefix: prefix, in: root)
-        return ChangeSummary(changes: result.changes, lines: result.lines)
+        return ChangeSummary(changes: result.changes, lines: result.lines, collapsed: result.collapsed)
     }
 
     /// The changes and their lines, relative to `root`.
     private static func readChanges(into result: inout Result, prefix: String, in root: String) {
         let prefixPath = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Status paths are relative to the repository; the tree is relative to `root`.
-        for (path, change) in GitChange.parse(porcelain: git(["status", "--porcelain=v1", "-z", "-uall"], in: root) ?? "")
+        // Status paths are relative to the repository; the tree is relative to `root`. Without
+        // `-uall`, a folder with nothing tracked in it is one `dir/` entry, found without reading
+        // what's inside. `readUntrackedFolders` then lists the small ones.
+        for (path, change) in GitChange.parse(porcelain: git(["status", "--porcelain=v1", "-z"], in: root) ?? "")
             where path.hasPrefix(prefixPath) {
-            result.changes[String(path.dropFirst(prefixPath.count))] = change
+            let relative = String(path.dropFirst(prefixPath.count))
+            // The project folder itself, untracked: its entry is `/`, not an empty path.
+            result.changes[relative.isEmpty && path.hasSuffix("/") ? "/" : relative] = change
         }
+        readUntrackedFolders(into: &result, in: root)
         // Staged and unstaged changes together, as `status` shows them. `--relative` gives paths
         // relative to `root`, like the tree's. A repository without commits has no HEAD: no counts.
         result.lines = LineCounts.parse(numstat: git(["diff", "--numstat", "-z", "--relative", "HEAD"], in: root) ?? "")
         countUntracked(&result, in: root)
     }
 
+    /// Swaps each untracked folder's `dir/` entry for its files, or for one entry when it holds
+    /// too many (`UntrackedFolder.limit`). `--literal-pathspecs`: a folder named `[a]` is not a pattern.
+    private static func readUntrackedFolders(into result: inout Result, in root: String) {
+        let folders = UntrackedFolder.paths(in: result.changes).map { path in
+            let listing = GitCommand.data(
+                ["--literal-pathspecs", "ls-files", "-o", "--exclude-standard", "-z", "--", path.isEmpty ? "." : path], in: root,
+            ) ?? Data()
+            return UntrackedFolder.read(path: path, lsFiles: listing)
+        }
+        result.collapsed = UntrackedFolder.merge(folders, into: &result.changes)
+    }
+
     /// `git diff` leaves untracked files out; every line of one is added. Bounded, since this
     /// runs every 5 seconds while the column is shown (and every 8 for the title strip's readout
-    /// while an agent works): files up to 512 KB, 4 MB in all.
+    /// while an agent works): files up to 512 KB, 4 MB in all. A collapsed folder is not read.
     private static func countUntracked(_ result: inout Result, in root: String) {
         var budget = 4 << 20
         let base = URL(filePath: root, directoryHint: .isDirectory)
-        for path in result.changes.filter({ $0.value == .untracked }).keys.sorted() {
+        for path in result.changes.filter({ $0.value == .untracked && result.collapsed[$0.key] == nil }).keys.sorted() {
             let url = base.appending(path: path)
             guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 512 << 10, size <= budget,
                   let data = try? Data(contentsOf: url)
@@ -377,7 +399,9 @@ struct FilesColumnView: View {
                     }
                     ForEach(model.rows) { row in
                         FilesTreeRow(row: row, expanded: model.expanded.contains(row.id), viewed: model.isViewed(row.id), style: style) {
-                            if row.node.isFolder {
+                            if row.node.unlisted != nil {
+                                // Too many files to list (UntrackedFolder): nothing to open.
+                            } else if row.node.isFolder {
                                 withAnimation(Motion.isReduced ? nil : .easeOut(duration: 0.18)) { model.toggle(row.id) }
                             } else {
                                 model.open(row.id)
@@ -484,47 +508,62 @@ private struct FilesChangeRow: View {
     @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8.scaled) {
-                Text(change.change.rawValue)
-                    .calmFont(size: 10.5, weight: .medium, design: .monospaced)
-                    .foregroundStyle(change.change == .deleted ? style.failure : style.secondary)
-                    .frame(width: 18.scaled, height: 18.scaled)
-                    .background(RoundedRectangle(cornerRadius: 5.scaled, style: .continuous)
-                        .fill(style.primary.opacity(viewed ? 0.09 : 0.055)))
-                Text(change.name)
-                    .calmFont(size: 13.5, weight: viewed ? .medium : nil)
-                    .foregroundStyle(style.primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .layoutPriority(1)
-                if !change.folderName.isEmpty {
-                    // Whole or not at all, after the file's name: cut down it read as stray
-                    // letters. The full path is the row's tooltip.
-                    ViewThatFits(in: .horizontal) {
-                        Text(change.folderName)
-                            .calmFont(size: 11.5)
-                            .foregroundStyle(style.tertiary)
-                            .lineLimit(1)
-                            .fixedSize()
-                        Color.clear.frame(width: 0, height: 0)
-                    }
-                }
-                Spacer(minLength: 4.scaled)
-                if let lines = change.lines {
-                    LineCountsLabel(lines: lines, size: 11, style: style)
+        if change.files == nil {
+            Button(action: action) { content }
+                .buttonStyle(.plain)
+                .onHover { hovering = $0 }
+                .help(change.path)
+                .accessibilityLabel(label)
+        } else {
+            // An untracked folder with too many files to list (UntrackedFolder) stands for all of
+            // them: nothing to open, so it is not a button and has no hover.
+            content
+                .help(change.path)
+                .accessibilityLabel(label)
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: 8.scaled) {
+            Text(change.change.rawValue)
+                .calmFont(size: 10.5, weight: .medium, design: .monospaced)
+                .foregroundStyle(change.change == .deleted ? style.failure : style.secondary)
+                .frame(width: 18.scaled, height: 18.scaled)
+                .background(RoundedRectangle(cornerRadius: 5.scaled, style: .continuous)
+                    .fill(style.primary.opacity(viewed ? 0.09 : 0.055)))
+            Text(change.name)
+                .calmFont(size: 13.5, weight: viewed ? .medium : nil)
+                .foregroundStyle(style.primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .layoutPriority(1)
+            if !change.folderName.isEmpty {
+                // Whole or not at all, after the file's name: cut down it read as stray
+                // letters. The full path is the row's tooltip.
+                ViewThatFits(in: .horizontal) {
+                    Text(change.folderName)
+                        .calmFont(size: 11.5)
+                        .foregroundStyle(style.tertiary)
+                        .lineLimit(1)
+                        .fixedSize()
+                    Color.clear.frame(width: 0, height: 0)
                 }
             }
-            .padding(.horizontal, 8.scaled)
-            .frame(height: 30.scaled)
-            .background(FilesRowBackground(viewed: viewed, hovering: hovering, style: style))
-            .contentShape(Rectangle())
-            .padding(.horizontal, 8.scaled)
+            Spacer(minLength: 4.scaled)
+            if let files = change.files {
+                Text("\(files.formatted()) files")
+                    .calmFont(size: 11)
+                    .foregroundStyle(style.tertiary)
+                    .fixedSize()
+            } else if let lines = change.lines {
+                LineCountsLabel(lines: lines, size: 11, style: style)
+            }
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .help(change.path)
-        .accessibilityLabel(label)
+        .padding(.horizontal, 8.scaled)
+        .frame(height: 30.scaled)
+        .background(FilesRowBackground(viewed: viewed, hovering: hovering, style: style))
+        .contentShape(Rectangle())
+        .padding(.horizontal, 8.scaled)
     }
 
     private var label: String {
@@ -532,6 +571,7 @@ private struct FilesChangeRow: View {
             change.name,
             change.folder.isEmpty ? nil : "in \(change.folder)",
             change.change.spoken,
+            change.files.map { "\($0) files" },
             change.lines.map(LineCountsLabel.spoken),
         ]
         return parts.compactMap(\.self).joined(separator: ", ")
@@ -554,7 +594,7 @@ private struct FilesTreeRow: View {
                 // A ZStack rather than a Group: a file's gutter is empty, and a frame on an empty
                 // Group has nothing to apply to, so a file's name sat left of its sibling folders'.
                 ZStack {
-                    if node.isFolder {
+                    if node.isFolder, node.unlisted == nil {
                         Image(systemName: "chevron.down")
                             .calmFont(size: 9, weight: .medium)
                             .rotationEffect(.degrees(expanded ? 0 : -90))
@@ -568,7 +608,12 @@ private struct FilesTreeRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 4.scaled)
-                if node.isFolder {
+                if let unlisted = node.unlisted {
+                    Text("\(unlisted.formatted()) files")
+                        .calmFont(size: 11)
+                        .foregroundStyle(style.tertiary)
+                        .fixedSize()
+                } else if node.isFolder {
                     if node.change != nil {
                         Circle().fill(style.tertiary).frame(width: 5.scaled, height: 5.scaled)
                     }
@@ -590,7 +635,7 @@ private struct FilesTreeRow: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .accessibilityLabel(label)
-        .accessibilityValue(node.isFolder ? (expanded ? "expanded" : "collapsed") : "")
+        .accessibilityValue(node.isFolder && node.unlisted == nil ? (expanded ? "expanded" : "collapsed") : "")
     }
 
     /// Changed files stand out, dotfiles step back.
@@ -604,7 +649,8 @@ private struct FilesTreeRow: View {
     private var label: String {
         let node = row.node
         let change = node.isFolder ? (node.change == nil ? nil : "has changes") : node.change?.spoken
-        return [node.name, node.isFolder ? "folder" : nil, change].compactMap(\.self).joined(separator: ", ")
+        let unlisted = node.unlisted.map { "untracked, \($0) files not listed" }
+        return [node.name, node.isFolder ? "folder" : nil, unlisted ?? change].compactMap(\.self).joined(separator: ", ")
     }
 }
 

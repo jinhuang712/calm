@@ -45,7 +45,8 @@ extension MainWindowController {
         refocus()
     }
 
-    /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session.
+    /// Goes to the session if it's open; otherwise resumes it in its folder, in a new session, with
+    /// ⌘N's options: the agents' history doesn't say how a conversation was started.
     /// A conversation whose transcript the agent deleted can't be resumed: it gets a plain new
     /// session in its folder.
     func openSearchResult(_ item: SearchPanelModel.Item) {
@@ -55,8 +56,13 @@ extension MainWindowController {
             return
         }
         let result = item.result
+        let conversation = AgentConversation(
+            kind: result.agent,
+            agentSessionID: result.agentSessionID,
+            transcriptPath: result.transcriptPath,
+        )
         let command = result.transcriptDeleted ? nil : Agents.adapter(for: result.agent)?
-            .resumeCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath)
+            .resumeCommand(for: conversation, settings: manager.settings)
         guard command != nil || result.transcriptDeleted else { return }
         var directory = FileManager.default.homeDirectoryForCurrentUser.path
         if let folder = result.directory, FileManager.default.fileExists(atPath: folder) {

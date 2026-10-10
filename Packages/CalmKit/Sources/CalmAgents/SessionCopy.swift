@@ -23,7 +23,8 @@ public enum SessionCopy: Sendable, CaseIterable {
         }
     }
 
-    public func text(for session: Session) -> String? {
+    /// `settings` give the resume command ⌘N's options where Calm didn't see how the agent was started.
+    public func text(for session: Session, settings: CalmSettings) -> String? {
         switch self {
         case .sessionID:
             guard let conversation = session.conversation else { return nil }
@@ -36,7 +37,7 @@ public enum SessionCopy: Sendable, CaseIterable {
             return id.isEmpty ? nil : id
         case .resumeCommand:
             guard let conversation = session.conversation else { return nil }
-            return Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation)
+            return Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation, settings: settings)
         case .folderPath:
             // A scratch session's folder is Calm's business and never shown.
             return session.isScratch ? nil : session.workingDirectory

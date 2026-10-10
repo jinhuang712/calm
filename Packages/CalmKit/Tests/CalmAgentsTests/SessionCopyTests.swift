@@ -21,43 +21,49 @@ struct SessionCopyTests {
 
     @Test func `a running agent gives its id and the command that resumes it`() {
         let session = session(agent: run(.claudeCode, id: "abc-123"))
-        #expect(SessionCopy.sessionID.text(for: session) == "abc-123")
-        #expect(SessionCopy.resumeCommand.text(for: session) == "claude --resume 'abc-123'")
+        #expect(SessionCopy.sessionID.text(for: session, settings: CalmSettings()) == "abc-123")
+        #expect(SessionCopy.resumeCommand.text(for: session, settings: CalmSettings()) == "claude --resume 'abc-123'")
     }
 
     @Test func `the copied command starts the agent the way it was started`() {
         var running = run(.claudeCode, id: "abc-123")
         running.options = ["--dangerously-skip-permissions"]
-        #expect(SessionCopy.resumeCommand.text(for: session(agent: running)) == "claude --dangerously-skip-permissions --resume 'abc-123'")
+        let none = CalmSettings()
+        #expect(SessionCopy.resumeCommand.text(for: session(agent: running), settings: none)
+            == "claude --dangerously-skip-permissions --resume 'abc-123'")
+        // Started without it: ⌘N's Skip permissions isn't added.
+        running.options = []
+        let skip = CalmSettings(text: "[agents.claude-code]\nskip-permissions = true\n")
+        #expect(SessionCopy.resumeCommand.text(for: session(agent: running), settings: skip) == "claude --resume 'abc-123'")
     }
 
     @Test func `an ended conversation can still be copied`() {
         let last = AgentConversation(kind: .codex, agentSessionID: "019a", transcriptPath: nil)
         let session = session(last: last)
-        #expect(SessionCopy.sessionID.text(for: session) == "019a")
-        #expect(SessionCopy.resumeCommand.text(for: session) == "codex resume '019a'")
+        #expect(SessionCopy.sessionID.text(for: session, settings: CalmSettings()) == "019a")
+        #expect(SessionCopy.resumeCommand.text(for: session, settings: CalmSettings()) == "codex resume '019a'")
     }
 
     @Test func `claude's id comes from its transcript's name when the hook gave none`() {
         let session = session(agent: run(.claudeCode, id: nil, transcript: "/x/def-456.jsonl"))
-        #expect(SessionCopy.sessionID.text(for: session) == "def-456")
-        #expect(SessionCopy.resumeCommand.text(for: session) == "claude --resume 'def-456'")
+        #expect(SessionCopy.sessionID.text(for: session, settings: CalmSettings()) == "def-456")
+        #expect(SessionCopy.resumeCommand.text(for: session, settings: CalmSettings()) == "claude --resume 'def-456'")
     }
 
     @Test func `a shell with no agent has no id or command`() {
         let session = session()
-        #expect(SessionCopy.sessionID.text(for: session) == nil)
-        #expect(SessionCopy.resumeCommand.text(for: session) == nil)
-        #expect(SessionCopy.folderPath.text(for: session) == "/Users/ada/dev/calm")
+        #expect(SessionCopy.sessionID.text(for: session, settings: CalmSettings()) == nil)
+        #expect(SessionCopy.resumeCommand.text(for: session, settings: CalmSettings()) == nil)
+        #expect(SessionCopy.folderPath.text(for: session, settings: CalmSettings()) == "/Users/ada/dev/calm")
     }
 
     @Test func `codex without an id has nothing to copy`() {
         let session = session(agent: run(.codex, id: nil, transcript: "/x/rollout.jsonl"))
-        #expect(SessionCopy.sessionID.text(for: session) == nil)
-        #expect(SessionCopy.resumeCommand.text(for: session) == nil)
+        #expect(SessionCopy.sessionID.text(for: session, settings: CalmSettings()) == nil)
+        #expect(SessionCopy.resumeCommand.text(for: session, settings: CalmSettings()) == nil)
     }
 
     @Test func `a scratch session gives no folder`() {
-        #expect(SessionCopy.folderPath.text(for: session(scratch: true)) == nil)
+        #expect(SessionCopy.folderPath.text(for: session(scratch: true), settings: CalmSettings()) == nil)
     }
 }

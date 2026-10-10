@@ -14,15 +14,15 @@ extension MainWindowController {
         session.resumableConversation.flatMap(resumeCommand)
     }
 
-    /// With the options its agent was started with.
+    /// With the options its agent was started with, or ⌘N's where Calm didn't see them.
     static func resumeCommand(for conversation: AgentConversation) -> String? {
-        Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation)
+        Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation, settings: SessionManager.shared.settings)
     }
 
     /// The command that forks `session`'s conversation (running or ended), if its agent can.
     static func forkCommand(for session: Session) -> String? {
         guard let conversation = session.conversation else { return nil }
-        return Agents.adapter(for: conversation.kind)?.forkCommand(for: conversation)
+        return Agents.adapter(for: conversation.kind)?.forkCommand(for: conversation, settings: SessionManager.shared.settings)
     }
 
     /// The sidebar as it should look now. Everything it draws from that SwiftUI doesn't observe
@@ -101,7 +101,7 @@ extension MainWindowController {
 
     /// Puts what `copy` names for `id` on the pasteboard, with a quiet note by the pointer.
     func copy(_ copy: SessionCopy, of id: Session.ID) {
-        guard let session = manager.workspace.session(id), let text = copy.text(for: session) else { return }
+        guard let session = manager.workspace.session(id), let text = copy.text(for: session, settings: manager.settings) else { return }
         put(text, note: copy.copiedNote)
     }
 

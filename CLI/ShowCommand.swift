@@ -1,5 +1,6 @@
 import CalmAgents
 import CalmControl
+import CalmModel
 import CalmSearch
 import Foundation
 
@@ -69,8 +70,11 @@ enum ShowCommand {
             guard let progress = tail.progress else { return nil }
             return "\(progress.done)/\(progress.total)" + (tail.step.map { " · \($0)" } ?? "")
         }
-        // A conversation that can still be resumed: its transcript is there.
+        // A conversation that can still be resumed: its transcript is there. With ⌘N's options, as
+        // ⌘K resumes it: the transcript doesn't say how the agent was started.
         let resumable = !result.transcriptDeleted && !conversation.fromHistory
+        let found = AgentConversation(kind: result.agent, agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath)
+        let settings = CalmSettings.load()
         var report = ConversationReport(
             id: result.agentSessionID ?? "",
             title: result.title,
@@ -82,8 +86,8 @@ enum ShowCommand {
             // The agent's own summary only: the start of its last reply would repeat Last reply.
             recap: tail?.summary,
             tasks: tasks,
-            resume: resumable ? adapter?.resumeCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath) : nil,
-            fork: resumable ? adapter?.forkCommand(agentSessionID: result.agentSessionID, transcriptPath: result.transcriptPath) : nil,
+            resume: resumable ? adapter?.resumeCommand(for: found, settings: settings) : nil,
+            fork: resumable ? adapter?.forkCommand(for: found, settings: settings) : nil,
             transcript: result.transcriptPath,
             transcriptGone: result.transcriptDeleted,
             fromHistory: conversation.fromHistory,

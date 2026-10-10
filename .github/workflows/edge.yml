@@ -120,7 +120,7 @@ jobs:
         run: |
           notes="$RUNNER_TEMP/edge-notes.md"
           {
-            echo "The newest build of \`main\`, made after its CI passed. It is not a release: it has no version of its own, it changes with every push to \`main\`, and it can be rough. The releases are the ones below it."
+            echo "The newest build of \`main\`, made after its CI passed. It is not a release: it has no version of its own, it changes with every push to \`main\`, and it can be rough. The releases are the ones tagged vX.Y.Z."
             echo
             echo "commit: $SHA"
             echo

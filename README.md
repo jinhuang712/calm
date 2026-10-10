@@ -29,7 +29,7 @@ Calm needs macOS 26 on Apple silicon.
 curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
 ```
 
-[`get.sh`](get.sh) downloads the newest release's disk image, puts Calm in Applications, takes macOS's download mark off (Calm isn't signed by Apple yet, so macOS won't open it with the mark on), and links the `calm` command into `~/.local/bin`. Run it again to update; a running Calm keeps going on the old version until you choose Calm → Restart Calm (your shells keep running). `| bash -s -- --help` lists its options: a version, another folder, no `calm` link.
+[`get.sh`](get.sh) downloads the newest release's disk image, puts Calm in Applications, takes macOS's download mark off (Calm isn't signed by Apple yet, so macOS won't open it with the mark on), and links the `calm` command into `~/.local/bin`. Run it again to update; a running Calm keeps going on the old version until you choose Calm → Restart Calm (your shells keep running). `| bash -s -- --help` lists its options: a version, the newest build of `main` (below), another folder, no `calm` link.
 
 ### Homebrew
 
@@ -58,6 +58,16 @@ To update, run `brew upgrade --cask calm`, the `xattr` line again, and Calm → 
    ```
 
 To update, quit Calm (your shells keep running), drag the new version over the old one, run the `xattr` line again, and open Calm.
+
+### The newest build of `main`
+
+To try what isn't released yet, on a Mac that has no Xcode to build with:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash -s -- --edge
+```
+
+CI builds every commit of `main` once its tests pass and keeps the newest as the `edge` [pre-release](https://github.com/jinhuang712/calm/releases/tag/edge); `--edge` installs it the way the one line installs a release (the same steps, the same restart). It is not a release: it has no version of its own (the app says what the last release says), it changes with every push to `main`, and it can be rough. Run it again for the next build. The update notice never offers it, and the one line without `--edge` still installs the newest release.
 
 ### Build from source
 

@@ -26,17 +26,22 @@ jobs:
 
       - name: Install
         run: |
+          set -o pipefail
           if [[ "$GITHUB_EVENT_NAME" == push ]]; then
-            bash < get.sh
+            bash < get.sh | tee "$RUNNER_TEMP/get.txt"
           else
-            curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/get.sh" | bash
+            curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/get.sh" | bash | tee "$RUNNER_TEMP/get.txt"
           fi
 
       - name: Check
         run: |
           app=/Applications/Calm.app
-          version="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName')"
+          # The newest vX.Y.Z release. The `edge` pre-release (edge.yml) comes newer than the
+          # releases, and get.sh must not install it unasked: the line it prints names what it
+          # downloaded, and that must be the release, not edge.
+          version="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 30 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0].tagName')"
           version="${version#v}"
+          grep -q "Downloading Calm $version$" "$RUNNER_TEMP/get.txt"
           if /usr/bin/xattr -r -l "$app" | grep -q com.apple.quarantine; then
             echo "::error::get.sh left a download mark on Calm.app"
             exit 1

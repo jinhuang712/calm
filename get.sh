@@ -3,8 +3,10 @@
 # with macOS's download mark taken off, and the `calm` command linked into ~/.local/bin.
 #   curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
 #   curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash -s -- --version 0.1.0
-# Options: --version X.Y.Z (default: the newest release), --dir <folder> (default /Applications),
-# --bin-dir <folder> (default ~/.local/bin), --no-cli (no `calm` link).
+#   curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash -s -- --edge
+# Options: --version X.Y.Z (default: the newest release), --edge (the newest build of main, which
+# CI keeps as the `edge` pre-release: not a release, and can be rough), --dir <folder> (default
+# /Applications), --bin-dir <folder> (default ~/.local/bin), --no-cli (no `calm` link).
 # To build Calm from this checkout instead, run ./install.sh. A running Calm isn't quit (your
 # shells live on in it); restart it afterwards, as ./install.sh says too.
 #
@@ -21,6 +23,7 @@ usage() {
 Installs Calm Terminal from its newest GitHub release into /Applications.
   curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash -s -- [options]
   --version X.Y.Z   that release instead of the newest
+  --edge            the newest build of main instead (not a release; it can be rough)
   --dir <folder>    install the app there instead of /Applications
   --bin-dir <dir>   link `calm` there instead of ~/.local/bin
   --no-cli          don't link `calm`
@@ -44,10 +47,11 @@ github() {
 }
 
 main() {
-  local version="" app_dir="/Applications" bin_dir="$HOME/.local/bin" link_cli=1
+  local version="" edge=0 app_dir="/Applications" bin_dir="$HOME/.local/bin" link_cli=1
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --version) version="${2:?--version needs a version, like 0.1.0}"; version="${version#v}"; shift 2 ;;
+      --edge) edge=1; shift ;;
       --dir) app_dir="${2:?--dir needs a folder}"; shift 2 ;;
       --bin-dir) bin_dir="${2:?--bin-dir needs a folder}"; shift 2 ;;
       --no-cli) link_cli=0; shift ;;
@@ -56,6 +60,10 @@ main() {
     esac
   done
 
+  if [[ $edge -eq 1 && -n "$version" ]]; then
+    echo "get.sh: --edge and --version don't go together" >&2
+    exit 64
+  fi
   [[ "$(uname -s)" == Darwin ]] || fail "Calm is a macOS app."
   [[ "$(uname -m)" == arm64 ]] || fail "Calm needs a Mac with Apple silicon."
   local macos
@@ -70,24 +78,34 @@ main() {
     fi
   done
 
-  # The newest release, pre-releases included (Calm's are, before 1.0), or the one asked for.
-  local api="https://api.github.com/repos/$repo/releases" release
-  if [[ -n "$version" ]]; then
+  # The newest release, pre-releases included (Calm's are, before 1.0), or the one asked for. Only
+  # a tag written vX.Y.Z is a release: the `edge` pre-release, which CI moves to each new build of
+  # main, is skipped here and installed only by --edge.
+  local api="https://api.github.com/repos/$repo/releases" release commit="" label
+  if [[ $edge -eq 1 ]]; then
+    release="$(github "$api/tags/edge")" || fail "Calm has no edge build yet."
+    # The notes carry the build's commit on a line of its own (edge.yml).
+    commit="$(jq -r '(.body // "") | gsub("\r"; "") | split("\n") | map(select(test("^commit: [0-9a-f]{40}$"))) | .[0] // "" | ltrimstr("commit: ")' <<<"$release")"
+  elif [[ -n "$version" ]]; then
     release="$(github "$api/tags/v$version")" || fail "GitHub has no release v$version of Calm."
   else
-    release="$(github "$api?per_page=5")" || fail "couldn't ask GitHub for Calm's releases."
-    release="$(jq '[.[] | select(.draft | not)][0] // empty' <<<"$release")"
+    release="$(github "$api?per_page=10")" || fail "couldn't ask GitHub for Calm's releases."
+    release="$(jq '[.[] | select(.draft | not) | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // empty' <<<"$release")"
     [[ -n "$release" ]] || fail "Calm has no release yet."
   fi
   version="$(jq -r '.tag_name | ltrimstr("v")' <<<"$release")"
+  label="$version"
+  if [[ $edge -eq 1 ]]; then
+    label="edge build${commit:+ ${commit:0:7}}"
+  fi
   local name="Calm-$version.dmg" url digest
   url="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .browser_download_url' <<<"$release")"
   digest="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | .digest // empty' <<<"$release")"
-  [[ -n "$url" ]] || fail "release v$version has no $name."
+  [[ -n "$url" ]] || fail "the $(jq -r .tag_name <<<"$release") release has no $name."
 
   work="$(mktemp -d -t calm-get)"
   trap cleanup EXIT
-  step "Downloading Calm $version"
+  step "Downloading Calm $label"
   curl -fL --progress-bar -o "$work/$name" "$url"
   if [[ "$digest" == sha256:* && "$(shasum -a 256 "$work/$name" | cut -d' ' -f1)" != "${digest#sha256:}" ]]; then
     fail "the download doesn't match the release's checksum; nothing was installed."
@@ -140,9 +158,9 @@ main() {
   fi
 
   if [[ -n "$was" && "$was" != "$version" ]]; then
-    step "Calm $was → $version installed."
+    step "Calm $was → $label installed."
   else
-    step "Calm $version installed."
+    step "Calm $label installed."
   fi
   if [[ $running -eq 1 ]]; then
     step "Restart Calm soon (Calm → Restart Calm): until then the running one is out of date, and its shells can lose access to Documents, Desktop and Downloads."

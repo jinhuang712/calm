@@ -1,0 +1,167 @@
+name: Edge
+
+# Builds Calm from main once its CI has passed and keeps the result as one pre-release tagged
+# `edge`, with Calm-edge.dmg attached: the newest commit of main, for a Mac that has no Xcode to
+# build with. `get.sh --edge` installs it (README → Install). It is not a release: it has no
+# version of its own (the app says what project.yml says), the tag moves to each new build, and
+# CHANGELOG.md doesn't describe it. Calm's update notice and get.sh's default skip it, since its
+# tag isn't vX.Y.Z.
+# The build is the one install.sh makes, with the engine from CI's cache (a miss builds it, as a
+# release does), and the disk image gets release.yml's checks (scripts/disk-image.sh). The tests
+# already ran in CI on this commit, so they don't run again. Last it installs what it published,
+# the way get.sh does for a user.
+# Run by hand (workflow_dispatch) on a branch it is a dry run: everything but the publishing,
+# with the disk image kept as the run's artifact for a week.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One build at a time, in the order of the pushes: a build waiting while another runs is replaced
+# by the newest one, and one that has started is never cut short in the middle of publishing.
+concurrency:
+  group: edge
+  cancel-in-progress: false
+
+jobs:
+  edge:
+    # workflow_run starts this for every CI run on main, red ones too.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      # The commit CI passed on, which can be older than main by now (a newer one is queued).
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+
+      - name: Version
+        id: version
+        run: |
+          version="$(sed -n 's/^ *CFBundleShortVersionString: "\(.*\)"$/\1/p' project.yml)"
+          [[ -n "$version" ]] || { echo "::error::project.yml has no CFBundleShortVersionString"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short=7 "$SHA")" >> "$GITHUB_OUTPUT"
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      # CI's engine cache (same key as ci.yml: keep them equal). Restored only: CI saves it after
+      # every build of the engine, and a miss here costs the 9-minute build, as it does a release.
+      - name: Restore GhosttyKit cache
+        id: ghosttykit-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Caches/calm/ghostty
+          key: ghosttykit-${{ runner.os }}-${{ hashFiles('scripts/ghostty.env', 'scripts/ghosttykit.sh', 'scripts/ghostty-deps.py', 'scripts/ghostty-patches/*.patch', 'mise.toml') }}
+
+      - name: Install Metal toolchain
+        if: steps.ghosttykit-cache.outputs.cache-hit != 'true'
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      - name: Install (Release)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ./install.sh --dir "$RUNNER_TEMP/Applications" --no-cli
+          app="$RUNNER_TEMP/Applications/Calm.app"
+          built="$(defaults read "$app/Contents/Info" CFBundleShortVersionString)"
+          cli="$("$app/Contents/Resources/bin/calm" --version)"
+          if [[ "$built" != "$VERSION" || "$cli" != "calm $VERSION" ]]; then
+            echo "::error::the installed app says $built and its calm says '$cli', not $VERSION"
+            exit 1
+          fi
+
+      - name: Disk image
+        id: dmg
+        env:
+          SHORT: ${{ steps.version.outputs.short }}
+        run: |
+          dmg="$RUNNER_TEMP/Calm-edge.dmg"
+          scripts/disk-image.sh make "$RUNNER_TEMP/Applications/Calm.app" "Calm edge $SHORT" "$dmg"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          { echo "Calm-edge.dmg of $SHORT, SHA-256:"; shasum -a 256 "$dmg" | cut -d' ' -f1; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check the disk image
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DMG: ${{ steps.dmg.outputs.dmg }}
+        run: scripts/disk-image.sh check "$DMG" "$VERSION"
+
+      - name: Keep the disk image
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Calm-edge-${{ steps.version.outputs.short }}-dmg
+          path: ${{ steps.dmg.outputs.dmg }}
+          retention-days: 7
+
+      # The notes carry the commit on a line of its own: get.sh reads it to say which build it
+      # installed. The disk image goes up first, then the notes, then the tag moves, so a reader
+      # between two of them sees a build and the notes of the one before, never a tag with no
+      # disk image.
+      - name: Publish
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHORT: ${{ steps.version.outputs.short }}
+          DMG: ${{ steps.dmg.outputs.dmg }}
+        run: |
+          notes="$RUNNER_TEMP/edge-notes.md"
+          {
+            echo "The newest build of \`main\`, made after its CI passed. It is not a release: it has no version of its own, it changes with every push to \`main\`, and it can be rough. The releases are the ones below it."
+            echo
+            echo "commit: $SHA"
+            echo
+            git log -1 --format=%s "$SHA"
+            echo
+            echo "Install it, on a Mac with or without Xcode:"
+            echo
+            echo '```sh'
+            echo "curl -fsSL https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/get.sh | bash -s -- --edge"
+            echo '```'
+          } > "$notes"
+          title="Calm Terminal edge ($SHORT)"
+          if gh release view edge >/dev/null 2>&1; then
+            gh release upload edge "$DMG" --clobber
+            gh release edit edge --title "$title" --notes-file "$notes" --prerelease
+            git tag -f edge "$SHA"
+            git push --force origin refs/tags/edge
+          else
+            git tag -f edge "$SHA"
+            git push --force origin refs/tags/edge
+            gh release create edge --verify-tag --prerelease --title "$title" --notes-file "$notes" "$DMG"
+          fi
+
+      # What a user gets: get.sh --edge from this checkout (the raw file is cached for minutes)
+      # into a scratch folder, from the release just published. get.sh checks the disk image against
+      # GitHub's checksum, so this also proves what was uploaded is what was built.
+      - name: Install what was published
+        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHORT: ${{ steps.version.outputs.short }}
+        run: |
+          set -o pipefail
+          bash get.sh --edge --dir "$RUNNER_TEMP/Apps" --no-cli | tee "$RUNNER_TEMP/get.txt"
+          grep -q "edge build $SHORT" "$RUNNER_TEMP/get.txt"
+          app="$RUNNER_TEMP/Apps/Calm.app"
+          if /usr/bin/xattr -r -l "$app" | grep -q com.apple.quarantine; then
+            echo "::error::get.sh --edge left a download mark on Calm.app"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$app"
+          built="$(defaults read "$app/Contents/Info" CFBundleShortVersionString)"
+          [[ "$built" == "$VERSION" ]] || { echo "::error::the edge app says $built, not $VERSION"; exit 1; }

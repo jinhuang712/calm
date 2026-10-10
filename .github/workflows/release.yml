@@ -154,6 +154,18 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "Calm Terminal $VERSION" \
             --notes-file "$NOTES" "${prerelease[@]}" "$DMG"
 
+      # The edge build (edge.yml) says the version of the release before this one, so it goes, tag
+      # and all, and edge.yml builds the newest main again, which now follows this release.
+      - name: Replace the edge build
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view edge >/dev/null 2>&1; then
+            gh release delete edge --cleanup-tag --yes
+          fi
+          gh workflow run edge.yml --ref main
+
       # The Homebrew cask follows the release (homebrew.yml), and get.yml installs it the one-line
       # way on a clean runner. Started this way, they run; a push by this token wouldn't start them.
       - name: Homebrew and get.sh

@@ -15,6 +15,37 @@ struct ReleaseVersionTests {
         }
     }
 
+    @Test func `an edge build is the version it follows`() {
+        #expect(ReleaseVersion(runningBuild: "0.1.0") == ReleaseVersion("0.1.0"))
+        #expect(ReleaseVersion(runningBuild: "0.1.0-dc970ac") == ReleaseVersion("0.1.0"))
+        #expect(ReleaseVersion(runningBuild: "0.1.0-dc970ac261d2749515bcfd0ee446ef341a3f0c2f") == ReleaseVersion("0.1.0"))
+        #expect(ReleaseVersion(runningBuild: " 0.10.2-0123456\n") == ReleaseVersion("0.10.2"))
+    }
+
+    @Test func `only a commit makes a build suffix`() {
+        for text in [
+            "0.1.0-beta",
+            "0.1.0-",
+            "0.1.0-dc970a",
+            "0.1.0-DC970AC",
+            "0.1.0-dc970ac1-x",
+            "0.1.0-dc970ag",
+            "-dc970ac",
+            "1.2-dc970ac",
+            "0.1.0-" + String(repeating: "a", count: 41),
+        ] {
+            #expect(ReleaseVersion(runningBuild: text) == nil, "\(text) was read as a build")
+        }
+    }
+
+    @Test func `an edge build is offered the next release and not the one it follows`() throws {
+        let running = try #require(ReleaseVersion(runningBuild: "0.1.0-dc970ac"))
+        let same = try CalmRelease(version: #require(ReleaseVersion("0.1.0")), page: "")
+        let next = try CalmRelease(version: #require(ReleaseVersion("0.1.1")), page: "")
+        #expect(UpdateOffer.release(newest: same, running: running, skipped: nil) == nil)
+        #expect(UpdateOffer.release(newest: next, running: running, skipped: nil) == next)
+    }
+
     @Test func `versions compare by number, not by text`() throws {
         let versions = try ["0.9.0", "0.10.0", "0.10.1", "1.0.0", "0.2.0"].map { try #require(ReleaseVersion($0)) }
         #expect(versions.sorted().map(\.description) == ["0.2.0", "0.9.0", "0.10.0", "0.10.1", "1.0.0"])

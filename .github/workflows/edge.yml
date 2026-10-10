@@ -2,10 +2,12 @@ name: Edge
 
 # Builds Calm from main once its CI has passed and keeps the result as one pre-release tagged
 # `edge`, with Calm-edge.dmg attached: the newest commit of main, for a Mac that has no Xcode to
-# build with. `get.sh --edge` installs it (README → Install). It is not a release: it has no
-# version of its own (the app says what project.yml says), the tag moves to each new build, and
-# CHANGELOG.md doesn't describe it. Calm's update notice and get.sh's default skip it, since its
-# tag isn't vX.Y.Z.
+# build with. `get.sh --edge` installs it (README → Install). It is not a release: its version is
+# the last release's with the commit it was built from (0.1.0-dc970ac, stamped into the sources
+# before the build), the tag moves to each new build, and CHANGELOG.md doesn't describe it. Calm's
+# update notice reads that version as the release it follows, and get.sh's default skips the
+# build, since its tag isn't vX.Y.Z. release.yml removes the `edge` release when a new release
+# is published and starts this workflow again, so no build of an older version stays.
 # The build is the one install.sh makes, with the engine from CI's cache (a miss builds it, as a
 # release does), and the disk image gets release.yml's checks (scripts/disk-image.sh). The tests
 # already ran in CI on this commit, so they don't run again. Last it installs what it published,
@@ -44,13 +46,32 @@ jobs:
           ref: ${{ env.SHA }}
           fetch-depth: 0
 
+      # The version the build says: the last release's, then the commit. project.yml still says
+      # the release's version, because a release bumps it and nothing between releases does.
       - name: Version
         id: version
         run: |
-          version="$(sed -n 's/^ *CFBundleShortVersionString: "\(.*\)"$/\1/p' project.yml)"
-          [[ -n "$version" ]] || { echo "::error::project.yml has no CFBundleShortVersionString"; exit 1; }
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "short=$(git rev-parse --short=7 "$SHA")" >> "$GITHUB_OUTPUT"
+          base="$(sed -n 's/^ *CFBundleShortVersionString: "\(.*\)"$/\1/p' project.yml)"
+          [[ "$base" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::project.yml says '$base', not a version like 0.1.0"; exit 1; }
+          short="$(git rev-parse --short=7 "$SHA")"
+          { echo "base=$base"; echo "short=$short"; echo "version=$base-$short"; } >> "$GITHUB_OUTPUT"
+
+      # In the two places the version is written (DESIGNS.md → Distribution), on this runner's
+      # copy only: the app's Info.plist is generated from project.yml, and `calm --version` is
+      # the constant in CLI/main.swift. Stamped before the build, so the app is signed once, as
+      # built. The tests (VersionTests) ran in CI on the commit as it is.
+      - name: Stamp the version
+        env:
+          BASE: ${{ steps.version.outputs.base }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i '' "s/^\( *CFBundleShortVersionString: \)\"$BASE\"$/\1\"$VERSION\"/" project.yml
+          sed -i '' "s/^let version = \"$BASE\"$/let version = \"$VERSION\"/" CLI/main.swift
+          git diff --stat -- project.yml CLI/main.swift
+          if [[ "$(git diff --numstat -- project.yml CLI/main.swift | wc -l | tr -d ' ')" != 2 ]]; then
+            echo "::error::project.yml and CLI/main.swift didn't both say $BASE"
+            exit 1
+          fi
 
       - uses: jdx/mise-action@v2
         with:
@@ -115,12 +136,12 @@ jobs:
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-          SHORT: ${{ steps.version.outputs.short }}
+          VERSION: ${{ steps.version.outputs.version }}
           DMG: ${{ steps.dmg.outputs.dmg }}
         run: |
           notes="$RUNNER_TEMP/edge-notes.md"
           {
-            echo "The newest build of \`main\`, made after its CI passed. It is not a release: it has no version of its own, it changes with every push to \`main\`, and it can be rough. The releases are the ones tagged vX.Y.Z."
+            echo "The newest build of \`main\`, made after its CI passed. It is not a release: its version is the last release's with the commit it was built from, it changes with every push to \`main\`, and it can be rough. The releases are the ones tagged vX.Y.Z."
             echo
             echo "commit: $SHA"
             echo
@@ -132,7 +153,7 @@ jobs:
             echo "curl -fsSL https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/get.sh | bash -s -- --edge"
             echo '```'
           } > "$notes"
-          title="Calm Terminal edge ($SHORT)"
+          title="Calm Terminal $VERSION (edge)"
           if gh release view edge >/dev/null 2>&1; then
             gh release upload edge "$DMG" --clobber
             gh release edit edge --title "$title" --notes-file "$notes" --prerelease

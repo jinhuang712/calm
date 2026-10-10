@@ -22,6 +22,23 @@ public struct ReleaseVersion: Comparable, Hashable, Sendable, CustomStringConver
         (major, minor, patch) = (numbers[0], numbers[1], numbers[2])
     }
 
+    /// The version a running build says it is: `0.1.0`, or `0.1.0-dc970ac` for an edge build (CI's
+    /// build of the newest `main`: the last release's version and the commit it was built from).
+    /// An edge build counts as the version it follows, so it is offered the next release and not
+    /// the one it is already past. Any other suffix (`-beta`) is not a build of Calm's: nil.
+    public init?(runningBuild text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let dash = trimmed.firstIndex(of: "-") else {
+            self.init(trimmed)
+            return
+        }
+        let commit = trimmed[trimmed.index(after: dash)...]
+        guard (7 ... 40).contains(commit.count), commit.allSatisfy({ $0.isASCII && $0.isHexDigit && !$0.isUppercase }) else {
+            return nil
+        }
+        self.init(String(trimmed[..<dash]))
+    }
+
     public static func < (lhs: Self, rhs: Self) -> Bool {
         (lhs.major, lhs.minor, lhs.patch) < (rhs.major, rhs.minor, rhs.patch)
     }

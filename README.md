@@ -67,7 +67,7 @@ To try what isn't released yet, on a Mac that has no Xcode to build with:
 curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash -s -- --edge
 ```
 
-CI builds every commit of `main` once its tests pass and keeps the newest as the `edge` [pre-release](https://github.com/jinhuang712/calm/releases/tag/edge); `--edge` installs it the way the one line installs a release (the same steps, the same restart). It is not a release: it has no version of its own (the app says what the last release says), it changes with every push to `main`, and it can be rough. Run it again for the next build. The update notice never offers it, and the one line without `--edge` still installs the newest release.
+CI builds every commit of `main` once its tests pass and keeps the newest as the `edge` [pre-release](https://github.com/jinhuang712/calm/releases/tag/edge); `--edge` installs it the way the one line installs a release (the same steps, the same restart). It is not a release: its version is the last release's with the commit it was built from (`0.1.0-dc970ac`, which Calm → Diagnostics and `calm --version` show), it changes with every push to `main`, and it can be rough. Run it again for the next build. The update notice counts it as the release it follows, so it tells you about the next release and never about the one you are already past, and the one line without `--edge` still installs the newest release. When a release comes out, the edge build is replaced by one of the new version.
 
 ### Build from source
 

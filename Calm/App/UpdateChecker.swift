@@ -78,9 +78,9 @@ final class UpdateChecker {
 
     // MARK: Where it looks
 
-    /// The version in the app's own Info.plist.
+    /// The version in the app's own Info.plist: an edge build's `0.1.0-dc970ac` reads as `0.1.0`.
     nonisolated static var bundleVersion: ReleaseVersion? {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String).flatMap(ReleaseVersion.init)
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String).flatMap { ReleaseVersion(runningBuild: $0) }
     }
 
     /// `CALM_UPDATE_FEED` points a test at a file or a local server, which runs the real path
@@ -210,10 +210,10 @@ final class UpdateChecker {
 
     private func currentOffer() -> CalmRelease? {
         guard let running else { return nil }
-        let newest = defaults.string(forKey: Key.latestVersion).flatMap(ReleaseVersion.init).map {
+        let newest = defaults.string(forKey: Key.latestVersion).flatMap { ReleaseVersion($0) }.map {
             CalmRelease(version: $0, page: defaults.string(forKey: Key.latestPage) ?? "")
         }
-        let skipped = defaults.string(forKey: Key.skipped).flatMap(ReleaseVersion.init)
+        let skipped = defaults.string(forKey: Key.skipped).flatMap { ReleaseVersion($0) }
         return UpdateOffer.release(newest: newest, running: running, skipped: skipped)
     }
 

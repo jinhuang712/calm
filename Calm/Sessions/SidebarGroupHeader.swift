@@ -16,7 +16,11 @@ struct SidebarGroupHeader: View {
     let actions: SidebarActions
     let toggleCollapsed: () -> Void
     let shuffleMark: () -> Void
+    /// A project's header drags the project to another place among them; nil for one that can't move.
+    var drag: HeaderDrag?
     @State private var hovering = false
+    /// Reset when the drag ends and when it's cancelled (onEnded hears only the first).
+    @GestureState private var dragging = false
 
     private var opensHome: Bool {
         project.kind == .project
@@ -25,6 +29,10 @@ struct SidebarGroupHeader: View {
     var body: some View {
         let tinted = project.isCollapsed && summary.needsYou
         Button {
+            // Letting go of a drag is no click, even if the button hears the release.
+            if drag?.isActive() == true {
+                return
+            }
             if opensHome {
                 actions.showProjectHome(project.id)
             } else {
@@ -70,6 +78,29 @@ struct SidebarGroupHeader: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // Over the button's own click, so a drag that starts on the bar (or its chevron or mark)
+        // moves the project instead; a press that doesn't move 4 points is still a click. Before
+        // the overlay, so the hover controls never start one.
+        .highPriorityGesture(reorder, including: drag == nil ? .subviews : .all)
+        .onChange(of: dragging) { _, active in
+            if !active {
+                drag?.ended()
+            }
+        }
+        // A header gone in the middle of its drag (its project removed) hears neither.
+        .onDisappear {
+            if drag?.isActive() == true {
+                drag?.ended()
+            }
+        }
+        .accessibilityActions {
+            if let moveUp = drag?.moveUp {
+                Button("Move Up", action: moveUp)
+            }
+            if let moveDown = drag?.moveDown {
+                Button("Move Down", action: moveDown)
+            }
+        }
         .help(help)
         .overlay(alignment: .trailing) {
             if hovering {
@@ -79,6 +110,15 @@ struct SidebarGroupHeader: View {
         .onHover { hovering = $0 }
         .contextMenu { menu }
         .accessibilityAddTraits(isHome ? .isSelected : [])
+    }
+
+    /// The drag that moves a project among the others (UIUX.md → Layout), followed in the list's
+    /// visible part, which stays put while the header moves with the pointer.
+    private var reorder: some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .named(SidebarView.viewportSpace))
+            .updating($dragging) { _, active, _ in active = true }
+            .onChanged { value in drag?.changed(value.translation.height, value.location.y) }
+            .onEnded { _ in drag?.ended() }
     }
 
     /// A shell row's *needs you* tint, so folding a group never hides one; the selection while the

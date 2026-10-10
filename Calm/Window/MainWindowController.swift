@@ -31,6 +31,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var filesColumn = FilesColumn { [weak self] path, fromChanges in self?.showFile(path, preferDiff: fromChanges) }
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()
+    /// A project dragged by its header in the sidebar (each peek makes its own).
+    let sidebarProjectDrag = ProjectDragModel()
     lazy var welcomePage = WelcomePage(container: container)
     lazy var noSessionPage = NoSessionPage(mainArea: mainArea)
     lazy var projectHomePage = ProjectHomePage(mainArea: mainArea)
@@ -140,7 +142,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         installTitle()
         container.layoutSubtreeIfNeeded()
         peek = SidebarPeek(container: container, width: Self.sidebarWidth) { [unowned self] in
-            NSHostingView(rootView: makeSidebar(style: sidebarStyle))
+            NSHostingView(rootView: makeSidebar(style: sidebarStyle, peek: true))
         }
     }
 

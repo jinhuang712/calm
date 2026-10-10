@@ -27,7 +27,9 @@ extension MainWindowController {
 
     /// The sidebar as it should look now. Everything it draws from that SwiftUI doesn't observe
     /// (the colors, the footer, the card size) goes in as a value, so a rebuilt sidebar redraws.
-    func makeSidebar(style: SidebarStyle) -> SidebarView {
+    /// The peek over the terminal is a sidebar of its own, built each time it shows, with a project
+    /// drag of its own, so nothing a peek scrolled to outlives it.
+    func makeSidebar(style: SidebarStyle, peek: Bool = false) -> SidebarView {
         SidebarView(
             manager: manager,
             style: style,
@@ -42,6 +44,7 @@ extension MainWindowController {
             editing: sidebarEditing,
             files: filesColumn.model,
             actions: sessionActions,
+            projectDrag: peek ? ProjectDragModel() : sidebarProjectDrag,
         )
     }
 

@@ -140,6 +140,8 @@ struct SidebarView: View {
     /// Observed: the footer's Files row reads Hide Files while the column is on screen.
     let files: FilesModel
     let actions: SidebarActions
+    /// A project dragged by its header (SidebarView+Reorder). The window's, so self-tests reach it.
+    let projectDrag: ProjectDragModel
     @State private var draftName = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var hoveredSessionID: Session.ID?
@@ -203,12 +205,14 @@ struct SidebarView: View {
 
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
-                VStack(alignment: .leading, spacing: 22.scaled) {
+                VStack(alignment: .leading, spacing: Self.groupSpacing) {
                     // Scratch sessions on top, then projects the user made, then directory groups.
                     ForEach(manager.workspace.orderedProjects) { project in
                         projectSection(project)
+                            .modifier(ReorderableSection(id: project.id, model: projectDrag, style: style))
                     }
                 }
+                .coordinateSpace(.named(Self.listSpace))
                 .padding(.horizontal, 12.scaled)
                 // No room of its own at the foot: the footer's handle strip, or the strip along the
                 // bottom edge when it's hidden, is the gap.
@@ -216,8 +220,17 @@ struct SidebarView: View {
                 .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownCardSize)
             }
             .scrollIndicators(.never)
+            .coordinateSpace(.named(Self.viewportSpace))
+            .scrollPosition(Bindable(projectDrag).scrollPosition)
             .onScrollGeometryChange(for: SidebarCardFit.Geometry.self, of: SidebarCardFit.Geometry.init) { _, geometry in
                 fitting.measured(geometry, manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
+            }
+            .onScrollGeometryChange(for: ProjectDragModel.Scroll.self) { geometry in
+                ProjectDragModel.Scroll(
+                    offset: geometry.contentOffset.y, visible: geometry.containerSize.height, content: geometry.contentSize.height,
+                )
+            } action: { _, scroll in
+                projectDrag.scrolled(scroll)
             }
             .onChange(of: cardSize) { refit() }
             .onChange(of: fitsCards) { refit() }
@@ -258,6 +271,7 @@ struct SidebarView: View {
                 agent: startAgents.chosen, actions: actions,
                 toggleCollapsed: { manager.toggleCollapsed(project.id) },
                 shuffleMark: { manager.shuffleMark(project.id) },
+                drag: headerDrag(for: project),
             )
 
             if !project.isCollapsed {

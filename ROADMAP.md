@@ -84,7 +84,7 @@ The core model arrives: sessions grouped under projects, restored after quitting
 - [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The windowed frame uses AppKit's autosave; a window left filling the screen, or in full screen, is remembered in `state.json` (AppKit's autosave doesn't record a filled one).
 - [x] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
 - [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested. *Revised after real use: projects you make, folder groups by git root or folder, and scratch sessions on top (FEATURES.md → F2).*
-- [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.)
+- [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.) *Added 2026-10-10: drag a project's header to reorder the projects (FEATURES.md → F2).*
 - [x] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
 - [x] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first). **Decided: zmx 0.8.1** (MIT), bundled; see DESIGNS.md → Persistence.
 - [x] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.

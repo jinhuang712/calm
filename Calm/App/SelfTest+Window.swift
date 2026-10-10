@@ -140,7 +140,7 @@
                 return true
             default:
                 return performPaletteActionForTesting(action) || performSplitActionForTesting(action)
-                    || performCompactionActionForTesting(action)
+                    || performCompactionActionForTesting(action) || performProjectActionForTesting(action)
             }
         }
 

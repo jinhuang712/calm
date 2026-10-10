@@ -12,6 +12,7 @@ extension MainWindowController {
         hideSettings()
         guard let session = manager.newScratchSession() else { return }
         showSelectedLayout(animated: true)
+        AgentIntegrations.trustScratchFolders()
         if let agent = newSessionAgent {
             startAgent(agent, in: session)
         }

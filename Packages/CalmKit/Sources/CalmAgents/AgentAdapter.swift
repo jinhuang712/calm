@@ -123,6 +123,10 @@ public protocol AgentAdapter: Sendable {
     /// where they go (`SendKeys`); nil when the agent can't bind ⌘. `inherited` locates the
     /// agent's config, as for `shellEnvironment`.
     func sendKeys(home: URL, inherited: [String: String]) -> SendKeys?
+    /// Tells the agent that `folder` and the folders under it are trusted, so it starts in them
+    /// without asking first; nil when the agent doesn't ask, or one answer can't cover the folders
+    /// under it. `inherited` locates the agent's config, as for `shellEnvironment`.
+    func trust(_ folder: URL, home: URL, inherited: [String: String]) -> FolderTrust?
 }
 
 public extension AgentAdapter {
@@ -179,6 +183,10 @@ public extension AgentAdapter {
     }
 
     func sendKeys(home _: URL, inherited _: [String: String]) -> SendKeys? {
+        nil
+    }
+
+    func trust(_: URL, home _: URL, inherited _: [String: String]) -> FolderTrust? {
         nil
     }
 

@@ -115,6 +115,32 @@ enum AgentIntegrations {
         }
     }
 
+    /// The agents that trust the scratch folders, found or made so since launch.
+    private static var trustingScratch: Set<AgentKind> = []
+
+    /// Scratch folders are Calm's own and start empty, so an agent that asks before it works in a
+    /// new folder (Claude Code) is told once that their root is trusted (FEATURES.md → F2). Called
+    /// at each new scratch session, before its agent starts and whichever agent that is, so one the
+    /// user starts there by hand doesn't ask either; after it succeeds, it costs nothing.
+    static func trustScratchFolders(
+        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+        inherited: [String: String] = ProcessInfo.processInfo.environment,
+    ) {
+        guard writesAgentFiles else { return }
+        for adapter in Agents.adapters where !trustingScratch.contains(adapter.kind) {
+            guard let trust = adapter.trust(ScratchFolders.root, home: home, inherited: inherited) else { continue }
+            switch trust {
+            case .alreadyTrusted:
+                trustingScratch.insert(adapter.kind)
+            case .added:
+                trustingScratch.insert(adapter.kind)
+                log.info("\(adapter.kind.rawValue, privacy: .public) now trusts the scratch folders")
+            case let .unchanged(reason):
+                log.info("\(adapter.kind.rawValue, privacy: .public) doesn't trust the scratch folders yet: \(reason, privacy: .public)")
+            }
+        }
+    }
+
     /// Brings the files Calm wrote into agents' config folders up to date (see above).
     private static func refreshConnectedFiles() {
         guard writesAgentFiles else { return }

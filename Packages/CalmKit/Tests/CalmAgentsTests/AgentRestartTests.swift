@@ -128,6 +128,52 @@ struct AgentRestartTests {
             "pi --session '/Users/ada/.pi/agent/sessions/s.jsonl'")
         #expect(pi(["pi"], transcript: "") == nil)
     }
+
+    // MARK: Resume and fork
+
+    /// A conversation as Calm keeps it once its agent exits: the options are read from the command
+    /// line while the process runs (`AgentRun.options`).
+    private func ended(_ kind: AgentKind, _ commandLine: [String], id: String? = nil, transcript: String? = nil) -> AgentConversation {
+        let options = Agents.adapter(for: kind)?.resumeOptions(commandLine: commandLine)
+        return AgentConversation(kind: kind, agentSessionID: id, transcriptPath: transcript, options: options)
+    }
+
+    /// Seen 2026-10-10: a session started with `--dangerously-skip-permissions` came back from
+    /// Resume as `claude --resume <id>`, asking for every tool again.
+    @Test func `a resumed conversation keeps the options its agent was started with`() {
+        let claude = ended(.claudeCode, ["claude", "--dangerously-skip-permissions", "--model", "opus", "fix the test"], id: "abc")
+        #expect(ClaudeCodeAdapter().resumeCommand(for: claude) == "claude --dangerously-skip-permissions --model opus --resume 'abc'")
+        let codex = ended(.codex, ["codex", "--yolo", "-m", "o3", "fix it"], id: "019a")
+        #expect(CodexAdapter().resumeCommand(for: codex) == "codex resume --yolo -m o3 '019a'")
+        let openCode = ended(.openCode, ["opencode", "--auto", "/Users/ada/dev/app"], id: "ses_1")
+        #expect(OpenCodeAdapter().resumeCommand(for: openCode) == "opencode --auto --session 'ses_1' /Users/ada/dev/app")
+        let pi = ended(.pi, ["/n/cli.js", "--thinking", "high", "hello"], transcript: "/s.jsonl")
+        #expect(PiAdapter().resumeCommand(for: pi) == "pi --thinking high --session '/s.jsonl'")
+    }
+
+    @Test func `a fork keeps them too`() throws {
+        let claude = ended(.claudeCode, ["claude", "--dangerously-skip-permissions", "-w"], id: "abc")
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude) == "claude --dangerously-skip-permissions --resume 'abc' --fork-session")
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude, prompt: "go on")
+            == "claude --dangerously-skip-permissions --resume 'abc' --fork-session 'go on'")
+        let codex = ended(.codex, ["codex", "--yolo"], id: "019a")
+        #expect(CodexAdapter().forkCommand(for: codex) == "codex fork --yolo '019a'")
+        #expect(CodexAdapter().forkCommand(for: codex, prompt: "go on") == "codex fork --yolo '019a' 'go on'")
+        let pi = ended(.pi, ["/n/cli.js", "--thinking", "high"], transcript: "/s.jsonl")
+        #expect(PiAdapter().forkCommand(for: pi) == "pi --thinking high --fork '/s.jsonl'")
+        let openCode = ended(.openCode, ["opencode", "--auto"], id: "ses_1")
+        let fork = try #require(OpenCodeAdapter().forkCommand(for: openCode))
+        #expect(fork.hasPrefix(#"opencode --auto --session "$(opencode api session.fork --param sessionID='ses_1'"#))
+    }
+
+    @Test func `a conversation Calm didn't see run resumes without options`() {
+        let found = AgentConversation(kind: .claudeCode, agentSessionID: "abc", transcriptPath: nil)
+        #expect(ClaudeCodeAdapter().resumeCommand(for: found) == "claude --resume 'abc'")
+        // Nor does one started through an OpenCode subcommand: its options are another interface's.
+        let run = ended(.openCode, ["opencode", "run", "--model", "x", "hello"], id: "ses_1")
+        #expect(run.options == nil)
+        #expect(OpenCodeAdapter().resumeCommand(for: run) == "opencode --session 'ses_1'")
+    }
 }
 
 /// Each step `AgentUpdates.check` needs, as its own requirement, so a failure says which one it was

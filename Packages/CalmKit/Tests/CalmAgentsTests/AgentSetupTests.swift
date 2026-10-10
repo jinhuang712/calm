@@ -170,12 +170,15 @@ struct AgentSetupTests {
     /// line takes one; elsewhere the fork can't start with one rather than drop it.
     @Test func `a fork with a first message, where the agent takes one`() {
         let prompt = "Try the CRDT approach; don't merge it"
-        #expect(ClaudeCodeAdapter().forkCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl", prompt: prompt)
+        let claude = AgentConversation(kind: .claudeCode, agentSessionID: "abc", transcriptPath: "/x/abc.jsonl")
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude, prompt: prompt)
             == "claude --resume 'abc' --fork-session 'Try the CRDT approach; don'\\''t merge it'")
-        #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl", prompt: "go on")
-            == "codex fork '019a' 'go on'")
-        #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a.jsonl", prompt: "go on") == nil)
-        #expect(OpenCodeAdapter().forkCommand(agentSessionID: "ses_1", transcriptPath: "/db", prompt: "go on") == nil)
+        let codex = AgentConversation(kind: .codex, agentSessionID: "019a", transcriptPath: "/x.jsonl")
+        #expect(CodexAdapter().forkCommand(for: codex, prompt: "go on") == "codex fork '019a' 'go on'")
+        let pi = AgentConversation(kind: .pi, agentSessionID: nil, transcriptPath: "/s/a.jsonl")
+        #expect(PiAdapter().forkCommand(for: pi, prompt: "go on") == nil)
+        let openCode = AgentConversation(kind: .openCode, agentSessionID: "ses_1", transcriptPath: "/db")
+        #expect(OpenCodeAdapter().forkCommand(for: openCode, prompt: "go on") == nil)
     }
 
     /// OpenCode forks through its API and opens the new session: run in a real shell, with a
@@ -195,19 +198,29 @@ struct AgentSetupTests {
         fi
         """.write(to: stub, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: stub.path)
-        let command = try #require(OpenCodeAdapter().forkCommand(agentSessionID: "ses_it's", transcriptPath: "/db"))
+        let plain = try #require(OpenCodeAdapter().forkCommand(agentSessionID: "ses_it's", transcriptPath: "/db"))
+        // With the options it was started with, and its folder after the session, as a resume has them.
+        let started = AgentConversation(
+            kind: .openCode,
+            agentSessionID: "ses_it's",
+            transcriptPath: "/db",
+            options: ["--auto", "/a/My App"],
+        )
+        let withOptions = try #require(OpenCodeAdapter().forkCommand(for: started))
 
-        for shell in ["/bin/zsh", "/bin/bash"] {
-            let process = Process()
-            process.executableURL = URL(filePath: shell)
-            process.arguments = ["-c", command]
-            let log = folder.appending(path: "log").path
-            process.environment = ["PATH": "\(folder.path):/usr/bin:/bin", "STUB_LOG": log]
-            try process.run()
-            process.waitUntilExit()
-            #expect(process.terminationStatus == 0, "\(shell)")
-            #expect(try String(contentsOfFile: log + ".api", encoding: .utf8) == "api session.fork --param sessionID=ses_it's -d {}\n")
-            #expect(try String(contentsOfFile: log + ".tui", encoding: .utf8) == "--session ses_fork\n", "\(shell)")
+        for (command, opened) in [(plain, "--session ses_fork"), (withOptions, "--auto --session ses_fork /a/My App")] {
+            for shell in ["/bin/zsh", "/bin/bash"] {
+                let process = Process()
+                process.executableURL = URL(filePath: shell)
+                process.arguments = ["-c", command]
+                let log = folder.appending(path: "log").path
+                process.environment = ["PATH": "\(folder.path):/usr/bin:/bin", "STUB_LOG": log]
+                try process.run()
+                process.waitUntilExit()
+                #expect(process.terminationStatus == 0, "\(shell)")
+                #expect(try String(contentsOfFile: log + ".api", encoding: .utf8) == "api session.fork --param sessionID=ses_it's -d {}\n")
+                #expect(try String(contentsOfFile: log + ".tui", encoding: .utf8) == opened + "\n", "\(shell)")
+            }
         }
     }
 }

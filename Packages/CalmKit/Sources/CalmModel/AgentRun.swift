@@ -164,6 +164,10 @@ public struct AgentRun: Codable, Hashable, Sendable {
     public var transcriptPath: String?
     /// The latest reading of its transcript.
     public var tail: TranscriptTail?
+    /// The options it was started with that a resume or a fork keeps (`--dangerously-skip-permissions`,
+    /// `--model opus`; its adapter's `resumeOptions`), read from its process when the probe sees it.
+    /// Nil until then, and for a run started as something a resume wouldn't bring back.
+    public var options: [String]?
 
     public init(kind: AgentKind, processID: Int32, startedAt: Date = Date()) {
         self.kind = kind
@@ -180,12 +184,16 @@ public struct AgentConversation: Codable, Hashable, Sendable {
     public var transcriptPath: String?
     /// The agent's title for it, for menus.
     public var title: String?
+    /// The options its agent was started with (`AgentRun.options`), so a resume or a fork starts it
+    /// the same way. Nil for a conversation Calm didn't see run (one found by search).
+    public var options: [String]?
 
-    public init(kind: AgentKind, agentSessionID: String?, transcriptPath: String?, title: String? = nil) {
+    public init(kind: AgentKind, agentSessionID: String?, transcriptPath: String?, title: String? = nil, options: [String]? = nil) {
         self.kind = kind
         self.agentSessionID = agentSessionID
         self.transcriptPath = transcriptPath
         self.title = title
+        self.options = options
     }
 }
 
@@ -224,7 +232,9 @@ public extension AgentRun {
     /// This run's conversation, once its id or transcript is known.
     var conversation: AgentConversation? {
         guard agentSessionID != nil || transcriptPath != nil else { return nil }
-        return AgentConversation(kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath, title: tail?.title)
+        return AgentConversation(
+            kind: kind, agentSessionID: agentSessionID, transcriptPath: transcriptPath, title: tail?.title, options: options,
+        )
     }
 }
 
@@ -232,9 +242,12 @@ public extension Workspace {
     /// An agent took over the session's foreground (or a different one replaced it).
     mutating func startAgentRun(_ id: Session.ID, _ run: AgentRun) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
-        // A run first heard of through its hooks gets its process once the probe sees it.
-        if let existing = sessions[index].agent, existing.kind == run.kind, existing.processID == 0 || run.processID == 0 {
+        // A run first heard of through its hooks gets its process once the probe sees it, and its
+        // options with it. So does a run saved before options were kept, seen again after a launch.
+        if let existing = sessions[index].agent, existing.kind == run.kind,
+           existing.processID == 0 || run.processID == 0 || existing.processID == run.processID {
             sessions[index].agent?.processID = max(existing.processID, run.processID)
+            sessions[index].agent?.options = existing.options ?? run.options
             return
         }
         if sessions[index].agent?.kind != run.kind || sessions[index].agent?.processID != run.processID {

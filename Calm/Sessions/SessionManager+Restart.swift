@@ -85,7 +85,7 @@ extension SessionManager {
               let quit = adapter.quit,
               let process = ProcessInspector.snapshot(of: agent.processID), Agents.detect(process) == agent.kind,
               let command = adapter.restartCommand(
-                  arguments: process.arguments, agentSessionID: agent.agentSessionID, transcriptPath: agent.transcriptPath ?? "",
+                  arguments: process.commandLine, agentSessionID: agent.agentSessionID, transcriptPath: agent.transcriptPath ?? "",
               )
         else {
             restarts[id] = nil
@@ -182,9 +182,7 @@ extension SessionManager {
         changeWorkspace { conversation = $0.takeConversationToResume(id) }
         guard let conversation else { return }
         scheduleSave()
-        guard let command = Agents.adapter(for: conversation.kind)?
-            .resumeCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
-        else { return }
+        guard let command = Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation) else { return }
         Trace.note("pane \(Trace.id(id)): its shell was lost with \(conversation.kind.displayName) in it, resuming")
         type(command, into: id)
     }

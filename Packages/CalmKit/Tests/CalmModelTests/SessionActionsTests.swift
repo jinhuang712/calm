@@ -54,6 +54,42 @@ struct SessionActionsTests {
         #expect(workspace.session(id)?.lastConversation?.agentSessionID == "abc")
     }
 
+    /// Read from its process, which is gone once it exits; a resume or a fork wants them then.
+    @Test func `an ended conversation keeps the options its agent was started with`() {
+        var (workspace, id) = workspace()
+        var run = AgentRun(kind: .claudeCode, processID: 42)
+        run.agentSessionID = "abc"
+        run.options = ["--dangerously-skip-permissions"]
+        workspace.startAgentRun(id, run)
+        workspace.endAgentRun(id)
+        #expect(workspace.session(id)?.resumableConversation?.options == ["--dangerously-skip-permissions"])
+    }
+
+    @Test func `a run heard of through its hooks gets its options once its process is seen`() {
+        var (workspace, id) = workspace()
+        workspace.noteAgentSession(id, kind: .claudeCode, agentSessionID: "abc", transcriptPath: nil)
+        var seen = AgentRun(kind: .claudeCode, processID: 42)
+        seen.options = ["--model", "opus"]
+        workspace.startAgentRun(id, seen)
+        #expect(workspace.session(id)?.agent?.processID == 42)
+        #expect(workspace.session(id)?.agent?.agentSessionID == "abc")
+        #expect(workspace.session(id)?.agent?.options == ["--model", "opus"])
+        // A hook speaking again doesn't take them away.
+        workspace.startAgentRun(id, AgentRun(kind: .claudeCode, processID: 0))
+        #expect(workspace.session(id)?.agent?.options == ["--model", "opus"])
+    }
+
+    /// An agent still running from before Calm kept options: the probe sees the same process
+    /// again after the update's relaunch.
+    @Test func `a run saved without options gets them when its process is seen again`() {
+        var (workspace, id) = workspace()
+        workspace.startAgentRun(id, AgentRun(kind: .claudeCode, processID: 42))
+        var seen = AgentRun(kind: .claudeCode, processID: 42)
+        seen.options = ["--dangerously-skip-permissions"]
+        workspace.startAgentRun(id, seen)
+        #expect(workspace.session(id)?.agent?.options == ["--dangerously-skip-permissions"])
+    }
+
     @Test func `older state files without the new fields still load`() throws {
         let (workspace, id) = workspace()
         let data = try JSONEncoder().encode(workspace)

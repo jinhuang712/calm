@@ -14,16 +14,15 @@ extension MainWindowController {
         session.resumableConversation.flatMap(resumeCommand)
     }
 
+    /// With the options its agent was started with.
     static func resumeCommand(for conversation: AgentConversation) -> String? {
-        Agents.adapter(for: conversation.kind)?
-            .resumeCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
+        Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation)
     }
 
     /// The command that forks `session`'s conversation (running or ended), if its agent can.
     static func forkCommand(for session: Session) -> String? {
         guard let conversation = session.conversation else { return nil }
-        return Agents.adapter(for: conversation.kind)?
-            .forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
+        return Agents.adapter(for: conversation.kind)?.forkCommand(for: conversation)
     }
 
     /// The sidebar as it should look now. Everything it draws from that SwiftUI doesn't observe

@@ -38,6 +38,14 @@ public struct ProcessSnapshot: Sendable, Equatable {
         return arguments.dropFirst().first { !$0.hasPrefix("-") }
     }
 
+    /// The command line as the program's own parser reads it, program first: under a runtime, from
+    /// its script on (`node …/cli.js --model opus`), so the runtime's own options aren't taken for
+    /// the agent's and the script isn't taken for a positional argument (OpenCode's folder).
+    public var commandLine: [String] {
+        guard let scriptPath, let script = arguments.dropFirst().firstIndex(of: scriptPath) else { return arguments }
+        return Array(arguments[script...])
+    }
+
     /// Names the process goes by: its executable, argv[0], and a runtime's script.
     var names: Set<String> {
         var names: Set<String> = [Self.basename(executablePath)]
@@ -74,20 +82,23 @@ public protocol AgentAdapter: Sendable {
     func currentSetup(home: URL) -> AgentSetup
     /// The agent's own mark and how it moves while the agent works (in `<Agent>+Mark.swift`).
     var mark: AgentMarkArt { get }
-    /// The shell command that resumes one of the agent's past sessions, if it can.
-    func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String?
+    /// The shell command that resumes one of the agent's past sessions, if it can, with `options`:
+    /// what `resumeOptions` kept of how it was started (none for a conversation Calm didn't see run).
+    func resumeCommand(options: [String], agentSessionID: String?, transcriptPath: String) -> String?
     /// The shell command that starts a new conversation from a copy of one, if the agent can.
-    func forkCommand(agentSessionID: String?, transcriptPath: String) -> String?
+    func forkCommand(options: [String], agentSessionID: String?, transcriptPath: String) -> String?
     /// How to make the running agent quit and leave the terminal as it found it, so it can be
     /// started again on the same conversation; nil when Calm doesn't restart this agent (no way to
     /// quit it has been checked).
     var quit: AgentQuit? { get }
-    /// The shell command that starts the agent again on the conversation, with the options it was
-    /// started with (`arguments`: the running process's argv): what a restart types once it quit.
-    func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath: String) -> String?
-    /// The same, with `prompt` as the fork's first message (`calm fork "<prompt>"`), or nil when
-    /// the agent can't start a fork with one (or hasn't been checked).
-    func forkCommand(agentSessionID: String?, transcriptPath: String, prompt: String) -> String?
+    /// What a resume, a restart or a fork keeps of the command line the agent was started with
+    /// (`commandLine`: its process's argv): the options that set up the session, without the
+    /// prompt or what picks or makes the conversation. Nil when it was started as something a
+    /// resume wouldn't bring back (a subcommand).
+    func resumeOptions(commandLine: [String]) -> [String]?
+    /// The fork, with `prompt` as its first message (`calm fork "<prompt>"`), or nil when the agent
+    /// can't start a fork with one (or hasn't been checked).
+    func forkCommand(options: [String], agentSessionID: String?, transcriptPath: String, prompt: String) -> String?
     /// The git branch a conversation worked on, by its transcript's own account (`calm show`).
     func branch(of transcript: URL) -> String?
     /// The command that starts a new conversation (⌘N), before any option (in `LaunchCommands.swift`).
@@ -123,11 +134,11 @@ public extension AgentAdapter {
         []
     }
 
-    func resumeCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
+    func resumeCommand(options _: [String], agentSessionID _: String?, transcriptPath _: String) -> String? {
         nil
     }
 
-    func forkCommand(agentSessionID _: String?, transcriptPath _: String) -> String? {
+    func forkCommand(options _: [String], agentSessionID _: String?, transcriptPath _: String) -> String? {
         nil
     }
 
@@ -135,11 +146,11 @@ public extension AgentAdapter {
         nil
     }
 
-    func restartCommand(arguments _: [String], agentSessionID _: String?, transcriptPath _: String) -> String? {
+    func resumeOptions(commandLine _: [String]) -> [String]? {
         nil
     }
 
-    func forkCommand(agentSessionID _: String?, transcriptPath _: String, prompt _: String) -> String? {
+    func forkCommand(options _: [String], agentSessionID _: String?, transcriptPath _: String, prompt _: String) -> String? {
         nil
     }
 

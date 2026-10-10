@@ -2,7 +2,8 @@ import Foundation
 
 // Restarting a running agent on its conversation (FEATURES.md → F12, DESIGNS.md → Agents →
 // Restart): ask it to quit the way that lets it tidy the terminal, then start it again with the
-// options it was started with, so a restart after an update changes nothing but the version.
+// options it was started with, so a restart after an update changes nothing but the version. The
+// same options are kept for a resume or a fork once the agent has exited (`AgentRun.options`).
 
 /// How Calm asks an agent to quit before starting it again. Each was checked against the real
 /// agent in a pty (2026-10-07): it exits and turns off every terminal mode it turned on.
@@ -14,9 +15,9 @@ public enum AgentQuit: Sendable, Equatable {
     case controlC(times: Int)
 }
 
-/// A command line's options, read the way the agent's own parser reads them, so a restart can
-/// keep them and leave out what would start something else: a prompt (it would be sent again), and
-/// options that pick or create the conversation, which the restart names itself.
+/// A command line's options, read the way the agent's own parser reads them, so a restart or a
+/// resume can keep them and leave out what would start something else: a prompt (it would be sent
+/// again), and options that pick or create the conversation, which the resume names itself.
 struct CommandLineOptions {
     /// Options that take a value (`--model opus`, or `--model=opus`).
     var valued: Set<String> = []
@@ -91,15 +92,12 @@ public extension ClaudeCodeAdapter {
         .signal(SIGTERM)
     }
 
-    /// `claude <its options> --resume <id>`. Kept: everything that sets up the session
-    /// (`--dangerously-skip-permissions`, `--model`, `--add-dir`, …). Left out: the prompt, and
-    /// what picks or makes the conversation or the place it runs in (`-c`, `-r`, `--session-id`,
-    /// `--fork-session`, `-w`, which would make another worktree, `--tmux`, `--teleport`, …).
-    func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath: String) -> String? {
-        let id = agentSessionID ?? URL(filePath: transcriptPath).deletingPathExtension().lastPathComponent
-        guard !id.isEmpty else { return nil }
-        let options = Self.commandLine.kept(Array(arguments.dropFirst()))
-        return (["claude"] + options.map(shellWord) + ["--resume", shellQuoted(id)]).joined(separator: " ")
+    /// Kept: everything that sets up the session (`--dangerously-skip-permissions`, `--model`,
+    /// `--add-dir`, …). Left out: the prompt, and what picks or makes the conversation or the place
+    /// it runs in (`-c`, `-r`, `--session-id`, `--fork-session`, `-w`, which would make another
+    /// worktree, `--tmux`, `--teleport`, …).
+    func resumeOptions(commandLine: [String]) -> [String]? {
+        Self.commandLine.kept(Array(commandLine.dropFirst()))
     }
 
     /// Claude Code's options as `claude --help` lists them (2.1.291), plus the hidden ones its docs
@@ -139,14 +137,11 @@ public extension CodexAdapter {
         .controlC(times: 4)
     }
 
-    /// `codex resume <its options> <id>`: `resume` takes every option `codex` does. Left out: the
-    /// prompt and the subcommand it may have been started with (`resume`, `fork` and their id are
-    /// positional), the images attached to that prompt, the picker's `--last`, `--all` and
-    /// `--include-non-interactive`, and `--worktree`, which would make another worktree.
-    func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath _: String) -> String? {
-        guard let id = agentSessionID, !id.isEmpty else { return nil }
-        let options = Self.commandLine.kept(Array(arguments.dropFirst()))
-        return (["codex", "resume"] + options.map(shellWord) + [shellQuoted(id)]).joined(separator: " ")
+    /// Left out: the prompt and the subcommand it may have been started with (`resume`, `fork` and
+    /// their id are positional), the images attached to that prompt, the picker's `--last`, `--all`
+    /// and `--include-non-interactive`, and `--worktree`, which would make another worktree.
+    func resumeOptions(commandLine: [String]) -> [String]? {
+        Self.commandLine.kept(Array(commandLine.dropFirst()))
     }
 
     /// Codex's options as `codex resume --help` lists them (0.159.0), the same as `codex --help`'s
@@ -169,18 +164,16 @@ public extension OpenCodeAdapter {
         .signal(SIGTERM)
     }
 
-    /// `opencode <its options> --session <id> [<folder>]`. OpenCode's one positional argument is
-    /// the folder it starts in (not a prompt), so it stays. Left out: `-c`, `-s` and `--prompt`.
-    /// Started through one of its subcommands (`mini`, `run`, …) it isn't the interface a restart
-    /// would bring back, so there is no restart.
-    func restartCommand(arguments: [String], agentSessionID: String?, transcriptPath _: String) -> String? {
-        guard let id = agentSessionID, !id.isEmpty else { return nil }
-        let (options, positionals) = Self.commandLine.split(Array(arguments.dropFirst()))
+    /// OpenCode's one positional argument is the folder it starts in (not a prompt), so it stays,
+    /// after the options. Left out: `-c`, `-s` and `--prompt`. Started through one of its
+    /// subcommands (`mini`, `run`, …) it isn't the interface a restart would bring back, so there
+    /// is no restart.
+    func resumeOptions(commandLine: [String]) -> [String]? {
+        let (options, positionals) = Self.commandLine.split(Array(commandLine.dropFirst()))
         if let first = positionals.first, Self.subcommands.contains(first) {
             return nil
         }
-        return (["opencode"] + options.map(shellWord) + ["--session", shellQuoted(id)] + positionals.prefix(1).map(shellWord))
-            .joined(separator: " ")
+        return options + positionals.prefix(1)
     }
 
     /// OpenCode's flags as `opencode --help` lists them (2.0.20).
@@ -202,16 +195,14 @@ public extension PiAdapter {
         .signal(SIGTERM)
     }
 
-    /// `pi <its options> --session <file>`. pi sets its process title, which overwrites its command
-    /// line: what's left reads "pi" and the environment (checked 2026-10-07), so in practice there
-    /// are no options to keep and the restart is `pi --session <file>`. Whether the session brings
-    /// back the model and thinking level it last used hasn't been checked. Left out, were they
-    /// readable: `-c`, `-r`, the session
-    /// options, `-p`, `--export`, `--list-models`, and the messages and files it was started with.
-    func restartCommand(arguments: [String], agentSessionID _: String?, transcriptPath: String) -> String? {
-        guard !transcriptPath.isEmpty else { return nil }
-        let options = Self.commandLine.kept(Array(arguments.dropFirst()))
-        return (["pi"] + options.map(shellWord) + ["--session", shellQuoted(transcriptPath)]).joined(separator: " ")
+    /// pi sets its process title, which overwrites its command line: what's left reads "pi" and
+    /// the environment (checked 2026-10-07), so in practice there are no options to keep and the
+    /// restart is `pi --session <file>`. Whether the session brings back the model and thinking
+    /// level it last used hasn't been checked. Left out, were they readable: `-c`, `-r`, the
+    /// session options, `-p`, `--export`, `--list-models`, and the messages and files it was
+    /// started with.
+    func resumeOptions(commandLine: [String]) -> [String]? {
+        Self.commandLine.kept(Array(commandLine.dropFirst()))
     }
 
     /// pi's options as `pi --help` lists them (1.0.4).

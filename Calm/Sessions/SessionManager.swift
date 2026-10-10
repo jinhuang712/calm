@@ -495,6 +495,8 @@ final class SessionManager {
         if let process, let kind = Agents.detect(process) {
             Self.log.info("agent \(kind.rawValue, privacy: .public) started in \(id, privacy: .public) (pid \(process.processID))")
             var run = AgentRun(kind: kind, processID: process.processID)
+            // Read now: its argv is gone once it exits, and a resume or a fork wants its options.
+            run.options = Agents.adapter(for: kind)?.resumeOptions(commandLine: process.commandLine)
             // Back from a restart: the same conversation, so the card keeps its title and recap
             // instead of starting blank until the hooks speak.
             if restarts[id] == .restarting, let previous = session.agent, previous.kind == kind {

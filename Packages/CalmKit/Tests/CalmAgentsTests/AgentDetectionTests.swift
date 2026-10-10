@@ -33,6 +33,14 @@ struct AgentDetectionTests {
         #expect(Agents.detect(process(codex, [codex, "resume", "--last"])) == .codex)
     }
 
+    /// What a resume keeps is read from the agent's own command line, not the runtime's.
+    @Test func `under a runtime the command line starts at the script`() {
+        let script = "/usr/local/lib/node_modules/opencode-ai/bin/opencode"
+        #expect(process("/usr/local/bin/node", ["node", script, "--auto", "/a/app"]).commandLine == [script, "--auto", "/a/app"])
+        #expect(process("/usr/local/bin/node", ["node", "--no-warnings", script, "-m", "x"]).commandLine == [script, "-m", "x"])
+        #expect(process("/Users/me/.local/bin/claude", ["claude", "--model", "opus"]).commandLine == ["claude", "--model", "opus"])
+    }
+
     @Test func `per-platform builds and launchers`() {
         let codexBinary = "/usr/local/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex/codex-aarch64-apple-darwin"
         #expect(Agents.detect(process(codexBinary, [codexBinary])) == .codex)

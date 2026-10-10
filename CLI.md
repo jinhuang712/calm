@@ -114,9 +114,9 @@ Three branches, one for each thing you open. `calm open` alone, or with a path a
 
 ### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]` ✅
 
-- Forks the agent conversation running in this session, or the one that ran here last. The fork is a new session of its own (a new tab), in the same project and folder, running the agent's own fork command (FEATURES.md → F12). The original goes on untouched.
+- Forks the agent conversation running in this session, or the one that ran here last. The fork is a new session of its own (a new tab), in the same project and folder, running the agent's own fork command with the options the agent was started with (FEATURES.md → F12). The original goes on untouched.
 - Takes you to the fork. With `--background` you stay where you are: the fork waits in the sidebar, already running (its pane is made at the terminal area's size, so its agent starts the size it will be shown at).
-- The words that aren't options are the prompt, the fork's first message, so it starts working at once: `calm fork try the CRDT approach`. Claude Code and Codex take one (`claude --resume <id> --fork-session '<prompt>'`, `codex fork <id> '<prompt>'`, from their `--help`, Claude Code 2.1.285 and Codex 0.159). pi and OpenCode aren't checked; a prompt for them fails: "pi can't start a fork with a prompt."
+- The words that aren't options are the prompt, the fork's first message, so it starts working at once: `calm fork try the CRDT approach`. Claude Code and Codex take one (`claude <options> --resume <id> --fork-session '<prompt>'`, `codex fork <options> <id> '<prompt>'`, from their `--help`, Claude Code 2.1.285 and Codex 0.159). pi and OpenCode aren't checked; a prompt for them fails: "pi can't start a fork with a prompt."
 - `--in <folder>` runs the fork in another folder. Claude Code finds the conversation from a git worktree of its own repository, but not from an unrelated folder ("No conversation found with session ID"; checked with 2.1.291 in a scratch home, no model call). The other agents aren't checked.
 - Prints the new session's full id (what `--session` takes).
 - Fails outside a Calm session, for a missing folder, and where there is no conversation to fork: "No conversation to fork here." It never starts Calm.
@@ -184,7 +184,7 @@ Id          0f9c2a7e-…
 | Recap | The agent's own summary (Claude Code's recap), from the transcript's tail. Left out otherwise: the start of the last reply would only repeat it |
 | Tasks | The todo list's progress and the task in progress (Claude Code) |
 | Last reply | The index: the agent's newest reply, whole |
-| Resume, Fork | The agent's adapter, the commands of F12's menu; left out once the transcript is gone |
+| Resume, Fork | The agent's adapter, the commands of F12's menu without the agent's options (the transcript doesn't say how it was started); left out once the transcript is gone |
 | Transcript | Its path, marked *(deleted)* when the agent deleted it. Known only from the prompt history (Claude Code deletes transcripts after 30 days and keeps `history.jsonl`), it says so: its prompts are there, its replies aren't |
 
 - A part with nothing in it is left out, not printed empty.

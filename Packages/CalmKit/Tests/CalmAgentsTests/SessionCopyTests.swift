@@ -25,6 +25,12 @@ struct SessionCopyTests {
         #expect(SessionCopy.resumeCommand.text(for: session) == "claude --resume 'abc-123'")
     }
 
+    @Test func `the copied command starts the agent the way it was started`() {
+        var running = run(.claudeCode, id: "abc-123")
+        running.options = ["--dangerously-skip-permissions"]
+        #expect(SessionCopy.resumeCommand.text(for: session(agent: running)) == "claude --dangerously-skip-permissions --resume 'abc-123'")
+    }
+
     @Test func `an ended conversation can still be copied`() {
         let last = AgentConversation(kind: .codex, agentSessionID: "019a", transcriptPath: nil)
         let session = session(last: last)

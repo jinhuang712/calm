@@ -36,8 +36,7 @@ public enum SessionCopy: Sendable, CaseIterable {
             return id.isEmpty ? nil : id
         case .resumeCommand:
             guard let conversation = session.conversation else { return nil }
-            return Agents.adapter(for: conversation.kind)?
-                .resumeCommand(agentSessionID: conversation.agentSessionID, transcriptPath: conversation.transcriptPath ?? "")
+            return Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation)
         case .folderPath:
             // A scratch session's folder is Calm's business and never shown.
             return session.isScratch ? nil : session.workingDirectory

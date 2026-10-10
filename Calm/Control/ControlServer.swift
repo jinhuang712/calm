@@ -282,15 +282,9 @@ final class ControlServer {
         guard let conversation = source.conversation, let adapter = Agents.adapter(for: conversation.kind) else {
             return .failure("No conversation to fork here.")
         }
-        let transcript = conversation.transcriptPath ?? ""
         let prompt = request.message.flatMap { $0.isEmpty ? nil : $0 }
         let agent = adapter.kind.displayName
-        let command = if let prompt {
-            adapter.forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: transcript, prompt: prompt)
-        } else {
-            adapter.forkCommand(agentSessionID: conversation.agentSessionID, transcriptPath: transcript)
-        }
-        guard let command else {
+        guard let command = adapter.forkCommand(for: conversation, prompt: prompt) else {
             return .failure(prompt == nil ? "\(agent) can't fork this conversation." : "\(agent) can't start a fork with a prompt.")
         }
         var folder: String?

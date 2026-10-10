@@ -182,7 +182,7 @@ extension SessionManager {
         changeWorkspace { conversation = $0.takeConversationToResume(id) }
         guard let conversation else { return }
         scheduleSave()
-        guard let command = Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation) else { return }
+        guard let command = Agents.adapter(for: conversation.kind)?.resumeCommand(for: conversation, settings: settings) else { return }
         Trace.note("pane \(Trace.id(id)): its shell was lost with \(conversation.kind.displayName) in it, resuming")
         type(command, into: id)
     }

@@ -100,6 +100,15 @@ public extension AgentAdapter {
             .map(\.flag)
         return parts.joined(separator: " ")
     }
+
+    /// What a resume keeps of the command ⌘N types: the options a conversation starts with when
+    /// Calm didn't see how it was started (one found by ⌘K search, or one that ended before Calm
+    /// kept options). The author's call, 2026-10-10, knowing it can add ⌘N's Skip permissions to a
+    /// conversation that was started without it. A worktree option goes, as in a restart. Nil when
+    /// the command needs more of the shell than Calm takes apart (`ShellWords`).
+    func newSessionOptions(settings: CalmSettings) -> [String]? {
+        ShellWords.split(launchCommand(settings: settings, inGitRepository: true)).flatMap { resumeOptions(commandLine: $0) }
+    }
 }
 
 public extension Agents {

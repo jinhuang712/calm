@@ -4,7 +4,8 @@ import Foundation
 // How each agent resumes a past session (DESIGNS.md → Agents, research of 2026-09-27) and forks
 // one (research of 2026-09-28): for search results, and for a session card's menu (F12). Each
 // takes the options the agent was started with (`resumeOptions`, in AgentRestart.swift), so a
-// conversation started with `--dangerously-skip-permissions` comes back with it.
+// conversation started with `--dangerously-skip-permissions` comes back with it; where Calm didn't
+// see how it was started, the options ⌘N starts the agent with (`newSessionOptions`).
 
 /// Single-quotes a value for the shell.
 func shellQuoted(_ value: String) -> String {
@@ -12,28 +13,23 @@ func shellQuoted(_ value: String) -> String {
 }
 
 public extension AgentAdapter {
-    /// Without options: a conversation found in the agents' history (search, `calm show`), whose
-    /// command line Calm never saw.
-    func resumeCommand(agentSessionID: String?, transcriptPath: String) -> String? {
-        resumeCommand(options: [], agentSessionID: agentSessionID, transcriptPath: transcriptPath)
+    /// The options `conversation` starts with again: its agent's own, else ⌘N's (`settings`).
+    func options(for conversation: AgentConversation, settings: CalmSettings) -> [String] {
+        conversation.options ?? newSessionOptions(settings: settings) ?? []
     }
 
-    func forkCommand(agentSessionID: String?, transcriptPath: String) -> String? {
-        forkCommand(options: [], agentSessionID: agentSessionID, transcriptPath: transcriptPath)
-    }
-
-    /// Resumes `conversation` with the options its agent was started with.
-    func resumeCommand(for conversation: AgentConversation) -> String? {
+    /// Resumes `conversation` the way its agent was started, or as ⌘N would start it.
+    func resumeCommand(for conversation: AgentConversation, settings: CalmSettings) -> String? {
         resumeCommand(
-            options: conversation.options ?? [], agentSessionID: conversation.agentSessionID,
+            options: options(for: conversation, settings: settings), agentSessionID: conversation.agentSessionID,
             transcriptPath: conversation.transcriptPath ?? "",
         )
     }
 
-    /// Forks `conversation` with the options its agent was started with, and `prompt` as the
-    /// fork's first message when there is one.
-    func forkCommand(for conversation: AgentConversation, prompt: String? = nil) -> String? {
-        let options = conversation.options ?? []
+    /// Forks `conversation` with the options a resume has, and `prompt` as the fork's first
+    /// message when there is one.
+    func forkCommand(for conversation: AgentConversation, settings: CalmSettings, prompt: String? = nil) -> String? {
+        let options = options(for: conversation, settings: settings)
         let transcript = conversation.transcriptPath ?? ""
         if let prompt {
             return forkCommand(options: options, agentSessionID: conversation.agentSessionID, transcriptPath: transcript, prompt: prompt)

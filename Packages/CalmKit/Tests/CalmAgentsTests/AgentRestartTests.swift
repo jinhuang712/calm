@@ -138,41 +138,86 @@ struct AgentRestartTests {
         return AgentConversation(kind: kind, agentSessionID: id, transcriptPath: transcript, options: options)
     }
 
+    /// Nothing chosen for ⌘N.
+    private let none = CalmSettings()
+    /// ⌘N with Skip permissions and a new worktree, and flags written in config.toml.
+    private let newSession = CalmSettings(text: """
+    [agents.claude-code]
+    skip-permissions = true
+    worktree = true
+    flags = "--model opus --append-system-prompt 'be brief'"
+
+    [agents.codex]
+    skip-permissions = true
+    worktree = true
+
+    [agents.opencode]
+    skip-permissions = true
+    """)
+
     /// Seen 2026-10-10: a session started with `--dangerously-skip-permissions` came back from
     /// Resume as `claude --resume <id>`, asking for every tool again.
     @Test func `a resumed conversation keeps the options its agent was started with`() {
         let claude = ended(.claudeCode, ["claude", "--dangerously-skip-permissions", "--model", "opus", "fix the test"], id: "abc")
-        #expect(ClaudeCodeAdapter().resumeCommand(for: claude) == "claude --dangerously-skip-permissions --model opus --resume 'abc'")
+        #expect(ClaudeCodeAdapter().resumeCommand(for: claude, settings: none)
+            == "claude --dangerously-skip-permissions --model opus --resume 'abc'")
         let codex = ended(.codex, ["codex", "--yolo", "-m", "o3", "fix it"], id: "019a")
-        #expect(CodexAdapter().resumeCommand(for: codex) == "codex resume --yolo -m o3 '019a'")
+        #expect(CodexAdapter().resumeCommand(for: codex, settings: none) == "codex resume --yolo -m o3 '019a'")
         let openCode = ended(.openCode, ["opencode", "--auto", "/Users/ada/dev/app"], id: "ses_1")
-        #expect(OpenCodeAdapter().resumeCommand(for: openCode) == "opencode --auto --session 'ses_1' /Users/ada/dev/app")
+        #expect(OpenCodeAdapter().resumeCommand(for: openCode, settings: none) == "opencode --auto --session 'ses_1' /Users/ada/dev/app")
         let pi = ended(.pi, ["/n/cli.js", "--thinking", "high", "hello"], transcript: "/s.jsonl")
-        #expect(PiAdapter().resumeCommand(for: pi) == "pi --thinking high --session '/s.jsonl'")
+        #expect(PiAdapter().resumeCommand(for: pi, settings: none) == "pi --thinking high --session '/s.jsonl'")
     }
 
     @Test func `a fork keeps them too`() throws {
         let claude = ended(.claudeCode, ["claude", "--dangerously-skip-permissions", "-w"], id: "abc")
-        #expect(ClaudeCodeAdapter().forkCommand(for: claude) == "claude --dangerously-skip-permissions --resume 'abc' --fork-session")
-        #expect(ClaudeCodeAdapter().forkCommand(for: claude, prompt: "go on")
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude, settings: none)
+            == "claude --dangerously-skip-permissions --resume 'abc' --fork-session")
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude, settings: none, prompt: "go on")
             == "claude --dangerously-skip-permissions --resume 'abc' --fork-session 'go on'")
         let codex = ended(.codex, ["codex", "--yolo"], id: "019a")
-        #expect(CodexAdapter().forkCommand(for: codex) == "codex fork --yolo '019a'")
-        #expect(CodexAdapter().forkCommand(for: codex, prompt: "go on") == "codex fork --yolo '019a' 'go on'")
+        #expect(CodexAdapter().forkCommand(for: codex, settings: none) == "codex fork --yolo '019a'")
+        #expect(CodexAdapter().forkCommand(for: codex, settings: none, prompt: "go on") == "codex fork --yolo '019a' 'go on'")
         let pi = ended(.pi, ["/n/cli.js", "--thinking", "high"], transcript: "/s.jsonl")
-        #expect(PiAdapter().forkCommand(for: pi) == "pi --thinking high --fork '/s.jsonl'")
+        #expect(PiAdapter().forkCommand(for: pi, settings: none) == "pi --thinking high --fork '/s.jsonl'")
         let openCode = ended(.openCode, ["opencode", "--auto"], id: "ses_1")
-        let fork = try #require(OpenCodeAdapter().forkCommand(for: openCode))
+        let fork = try #require(OpenCodeAdapter().forkCommand(for: openCode, settings: none))
         #expect(fork.hasPrefix(#"opencode --auto --session "$(opencode api session.fork --param sessionID='ses_1'"#))
     }
 
-    @Test func `a conversation Calm didn't see run resumes without options`() {
+    /// Its own options win, none included: ⌘N's Skip permissions isn't added to a conversation
+    /// Calm saw started without it.
+    @Test func `the options a conversation was started with win over ⌘N's`() {
+        let plain = ended(.claudeCode, ["claude", "fix the test"], id: "abc")
+        #expect(plain.options == [])
+        #expect(ClaudeCodeAdapter().resumeCommand(for: plain, settings: newSession) == "claude --resume 'abc'")
+    }
+
+    /// The author's call, 2026-10-10: a conversation found by ⌘K, or one that ended before Calm
+    /// kept options, starts as ⌘N would start the agent, less the worktree it would make.
+    @Test func `a conversation Calm didn't see run starts with ⌘N's options`() {
         let found = AgentConversation(kind: .claudeCode, agentSessionID: "abc", transcriptPath: nil)
-        #expect(ClaudeCodeAdapter().resumeCommand(for: found) == "claude --resume 'abc'")
-        // Nor does one started through an OpenCode subcommand: its options are another interface's.
+        #expect(ClaudeCodeAdapter().resumeCommand(for: found, settings: none) == "claude --resume 'abc'")
+        #expect(ClaudeCodeAdapter().resumeCommand(for: found, settings: newSession)
+            == "claude --model opus --append-system-prompt 'be brief' --dangerously-skip-permissions --resume 'abc'")
+        let codex = AgentConversation(kind: .codex, agentSessionID: "019a", transcriptPath: nil)
+        #expect(CodexAdapter().resumeCommand(for: codex, settings: newSession) == "codex resume --yolo '019a'")
+        #expect(CodexAdapter().forkCommand(for: codex, settings: newSession) == "codex fork --yolo '019a'")
+        // So does one started through an OpenCode subcommand: those options are another interface's.
         let run = ended(.openCode, ["opencode", "run", "--model", "x", "hello"], id: "ses_1")
         #expect(run.options == nil)
-        #expect(OpenCodeAdapter().resumeCommand(for: run) == "opencode --session 'ses_1'")
+        #expect(OpenCodeAdapter().resumeCommand(for: run, settings: none) == "opencode --session 'ses_1'")
+        #expect(OpenCodeAdapter().resumeCommand(for: run, settings: newSession) == "opencode --auto --session 'ses_1'")
+    }
+
+    /// `agents.<agent>.command` replaces the whole of ⌘N's command; a line that needs the shell
+    /// to read it gives no options rather than wrong ones.
+    @Test func `⌘N's own command gives its options where Calm can read them`() {
+        let found = AgentConversation(kind: .claudeCode, agentSessionID: "abc", transcriptPath: nil)
+        let written = CalmSettings(text: "[agents.claude-code]\ncommand = \"claude --model opus -w\"\n")
+        #expect(ClaudeCodeAdapter().resumeCommand(for: found, settings: written) == "claude --model opus --resume 'abc'")
+        let shell = CalmSettings(text: "[agents.claude-code]\ncommand = \"claude $CLAUDE_FLAGS\"\n")
+        #expect(ClaudeCodeAdapter().resumeCommand(for: found, settings: shell) == "claude --resume 'abc'")
     }
 }
 

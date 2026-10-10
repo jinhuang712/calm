@@ -184,7 +184,7 @@ Id          0f9c2a7e-…
 | Recap | The agent's own summary (Claude Code's recap), from the transcript's tail. Left out otherwise: the start of the last reply would only repeat it |
 | Tasks | The todo list's progress and the task in progress (Claude Code) |
 | Last reply | The index: the agent's newest reply, whole |
-| Resume, Fork | The agent's adapter, the commands of F12's menu without the agent's options (the transcript doesn't say how it was started); left out once the transcript is gone |
+| Resume, Fork | The agent's adapter, the commands of F12's menu with the options ⌘N starts the agent with, as ⌘K resumes it (the transcript doesn't say how it was started); left out once the transcript is gone |
 | Transcript | Its path, marked *(deleted)* when the agent deleted it. Known only from the prompt history (Claude Code deletes transcripts after 30 days and keeps `history.jsonl`), it says so: its prompts are there, its replies aren't |
 
 - A part with nothing in it is left out, not printed empty.

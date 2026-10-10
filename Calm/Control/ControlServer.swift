@@ -284,7 +284,7 @@ final class ControlServer {
         }
         let prompt = request.message.flatMap { $0.isEmpty ? nil : $0 }
         let agent = adapter.kind.displayName
-        guard let command = adapter.forkCommand(for: conversation, prompt: prompt) else {
+        guard let command = adapter.forkCommand(for: conversation, settings: SessionManager.shared.settings, prompt: prompt) else {
             return .failure(prompt == nil ? "\(agent) can't fork this conversation." : "\(agent) can't start a fork with a prompt.")
         }
         var folder: String?

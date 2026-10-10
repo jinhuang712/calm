@@ -25,7 +25,7 @@ struct SessionActionSet {
         resumes = MainWindowController.resumeCommand(for: session) != nil ? session.resumableConversation?.kind : nil
         restarts = SessionManager.restartableAgent(session)
         forks = MainWindowController.forkCommand(for: session) != nil
-        copies = SessionCopy.allCases.filter { $0.text(for: session) != nil }
+        copies = SessionCopy.allCases.filter { $0.text(for: session, settings: SessionManager.shared.settings) != nil }
         opensFolder = !session.isScratch && !copies.isEmpty
         keepsAsProject = session.isScratch
         transcriptFile = Self.transcriptFile(of: session)

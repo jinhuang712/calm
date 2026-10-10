@@ -148,22 +148,26 @@ struct AgentSetupTests {
     }
 
     @Test func `resume commands per agent, quoted for the shell`() {
-        #expect(ClaudeCodeAdapter().resumeCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc'")
-        #expect(ClaudeCodeAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/x/def.jsonl") == "claude --resume 'def'")
-        #expect(CodexAdapter().resumeCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex resume '019a'")
-        #expect(CodexAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
-        #expect(PiAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/it's/s.jsonl") == #"pi --session '/it'\''s/s.jsonl'"#)
-        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: "ses_1", transcriptPath: "/db#ses_1") == "opencode --session 'ses_1'")
-        #expect(OpenCodeAdapter().resumeCommand(agentSessionID: nil, transcriptPath: "/db") == nil)
+        #expect(ClaudeCodeAdapter()
+            .resumeCommand(options: [], agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc'")
+        #expect(ClaudeCodeAdapter()
+            .resumeCommand(options: [], agentSessionID: nil, transcriptPath: "/x/def.jsonl") == "claude --resume 'def'")
+        #expect(CodexAdapter().resumeCommand(options: [], agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex resume '019a'")
+        #expect(CodexAdapter().resumeCommand(options: [], agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
+        #expect(PiAdapter()
+            .resumeCommand(options: [], agentSessionID: nil, transcriptPath: "/it's/s.jsonl") == #"pi --session '/it'\''s/s.jsonl'"#)
+        #expect(OpenCodeAdapter()
+            .resumeCommand(options: [], agentSessionID: "ses_1", transcriptPath: "/db#ses_1") == "opencode --session 'ses_1'")
+        #expect(OpenCodeAdapter().resumeCommand(options: [], agentSessionID: nil, transcriptPath: "/db") == nil)
     }
 
     @Test func `fork commands per agent, quoted for the shell`() {
         #expect(ClaudeCodeAdapter()
-            .forkCommand(agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc' --fork-session")
-        #expect(CodexAdapter().forkCommand(agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex fork '019a'")
-        #expect(CodexAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
-        #expect(PiAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/s/a b.jsonl") == "pi --fork '/s/a b.jsonl'")
-        #expect(OpenCodeAdapter().forkCommand(agentSessionID: nil, transcriptPath: "/db") == nil)
+            .forkCommand(options: [], agentSessionID: "abc", transcriptPath: "/x/abc.jsonl") == "claude --resume 'abc' --fork-session")
+        #expect(CodexAdapter().forkCommand(options: [], agentSessionID: "019a", transcriptPath: "/x.jsonl") == "codex fork '019a'")
+        #expect(CodexAdapter().forkCommand(options: [], agentSessionID: nil, transcriptPath: "/x.jsonl") == nil)
+        #expect(PiAdapter().forkCommand(options: [], agentSessionID: nil, transcriptPath: "/s/a b.jsonl") == "pi --fork '/s/a b.jsonl'")
+        #expect(OpenCodeAdapter().forkCommand(options: [], agentSessionID: nil, transcriptPath: "/db") == nil)
     }
 
     /// `calm fork "<prompt>"`: the prompt is the fork's first message where the agent's own command
@@ -171,14 +175,14 @@ struct AgentSetupTests {
     @Test func `a fork with a first message, where the agent takes one`() {
         let prompt = "Try the CRDT approach; don't merge it"
         let claude = AgentConversation(kind: .claudeCode, agentSessionID: "abc", transcriptPath: "/x/abc.jsonl")
-        #expect(ClaudeCodeAdapter().forkCommand(for: claude, prompt: prompt)
+        #expect(ClaudeCodeAdapter().forkCommand(for: claude, settings: CalmSettings(), prompt: prompt)
             == "claude --resume 'abc' --fork-session 'Try the CRDT approach; don'\\''t merge it'")
         let codex = AgentConversation(kind: .codex, agentSessionID: "019a", transcriptPath: "/x.jsonl")
-        #expect(CodexAdapter().forkCommand(for: codex, prompt: "go on") == "codex fork '019a' 'go on'")
+        #expect(CodexAdapter().forkCommand(for: codex, settings: CalmSettings(), prompt: "go on") == "codex fork '019a' 'go on'")
         let pi = AgentConversation(kind: .pi, agentSessionID: nil, transcriptPath: "/s/a.jsonl")
-        #expect(PiAdapter().forkCommand(for: pi, prompt: "go on") == nil)
+        #expect(PiAdapter().forkCommand(for: pi, settings: CalmSettings(), prompt: "go on") == nil)
         let openCode = AgentConversation(kind: .openCode, agentSessionID: "ses_1", transcriptPath: "/db")
-        #expect(OpenCodeAdapter().forkCommand(for: openCode, prompt: "go on") == nil)
+        #expect(OpenCodeAdapter().forkCommand(for: openCode, settings: CalmSettings(), prompt: "go on") == nil)
     }
 
     /// OpenCode forks through its API and opens the new session: run in a real shell, with a
@@ -198,7 +202,7 @@ struct AgentSetupTests {
         fi
         """.write(to: stub, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: stub.path)
-        let plain = try #require(OpenCodeAdapter().forkCommand(agentSessionID: "ses_it's", transcriptPath: "/db"))
+        let plain = try #require(OpenCodeAdapter().forkCommand(options: [], agentSessionID: "ses_it's", transcriptPath: "/db"))
         // With the options it was started with, and its folder after the session, as a resume has them.
         let started = AgentConversation(
             kind: .openCode,
@@ -206,7 +210,7 @@ struct AgentSetupTests {
             transcriptPath: "/db",
             options: ["--auto", "/a/My App"],
         )
-        let withOptions = try #require(OpenCodeAdapter().forkCommand(for: started))
+        let withOptions = try #require(OpenCodeAdapter().forkCommand(for: started, settings: CalmSettings()))
 
         for (command, opened) in [(plain, "--session ses_fork"), (withOptions, "--auto --session ses_fork /a/My App")] {
             for shell in ["/bin/zsh", "/bin/bash"] {

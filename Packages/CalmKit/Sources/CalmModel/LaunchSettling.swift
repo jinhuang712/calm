@@ -33,6 +33,17 @@ public enum AgentAtLaunch: Sendable, Equatable {
     case running(kind: AgentKind, processID: Int32, status: AgentLiveStatus?)
 }
 
+public extension Session {
+    /// Whether the agent, saying it is idle just now, ends this turn: one that hooks began (*working*
+    /// or *needs you*) and none will end. Esc withdraws a prompt, or answers a dialog, and Claude
+    /// Code then sends no hook and writes nothing to the transcript (2.1.296), but its status file
+    /// goes idle. Hooks stay the word on how a turn ended: *done* and *failed* are theirs, and the
+    /// agent writes idle after the `Stop` hook that made them, so it finds nothing to end.
+    func turnEnded(accordingTo status: AgentLiveStatus) -> Bool {
+        status.phase == .idle && (state == .working || state == .needsYou)
+    }
+}
+
 public extension Workspace {
     /// A state saved this recently was saved by a Restart, or close to one: little can have
     /// happened since. Older than this, a saved *working* is a guess.

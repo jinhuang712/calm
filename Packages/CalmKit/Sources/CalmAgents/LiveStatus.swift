@@ -6,6 +6,10 @@ import Foundation
 /// hook to say so. Formats are undocumented and change: anything unexpected reads as "nothing
 /// known", never an error.
 public protocol LiveStatusReading: AgentAdapter {
+    /// The file the agent running as `processID` keeps about itself. The agent rewrites it in
+    /// place, so the system can say when it changes (`AgentStatusWatcher`).
+    func statusFile(processID: Int32, home: URL) -> URL
+
     /// What the agent running as `processID` says about itself, or nil when it can't say: no
     /// file, an unreadable one, another process's, or wording Calm doesn't know.
     func liveStatus(processID: Int32, home: URL) -> AgentLiveStatus?
@@ -17,15 +21,20 @@ public extension Agents {
     }
 }
 
-/// `~/.claude/sessions/<pid>.json`, one per running process (Claude Code 2.1.283 and 2.1.284):
-/// `status` is `busy` or `idle` (both seen on disk) or `waiting` (in the binary, with a
-/// `waitingFor` such as "dialog open"; not yet seen on disk), and `statusUpdatedAt` is the
-/// milliseconds since 1970 at which it last changed. `updatedAt` moves more often and says
-/// nothing about the turn.
+/// `~/.claude/sessions/<pid>.json`, one per running process, rewritten in place (same inode all
+/// session, seen on 2.1.296): `status` is `busy`, `idle`, or `waiting` with a `waitingFor`
+/// ("permission prompt" seen; "input needed" and "dialog open" are in the binary), and
+/// `statusUpdatedAt` is the milliseconds since 1970 at which it last changed. A turn that ended
+/// with a background shell still running says `shell` (seen), which reads as no status. It
+/// changes only when the status does (`updatedAt` moved with it in every capture), and it goes
+/// idle when Esc withdraws a prompt or answers a dialog, which no hook reports.
 extension ClaudeCodeAdapter: LiveStatusReading {
+    public func statusFile(processID: Int32, home: URL) -> URL {
+        home.appending(path: ".claude/sessions/\(processID).json")
+    }
+
     public func liveStatus(processID: Int32, home: URL) -> AgentLiveStatus? {
-        let url = home.appending(path: ".claude/sessions/\(processID).json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = try? Data(contentsOf: statusFile(processID: processID, home: home)) else { return nil }
         return Self.liveStatus(fromSessionFile: data, processID: processID)
     }
 

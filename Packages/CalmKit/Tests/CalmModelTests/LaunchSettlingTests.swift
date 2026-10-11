@@ -157,4 +157,28 @@ struct LaunchSettlingTests {
             #expect(workspace.session(id)?.state == state)
         }
     }
+
+    // MARK: A turn that no hook ends (Esc on a fresh prompt, or on a dialog)
+
+    @Test func `an idle agent ends a working turn and a question left open`() {
+        for state in [SessionState.working, .needsYou] {
+            let (workspace, id) = fixture(state)
+            #expect(workspace.session(id)?.turnEnded(accordingTo: status(.idle, secondsAgo: 0)) == true)
+        }
+    }
+
+    @Test func `an idle agent leaves what a hook ended as it is`() {
+        for state in [SessionState.idle, .done, .failed] {
+            let (workspace, id) = fixture(state)
+            #expect(workspace.session(id)?.turnEnded(accordingTo: status(.idle, secondsAgo: 0)) == false)
+        }
+    }
+
+    @Test func `a busy or waiting agent never ends a turn`() {
+        for state in [SessionState.working, .needsYou] {
+            let (workspace, id) = fixture(state)
+            #expect(workspace.session(id)?.turnEnded(accordingTo: status(.busy, secondsAgo: 0)) == false)
+            #expect(workspace.session(id)?.turnEnded(accordingTo: status(.waiting, secondsAgo: 0)) == false)
+        }
+    }
 }

@@ -37,6 +37,12 @@ final class SessionProbe {
     private var rereads: Set<Session.ID> = []
     /// The launch pass is still out, with rows showing as loading (`settleSavedRuns`).
     private var savedRunsPending = false
+    /// Hears each Claude Code session's own status file change: what ends a turn no hook reports
+    /// (Esc). Nothing runs between changes.
+    private lazy var statusWatcher = AgentStatusWatcher(home: FileManager.default.homeDirectoryForCurrentUser) { id, status in
+        SessionManager.shared.agentStatusRead(id, status)
+    }
+
     /// Polls so far, for the work done every few of them.
     private var ticks = 0
 
@@ -118,6 +124,7 @@ final class SessionProbe {
         if group.wait(timeout: .now() + LaunchPass.budget) == .success {
             seed(box.answer)
             manager.settleSavedRuns(box.answer)
+            watchStatuses()
             let took = Trace.milliseconds(started.duration(to: .now))
             Trace.note("launch pass: \(questions.count) saved runs settled in \(took), before the window")
             return
@@ -141,6 +148,7 @@ final class SessionProbe {
         Trace.note(gaveUp ? "launch pass: no answer after \(took), saved runs end" : "launch pass: answered after \(took)")
         seed(answer)
         SessionManager.shared.finishConfirming(answer)
+        watchStatuses()
     }
 
     /// What the pass learned, so the first regular probe neither asks zmx again nor takes the
@@ -193,6 +201,7 @@ final class SessionProbe {
         transcriptStamps = transcriptStamps.filter { live.contains($0.key) }
         lastDiscoveries = lastDiscoveries.filter { live.contains($0.key) }
         lastReads = lastReads.filter { live.contains($0.key) }
+        statusWatcher.keep(only: live)
     }
 
     /// An agent's hook just spoke: what it did is usually in its transcript by now, so read it
@@ -304,6 +313,24 @@ final class SessionProbe {
         }
     }
 
+    /// Watches the status file of the agent running in the session, if it keeps one; stops when
+    /// no agent runs there. Called when an agent starts or ends, never on a timer.
+    private func watchStatus(of id: Session.ID) {
+        guard let agent = SessionManager.shared.workspace.session(id)?.agent, agent.processID > 0,
+              let reader = Agents.liveStatusReader(for: agent.kind)
+        else {
+            statusWatcher.stop(id)
+            return
+        }
+        statusWatcher.watch(id, reader: reader, processID: agent.processID)
+    }
+
+    private func watchStatuses() {
+        for session in SessionManager.shared.workspace.sessions {
+            watchStatus(of: session.id)
+        }
+    }
+
     /// The agent that holds the session's terminal foreground, read from its process as it is now:
     /// the last tick says which process that is, and it may have exited since (then nothing is
     /// recognised). Not `session.agent`: a report can have replaced that run, which is exactly
@@ -317,6 +344,7 @@ final class SessionProbe {
         guard foregroundJobs[id] != job else { return }
         foregroundJobs[id] = job
         SessionManager.shared.foregroundChanged(id, to: job > 0 ? ProcessInspector.snapshot(of: job) : nil)
+        watchStatus(of: id)
     }
 
     private func shellProcess(named name: String) -> pid_t? {

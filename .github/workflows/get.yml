@@ -3,7 +3,8 @@ name: Get
 # Runs get.sh, the one-line install, on a clean macOS runner and checks what it put in place: the
 # newest release's app, with no download mark, signed as built, the version the release names,
 # `calm` linked and Calm starting. Then again while that Calm runs, which must keep the running
-# app aside and say to restart, and once more for a version into another folder.
+# app aside, say to restart, and delete the moved copy once that Calm quits; and once more for a
+# version into another folder.
 # release.yml starts it once it has published (fetching get.sh as the README does); it also runs
 # when get.sh changes (piping this checkout's, since raw.githubusercontent.com caches).
 
@@ -64,7 +65,9 @@ jobs:
           done
           [[ "${listed:-}" == 1 ]] || { echo "::error::Calm didn't start and answer"; exit 1; }
 
-      # Calm is still running from the first install.
+      # Calm is still running from the first install. The copy it runs from stays, moved aside,
+      # until it quits, then goes at once: macOS would otherwise start it again for the path
+      # (DESIGNS.md → Distribution).
       - name: Install over a running Calm
         run: |
           bash < get.sh | tee "$RUNNER_TEMP/again.txt"
@@ -72,6 +75,15 @@ jobs:
           ls -d /Applications/.Calm.app.previous-*
           [[ -d /Applications/Calm.app ]]
           pkill -x Calm || true
+          for _ in $(seq 50); do
+            ls -d /Applications/.Calm.app.previous-* >/dev/null 2>&1 || break
+            sleep 0.1
+          done
+          if ls -d /Applications/.Calm.app.previous-* 2>/dev/null; then
+            echo "::error::the moved copy was still there 5 s after its Calm quit"
+            exit 1
+          fi
+          [[ -d /Applications/Calm.app ]]
 
       - name: Install a version elsewhere
         run: |

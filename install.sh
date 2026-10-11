@@ -36,6 +36,35 @@ done
 
 step() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 
+# The copy a running Calm was moved aside to goes the moment that Calm quits. Calm 0.1.2 and later
+# delete it themselves once they've exited (Calm/App/Restart.swift). An older one reopens by the
+# path it started from (Calm → Restart Calm), and macOS started the moved copy again rather than
+# the new one there (2026-10-12, twice in a row; DESIGNS.md → Distribution). So this leaves a
+# waiter behind, which sleeps in zsh's own zselect, starting no process: every 20 ms for an
+# older Calm, to come before its restart's reopen (that looks every 0.1 s), and once a second for
+# a newer one, whose own cleanup it only backs up (a crash, a kill). The program file goes first:
+# without it macOS can't start that copy. get.sh has the same function.
+remove_once_quit() { # <moved copy> <the version it says> <pid>...
+  local moved="$1" version="$2" tick=2
+  shift 2
+  if [[ "${version%%-*}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    local major=$((10#${BASH_REMATCH[1]})) minor=$((10#${BASH_REMATCH[2]})) patch=$((10#${BASH_REMATCH[3]}))
+    if ((major > 0 || minor > 1 || (minor == 1 && patch >= 2))); then tick=100; fi
+  fi
+  # shellcheck disable=SC2016 # the script expands its own arguments, in zsh
+  nohup /bin/zsh -c '
+    zmodload zsh/zselect
+    tick=$1 moved=$2
+    shift 2
+    for pid in "$@"; do
+      while kill -0 $pid 2>/dev/null; do zselect -t $tick; done
+    done
+    /bin/rm -f "$moved/Contents/MacOS/Calm"
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$moved" >/dev/null 2>&1
+    /bin/rm -rf "$moved"
+  ' calm-moved-copy "$tick" "$moved" "$@" </dev/null >/dev/null 2>&1 &
+}
+
 command -v mise >/dev/null 2>&1 || { echo "install.sh: needs mise (https://mise.jdx.dev)" >&2; exit 1; }
 command -v xcodebuild >/dev/null 2>&1 || { echo "install.sh: needs Xcode" >&2; exit 1; }
 
@@ -91,7 +120,7 @@ fi
 # running app whose own file is gone can't show macOS who it is, and macOS refuses it the
 # folder picker (New Project did nothing, 2026-10-07: SecCodeCopyGuestWithAttributes failed,
 # ENOENT). Moved, the file is found under its new name (`codesign -vv <pid>` stays valid).
-# Old copies go at a later install, once no Calm runs from them.
+# The moved copy goes once that Calm quits (remove_once_quit, above).
 step "Installing to $target"
 mkdir -p "$app_dir"
 staging="$app_dir/.Calm.app.installing"
@@ -110,11 +139,18 @@ lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchSe
 "$lsregister" -u "$built" >/dev/null 2>&1 || true
 rm -rf "$built"
 "$lsregister" -f "$target" >/dev/null 2>&1 || true
-# lsof names each running Calm's program file where it is now, moved or not.
-in_use="$(lsof -a -c Calm -d txt -Fn 2>/dev/null | sed -n 's/^n//p' || true)"
+# lsof names each running Calm's program file where it is now, moved or not. A copy nothing runs
+# from goes now; one a Calm runs from goes once it quits.
+listing="$(lsof -a -c Calm -d txt -Fpn 2>/dev/null || true)"
 for old in "$app_dir"/.Calm.app.previous*; do
   [[ -e "$old" ]] || continue
-  grep -qF "$old/" <<<"$in_use" || rm -rf "$old"
+  pids="$(awk -v dir="$old/" '/^p/ { pid = substr($0, 2) } /^n/ && index(substr($0, 2), dir) == 1 { print pid }' <<<"$listing" | sort -u | tr '\n' ' ')"
+  if [[ -z "${pids// /}" ]]; then
+    rm -rf "$old"
+  else
+    # shellcheck disable=SC2086 # one argument per pid
+    remove_once_quit "$old" "$(defaults read "$old/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)" $pids
+  fi
 done
 
 if [[ $link_cli -eq 1 ]]; then

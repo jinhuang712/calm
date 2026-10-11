@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_: Notification) {
         ControlServer.shared.stop()
         SessionManager.shared.prepareForQuit()
-        Restart.relaunchAfterExit()
+        Restart.afterExit()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {

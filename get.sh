@@ -37,6 +37,35 @@ cleanup() {
   if [[ -n "$work" ]]; then rm -rf "$work"; fi
 }
 
+# The copy a running Calm was moved aside to goes the moment that Calm quits. Calm 0.1.2 and later
+# delete it themselves once they've exited. An older one reopens by the path it started from
+# (Calm → Restart Calm), and macOS started the moved copy again rather than the new one there
+# (2026-10-12, twice in a row; DESIGNS.md → Distribution). So this leaves a waiter behind, which
+# sleeps in zsh's own zselect, starting no process: every 20 ms for an older Calm, to come before
+# its restart's reopen (that looks every 0.1 s), and once a second for a newer one, whose own
+# cleanup it only backs up (a crash, a kill). The program file goes first: without it macOS can't
+# start that copy. install.sh has the same function.
+remove_once_quit() { # <moved copy> <the version it says> <pid>...
+  local moved="$1" version="$2" tick=2
+  shift 2
+  if [[ "${version%%-*}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    local major=$((10#${BASH_REMATCH[1]})) minor=$((10#${BASH_REMATCH[2]})) patch=$((10#${BASH_REMATCH[3]}))
+    if ((major > 0 || minor > 1 || (minor == 1 && patch >= 2))); then tick=100; fi
+  fi
+  # shellcheck disable=SC2016 # the script expands its own arguments, in zsh
+  nohup /bin/zsh -c '
+    zmodload zsh/zselect
+    tick=$1 moved=$2
+    shift 2
+    for pid in "$@"; do
+      while kill -0 $pid 2>/dev/null; do zselect -t $tick; done
+    done
+    /bin/rm -f "$moved/Contents/MacOS/Calm"
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$moved" >/dev/null 2>&1
+    /bin/rm -rf "$moved"
+  ' calm-moved-copy "$tick" "$moved" "$@" </dev/null >/dev/null 2>&1 &
+}
+
 # GitHub's API allows 60 requests an hour per address without a token; a token raises that.
 github() {
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
@@ -121,7 +150,8 @@ main() {
   # Copied beside the old app first, then swapped in with two renames, so a failed copy never
   # leaves no Calm. A running Calm keeps working from the old app, moved aside: deleting the file
   # a running app came from stops macOS letting it show the folder picker (DESIGNS.md →
-  # Distribution). Older copies go once nothing runs from them. ./install.sh does the same.
+  # Distribution). A moved copy goes once nothing runs from it: now, or when its Calm quits
+  # (remove_once_quit). ./install.sh does the same.
   local target="$app_dir/Calm.app" staging="$app_dir/.Calm.app.installing" was="" running=0
   step "Installing to $target"
   rm -rf "$staging"
@@ -140,11 +170,18 @@ main() {
   /usr/bin/xattr -dr com.apple.quarantine "$target"
   local lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
   "$lsregister" -f "$target" >/dev/null 2>&1 || true
-  local in_use old
-  in_use="$(lsof -a -c Calm -d txt -Fn 2>/dev/null | sed -n 's/^n//p' || true)"
+  # lsof names each running Calm's program file where it is now, moved or not.
+  local listing old pids
+  listing="$(lsof -a -c Calm -d txt -Fpn 2>/dev/null || true)"
   for old in "$app_dir"/.Calm.app.previous*; do
     [[ -e "$old" ]] || continue
-    grep -qF "$old/" <<<"$in_use" || rm -rf "$old"
+    pids="$(awk -v dir="$old/" '/^p/ { pid = substr($0, 2) } /^n/ && index(substr($0, 2), dir) == 1 { print pid }' <<<"$listing" | sort -u | tr '\n' ' ')"
+    if [[ -z "${pids// /}" ]]; then
+      rm -rf "$old"
+    else
+      # shellcheck disable=SC2086 # one argument per pid
+      remove_once_quit "$old" "$(defaults read "$old/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)" $pids
+    fi
   done
 
   if [[ $link_cli -eq 1 ]]; then

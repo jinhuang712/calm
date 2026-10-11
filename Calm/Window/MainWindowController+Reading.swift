@@ -38,8 +38,35 @@ extension MainWindowController {
 
         /// The viewer's self-test actions: viewer_text (the page's text), viewer_state (its
         /// changes, mode and what the page drew), viewer_mode:file|unified|split (a click on the
-        /// header's switch).
+        /// header's switch), viewer_scroll:<y> (the page scrolled to y), viewer_zoom (its size, what
+        /// the row says, what's at the top of the view, and the terminal's text size, which ⌘+ in the
+        /// viewer leaves), viewer_size_hover:on|off (the pointer on the row's size or off it),
+        /// viewer_size_click:minus|plus|size (a click on its −, + or number).
         func viewerForTesting(_ action: String) {
+            if action.hasPrefix("viewer_size_hover:") {
+                // viewer_size_hover:on|off: the pointer on the row's size, or off it
+                fileViewer.model.zoomHovered = action.hasSuffix(":on")
+                fileViewer.model.zoomHoverForTesting = action.hasSuffix(":on")
+                return
+            }
+            if action.hasPrefix("viewer_size_click:") {
+                // viewer_size_click:minus|plus|size: what a click on the size's −, + or number does
+                let part = action.dropFirst(18)
+                fileViewer.model.onZoom(part == "plus" ? true : part == "minus" ? false : nil)
+                return
+            }
+            if action.hasPrefix("viewer_scroll:"), let y = Double(action.dropFirst(14)) {
+                fileViewer.webView?.evaluateJavaScript("window.scrollTo(0, \(y))")
+                return
+            }
+            if action == "viewer_zoom" {
+                Task { @MainActor in
+                    let state = await fileViewer.zoomStateForTesting()
+                    let terminal = focusedPane?.fontSize.map { "\($0)" } ?? "none"
+                    FileHandle.standardError.write(Data("calm-selftest: viewer zoom \(state), terminal font \(terminal)\n".utf8))
+                }
+                return
+            }
             if action == "viewer_text" {
                 Task { @MainActor in
                     let text = await fileViewer.renderedTextForTesting() ?? "no page"

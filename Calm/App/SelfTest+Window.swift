@@ -73,6 +73,10 @@
                 }
             case "escape":
                 postKey(.keyDown, keyCode: 53, characters: "\u{1b}", flags: [])
+            case "cmd_plus", "cmd_minus", "cmd_zero":
+                // ⌘= (⌘+ on a US keyboard), ⌘− and ⌘0, posted so the viewer's key monitor sees them
+                let (code, key): (UInt16, String) = action == "cmd_plus" ? (24, "=") : action == "cmd_minus" ? (27, "-") : (29, "0")
+                postKey(.keyDown, keyCode: code, characters: key, flags: .command)
             case let link where link.hasPrefix("open_link:"):
                 if let pane = focusedPane {
                     surface(pane, requestsOpenLink: String(link.dropFirst(10)))

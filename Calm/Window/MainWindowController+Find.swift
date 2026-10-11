@@ -107,15 +107,18 @@ extension MainWindowController {
         }
     }
 
-    /// The Edit menu's find items while a file is shown: they find in it. False otherwise, so the
-    /// pane gets them.
-    func performViewerFind(_ action: String) -> Bool {
+    /// The Edit menu's find items and the View menu's sizes while a file is shown: they find in it
+    /// and size it. False otherwise, so the pane gets them.
+    func performViewerAction(_ action: String) -> Bool {
         guard fileViewer.isShowing, !settingsPage.isShowing else { return false }
         switch action {
         case "start_search": fileViewer.find.toggle()
         case "navigate_search:next": fileViewer.find.step(up: false)
         case "navigate_search:previous": fileViewer.find.step(up: true)
         case "search_selection": fileViewer.findSelection()
+        case "increase_font_size:1": fileViewer.zoom(bigger: true)
+        case "decrease_font_size:1": fileViewer.zoom(bigger: false)
+        case "reset_font_size": fileViewer.zoom(bigger: nil)
         default: return false
         }
         return true

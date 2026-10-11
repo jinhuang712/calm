@@ -13,6 +13,9 @@
     --added: #9cbf93; --removed: #bf9490; --modified: #92aecb;
     /* Where code starts: under the file's name in the header (Calm passes its own). */
     --gutter: 50px;
+    /* The page's size after ⌘+ or ⌘− (WKWebView's pageZoom, which Calm passes in): what is the
+       viewer's rather than the file's divides by it, to keep its size on screen. */
+    --zoom: 1;
   }
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body { font: 15px/1.65 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; -webkit-font-smoothing: antialiased; }
@@ -50,10 +53,20 @@
   mark.calm-find { background: none; color: inherit; text-decoration: underline 2px var(--find); text-underline-offset: 3px; text-decoration-skip-ink: none; }
   mark.calm-find.current { background: var(--find); color: var(--bg); border-radius: 3px; box-shadow: 0 0 0 2px var(--find); text-decoration: none; }
   .lines .l.find-band { background: var(--find-band); box-shadow: inset 3px 0 0 var(--find); }
-  #calm-find-map { position: fixed; right: 3px; top: 6px; bottom: 6px; width: 8px; border-radius: 4px; background: var(--find-track); }
-  #calm-find-map .tick { position: absolute; left: 1px; right: 1px; height: 2px; border-radius: 1px; background: var(--find); cursor: default; }
-  #calm-find-map .tick.current { left: -2px; height: 4px; opacity: 1 !important; pointer-events: none; }
-  #calm-find-map .box { position: absolute; left: 0; right: 0; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--find-box); pointer-events: none; }
+  #calm-find-map {
+    --pt: calc(1px / var(--zoom));
+    position: fixed; right: calc(3 * var(--pt)); top: calc(6 * var(--pt)); bottom: calc(6 * var(--pt)); width: calc(8 * var(--pt));
+    border-radius: calc(4 * var(--pt)); background: var(--find-track);
+  }
+  #calm-find-map .tick {
+    position: absolute; left: var(--pt); right: var(--pt); height: calc(2 * var(--pt)); border-radius: var(--pt);
+    background: var(--find); cursor: default;
+  }
+  #calm-find-map .tick.current { left: calc(-2 * var(--pt)); height: calc(4 * var(--pt)); opacity: 1 !important; pointer-events: none; }
+  #calm-find-map .box {
+    position: absolute; left: 0; right: 0; border-radius: calc(4 * var(--pt)); box-shadow: inset 0 0 0 var(--pt) var(--find-box);
+    pointer-events: none;
+  }
   /* Changed lines: a bar beside each, and a small wedge where lines were only removed. */
   .lines .l.add::before, .lines .l.mod::before {
     content: ""; position: absolute; left: calc(var(--gutter) - 12px); top: 0; bottom: 0; width: 3px; border-radius: 1px;
@@ -176,6 +189,8 @@
   let doc = null;       // what Calm last asked to render
   let changes = null;   // the file's changes against the last commit, once Calm has read them
   let mode = "file";    // "file", "unified" or "split"
+  let gutter = 50;      // where code starts, in points on screen
+  let pageZoom = 1;     // the page's size after ⌘+ or ⌘−; a point on screen is 1 / pageZoom px
 
   function textLines(text) {
     const lines = text.split("\n");
@@ -320,11 +335,26 @@
       document.documentElement.style.setProperty(`--${name}`, value);
     }
     if (document_.gutter) {
-      document.documentElement.style.setProperty("--gutter", `${document_.gutter}px`);
+      gutter = document_.gutter;
+      setGutter();
     }
     doc = document_;
     render();
   };
+
+  /// Called by Calm after ⌘+ or ⌘− (it sets WKWebView's pageZoom, which scales everything): the
+  /// text still starts under the file's name, and the find map keeps its size. The gutter keeps
+  /// room for a diff's − and + (22 px left of the text), so at big sizes it starts further in.
+  window.calmSetZoom = function (zoom_) {
+    pageZoom = zoom_;
+    document.documentElement.style.setProperty("--zoom", pageZoom);
+    setGutter();
+    drawMap();
+  };
+
+  function setGutter() {
+    document.documentElement.style.setProperty("--gutter", `${Math.max(gutter / pageZoom, 26)}px`);
+  }
 
   /// Called by Calm once it has read the file's changes: { marks: {line: "added" | "modified"},
   /// deletions: [line], oldText, hunks: [{ header, section, newStart, newCount, rows, pairs }] }.
@@ -467,14 +497,15 @@
     }
     const track = map.clientHeight;
     const top = (mark) => mark.getBoundingClientRect().top + window.scrollY;
+    const pt = 1 / pageZoom; // the map is measured in points on screen, whatever the page's size
     const slots = new Map();
     let ticks = "";
     finds.forEach((mark, index) => {
-      const y = Math.min(Math.floor(((top(mark) / height) * track) / 2) * 2, track - 2);
+      const y = Math.min(Math.floor(((top(mark) / height) * track) / (2 * pt)) * 2 * pt, track - 2 * pt);
       slots.set(y, (slots.get(y) || 0) + 1);
       if (slots.get(y) === 1) ticks += `<div class="tick" data-index="${index}" data-y="${y}" style="top:${y}px"></div>`;
     });
-    const box = `<div class="box" style="top:${(window.scrollY / height) * track}px;height:${Math.max((window.innerHeight / height) * track, 4)}px"></div>`;
+    const box = `<div class="box" style="top:${(window.scrollY / height) * track}px;height:${Math.max((window.innerHeight / height) * track, 4 * pt)}px"></div>`;
     map.innerHTML = box + ticks;
     for (const tick of map.querySelectorAll(".tick")) {
       const lines = slots.get(Number(tick.dataset.y));
@@ -483,7 +514,7 @@
     const mark = finds[current];
     if (mark) {
       const y = (top(mark) / height) * track;
-      map.insertAdjacentHTML("beforeend", `<div class="tick current" style="top:${Math.min(Math.max(y - 1, 0), track - 4)}px"></div>`);
+      map.insertAdjacentHTML("beforeend", `<div class="tick current" style="top:${Math.min(Math.max(y - pt, 0), track - 4 * pt)}px"></div>`);
     }
   }
 

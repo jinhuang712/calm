@@ -61,7 +61,7 @@ final class FileViewer: NSObject {
     private var onClose: (() -> Void)?
     /// Scripts for the page, held until it has loaded.
     private var pendingScripts: [String] = []
-    private var pageLoaded = false
+    private(set) var pageLoaded = false
     private(set) weak var webView: WKWebView?
     private(set) weak var pdfView: PDFView?
     private var reading: Task<Void, Never>?
@@ -84,12 +84,22 @@ final class FileViewer: NSObject {
     let model = ViewerModel()
     /// Showing the session page rather than a file (`showSession`).
     private(set) var isSessionPage = false
+    /// What ⌘+ and ⌘− size while something shows (FileViewer+Zoom).
+    var zoomTarget: ViewerZoomTarget?
+    /// The web view's size against its page's own (WKWebView's `pageZoom`).
+    var webZoom = 1.0
+    private(set) weak var pictureView: ViewerPictureView?
+    /// A PDF's or a picture's own size changes (a pinch), which the row's size follows.
+    var zoomObservers: [NSObjectProtocol] = []
+    /// True while something covers the viewer (Settings): its keys go to what's in front.
+    var isCovered: () -> Bool = { false }
 
     init(container: NSView) {
         self.container = container
         super.init()
         findMessages.viewer = self
         wireFind()
+        model.onZoom = { [weak self] bigger in self?.zoom(bigger: bigger) }
     }
 
     var isShowing: Bool {
@@ -131,6 +141,7 @@ final class FileViewer: NSObject {
         // Calm's page takes the file once it has loaded; an HTML file or an SVG loads as it is.
         pendingScripts = render.map { [$0] } ?? []
         pageLoaded = false
+        startZoom(ViewerZoomTarget(kind, path: path))
         self.onClose = onClose
         file = path
         session = opening.session
@@ -188,6 +199,8 @@ final class FileViewer: NSObject {
         web.loadFileURL(pageURL, allowingReadAccessTo: pageURL.deletingLastPathComponent())
         pendingScripts = [Self.sessionScript(opening, background: background, style: style)]
         pageLoaded = false
+        // In the terminal's own size, whatever size files are read at.
+        startZoom(.web(.page, remembered: false))
         self.onClose = onClose
         session = opening.session
         isSessionPage = true
@@ -246,14 +259,15 @@ final class FileViewer: NSObject {
         Motion.fadeIn(root, duration: 0.16)
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown]) { [weak self] event in
-            guard let self, event.window === container.window else { return event }
+            guard let self, event.window === container.window, !isCovered() else { return event }
             find.hidePictureNote()
             return event.type == .keyDown && handleKey(event) ? nil : event
         }
     }
 
     /// The viewer's keys, ahead of the terminal under it: esc closes find first, then the viewer;
-    /// ⌘F, ⌘G, ⌘⇧G and ⌘E find in the file (FEATURES.md → F16).
+    /// ⌘F, ⌘G, ⌘⇧G and ⌘E find in the file (FEATURES.md → F16); ⌘+, ⌘− and ⌘0 size it, not the
+    /// terminal (F10).
     private func handleKey(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])
         if event.keyCode == 53, modifiers.isEmpty {
@@ -274,6 +288,13 @@ final class FileViewer: NSObject {
             find.step(up: modifiers.contains(.shift))
         case "e" where modifiers == .command:
             findSelection()
+        // ⌘= and ⌘⇧= (⌘+ on a US keyboard), ⌘+ where + has its own key, and the keypad's.
+        case "=", "+":
+            zoom(bigger: true)
+        case "-" where modifiers == .command:
+            zoom(bigger: false)
+        case "0" where modifiers == .command:
+            zoom(bigger: nil)
         default:
             return false
         }
@@ -319,6 +340,7 @@ final class FileViewer: NSObject {
         isSessionPage = false
         pdfMatches = []
         pdfMarks = []
+        stopZoom()
         find.reset(for: .page)
         presence.isShowing = false
         guard let root else { return }
@@ -364,7 +386,7 @@ final class FileViewer: NSObject {
         runScript("calmSetMode(\"\(mode.rawValue)\")")
     }
 
-    private func runScript(_ script: String) {
+    func runScript(_ script: String) {
         if pageLoaded, let webView {
             webView.evaluateJavaScript(script)
         } else {
@@ -446,8 +468,8 @@ final class FileViewer: NSObject {
             return (view, nil)
         case .image where url.pathExtension.lowercased() != "svg":
             guard let image = NSImage(contentsOf: url) else { return nil }
-            let view = NSImageView(image: image)
-            view.imageScaling = .scaleProportionallyDown
+            let view = ViewerPictureView(image: image)
+            pictureView = view
             return (view, nil)
         case .html, .image:
             let web = makeWebView()

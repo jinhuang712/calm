@@ -27,7 +27,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     lazy var closePrompt = ClosePrompt(container: container)
     lazy var sessionMenu = SessionMenuController(container: container)
     lazy var linkTag = LinkTag(container: container)
-    lazy var fileViewer = FileViewer(container: container)
+    lazy var fileViewer: FileViewer = {
+        let viewer = FileViewer(container: container)
+        // Settings opens over a viewed file, and its keys are then Settings' (esc, ⌘+).
+        viewer.isCovered = { [weak self] in self?.settingsPage.isShowing == true }
+        return viewer
+    }()
+
     lazy var filesColumn = FilesColumn { [weak self] path, fromChanges in self?.showFile(path, preferDiff: fromChanges) }
     let windowStyle = WindowStyle()
     let sidebarEditing = SidebarEditing()

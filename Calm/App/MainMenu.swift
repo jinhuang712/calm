@@ -235,8 +235,8 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func performTerminalAction(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? String else { return }
-        // A viewed file covers the terminal: the find items find in it.
-        if TerminalWindowManager.shared.focusedController?.performViewerFind(action) == true {
+        // A viewed file covers the terminal: the find items find in it, and the sizes size it.
+        if TerminalWindowManager.shared.focusedController?.performViewerAction(action) == true {
             return
         }
         if action == "reload_config" {

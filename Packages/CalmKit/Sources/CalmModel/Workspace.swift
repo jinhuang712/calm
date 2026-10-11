@@ -277,6 +277,9 @@ public struct Workspace: Codable, Hashable, Sendable {
     /// The text size, in points, that every session shows after ⌘+ or ⌘−; nil means the
     /// config's `font-size` (FEATURES.md → F1).
     public var fontSize: Float?
+    /// The size a viewed page of text shows at after ⌘+ or ⌘− in the viewer (`ViewerZoom`); nil
+    /// is its own size (FEATURES.md → F10).
+    public var viewerZoom: Double?
     /// True when the window was last left filling the screen (Zoom, Fill or a window manager's
     /// maximize), nil otherwise. The size it had before is the window frame AppKit autosaves,
     /// which stays at the windowed size while the window is zoomed (FEATURES.md → F1).

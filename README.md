@@ -4,7 +4,7 @@ A minimal macOS terminal that keeps you calm and focused.
 
 Calm is built for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It stays a terminal: the agents keep their own interfaces. Calm quietly shows which session needs you, helps you pick up any thread where you left it, and finds any past conversation in seconds.
 
-> **Status: [0.1.0](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Install it with [one line](#one-line), [Homebrew](#homebrew) or the [disk image](#download), or [build it from source](#build-from-source).
+> **Status: [0.1.1](CHANGELOG.md), a public preview.** Its author has used it as their only terminal since 2026-09-29, and nobody else has yet, so expect rough edges (see [Known limits](#known-limits)). Install it with [one line](#one-line), [Homebrew](#homebrew) or the [disk image](#download), or [build it from source](#build-from-source).
 
 ## What it does
 

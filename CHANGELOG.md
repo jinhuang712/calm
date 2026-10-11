@@ -2,6 +2,36 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## 0.1.1 — 2026-10-12
+
+A public preview still, for macOS 26 on Apple silicon: what changed since 0.1.0. Exact behavior of everything below is in [FEATURES.md](FEATURES.md).
+
+**Update** by running the one line again: `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash`. With Homebrew, run `brew upgrade --cask calm`, then `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app`. From the disk image (`Calm-0.1.1.dmg` below), quit Calm, drag the new one over the old one, run the same `xattr` line and open Calm. Your shells keep running: after the one line or Homebrew, choose Calm → Restart Calm to switch to 0.1.1. macOS asks again for Desktop, Documents and Downloads. A new install: [README → Install](README.md#install).
+
+### Agents
+- A working card says what Claude Code is doing, from the hooks it already sends: "Reading SessionCard.swift", "Running the full test suite", "Thinking". A todo list is a quiet line, "3 of 5 · Adding tests", in place of the thin bar. Other agents still say "Working".
+- Esc on a prompt you just sent, or on a permission prompt or dialog, ends the card's working or needs-you state. Claude Code sends no hook for it, so the card used to stay on "Thinking" or "Needs you".
+- An idle card says how many shells its agent left running: "2 shells running ·" before the recap.
+- Until a new turn replies, its card shows Claude's recap of the last one, when Claude wrote one. A stand-in reply (the error Claude Code writes when the Mac sleeps mid-response) no longer shows as the latest message, or as a conversation of size 0 beside the compaction bar.
+- Resume, ⌘⇧T, the resume after a restart of the Mac, Copy Resume Command, Fork and `calm fork` keep the options the agent was started with, such as `--dangerously-skip-permissions`. A conversation Calm didn't see start (⌘K's resume, `calm show`) takes the options ⌘N starts the agent with.
+- Claude Code in a scratch session (⌘⇧N) no longer asks whether you trust the folder: Calm marks the scratch root trusted in `~/.claude.json`, once.
+
+### Sessions and projects
+- Opening a project (⌘O, a dropped folder, `calm open`, the welcome page, a click on the project's header) shows its home: its name, folder and branch, a line to start an agent or a shell, and the sessions that ran there. The header's chevron folds it.
+- Projects can be dragged into another order by their header.
+
+### Finding and reading
+- ⌘+, ⌘− and ⌘0 size the open file, not the terminal under it. A page of text keeps its size for the next file and the next launch; a PDF or a picture starts fitted. The file's row shows the size when it isn't 100%, with − and + under the pointer, and a click on the number goes back to 100%.
+- The way back from a file is a quiet chevron at the left of its row, in place of the outlined esc key.
+- An untracked folder with more than 500 files is one row in the files column. A project whose `node_modules` wasn't ignored showed 57,000 rows and kept Calm busy.
+
+### Updates
+- Calm tells you when a newer release is out: once a day it asks GitHub, and the sidebar's top strip shows `↑ 0.2.0`; a click on it offers Release Notes, Copy Update Command and Skip. Calm → Check for Updates… asks now. Settings → General → Check for updates turns the daily check off. Calm only tells: it doesn't install the update.
+- `get.sh --edge` installs the newest build of `main`, which CI keeps as the `edge` pre-release, for a Mac without Xcode. It is not a release, and its version names its commit (`0.1.1-<commit>`).
+
+### Command line
+- `calm screenshot [<file>]` saves a PNG of Calm's window. Calm draws it itself, so it needs no Screen Recording permission.
+
 ## 0.1.0 — 2026-10-08
 
 The first release, a public preview, for macOS 26 on Apple silicon. Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so expect rough edges (README → Known limits). Exact behavior of everything below is in [FEATURES.md](FEATURES.md).

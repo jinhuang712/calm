@@ -43,7 +43,7 @@ These are checked by the author's daily use, since the first user is the author.
 
 ## Constraints
 
-- macOS 26 or later, Apple silicon only ([DESIGNS.md](DESIGNS.md)).
+- macOS 14.5 or later, Apple silicon only ([DESIGNS.md](DESIGNS.md)).
 - Swift and libghostty.
 - Apache-2.0. No code copied from other projects; Ghostty (MIT) may be adapted with attribution, and the engine patches come unchanged from a Ghostty fork (MIT), credited in NOTICE.
 - Everything stays local: no network calls except updates and what the user's own agents do.

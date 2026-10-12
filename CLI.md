@@ -40,7 +40,7 @@ The ⏸ commands wait until a real need shows up (a script, SSH from another dev
 ## Conventions
 
 - **Exit codes:** 0 done; 1 failed, with the reason on stderr; 64 wrong usage.
-- **Output** is plain text, one record per line. Color, bold and state marks only when printing to a terminal. Every command that prints data (`list`, `status`, `search`, `show`, `doctor`) takes `--json`: one JSON document with a `"v": 1` field, so a script can tell when its shape changes.
+- **Output** is plain text, one record per line. Color, bold and state marks only when printing to a terminal. Every command that prints data takes `--json`: one JSON document with a `"v": 1` field, so a script can tell when its shape changes. *Built:* `show`, `doctor` and `config list`. *Parked:* `list`, `status` and `search`.
 - **Starting Calm.** `calm`, `open` and `list` start Calm when it isn't running and wait up to 5 seconds for it. The Calm they start is the app the CLI came with (so a copy installed elsewhere, or a Debug build, starts itself), and only for the standard socket: when `CALM_SOCKET` names another one (a self-test's), that Calm can't be started from here, and they say it isn't running. `search`, `show` and `trace` work without it, reading files directly. `doctor` reports that it isn't running. The hook commands and `notify` never start it.
 - **Two kinds of id.**
   - A *session id* names a session open in Calm: the first 8 hex digits of its id, the same ones the trace and zmx names use. A full id works too.

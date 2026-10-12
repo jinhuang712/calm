@@ -104,7 +104,7 @@ Calm adds files to an agent's own folders only for what you turned on in **Calm 
 
 - Apple silicon and macOS 14.5 or later only.
 - The download isn't signed by Apple: opening it takes the `xattr` line above (`get.sh` runs it for you), from Homebrew too, and each update asks again for folder access. So Calm isn't in Homebrew's own list of casks, which takes only signed apps; it comes from its own tap.
-- Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → Themes).
+- Only the author has used it. How a new user's first minute goes has not been checked, and Settings has a few more options than its budget allows (window options; FEATURES.md → F11).
 - OpenCode's plugin, which reports its state, has not had real use yet.
 - A window left in full screen came back filled but not in full screen once in six test launches; the cause isn't known.
 - Links: a link a program sets with OSC 8 gets no dotted mark, and a few shapes of link that a program cut across lines aren't joined.

@@ -68,6 +68,12 @@ jobs:
         if: ${{ !cancelled() && steps.zmx.outcome == 'success' }}
         run: mise run build
 
+      # Calm's minimum is macOS 14.5; the build only knows the runner's own macOS, so a call newer
+      # than 14.5 with no `#available` guard would pass everything else.
+      - name: Type-check for macOS 14.5
+        if: ${{ !cancelled() && steps.zmx.outcome == 'success' }}
+        run: scripts/typecheck-min-os.sh
+
       - name: Test packages
         if: ${{ !cancelled() }}
         run: scripts/xcode.sh test-packages

@@ -221,17 +221,16 @@ struct SidebarView: View {
             }
             .scrollIndicators(.never)
             .coordinateSpace(.named(Self.viewportSpace))
-            .scrollPosition(Bindable(projectDrag).scrollPosition)
-            .onScrollGeometryChange(for: SidebarCardFit.Geometry.self, of: SidebarCardFit.Geometry.init) { _, geometry in
+            .scrollDriver(projectDrag.scrollDriver)
+            .onScrollChange(of: SidebarCardFit.Geometry.init) { geometry in
                 fitting.measured(geometry, manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
             }
-            .onScrollGeometryChange(for: ProjectDragModel.Scroll.self) { geometry in
-                ProjectDragModel.Scroll(
-                    offset: geometry.contentOffset.y, visible: geometry.containerSize.height, content: geometry.contentSize.height,
-                )
-            } action: { _, scroll in
-                projectDrag.scrolled(scroll)
-            }
+            .onScrollChange(
+                of: { ProjectDragModel.Scroll(offset: $0.offset, visible: $0.viewport, content: $0.content) },
+                perform: { scroll in
+                    projectDrag.scrolled(scroll)
+                },
+            )
             .onChange(of: cardSize) { refit() }
             .onChange(of: fitsCards) { refit() }
 

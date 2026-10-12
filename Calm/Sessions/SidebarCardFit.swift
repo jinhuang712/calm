@@ -29,9 +29,9 @@ final class SidebarCardFit {
         let list: CGFloat
         let room: CGFloat
 
-        init(_ scroll: ScrollGeometry) {
-            list = scroll.contentSize.height
-            room = scroll.containerSize.height
+        init(_ scroll: ScrollMetrics) {
+            list = scroll.content
+            room = scroll.viewport
         }
     }
 

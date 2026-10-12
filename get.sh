@@ -95,9 +95,10 @@ main() {
   fi
   [[ "$(uname -s)" == Darwin ]] || fail "Calm is a macOS app."
   [[ "$(uname -m)" == arm64 ]] || fail "Calm needs a Mac with Apple silicon."
-  local macos
+  local macos major minor
   macos="$(sw_vers -productVersion)"
-  [[ "${macos%%.*}" -ge 26 ]] || fail "Calm needs macOS 26 or later; this Mac has $macos."
+  IFS=. read -r major minor _ <<<"$macos"
+  (( major > 14 || (major == 14 && ${minor:-0} >= 5) )) || fail "Calm needs macOS 14.5 or later; this Mac has $macos."
   # Homebrew keeps its own record of the app it installed; replacing the app under it would
   # leave that record wrong.
   local prefix

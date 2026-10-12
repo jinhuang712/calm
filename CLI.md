@@ -33,7 +33,7 @@ Agents' hooks carry almost everything the CLI does: in 12 hours of real use, 866
 
 1. `calm doctor` and `calm trace`: for whoever is working out why a row is wrong, often an agent. Built 2026-10-06.
 2. `calm config`, with ⌘N's agent command: a setting you'd ask your agent to change. Built 2026-10-06; ⌘N's keys came with ⌘N the same day.
-3. `calm fork` and `calm show`: built 2026-10-06. Next, a way for agents to learn them: a plugin, needed, but not yet.
+3. `calm fork` and `calm show`: built 2026-10-06. Next, a way for agents to learn them: a skill in Claude Code's plugin, designed 2026-10-12, not built (DESIGNS.md → Teaching agents about `calm`).
 
 The ⏸ commands wait until a real need shows up (a script, SSH from another device).
 

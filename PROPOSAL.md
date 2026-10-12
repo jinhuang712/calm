@@ -2,55 +2,88 @@
 
 > A minimal macOS terminal that keeps you calm and focused.
 
-## The problem
+Proposed 2026-09-27. For what is built today, see [ROADMAP.md](ROADMAP.md).
 
-Working with CLI coding agents (Claude Code, Codex, OpenCode, pi) has changed what a terminal is for. A typical day now means five to ten long-running agent sessions across several projects. The developer mostly reads, approves and steers; typing commands is the smaller part.
+## In short
 
-Terminals were not built for this, and it shows:
+Coding agents changed the developer's job from typing to supervising. Terminals did not change with it. Calm Terminal is a native macOS terminal built for that job: it shows which agent needs you, keeps every thread, and stays quiet the rest of the time.
 
-- **Too many terminals to track.** Which session is working, which finished, which is waiting on me? Finding out means clicking through tabs.
-- **Losing the thread.** Switching into a session often starts with "what was this one doing again?"
-- **History is scattered.** A decision made in yesterday's conversation is somewhere in one of hundreds of transcript files across four agents' folders.
-- **Loud, messy interfaces.** Saturated themes, badges, rings, reordering tabs and settings screens with hundreds of options add stress instead of removing it.
-- **Output is hard to work with.** Agent output is Markdown, tables, diffs and file paths, but copying one table cell copies the whole row, and clicking a path rarely opens the right file at the right line.
+## The shift
 
-The result is a low, constant agitation: working hard to keep track of work.
+| Before agents | With agents |
+|---|---|
+| One shell, one task | 5 to 10 long-running sessions across several projects |
+| The developer types | The developer reads, approves and steers |
+| A tab is a place to work | A tab is a place to check |
+| History is a shell's scrollback | History is hundreds of transcripts in four agents' folders |
 
-## The proposal
+## Pain points
 
-Build **Calm Terminal**, a native macOS terminal designed for supervising CLI agents calmly. It stays a terminal: the agents keep their own interfaces. What Calm adds is the layer around them:
+1. **Too many terminals to track.** To learn which session is working, done or waiting, the user clicks through tabs. All day.
+2. **Losing the thread.** Every switch into a session starts with the same question: "What was this one doing?"
+3. **Scattered history.** Yesterday's decision is in one of hundreds of transcript files. On the author's Mac: 502 files and 13,889 messages in 1.4 GB, from Claude Code, Codex and pi. Claude Code deletes transcripts after 30 days by default, and 281 of 424 sessions were already gone.
+4. **Loud interfaces.** Saturated themes, badges, rings, tabs that reorder and large settings screens add stress to work that is already demanding.
+5. **Output that is hard to use.** Copying one table cell copies the whole row. Clicking a path rarely opens the right file at the right line.
 
-1. **Know without checking.** Calm knows each session's state (working, needs you, done) and shows it quietly at the edge of the screen. It interrupts only when an agent needs you.
-2. **Pick up where you left off.** Switching to a session shows what it was doing and what it last asked. Sessions survive quitting the app.
-3. **Find any past conversation.** One search box across every agent's history, so "which session talked about X?" takes seconds.
-4. **Read agent output comfortably.** Copy a single table cell, open paths at the right line, peek at files and Markdown without leaving the terminal.
-5. **Stay out of the way.** Soft themes, calm motion, few settings, defaults that are right.
+**The result:** constant, low agitation from keeping track of work instead of doing it.
+
+## What we want
+
+| Pain | What Calm does |
+|---|---|
+| Too many terminals | The state of every session is visible at a glance. Only "needs you" sends a notification. |
+| Losing the thread | Switching into a session shows what it was doing and what it last asked. Sessions survive quitting the app. |
+| Scattered history | One search finds any past conversation, across every agent, and resumes it. |
+| Loud interfaces | Soft themes, gentle motion, quiet status and few settings. |
+| Hard-to-use output | ⌘-click opens a path at its line. ⌥-click copies one table cell. A files column and a viewer show what an agent changed. |
+
+Underneath all five: **Calm stays a terminal.** The agents keep their own interfaces. Calm improves the space around them.
+
+## What we don't want
+
+| Not this | Why |
+|---|---|
+| An IDE | Editing and code review belong in the user's editor. |
+| An agent | The agents bring their own chat. Calm makes no model calls. |
+| A platform | No accounts, cloud or relays. The agents' own remote features and SSH cover remote access. |
+| A settings maze | When an option needs a paragraph to explain, the default is wrong. |
+| Cross-platform | Calm is macOS only, so it can be native. |
+
+The full list is in [FEATURES.md → Explicitly not planned](FEATURES.md#explicitly-not-planned).
 
 ## Who it is for
 
-Developers on macOS who run several CLI coding agents in parallel every day and want less stress doing it. The first user is the author.
+Developers on macOS who run several CLI coding agents in parallel every day: Claude Code, Codex, OpenCode and pi. The first user is the author.
 
 ## Approach
 
-A fresh codebase in Swift on libghostty, written from scratch around our own model (projects → sessions → panes, with attention as a first-class concept). Ghostty's own macOS app (MIT) is the reference for known pitfalls; code from other projects is never copied, except engine patches taken unchanged from a Ghostty fork (MIT) and credited in NOTICE.
+- **A new Swift codebase on libghostty,** Ghostty's terminal engine. The model is projects → sessions → panes, with attention as a first-class concept.
+- **Native:** SwiftUI and AppKit, Mac conventions, Apple silicon.
+- **Agents through adapters:** one small adapter per agent. The core never special-cases an agent.
+- **Local only:** no server, no account. All state is in files on the Mac.
+- **Built on what exists:** zmx keeps shells alive, SQLite FTS5 indexes the search, Ghostty's macOS app (MIT) shows the known pitfalls. Calm copies no code. The engine patches come unchanged from a Ghostty fork (MIT) and are credited in NOTICE.
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| A rewrite takes longer than a fork | A usable plain terminal early (roadmap milestone 1), features added on a working app |
-| Terminal-embedding bugs others already solved | Study Ghostty's macOS app for known pitfalls before writing each layer |
-| Agents' transcript formats change without notice | One small adapter per agent, each with fixture tests |
-| Scope creep toward a platform | [PHILOSOPHY.md](PHILOSOPHY.md) and [GOALS.md](GOALS.md) define what we refuse to build |
+| A new codebase takes longer than a fork | Ship a usable plain terminal first (ROADMAP.md → M1), then add features to a working app. |
+| Terminal-embedding bugs that others already solved | Study Ghostty's macOS app for known pitfalls before writing each layer. |
+| Agents change their transcript formats without notice | One small adapter per agent, each with tests on real transcripts. A failure shows less, never crashes. |
+| Scope creep toward a platform | "What we don't want" above, and the test in PHILOSOPHY.md. |
+
+## How we know it works
+
+Success is measured, not felt. [GOALS.md](GOALS.md) holds the checks: 0 tab switches to find a waiting agent, 0 missed "needs you", search under 50 ms, and a cost at rest held to a budget.
 
 ## Documents
 
-| Document | Purpose |
+| Document | Answers |
 |---|---|
-| [PHILOSOPHY.md](PHILOSOPHY.md) | What "calm" means and the principles every decision is checked against |
-| [GOALS.md](GOALS.md) | Goals, non-goals and how we know we succeeded |
-| [FEATURES.md](FEATURES.md) | Every feature and its exact behavior |
-| [UIUX.md](UIUX.md) | Layout, states, motion, color, settings |
-| [DESIGNS.md](DESIGNS.md) | Architecture and technical design |
-| [ROADMAP.md](ROADMAP.md) | Milestones and what is left |
-| [AGENTS.md](AGENTS.md) | Instructions for coding agents working in this repo |
+| [PHILOSOPHY.md](PHILOSOPHY.md) | Why is Calm this way? |
+| [GOALS.md](GOALS.md) | What do we measure? |
+| [FEATURES.md](FEATURES.md) | What does Calm do, and what will it do? |
+| [DESIGNS.md](DESIGNS.md) | How is it built, and why that way? |
+| [UIUX.md](UIUX.md) | How does it look and move? |
+| [ROADMAP.md](ROADMAP.md) | When? |
+| [AGENTS.md](AGENTS.md) | How do coding agents work in this repo? |

@@ -1,67 +1,73 @@
 # Philosophy
 
-Calm Terminal exists to reduce the agitation of supervising many CLI agents. Every feature, setting and pixel is checked against the principles below. When a proposal conflicts with them, the principles win.
+Coding agents changed what a developer does at a terminal. The developer used to type. Now the developer watches several agents work, reads what they write, answers their questions and steers them. The hands rest. The mind does not.
 
-## Calm technology
+In this work, the scarce thing is attention, not speed. Every glance at a tab, every half-read status and every "is it done yet?" takes a little of it. Over ten sessions and a full day, those small losses become strain.
 
-The founding idea comes from Mark Weiser and John Seely Brown at Xerox PARC: calm technology is "that which informs but doesn't demand our focus or attention". Information lives in the **periphery** and moves to the **center** of attention only when it matters, then moves back.
+Calm Terminal exists to give that attention back. This page says what calm means. Every change is checked against it, and when a proposal conflicts with a principle, the principle wins.
 
-For Calm Terminal, the periphery is the sidebar and the edges of the window. The center is the terminal you are working in. Agent status lives in the periphery. Only an agent that needs you may move to the center.
+## What calm means
 
-## Design guidelines
+Mark Weiser wrote that "the most profound technologies are those that disappear" (1991). With John Seely Brown, he described calm technology as "that which informs but doesn't demand our focus or attention" (1995).
 
-Four words guide every visual and interaction decision:
+Calm technology works with two places of attention. The periphery holds what we know without looking at it, like rain on the window or a clock in the next room. The center holds the one thing we are thinking about. A calm tool keeps information in the periphery and moves it to the center only when it matters. Then it lets it go back.
 
-| | | Means |
-|---|---|---|
-| **克制** | Restraint | Show only what helps. One accent, one loud state, nothing decorative. When in doubt, leave it out. |
-| **优雅** | Elegance | Careful type, spacing and motion. Nothing jumps, flashes or crowds. |
-| **极简** | Minimalism | Few elements, few settings, few colors. Every element earns its place. |
-| **Calming** | Calm | The interface lowers the pulse. Soft colors, quiet status, interruptions only when they matter. |
+Calm is not the absence of activity. Ten agents can work at once in a calm room. Calm is knowing, without checking, that nothing needs you right now.
 
 ## Principles
 
-1. **Sessions come first.** The unit of work is a session: a conversation with a goal, a folder, an agent and a history. Tabs and panes are only where a session is displayed.
-2. **Organize by folder, automatically.** Projects are folders. Sessions file themselves under the project they work in. Nobody should arrange tabs by hand.
-3. **Route attention calmly.** Calm knows each session's state and interrupts only when an agent needs you. Everything else stays quiet: no rings, no badges shouting counts, no tabs jumping around.
-4. **Be reliable, not silent.** Calm never misses a "needs you". Trust is what lets you stop checking.
-5. **Stay a terminal.** Agents keep their own interfaces. Calm improves the space around them: status, titles, links, reading and recall. No built-in chat, editor or browser.
-6. **Work with every agent.** A thin adapter per agent and a small open contract any agent can call. No agent gets special treatment in the core.
-7. **Built for reading.** Agent output is Markdown, tables, diffs and paths. Selecting, copying, opening and previewing them should feel effortless.
-8. **Remember everything.** Every past conversation, across every agent, is one search away.
-9. **Native and quiet.** Mac conventions, soft colors, gentle motion, one short config file, a settings screen you rarely open.
-10. **The minimum technology needed.** Reuse what exists: phone access through agents' own remote features and SSH, browsers through Playwright, editing in your editor. No servers, accounts or cloud.
+### 1. Attention is the scarce resource
 
-## Rules drawn from research
+A screen that shows everything gives the work of filtering to the user. The user then filters all day, and that work is invisible and tiring. A calm tool does the filtering itself. It decides what can wait and keeps it at the edge. It brings forward only what needs a person, and it does so at a natural pause, because an interruption costs more in the middle of a thought than at its end.
 
-| Rule | Evidence |
+### 2. Reliable, so the user can stop checking
+
+Quiet is a promise. When a tool is quiet, the user must be able to believe that all is well. A tool that misses one important moment teaches the user to check everything again, and the calm is gone. Silence without trust is anxiety. Trust grows only from a record that holds every time. A record the mind trusts lets it put down what it was holding.
+
+### 3. The default is the product
+
+Each option is a question that the tool asks back. Each question takes attention and asks for a decision that the user did not come to make. A good default is a decision made once, with care, for everyone. A setting marks the place where the design stopped. Add one only when no single answer is right for most people.
+
+### 4. Calm stays a terminal
+
+A tool that tries to do everything competes with the work it should support. The agents already have their own voices and interfaces. Calm does not speak over them. It improves the room they work in: what is seen, what is remembered and what is easy to reach. Doing less keeps the rest trustworthy.
+
+## Design guidelines
+
+Four words guide how Calm looks and moves.
+
+| Word | Means |
 |---|---|
-| Keep status in the periphery; only "needs you" reaches the center | Weiser & Brown, *Designing Calm Technology* (1995); Amber Case, *Calm Technology* (2015) |
-| Use graded notification levels: a quiet dot, then a soft highlight, and a banner only for the top level | Pousman & Stasko, *A Taxonomy of Ambient Information Systems* (AVI 2006) |
-| Every interruption has an emotional cost, even when productivity looks unaffected | Mark, Gudith & Klocke, *The Cost of Interrupted Work* (CHI 2008) |
-| Deliver interruptions at natural pauses, not mid-keystroke | Iqbal & Bailey, *Oasis* (ACM TOCHI 2010) |
-| Fewer alerts reduce inattention; but turning all alerts off raises anxiety, so be reliable | Kushlev et al., *Silence Your Phones* (CHI 2016); Fitz et al., *Batching Smartphone Notifications* (2019) |
-| On-screen interruptions measurably slow developers' code comprehension | Ma, Huang & Leach, *Breaking the Flow* (ICSE 2024) |
-| Presence indicators plus context reduce the disruption caused by AI agents | Pu et al., *Assistance or Disruption?* (CHI 2025) |
-| When switching, show context so attention left on the previous task fades quickly | Leroy, *Attention Residue* (2009) |
-| A trustworthy record of open work frees the mind from tracking it | Masicampo & Baumeister, *Consider It Done!* (2011) |
-| Saturated, bright colors raise arousal; use soft palettes and reserve red for real problems | Wilms & Oberfeld, *Color and Emotion* (2018) |
-| Fewer choices lead to more satisfaction (a tendency; replications are mixed) | Iyengar & Lepper, *When Choice Is Demotivating* (2000) |
+| **Restraint** | Show only what helps. When in doubt, leave it out. |
+| **Elegance** | Care in every detail. Nothing jumps, flashes or crowds. |
+| **Minimalism** | Every element earns its place. |
+| **Calm** | The interface lowers the pulse. |
 
-## What Calm refuses to be
+## Evidence
 
-- **An IDE.** No file editing, no code review panes.
-- **An agent.** No built-in AI chat, no model calls of its own.
-- **A platform.** No accounts, relays, cloud VMs, in-app browser or computer use.
-- **A settings maze.** If an option needs a paragraph to explain, the default should simply be right.
+The principles rest on research about attention, interruption, trust and choice.
+
+| Rule | Source |
+|---|---|
+| Keep information in the periphery. Bring to the center only what needs the user. | Weiser & Brown, *Designing Calm Technology* (1995); Amber Case, *Calm Technology* (2015) |
+| Grade interruptions by importance. Only the top grade interrupts. | Pousman & Stasko, *A Taxonomy of Ambient Information Systems* (AVI 2006) |
+| Every interruption has an emotional cost, even when productivity looks unaffected. | Mark, Gudith & Klocke, *The Cost of Interrupted Work* (CHI 2008) |
+| Interrupt at natural pauses, not in the middle of a task. | Iqbal & Bailey, *Oasis* (ACM TOCHI 2010) |
+| Fewer alerts reduce inattention. Turning all alerts off raises anxiety, so be reliable. | Kushlev et al., *Silence Your Phones* (CHI 2016); Fitz et al., *Batching Smartphone Notifications* (2019) |
+| Interruptions slow developers' understanding of code. | Ma, Huang & Leach, *Breaking the Flow* (ICSE 2024) |
+| Presence plus context reduces the disruption that AI agents cause. | Pu et al., *Assistance or Disruption?* (CHI 2025) |
+| After a task switch, context helps attention leave the previous task. | Leroy, *Attention Residue* (2009) |
+| A trustworthy record of open work frees the mind from tracking it. | Masicampo & Baumeister, *Consider It Done!* (2011) |
+| Saturated, bright colors raise arousal. Keep colors soft and save alarm for real problems. | Wilms & Oberfeld, *Color and Emotion* (2018) |
+| Fewer choices lead to more satisfaction. This is a tendency, and replications are mixed. | Iyengar & Lepper, *When Choice Is Demotivating* (2000) |
 
 ## The test for every change
 
-Before adding a feature, setting or visual element, ask:
+Before any change, ask:
 
 1. Does it reduce what the user has to track, remember or look at?
-2. Does it stay in the periphery unless it truly needs attention?
-3. Could the default be right, so no setting is needed?
-4. Is there already a tool that does this well outside the terminal?
+2. Does it stay in the periphery unless it needs attention?
+3. Can the default be right, so the user decides nothing?
+4. Does a tool outside Calm already do this well?
 
-If the answer to 1 or 2 is no, or to 4 is yes, it probably doesn't belong in Calm.
+When the answer to 1 or 2 is no, or the answer to 4 is yes, the change does not belong in Calm.

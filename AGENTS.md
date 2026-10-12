@@ -9,43 +9,48 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - [DESIGNS.md](DESIGNS.md) — architecture, module boundaries, open decisions.
 - [UIUX.md](UIUX.md) — states, motion, color, settings.
 - [CLI.md](CLI.md) — every `calm` command, built and planned.
-- [ROADMAP.md](ROADMAP.md) — what is built and what is left; don't start a *Later* item without asking.
+- [ROADMAP.md](ROADMAP.md) — what is built and what is left. Do not start a *Later* item without asking.
 
 ## Principles
 
-- **Calm first.** Before adding UI, a setting or a notification, apply the test at the end of PHILOSOPHY.md.
-- **克制、优雅、极简、Calming.** Restraint, elegance, minimalism, calm: the design guidelines for every screen.
-- **Settings are a last resort.** Get the default right. At most one or two settings per feature.
+- **Calm first.** Before you add UI, a setting or a notification, apply the test at the end of PHILOSOPHY.md.
+- **Restraint, elegance, minimalism, calm.** These are the design guidelines for every screen.
+- **Settings are a last resort.** Get the default right. Give each feature at most one or two settings.
 - **Stay a terminal.** No built-in chat, editor, browser or cloud features.
-- **Respect module boundaries.** Only `Terminal` touches GhosttyKit; the `CalmKit` package (CalmModel, CalmAgents, CalmSearch, CalmControl, CalmSQLite) stays free of UI frameworks.
-- **Agents are adapters.** Agent-specific code lives in its own adapter; the core never special-cases an agent.
-- **Degrade, don't crash.** Transcript formats and agent hooks change; failures fall back quietly.
-- **Keep docs true.** When behavior changes, update FEATURES.md, DESIGNS.md or UIUX.md in the same change, and ROADMAP.md status when a milestone task lands.
+- **Respect module boundaries.** Only `Terminal` touches GhosttyKit. `CalmKit` (CalmModel, CalmAgents, CalmSearch, CalmControl, CalmSQLite) has no UI framework.
+- **Agents are adapters.** Agent-specific code lives in its own adapter. The core never special-cases an agent.
+- **Degrade, don't crash.** Transcript formats and agent hooks change, so a failure falls back quietly.
+- **Keep docs true.** When behavior changes, update FEATURES.md, DESIGNS.md or UIUX.md in the same change. When a milestone task lands, update ROADMAP.md.
 
 ## Code
 
-- Swift 6 with strict concurrency; no `@preconcurrency` escape hatches without a comment explaining why.
-- Match the surrounding code's style; comment the *why* of non-obvious code, especially GhosttyKit and macOS workarounds.
-- New logic comes with Swift Testing tests. Parsers get fixture files from real data.
+- Use Swift 6 with strict concurrency. Explain every `@preconcurrency` escape hatch in a comment.
+- Match the surrounding style. Comment the *why* of non-obvious code, especially GhosttyKit and macOS workarounds.
+- New logic needs Swift Testing tests. Parsers need fixture files made from real data.
 
 ## References and licensing
 
-- Calm is Apache-2.0.
-- Ghostty (MIT) may be studied and small parts adapted, with attribution in the file header and in `NOTICE`.
-- Other projects are for ideas only. Never copy their code. One exception, decided 2026-09-29: the engine patches in `scripts/ghostty-patches`, taken unchanged from `thdxg/ghostty` (MIT) and credited in `NOTICE`. Refresh them from the fork; don't edit them here. Calm's own patches go beside them as separate files (0007 and up, decided 2026-09-29), each as small as it can be and worth offering upstream.
+- Calm is Apache-2.0. Other projects are for ideas only: never copy their code.
+- You may study Ghostty (MIT) and adapt small parts. Give attribution in the file header and in `NOTICE`.
+- One exception (decided 2026-09-29): `scripts/ghostty-patches` come unchanged from `thdxg/ghostty` (MIT), credited in `NOTICE`. Refresh them from the fork, never edit them here.
+- Calm's own patches go beside them as separate files, 0007 and up (decided 2026-09-29). Keep each as small as possible and worth offering upstream.
 
 ## Workflow
 
-- Work in a git worktree, not directly on `main`, so parallel sessions don't collide.
-- Commands: `mise run setup` (tools, GhosttyKit, zmx, Xcode project), `mise run build`, `mise run test`, `mise run lint`, `mise run format`, `mise run run`.
-- In a new worktree:
-  - Its `mise.toml` isn't trusted yet. Prefix each mise command with `MISE_TRUSTED_CONFIG_PATHS=<the worktree's absolute path>` instead of running `mise trust`.
-  - Run `setup` first. GhosttyKit comes from the cache in `~/Library/Caches/calm`, so it takes seconds.
-  - `mise run lint` and `format` check nothing there, because `.swiftformat` excludes `.claude`. Run `swiftformat --config .swiftformat --cache ignore --lint .` (without `--lint` to format) and `swiftlint lint --quiet --strict`.
-- Self-tests: `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` launches the Debug app, drives it, saves a PNG of its window, the screen text and a log, and quits; `scripts/xcode.sh snapshot <out.png> [delay]` is the short form. They need no Screen Recording permission and run **headless** by default (no window, no focus taken; `--visible` shows one, so leave it off unless the user asks to watch), isolated from a Calm you may be running (own state, socket, config, zmx directory and Claude Code plugin, all in the test's support folder). They copy and paste through a pasteboard of their own (`NSPasteboard.calm`); route any new copy through it, and never save and restore the user's clipboard instead (that lost an image once). A real program run inside a test (Claude Code) can still write the user's clipboard itself, so ask before running one that selects or copies. `UserDefaults` belong to the Debug app's own bundle id (`com.jinhuang.calm.dev`), so a test can't change the installed Calm's; Debug runs do share them with each other. The home folder isn't either, so a test writes nothing into agents' config folders (a connected agent's files, OpenCode's theme) unless given `--agent-files`, and then only with a scratch `CFFIXED_USER_HOME`.
-- **Don't pop up windows.** Test headless, always: no `--visible`, no launching the Debug app to look at it, nothing that steals focus. The user is working in another window.
-- **Design HTML and Artifacts: give a link, don't open it.** After writing a design mockup (local HTML) or publishing an Artifact, put its link in your reply (a `file://` link for a local file, the URL for an Artifact) and let the user click it when they choose. Never `open` the file or launch the browser yourself, and don't use the Artifact tool's `open` action. Checking the page yourself in a headless browser is fine.
-- `Calm.xcodeproj` is generated from `project.yml`; never edit the project file by hand.
-- Run tests and lint before calling work done; report failures honestly. After a change to rendering, animation or timers, also run `mise run perf`: it fails when Calm at rest costs more than its budget (DESIGNS.md → Testing).
-- Never quit, reopen or launch the installed Calm (`/Applications/Calm.app`): the user restarts it when they choose. That rules out `osascript … quit`, `open Calm.app`, `mise run run` (it `pkill`s Calm) and `calm` commands that start Calm when its socket is missing. Self-tests stay headless and isolated; they never touch the running app.
-- After landing on `main` and pushing it to `origin/main`, reinstall: run `./install.sh` from a checkout at that `main` commit, so the installed Calm matches `main`. It doesn't quit a running Calm, but that Calm is out of date once the new app is on disk, and until it restarts its shells can lose access to Documents, Desktop and Downloads ("Operation not permitted", seen 2026-10-01; DESIGNS.md → Distribution). Never pass `--restart`, and tell the user in the same message to restart Calm soon (Calm → Restart Calm), and why.
+- Work in a git worktree, not on `main`, so parallel sessions do not collide.
+- Commands: `mise run setup` (tools, GhosttyKit, zmx, Xcode project), `build`, `test`, `lint`, `format`, `run`.
+- A new worktree has an untrusted `mise.toml`. Prefix each mise command with `MISE_TRUSTED_CONFIG_PATHS=<the worktree's absolute path>`, not `mise trust`. Run `setup` first (seconds, from the `~/Library/Caches/calm` cache).
+- In a worktree, `mise run lint` and `format` check no files, because `.swiftformat` excludes `.claude`. Run `swiftformat --config .swiftformat --cache ignore --lint .` (no `--lint` to format) and `swiftlint lint --quiet --strict`.
+- Self-tests: `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` runs the Debug app, saves a window PNG, the screen text and a log, and quits. `scripts/xcode.sh snapshot <out.png> [delay]` is the short form.
+- Self-tests need no Screen Recording permission. They run **headless** by default: `--visible` shows a window, so leave it off unless the user asks to watch.
+- Self-tests are isolated from a running Calm: state, socket, config, zmx directory and Claude Code plugin live in the test's support folder.
+- Self-tests paste through their own pasteboard (`NSPasteboard.calm`). Route every new copy through it. Never save and restore the user's clipboard, because that lost an image (once). A real program in a test (Claude Code) can still write it, so ask before you run one that selects or copies.
+- `UserDefaults` belong to the Debug bundle id `com.jinhuang.calm.dev`, so a test cannot change the installed Calm's. Debug runs share them.
+- The home folder is not isolated. A test writes no agent config (a connected agent's files, OpenCode's theme) unless given `--agent-files`, and then only with a scratch `CFFIXED_USER_HOME`.
+- **Don't pop up windows.** Test headless: no `--visible`, no launching the Debug app to look at it, nothing that steals focus. The user works in another window.
+- **Design HTML and Artifacts: give a link, don't open it.** Put the link in your reply (`file://` for a local file, the URL for an Artifact). Never `open` the file, launch the browser or use the Artifact `open` action. A headless browser check is fine.
+- `Calm.xcodeproj` is generated from `project.yml`. Never edit it by hand.
+- Run tests and lint before you call work done. Report failures honestly. After a change to rendering, animation or timers, also run `mise run perf`: it fails when Calm at rest exceeds its budget (DESIGNS.md → Testing).
+- Never quit, reopen or launch the installed Calm (`/Applications/Calm.app`): the user restarts it. So never run `osascript … quit`, `open Calm.app`, `mise run run` (it `pkill`s Calm) or a `calm` command that starts Calm when its socket is missing.
+- After you land on `main` and push to `origin/main`, run `./install.sh` from a checkout at that commit, so the installed Calm matches `main`. Never pass `--restart`.
+- `./install.sh` does not quit a running Calm, which is then out of date. Until it restarts, its shells can lose access to Documents, Desktop and Downloads ("Operation not permitted", seen 2026-10-01; DESIGNS.md → Distribution). In the same message, tell the user to restart Calm soon (Calm → Restart Calm), and why.

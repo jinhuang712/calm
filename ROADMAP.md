@@ -1,17 +1,19 @@
 # Roadmap
 
-Calm is built in milestones. Each one ends in a working app that is better than the last, so it can be used every day from Milestone 1 on. Feature IDs (F1…F14) refer to [FEATURES.md](FEATURES.md).
+Calm is built in milestones. Each milestone ends in a working app. Feature IDs (F1…F17) refer to [FEATURES.md](FEATURES.md).
+**Current milestone:** M9. M0 to M7 are built. M8 and M9 are built, and their exit criteria wait on use.
 
-**Current milestone:** M9 (find, further: patterns and the whole session), designed and built 2026-10-07; it and M8 (find) wait on the author's use for their exit criteria. M0 to M7 are all built, and the author has used Calm as their only terminal since 2026-09-29, which met the exit criteria of M1, M3, M4, M5 and M7 (2026-09-30). What is left: a new user's first minute, and F11's settings against the budget (M6); the author's use of OpenCode's new plugin (M3); and the *Later* list. OpenCode's search, resume and fork are built.
+**Open work:**
+
+- M6, M8, M9: the exit criteria marked Open below. The *Later* list.
+- OpenCode: the M3 plugin is checked against a fake context only. M7 resume and fork have not run with a real OpenCode.
+- M3.14 and M3.15 exist for Claude Code only.
 
 ## How to read this
 
-- A **milestone** is a usable state of the app, with exit criteria that decide when it is done.
-- A **task** is one reviewable piece of work, usually one branch and one pull request. Task IDs (`M2.4`) are used in branch names and commit messages.
-- **Decision** tasks settle an open question in [DESIGNS.md](DESIGNS.md) and record the outcome there.
-- Check a task off when it is merged. Update the milestone status and "Current milestone" when the exit criteria are met.
-
-Status: ⬜ not started · 🟨 in progress · ✅ done
+A **milestone** is a usable state of the app. A **task** is one reviewable piece of work. Task IDs (`M2.4`) appear in branch names and commits.
+A **Decision** task settles an open question in [DESIGNS.md](DESIGNS.md) and records the outcome there. A row can cover a range of task IDs.
+When exit criteria are met, update the milestone status and "Current milestone". Status: ⬜ not started · 🟨 in progress · ✅ done.
 
 ## Overview
 
@@ -19,255 +21,112 @@ Status: ⬜ not started · 🟨 in progress · ✅ done
 |---|---|---|---|---|
 | **M0** Foundations | an empty app that builds, launches and passes CI | — | — | ✅ |
 | **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ✅ |
-| **M2** Sessions and projects | the session model, sidebar, auto-grouping, sessions that survive quitting | F2, F3 | M1 | ✅ (grouping revised after real use: projects, folders, scratch) |
+| **M2** Sessions and projects | the session model, sidebar, grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
 | **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ✅ |
 | **M4** Recall | search across every agent's history | F7 | M2 | ✅ |
 | **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ✅ |
 | **M6** Look and feel | whole-window themes, picker, settings screen, accessibility pass | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork | F12 | M3, M4 | ✅ |
-| **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | 🟨 (built; exit criteria wait on the author's use) |
-| **M9** Find, further | `.*` patterns, and the whole session for full-screen programs | F16 | M8 | 🟨 (built; exit criteria wait on the author's use) |
-
-M4 and M5 can run in parallel with M3 once M2 is done.
-
----
+| **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | 🟨 (built, exit criteria open) |
+| **M9** Find, further | `.*` patterns, and the whole session for full-screen programs | F16 | M8 | 🟨 (built, exit criteria open) |
 
 ## M0 — Foundations ✅
 
-An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty and Calm's patches.
+| ID | What exists | Note |
+|---|---|---|
+| M0.1 | Minimum macOS 14.5, Apple silicon only. Newer calls are behind `#available`. | Was macOS 26, lowered 2026-10-12. |
+| M0.2–M0.10 | `mise.toml` toolchain, `mise run setup`. `scripts/ghostty.env` pins Ghostty. `scripts/ghosttykit.sh` builds GhosttyKit with `scripts/ghostty-patches`. XcodeGen app, `calm` CLI, `CalmKit`. Smoke test, lint, CI, docs. | |
 
-- [x] **M0.1 Decision:** minimum macOS version. Decided macOS 26, Apple silicon only; lowered to macOS 14.5 on 2026-10-12, with the newer-only calls behind `#available`.
-- [x] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
-- [x] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit in `scripts/ghostty.env`; it is fetched into `~/Library/Caches/calm/ghostty`.
-- [x] **M0.4 GhosttyKit build:** `scripts/ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit with `scripts/ghostty-patches` applied, cached by commit and patch set so rebuilds (and other worktrees) reuse it.
-- [x] **M0.5 Project layout:** XcodeGen `project.yml` with the app target, the `calm` CLI target, and a local Swift package (`CalmKit`) for the UI-free modules, each with a test target.
-- [x] **M0.6 App skeleton:** an empty window that launches; bundle ID `com.jinhuang.calm`; placeholder icon.
-- [x] **M0.7 Engine smoke test:** the app initializes libghostty at launch, and a test proves GhosttyKit links.
-- [x] **M0.8 Quality tools:** swiftformat and swiftlint configs; `mise run build`, `test`, `lint` and `format`.
-- [x] **M0.9 CI:** a GitHub Actions workflow on a macOS runner (setup, cached GhosttyKit build, build, test, lint). Needs the GitHub repository.
-- [x] **M0.10 Docs:** AGENTS.md commands confirmed; DESIGNS.md updated with the final project layout.
-
-**Exit criteria**
-- `mise run setup && mise run build` on a clean clone produces an app that launches.
-- CI passes on `main`.
-
----
+**Exit criteria:** `mise run setup && mise run build` on a clean clone gives an app that launches. CI passes on `main`. Met.
 
 ## M1 — A plain terminal (F1) ✅
 
-Calm works as a normal terminal: no sessions or agents yet, just a fast, correct terminal.
+| ID | What exists | Note |
+|---|---|---|
+| M1.1–M1.7 | `Terminal` module owns libghostty. Keys, IME, Option-as-Alt, mouse, ⌥-drag selection, clipboard, OSC 52, resize, scrollback, full screen. ⌘-click opens URLs. | |
+| M1.8–M1.10 | Tabs, splits, drag a session into a split, take a pane out. ⌘P lists actions with no well-known key (FEATURES.md → Command palette). Shortcut audit. | Palette reworked 2026-09-30 from a list of every action. |
+| M1.12–M1.13 | Dogfood day, with self-tests for shell, keys, splits, vim, Chinese text. Cursor glide and smooth scrolling (DESIGNS.md → Motion in the terminal). | Author's only terminal since 2026-09-29. |
 
-- [x] **M1.1 Engine wrapper:** the `Terminal` module owns libghostty's app object, loads the user's Ghostty config, and drives its event loop.
-- [x] **M1.2 Terminal view:** a view that renders one surface running the user's shell.
-- [x] **M1.3 Keyboard:** all keys and modifiers, IME (Chinese input included), Option-as-Alt from the Ghostty config.
-- [x] **M1.4 Mouse:** selection, ⌥-drag rectangle selection, scrolling, mouse reporting to TUIs.
-- [x] **M1.5 Clipboard:** copy, paste, OSC 52.
-- [x] **M1.6 Window behavior:** resize, scrollback, font size changes, focus, full screen.
-- [x] **M1.7 URLs:** ⌘-click opens URLs in the default browser (file paths come in M5).
-- [x] **M1.8 Tabs and splits:** new tab, split right and down, move focus between panes, close, resize dividers; panes grow in and fold away.
-- [x] **M1.8b Into and out of splits:** drag a session from the sidebar onto a pane to put it in a split, take a pane out without ending its session (the split icon's menu, dragging the icon to the sidebar, Shell → Take Pane Out of Split), and light every session of a split in the sidebar. Not in the command palette yet: its redesign is on another branch.
-- [x] **M1.9 Command palette:** ⌘P lists every action with its shortcut. *Reworked 2026-09-30: it now lists what Calm does that has no key everyone knows, by category, each row one-shot (FEATURES.md → Command palette).*
-- [x] **M1.13 Terminal motion:** cursor glide and trail (one soft shader). Smooth scrolling, including programs' scroll regions (Claude Code's streaming view), through a patch to the engine; see DESIGNS.md → Motion in the terminal.
-- [x] **M1.10 Shortcut audit:** check Calm's shortcuts against Ghostty's defaults and common agent keys (⌘K in particular); update UIUX.md.
-- [x] **M1.12 Dogfood:** use Calm as the only terminal for a full day and fix the blockers found. *Done by the author's real use (2026-09-30): Calm has been their only terminal since 2026-09-29, and the small things found went in as fixes. Automated self-tests pass too (shell, key events, selection and copy, splits, tabs, palette, vim, resize, Chinese text).*
-
-**Exit criteria**
-- A full working day in Calm with Claude Code, an editor such as vim, `htop` and Chinese input, with no blocker. *Met (the author, 2026-09-30).*
-
----
+**Exit criteria:** A full day with Claude Code, vim, `htop` and Chinese input, with no blocker. Met (2026-09-30).
 
 ## M2 — Sessions and projects (F2, F3) ✅
 
-The core model arrives: sessions grouped under projects, restored after quitting.
+| ID | What exists | Note |
+|---|---|---|
+| M2.1–M2.4 | `Project`, `Session`, layout tree in `CalmModel`. `state.json`, SQLite for search only. Folder by OSC 7, process fallback. Grouping: projects, folders, scratch. | Grouping changed after real use (2026-09-28). |
+| M2.5–M2.10 | Sidebar, collapse, New Project, drop a folder, drag to reorder. Motion. zmx 0.8.1 (MIT) keeps shells (DESIGNS.md → Persistence). `calm open`, `calm list`. `config.toml`. | Reorder added 2026-10-10. |
 
-- [x] **M2.1 Model:** `Project`, `Session` and the split layout tree in the `CalmModel` module, fully unit-tested.
-- [x] **M2.2 State store:** save and restore projects, sessions and layouts in `state.json` (JSON was enough; SQLite stays for the search index). The windowed frame uses AppKit's autosave; a window left filling the screen, or in full screen, is remembered in `state.json` (AppKit's autosave doesn't record a filled one).
-- [x] **M2.3 Working directory:** track each session's folder through OSC 7, with a process-based fallback.
-- [x] **M2.4 Auto-grouping:** longest-prefix project match, git-root fallback, automatic projects, pinned sessions; unit-tested. *Revised after real use: projects you make, folder groups by git root or folder, and scratch sessions on top (FEATURES.md → F2).*
-- [x] **M2.5 Sidebar:** projects with compact session rows, collapse with summary, New Project, drop a folder to add a project. (Rich cards arrive in M3.) *Added 2026-10-10: drag a project's header to reorder the projects (FEATURES.md → F2).*
-- [x] **M2.6 Motion:** cards slide between projects, the hidden sidebar peeks in at the edge, session switching shows live previews; respects Reduce Motion.
-- [x] **M2.7 Decision:** session persistence — reuse zmx or write a minimal PTY holder (check license and maintenance first). **Decided: zmx 0.8.1** (MIT), bundled; see DESIGNS.md → Persistence.
-- [x] **M2.8 Persistence:** quitting detaches shells; launching reattaches with scrollback and running processes.
-- [x] **M2.9 Control socket and CLI:** the `calm` CLI with `open` and `list` over the local socket.
-- [x] **M2.10 Config:** `~/.config/calm/config.toml` with the auto-grouping setting.
-
-**Exit criteria**
-- Quit and relaunch restores every project, session and layout, with shells still running.
-- A shell that `cd`s into another project moves there on its own.
-
----
+**Exit criteria:** Quit and relaunch restores everything, shells running. A shell that runs `cd` into another project moves to it. Met.
 
 ## M3 — Attention (F4, F5, F6, F13) ✅
 
-Calm knows what every agent is doing and interrupts only when one needs you.
+| ID | What exists | Note |
+|---|---|---|
+| M3.1–M3.3 | Adapters and detection for Claude Code, Codex, OpenCode, pi. `CALM_SESSION_ID`, `CALM_SOCKET`, `calm status`, `calm notify`. | omp removed 2026-09-29 (little use). Saved omp sessions load. |
+| M3.4 | Hooks with consent and undo. Claude Code: plugin via `CLAUDE_CODE_PLUGIN_DIRS`. pi, OpenCode: extension or plugin from Settings → Agents. | Codex has no hooks: its shared daemon cannot tell which Calm session a hook belongs to. |
+| M3.5–M3.7b | Fallback signals (no window titles). States: idle, working, needs you, done, failed. Transcript tails for all four agents (DESIGNS.md → Transcript tails). | Codex and OpenCode never report working. Turn markers give it. |
+| M3.8–M3.12 | Cards, *needs you* notifications, ⌘⇧A, arrival card with ⌘⇧I, Settings → Agents. | No diff size on cards (2026-09-29): the files column counts lines. |
+| M3.13–M3.15 | ⌘ Return sends, Return makes a new line (Claude Code, OpenCode, pi). Compacting bar and live status words, Claude Code only. | Codex cannot bind ⌘. |
 
-- [x] **M3.1 Agent detection:** the adapter protocol and foreground-process detection for Claude Code, Codex, OpenCode and pi. *omp was supported too, until 2026-09-29: it was removed (little use, and not installed to check against). Saved sessions that mention it still load (DESIGNS.md → Supported agents).*
-- [x] **M3.2 Research:** how Codex reports approvals, OpenCode plugin events and pi's extension API, and where each agent stores transcripts. Record findings in DESIGNS.md.
-- [x] **M3.3 Status contract:** inject `CALM_SESSION_ID` and `CALM_SOCKET` into every shell; `calm status <state> [message]` and `calm notify`.
-- [x] **M3.4 Hook setup:** per-agent hook installers that write each agent's own config, with consent and an undo. *Claude Code: a plugin loaded through `CLAUDE_CODE_PLUGIN_DIRS`, nothing written to its config. pi: an extension added from Settings → Agents, with consent and Disconnect; it names its conversation on every report (`calm status --agent pi --transcript …`), and Calm keeps the file current at launch. OpenCode: a TUI plugin added from Settings → Agents, with consent and Disconnect (2026-09-30): it runs in the terminal's own `opencode`, not the shared service, and names its session on every report (DESIGNS.md → OpenCode plugin). **Codex hooks: decided 2026-09-29 not to build them.** Since Codex 0.157 every session runs in one shared daemon, which runs persistent hooks with its own environment, so a hook can't tell which Calm session it belongs to; its own notifications and Calm's transcript tails already give state, recap and interruption (DESIGNS.md → Codex hooks). Revisit if that daemon changes.*
-- [x] **M3.5 Fallback signals:** bell, OSC 9;4 progress, OSC 9/777 notifications, command-finished events and window titles. *Titles left out: their formats vary between agents and versions.*
-- [x] **M3.6 State machine:** idle, working, needs you, done, failed; unit-tested.
-- [x] **M3.7 Transcript tails:** read the latest message, current step and todo progress from transcripts (Claude Code first). *Claude Code, including the agent's own title and Esc interruptions. The other three agents are M3.7b.*
-- [x] **M3.7b Transcript tails for the other agents:** Codex, OpenCode and pi readers on the same `TranscriptReading` protocol. *Built, and read against the author's real history (184 Codex rollouts, 192 pi sessions, 60 OpenCode sessions: none unreadable). What each gives a card: a recap and Esc interruptions; a title for pi and OpenCode (Codex keeps none in its files); no step or progress (no todo record appears in these agents' recent history). Reading runs off the main thread and steps past megabytes of tool output. Finding an agent's transcript without a hook: the file the process has open, else `codex resume <id>`, else the one transcript for its folder written since it started, and none when that is ambiguous. Verified end to end headless with stand-in agents. *Fixed the day it landed, after the author's live Codex showed no recap and never worked:* a terminal `codex` under the shared daemon says `source: "vscode"` in its rollout, so the terminal is told from the desktop app by `originator` (the first rule counted only `cli`); and Codex and OpenCode, which never tell Calm they are working, get **working** and **done** from their transcripts' turn markers (DESIGNS.md → Transcript tails → Turn phase). Checked against the live process, not only history. OpenCode search indexing (M4) and OpenCode resume and fork (M7) are still open.*
-- [x] **M3.8 Session cards:** name, state and step, progress bar, two-line recap, worktree name; plain shells stay compact. *Built: the agent's own title, time, state mark, label and current step, todo progress bar, two-line recap (what it asked while it needs you, else its latest message), worktree name, compact plain shells, needs-you tint. A diff size on the card was dropped (2026-09-29): the files column's header already counts the project's lines.*
-- [x] **M3.9 Notifications:** breakpoint detection, a macOS notification for *needs you* only, click to focus, ⌘⇧A to jump to the next waiting session, never dropped.
-- [x] **M3.10 Arrival card:** shown when switching into an agent session; fades on typing; ⌘⇧I recalls it.
-- [x] **M3.11 First run:** design and build the screen that offers hook setup for each installed agent. *Became Settings → Agents, opened from Calm → Agents….*
-- [x] **M3.12 Agents settings:** which states notify, sound on or off.
-- [x] **M3.13 Send with ⌘ Return:** ⌘ Return sends an agent's prompt and Return starts a new line, with every other Return (questions, permissions, pickers) the agent's as before. *Built (2026-10-07) through each agent's own key settings, nothing intercepted: Claude Code, OpenCode and pi; Codex can't bind ⌘. ⌘↵ is no longer full screen; at a zsh prompt it runs the line. Checked: the agents in a pty against their installed versions, the key and zsh headless in Calm, zmx alone, and Claude Code end to end in a headless pane (a mock model). Not checked: OpenCode and pi inside Calm.*
-- [x] **M3.14 Compacting:** the card says when an agent compacts its conversation, asked for by the author ("we dont have a ui for compacting"). *Built for Claude Code (2026-10-06), picked from three local mockups (the word alone, a bar that drains, a note that stays): "Working · Compacting", a bar in the todo bar's place, full and breathing (a Core Animation layer), drained to what was kept ("968k → 13k") for 5 s; a `/compact` ends as done. The hooks, the transcript records and Esc's silence were captured from 2.1.291 against a stand-in API (no model call); the sizes checked against the author's 15 real compactions. Checked as rendered PNGs headless at every size, light and dark, through the real hook path; perf `compacting` costs what `seen` does. Not seen: the breathing and the drain on screen (snapshots draw a layer's resting state), and a real compaction in a real session; Esc's cancel is unit-tested, not run end to end. Codex, OpenCode and pi not yet.*
-- [x] **M3.15 Live status:** a working card says what the agent is doing, from the hooks it already sends, asked for by the author ("more elegant, accurate and spontaneous", cost-efficient, "maybe hook?"). *Built for Claude Code (2026-10-09), picked in a local mockup that replayed a real turn: the words replace "Working", hold 2 s, add up in bursts, "Thinking" after 15 s quiet; the corner counts the turn; the todo list is a line of words, no bar. Fixed first: a stand-in "API Error" reply made the compaction bar say "0" and a new turn show a five-hour-old error.*
-
-**Exit criteria**
-- For a week of normal work, the author never clicks through tabs to find which agent is waiting.
-- No *needs you* is missed.
-
-*Status: every task is built and self-tested headless (stand-in agents emitting real hook payloads and escape sequences). Exit criteria met in the author's real use (2026-09-30): no clicking through sessions to find a waiting agent, and no missed *needs you*. It was four days of heavy agent work rather than a week, which the author judged enough. OpenCode's plugin was built afterwards (2026-09-30; checked against a fake context, not yet a real turn).*
-
----
+**Exit criteria:** GOALS.md G1 and G2. Met (2026-09-30).
 
 ## M4 — Recall (F7) ✅
 
-Any past conversation, across every agent, is one search away.
+| ID | What exists | Note |
+|---|---|---|
+| M4.1–M4.8 | Parsers with real fixtures. FTS5 `index.sqlite`, incremental. BM25 plus boosts. `calm search`. ⌘K groups like the sidebar and marks every word. OpenCode read from its database (DESIGNS.md → Search). | Tokenizer chosen by benchmark on real transcripts, Chinese included. |
 
-- [x] **M4.1 Transcript parsers:** one per agent, tested against fixture files from real sessions; failures degrade quietly.
-- [x] **M4.2 Decision:** search tokenizer — benchmark `trigram` and `unicode61` on real transcripts, Chinese included.
-- [x] **M4.3 Indexer:** the FTS5 schema in `index.sqlite`, incremental indexing from stored offsets (at launch, every three minutes and when ⌘K opens); user and agent messages only.
-- [x] **M4.4 Ranking:** BM25 plus boosts for title matches, recency and the current project; unit-tested.
-- [x] **M4.5 CLI:** `calm search <text>`.
-- [x] **M4.6 Search panel:** ⌘K, live results, jump to an open session or resume a closed one.
-- [x] **M4.7 Performance:** measure query time and index size on the author's full history, and set targets from the results.
-- [x] **M4.8 Search, grouped:** ⌘K grouped like the sidebar, every typed word shown and marked in every result, counts per group, five more at a time, written-out times, a session card's type sizes. *Built (2026-09-30), from local mockups the author refined one decision at a time; checked headless against a copy of the real index (dark, light, Largest interface size, opening and folding a group). Not seen: the keys (⇥, → ←) and the pointer staying on "more" in a key window, since headless windows are never key; open sessions' marks and counts against real open sessions (unit-tested only).*
-
-**Exit criteria**
-- "Which session talked about X?" is answered with one search, most of the time.
-
-*Status: built and self-tested headless against fixture transcripts; measured on the author's real history (M4.7). Exit criterion met in the author's real use (2026-09-30). OpenCode's history is indexed too (2026-09-30): sessions read from its own database by version, not from files by offset (DESIGNS.md → Search → Agents' own databases).*
-
----
+**Exit criteria:** "Which session talked about X?" is answered with one search. Met (2026-09-30).
 
 ## M5 — Reading (F8, F9, F10) ✅
 
-Agent output is easy to act on.
+| ID | What exists | Note |
+|---|---|---|
+| M5.1–M5.2 | Smart links with `path:line[:column]`. Copy Cell: hold ⌥ to outline, ⌥-click to copy. Works in Claude Code's full-screen view. | Reworked 2026-09-30: ⌥-double-click copied a whole row. No right-click item. |
+| M5.3–M5.6 | Files column (⌘\\): markers, Changes section, 5 s refresh. Viewer for Markdown, HTML, PDF, images, code. `calm open <file>`. | |
+| M5.7–M5.10 | Link marks, ⌘ tag, `HardWrap`. Pasted-image tag. Show Files row and readout. Viewer header and diffs (`FileDiff`). | Show Files added because nothing showed the column existed. |
 
-- [x] **M5.1 Smart links:** relative paths resolved against the session's folder, `path:line[:column]`, editor detection and opening at the line.
-- [x] **M5.2 Copy Cell:** find the cell's borders in the text grid, join wrapped lines, trim padding; fixture tests from real agent tables; ⌥-double-click and right-click menu. *Reworked after real use (2026-09-30), and the right-click item removed: hold ⌥ to outline the cell under the pointer, ⌥-click to copy it, also in Claude Code's full-screen view; an ⌥-drag inside a cell selects and copies only that cell's text, across its wrapped lines (the same day, after the author found the drag still ran across whole rows). Tested against Claude Code's own full-screen bytes.*
-- [x] **M5.3 Files column:** the project's tree right of the sidebar, git-ignore filtering, change markers, ⌘\\ (first ⌘⇧E), follows the focused session. *Built: git listing off the main thread (or a bounded walk outside git), M/A/D/R/U markers and dots on changed folders, branch and change count in the header, 5 s refresh while shown, click opens the viewer with the viewed file highlighted. The sidebar and the column now slide without resizing the terminal on every frame. Redesigned after real use: a Changes section on top with each file's line counts (and the project's in the header), then the tree, drawn in the sidebar's metrics and aligned with it.*
-- [x] **M5.4 Decision:** viewer rendering — native or a web view.
-- [x] **M5.5 Viewer:** Markdown, HTML, PDF, images and code cover the main area; esc returns to the session; Open in editor.
-- [x] **M5.6 CLI:** `calm open <file>`.
-- [x] **M5.7 Link marks and tag:** a faint dotted line under every link that opens, and a tag beside the one under ⌘ (what it is, where, what a click does; thumbnails for images). *Built: libghostty's own link pattern in CalmModel, tested against Ghostty's cases; marks only on still text; soft-wrapped links joined; links a program cut across rows itself (an agent's full-screen view) joined by `HardWrap` for ⌘-click, tag, underline and marks.*
-- [x] **M5.9 Pasted images in Claude Code:** the image large under ⌘ over an `[Image #n]` tag, ⌘-click to the viewer. *Built (2026-10-06): `PastedImageResolving` in CalmAgents and `LinkMatcher.matches(of:)` in CalmModel. Headless self-tests: the tag over the prompt's tag, ⌘-click to the viewer, marks, nothing for a missing image or in a plain shell. Seen in the author's real use (2026-10-07): ⌘ over a pasted image's tag in Claude Code's prompt. A Claude Code mod that also drew pictures of the draft's images above the prompt (in place of the third-party `claude-image-view` the author tried) was dropped the next day: ⌘ over the tag was enough (DESIGNS.md → Agents).*
-- [x] **M5.8 Finding the files column:** nothing in the window said the column existed; only ⌘\\ and View → Toggle Files reached it. *Built (2026-10-01): a fourth sidebar-footer row, Show Files ⌘\\ (Hide Files while up), and a readout at the title strip's right, `3 changed +58 −6`, that swaps to `Show Files ⌘\` under the pointer and opens the column. Picked by the author from local mockups (footer row, plus the readout from the strip-button / strip-readout / footer-row round). `ChangeSummary` tested in CalmModel; headless self-tests on scratch repositories (changed, clean, plain folder, open column, a live edit, narrow window at the largest size). Not seen on a real screen; the hover swap isn't reachable headless.*
-- [x] **M5.10 Viewer header and diffs:** the file under the session's title strip, flat on the terminal's background, in a row of its own (name, folder, Open in Editor, the back button); no line numbers; a changed file's lines marked, and its diff against the last commit, unified or split. *Built (2026-10-07), picked by the author from a design canvas: `FileDiff` in CalmModel (tested on real `git diff` output), `ViewerChange` and `ViewerHeader` in the app. Headless self-tests: the marks, the unified and split diffs, and a file from Changes opening on its diff.*
-
-**Exit criteria**
-- Copying a table cell, opening a path at a line and viewing a file each take one action.
-
-*Status: every task is built and self-tested headless. Copy Cell failed in Claude Code's full-screen view in the author's real use (2026-09-30: ⌥-double-click copied a whole row, and right-click offers no Copy Cell while a program takes the mouse), and its gesture was reworked the same day (M5.2). Exit criterion met in the author's real use (2026-09-30): ⌥-click and the in-cell ⌥-drag copy the right text in Claude Code's full-screen view, ⌘-click opens a path at its line, and the viewer shows a file. Changed-file diffs in the viewer stay under Later (FEATURES.md → Later).*
-
----
+**Exit criteria:** GOALS.md G4. Met (2026-09-30).
 
 ## M6 — Look and feel (F11, F14) 🟨
 
-Calm looks right out of the box, and making it yours takes a minute.
+| ID | What exists | Note |
+|---|---|---|
+| M6.1–M6.4 | Five contrast-checked themes, light and dark. Chrome takes theme colors. Matching theme for OpenCode and pi. Picker, glass or solid, layout, motion, adaptive background. | Five, not twelve: each is its own direction. |
+| M6.5–M6.6 | Settings (⌘,): Appearance, Agents, General, Shortcuts. VoiceOver labels, Increase Contrast, interface size 100 to 150%. | No font control yet. No VoiceOver pass (2026-09-30): accessibility is not a goal. |
+| M6.7–M6.10 | App icon and Dock states. Welcome page. Card sizes Full, Compact, Minimal, Shrink cards to fit. No session chosen: waiting cards or welcome search. | |
 
-- [x] **M6.1 Theme format:** the theme file and loader; a curated set of soft themes in light and dark pairs. *Built: five themes (fewer than the twelve first planned, on purpose: each is its own direction) in light and dark, generated and contrast-checked (reworked from six tints of one theme into five directions, with a softer, neutral default); the default gives way to the user's Ghostty theme, a picked one (`theme` in config.toml) wins and follows the appearance. OpenCode, whose own themes ignore the terminal's colors, is asked for a theme in Calm's shells (2026-09-30), unless its config names one: once connected, Calm's own `calm` theme, written from the theme on screen and followed live; else its `system` theme. A connected pi wears a `calm` theme too, set by Calm's extension over pi's built-ins without touching its settings.*
-- [x] **M6.2 Themed chrome:** sidebar, cards, files column and viewer take their colors from the theme. *Built: the theme's sidebar, text, accent and red when its background is on screen; derived from the terminal otherwise.*
-- [x] **M6.3 Theme picker:** live previews; one click applies; follows the system appearance. *Built: Settings (⌘,) → Appearance, a row of previews in the current appearance under a live miniature of the window, plus a Ghostty choice when the user's Ghostty config has its own colors.*
-- [x] **M6.4 Window options:** glass or solid background; card or edge-to-edge layout; the motion setting (full, reduced, off); adaptive background. *Built: Settings → Appearance, applied live; the adaptive background (an app's OSC 11) now eases the sidebar into its colors. Glass is self-tested for layering only: the window server's blur doesn't show in headless snapshots.*
-- [x] **M6.5 Settings screen:** Appearance, Agents, General and Shortcuts; writes `config.toml` and keeps unknown keys. *Built as a page that takes the whole window (⌘,, esc back), with a list of sections where the sidebar was, in the theme's colors; it shows config.toml lines it couldn't read and when macOS blocks notifications. It replaced a native toolbar-tab window whose tabs resized it and whose controls wore the system blue. Not in yet: a font and size control (General names the font and opens the Ghostty config), updates and SSH options (neither feature exists yet). New top-level keys no longer land after a blank line.*
-- [x] **M6.6 Accessibility:** VoiceOver labels, states shown by shape as well as color, Reduce Motion, Increase Contrast. *Built: Increase Contrast for the chrome and Calm's themes (text to 4.5:1, hierarchy kept), live updates when either setting changes, files column reachable by keyboard and VoiceOver. An interface size (100 to 150%) scales all of Calm's chrome. States already had shapes; cards, rows and the theme picker have labels. Not verified with VoiceOver itself (SwiftUI builds its accessibility tree only when an assistive app connects, which headless runs can't do), and not planned to be.*
-
-- [x] **M6.7 App icon:** Calm's mark in light and dark, and a Dock icon that shows running, done and failed while Calm runs. *Built:*
-  - *the icon file: an Icon Composer document (`scripts/app-icon.py`), compiled by Xcode into light, dark and tinted renditions;*
-  - *the Dock states: drawn by Calm only while not idle, redrawn only when a frame changes, still under Reduce Motion.*
-
-  *Checked as rendered PNGs (`ictool` for the icon file, `calm.dock_icon:` for the Dock states), not yet in a real Dock: headless self-tests have none.*
-- [x] **M6.8 Welcome page:** with no session open, the window shows the real mark, search over past sessions and projects together, a list of each, and the three ways to start; a plain welcome while there is nothing to list. *Built:*
-  - *the mark: the Dock icon's own view, with an arrival and a breathing cursor (`WelcomeMarkMotion`); it comes to rest after eight breaths;*
-  - *search: the ⌘K model for sessions, `ProjectSearch` for projects; ↑ ↓ ← → ↵ Esc; ⌘K focuses the page's field;*
-  - *layouts: two columns, one column when one side is empty, stacked in a narrow window, the welcome rows when there is nothing (or a new user with no project).*
-
-  *Checked as rendered PNGs in every layout, light and dark, and with the mark frozen at moments of its arrival (`CALM_WELCOME_MARK_AT`); driven through `calm.welcome_*` actions; unfrozen snapshots a half breath apart differ as they should. Not seen: how the motion feels on screen, which headless can't show.*
-- [x] **M6.9 Session card sizes:** Full, Compact or Minimal in Settings → Appearance, asked for by the author to fit more sessions in view. *Built (2026-09-30), picked from three rounds of mockups: Compact puts the state and the recap on one line under the title, Minimal is the title with the time in the state's color; at both, a card that waits for you grows a line. Chips like the interface sizes, and the window miniature follows. The working line lost its minutes at every size (the corner's time counts them). Checked as rendered PNGs at each size, light and dark, with Differentiate Without Color, and the Settings page. A size picked live first reached the sidebar only when a session next changed (the settings aren't observed); fixed, and checked within a second of the change. Then **Shrink cards to fit** (off by default): the cards step down from the chosen size when the sessions don't fit and back up when they do; checked headless in a short window (Full → Compact), a shorter one (→ Minimal), a tall one (stays Full), after closing sessions (back to Full), switched on live, and off (stays Full, scrolls). Its explanation moved from a tooltip into the row's one line of help (picked from three mockups), naming the size the cards step down from. Not seen: the height easing on screen, and the restoring state at the smaller sizes.*
-- [x] **M6.10 No session chosen:** after closing the session on screen, the main area was plain background ("kinda empty"). Now it shows the sessions waiting for you, each with all it last said, or with none waiting, the welcome page's search and lists. *Built (2026-09-30), picked by the author from three local mockups: waiting cards (B) when something waits, search and lists (C) when nothing does. Checked as rendered PNGs headless: one and two waiting (needs you above done, ↓ moving ↵ Open), the lists against a real index, light and dark, a search with no match. Not seen: keyboard focus in a key window (headless windows are never key), and the crossfade on screen.*
-
-**Exit criteria**
-- A new user can make Calm look right in under a minute without editing files.
-- The settings screen fits the budget in GOALS.md (F11's window options are over it; FEATURES.md → F11).
-
-*Status: every task is built and self-tested headless. Glass and the Settings page checked on screen by the author (2026-09-30), which headless snapshots can't show. A VoiceOver pass is not planned (2026-09-30, the author's call: accessibility isn't among Calm's goals; the labels already built stay). Left: the exit criteria (a new user's first minute, and F11's window options, which are over the settings budget).*
-
----
+**Exit criteria:** GOALS.md G9 and G10. Both open.
 
 ## M7 — Session actions (F12) ✅
 
-Conversations can be renamed, resumed and forked.
+| ID | What exists | Note |
+|---|---|---|
+| M7.1–M7.5 | Rename. Resume in place or from ⌘K. Fork (Claude Code, Codex, pi). Card menus. ⌘⇧T reopens the last of ten closed sessions. | OpenCode forks through its API: 2.0.19 has no `--fork`. |
+| M7.6 | ⌘N starts the chosen agent with option chips. ⌘⇧N uses a scratch folder. ⌘T stays a shell. | |
+| M7.7 | ⌘P restarts an agent after an update. Amber hint while it is outdated. All four agents. | Was a second M7.6, renumbered. pi's own options are not carried. |
 
-- [x] **M7.1 Rename:** rename any session. *Inline, from the card's menu; saved with the workspace.*
-- [x] **M7.2 Resume:** resume a closed agent session in its project folder, using each agent's own command. *In place after the agent exits (the session remembers its conversation); closed sessions from ⌘K.*
-- [x] **M7.3 Fork:** fork a conversation into a new split or tab, for agents that support it. *Claude Code, Codex, pi.*
-- [x] **M7.4 Menus:** right-click actions on session cards.
-- [x] **M7.6 New agent sessions (F15):** ⌘N starts the agent chosen in Settings → Agents, with its options as chips under its name (each one of the agent's own flags); ⌘⇧N too, in a scratch folder; ⌘T stays a shell. The sidebar's footer, the first launch and the start line show it, with a ⌄ for the other agents, and `calm config` knows the keys. *Built 2026-10-06, from local mockups the author decided step by step (one list in place of the agent cards, chips under the name, the ⌘N row added to the footer with its ⌄ under the pointer). Checked headless: what ⌘N, ⌘⇧N, the ⌄'s rows and ⌘P type (logged, not typed) at home, in a git repository and in a scratch folder; Settings → Agents, the footer, the first launch and the start line as rendered PNGs, light and dark. Not seen: the ⌄ under the pointer and its menu (headless windows have no pointer), and a real agent started by ⌘N. Added 2026-10-07: an empty worktree the agent made goes when its session closes (checked against real repositories in `/tmp`).*
-- [x] **M7.5 Reopen closed session:** ⌘⇧T opens the session closed last again (up to ten, in memory), resuming the agent conversation that was running in it. *Ghostty's `undo` binding on ⌘⇧T is unbound in Calm's defaults.*
-- [x] **M7.6 Restart after an update:** restart a running agent on its conversation with the options it was started with (⌘P, one session or all of an agent's), and an amber hint in the title strip while the agent in front is older than the one installed. *Added 2026-10-06; all four agents 2026-10-07: each agent's quit checked against the real one in a pty, its version read from the real one, restarts end to end with stand-ins. pi's own options can't be carried over (it overwrites its command line). An actual update seen only for Claude Code.*
-
-**Exit criteria**
-- Resuming or forking a conversation is one right-click.
-
-*Status: built and self-tested headless with stand-in conversations. Resume and fork worked with a real agent in the author's use (2026-09-30), which meets the exit criterion; not every agent was checked one by one. OpenCode resumes with `opencode --session <id>` and forks through its own API, since 2.0.19's interface has no `--fork` (2026-09-30; neither run with a real OpenCode yet).*
-
----
+**Exit criteria:** GOALS.md G5. Met (2026-09-30, with a real agent, not each agent).
 
 ## M8 — Find (F16) 🟨
 
-A line in a long log is one ⌘F away, and it never looks like a selection. All seven tasks built 2026-10-07; the exit criteria below wait on the author's use. Designed with the author step by step (2026-10-06 and 07, design canvas claude.ai/artifact/SEnFyMZRVAaWajYgW2jphf); FEATURES.md → F16, UIUX.md → Find, DESIGNS.md → Find. Each task ships on its own, in this order.
+| ID | What exists | Note |
+|---|---|---|
+| M8.1–M8.3 | ⌘F field, "3 of 11", own search per pane. Calm matches itself (`FindMatcher`), no engine patch. Calm draws marks, colored from the theme (`FindColors`). | esc works in the field only: Calm unbinds `escape=end_search`. |
+| M8.4–M8.6 | Scrollback map (`FindMap`). Full-screen note with Search all of it, engine patch 0018. Sliding band, fades, no cost at rest. | |
+| M8.7 | Find in the viewer: own page, PDFKit, web view find. esc closes find first. | |
 
-- [x] **M8.1 The field and the keys:** ⌘F toggles the field in the title strip (the readout steps away; the strip's give-way order), Ghostty's four search actions handled, "3 of 11", ↵ ⇧↵ ⌘G ⌘⇧G and the arrows, ⌘E, the Edit menu's Find items, esc in the field only (Calm's defaults unbind `escape=end_search`), typing into the pane closes it, each pane its own search. Ghostty's own match colors for now. *Built (2026-10-07): `FindModel` (unit-tested with a stand-in pane), `FindFieldView`, the title strip's finding row (`findFieldWidth`, unit-tested), Edit → Find. Checked headless against the real engine on a made-up 300-line log: 8 matches, "1 of 8" on the newest (line 296), ↵ ↵ ⇧↵ to 2, 3, 2 of 8, closing and ⌘F again brings "error" back; the field takes the keyboard (typed keys search, none reach the shell); a click into the pane keeps find, and the first key typed there closes it and reaches the shell. Not seen: the menu's keys and ↵ ⇧↵ esc with a real keyboard (a headless window is never key), and Hide Find's title.*
-- [x] **M8.2 Decision: where the current match is on screen.** A small engine patch forwarding the selected match's position, or Calm's own scrollback search (M8.4) finding it. Record the outcome in DESIGNS.md → Find. *Decided (2026-10-07): Calm's own matching, no patch (DESIGNS.md → Find): the pane matches the screen as the engine does (`FindMatcher`) and the engine's index, counted from the newest, picks the current one; scrolled up, the rows below the screen are read and counted once per position.*
-- [x] **M8.3 The marks:** Ghostty's match fill off, Calm's underlines, band and edge bar over the panes, the pill through Ghostty's selected-match colors; colors from the theme with a unit test of the checks on all five themes, light and dark; matches and links never mark the same letters. *Built (2026-10-07): `FindMatcher`, `FindColors` (both unit-tested; the colors against the design script's numbers), `FindMarksView`, the theme and default Ghostty lines, `GHOSTTY_ACTION_SCROLLBAR`. Checked headless against the real engine on a made-up log, dark and light: 8 of 11 matches on screen, underlined, one cut by the terminal's wrap marked on both rows, wide characters placed right, the newest current with its pill, band and bar; nine steps older, scrolled up, the band on the right line; "aa" counted 3 in "aaaa" by both Calm and the engine; closing clears every mark; a link's dots stop where find's underline starts. Found and fixed on the way: libghostty gives no position for the screen's first row while scrolled up, which put find's marks, the link marks and ⌥-click's cell a row off there. Not seen: ⌘ over a matched link (needs a real pointer), the user's own Ghostty colors. The pill's ends are square (the engine's cell fill), not rounded.*
-- [x] **M8.4 The map:** Calm's search of the scrollback (one read, off the main thread, new lines only while output arrives), rows counted through soft wraps, the box from `GHOSTTY_ACTION_SCROLLBAR`, density, the pointer's tag, a click to go there; only when the log is longer than the screen; below the split icon in a split. *Built (2026-10-07): `FindMap` (unit-tested), `FindMapView`, the pane's scan. While output arrives the whole scrollback is scanned again, at most once a second, not only the new lines (DESIGNS.md → Find says why). Checked headless against the real engine on a made-up 600-line log: 45 matching lines for the engine's 45, a 30-line burst drawn as one darker stretch, the box at the bottom, the current tick at the newest line; the tag names line 410 and its text; a click on its tick made it "25 of 45" and the engine scrolled it to the screen's top with its band; 100 more lines arriving four seconds later grew the map to 55 lines with the engine's 55; in a split the map starts below the split icon; dark and light. Not seen: a real pointer's hover, widening and click (headless windows get no mouse), and a full 50 MB scrollback's cost while output streams.*
-- [x] **M8.5 Full-screen programs:** "on screen" in the count, the note when nothing there matches, Search all of it ⌘K carrying the words into ⌘K. *Built (2026-10-07): engine patch 0018 (`ghostty_surface_alternate_screen`), `FindEvent.fullScreen`, `FindNote`. Checked headless with `less` on a short file (the alternate screen): "1 of 2 on screen" for a word on it, "None on screen" and the plain note for one that isn't, the agent's note with its button when the pane is named as Claude Code's (a test can't start a real one), and the button closed find and opened ⌘K with the words. Found on the way: the field's ⌘F cap shrank to "⌘" at the field's narrowest; it keeps its size now, and the words give way. Not seen: a real agent's full-screen view, a click on the button with a real pointer. At the field's narrowest (240 pt, a long title) "1 of 2 on screen" leaves the words about 30 pt.*
-- [x] **M8.6 Motion:** the band and the map's tick slide, the fades, Reduce Motion; `mise run perf` shows no cost at rest. *Built (2026-10-07): a step to a match on a still screen slides the band and the bar (0.18 s, ease-out); a step that scrolls, output and new words place them at once, and they ride the grid frame by frame while smooth scrolling moves it (`followFindGrid` reads only the grid's position); the map's current tick slides, the map widens under the pointer (0.12 s), new output's ticks fade in (0.15 s); closing fades the marks and the map (0.12 s); the field fades in (0.16 s). Motion off or Reduce Motion: all at once. Checked headless by logging the band layer: a step to another line on the same screen adds its slide, a step that scrolls and a run with `motion = "off"` add none; the map still widens, takes a click and goes on closing. A snapshot shows the model layers, so the slides themselves were not seen. The field goes at once on closing, not fading: the strip swaps its whole row, and the readout comes back in its place. `mise run perf` within budget (its scenarios don't open find).*
-- [x] **M8.7 The viewer:** find in Calm's own page (Markdown, code, text), PDFs through PDFKit, HTML and SVG through the web view's find, the note for pictures; esc closes find before the viewer. *Built (2026-10-07): `ViewerFindModel` (unit-tested), the field shared with the strip (`FindFieldModel`), find in `viewer.html`, the viewer's keys. Checked headless: a 160-line Swift file, "1 of 18" with the pill, the band and bar on its line and the map; ↓ to 2, ↑ ↑ stops at 1; Markdown "1 of 3" to "3 of 3", no band; a two-page PDF "1 of 4" with three underlines (the current one is PDFKit's selection); an HTML page found, then "No matches"; a picture's note; esc closed find, then the viewer. Not seen: a PDF's marks (PDFView paints nothing into a headless snapshot), the page map's click and ⌘E with a real pointer and selection. In a file ↵ goes down to the next match, as in a document; the matches in Calm's page don't overlap (a mark can't).*
-
-**Exit criteria**
-- In the author's use, a line in a long build log is found with ⌘F, and in Claude Code's full-screen view the note sends them to ⌘K, without either needing thought.
-- Calm at rest costs what it did before (`mise run perf`).
-
----
+**Exit criteria:** ⌘F finds a line in a long log, and the full-screen note leads to ⌘K. Open. Calm at rest costs what it did (`mise run perf`). Open.
 
 ## M9 — Find, further (F16) 🟨
 
-Find takes patterns, and in a full-screen program it can search everything the session showed, not just the screen. Designed with the author on the canvas (pages Regex and Whole session, 2026-10-07); FEATURES.md → F16, UIUX.md → Find, DESIGNS.md → Find. Each task ships on its own, in this order.
+| ID | What exists | Note |
+|---|---|---|
+| M9.1–M9.3 | `.*` patterns, ⌥⌘R, `FindQuery`, patch 0019. Patch 0020 reads the primary screen. `ScreenKeeper` keeps 50,000 lines, patch 0021. | PDFs and web pages have no switch. |
+| M9.4–M9.5 | Screen \| Session switch. `SessionPage`: kept lines with time marks, marks, count, map. esc or Screen returns. | |
 
-- [x] **M9.1 `.*`:** the switch and ⌥⌘R, Calm's own search for patterns (marks, count, map), the pill painted by engine patch 0019, "Incomplete pattern", remembered per session, ⌘E plain words; patterns in the viewer's own page, no switch for PDFs and web pages. *Built (2026-10-07): `FindQuery` (plain or ICU pattern; unit-tested with `FindMatcher` and `FindMap`), find's own count and steps for a pattern, engine patch 0019 for the pill, the field's `.*`, Edit → Find → Regular Expression ⌥⌘R, JavaScript patterns in the viewer's page. Checked headless against the real engine: `(error|warn)\w*` found 27 in a made-up 121-line log, as counted by hand; stepping fourteen older scrolled the screen and painted the pill on the right word ("15 of 27") with the band and map; `warn(` read "Incomplete pattern"; switching back to plain words handed the search back to the engine; in a viewed file a pattern found 69, a half-typed one said so. Not seen: ⌥⌘R and a click on `.*` with a real keyboard and pointer.*
-- [x] **M9.2 Engine patch 0020:** read the primary screen while the alternate one is shown, for the shell's output before a full-screen program. *Built (2026-10-07): `ghostty_surface_read_primary_text`, `ghostty_surface_read_text` with the points resolved on the primary screen. Checked headless against the real engine: with `region-scroll.sh` on the alternate screen, the shell's last line behind it read "shell-before-the-program", as echoed before it started.*
-- [x] **M9.3 Keeping what a full-screen program shows:** the screen read at most every 0.2 s while it draws, scrolls and replaced views kept, changes in place not, in memory up to 50,000 lines with their times; a perf scenario with a streaming full-screen program, held to the budget. *Built (2026-10-07): `ScreenKeeper` (13 unit tests: scrolls, scrolling back and forth, in-place changes, replaced views, flicks and jumps, new sizes, the program leaving, blank lines, the limit), the pane's reads after frames or, hidden, while its session works, engine patch 0021 for half-drawn frames, perf scenarios `fullscreen` and `fullscreen-unseen`. Checked headless against the real engine with `region-scroll.sh`: shown, 60 lines scrolled by and all were kept in order, then the last view and the prompt when it quit (99 lines, none twice); hidden in a working session, all 120 of 120; hidden in an idle one, none after it was hidden. Nothing to see yet: the switch and the page are M9.4 and M9.5. Not seen: a real agent's full-screen view, whose redraws are its own.*
-- [x] **M9.4 Screen | Session:** the switch (the field grows to 420 pt while it shows), the note's Search the whole session, the switch after the program quits while lines are kept. *Built (2026-10-07): the switch in the field after `.*` (`FindFieldView`), the field 440 pt in the strip while it shows, not narrowing (420 in the design, before `.*` took its room), the note's count from the session page, Search the whole session. Checked headless with `region-scroll.sh`: "line 503", scrolled off, read "None on screen" with the switch and "Nothing on screen matches. This session showed 70 more lines." over the button; after the program quit the switch stayed. Not seen: a click on Screen or Session with a real pointer.*
-- [x] **M9.5 The session page:** the kept lines as a page over the terminal with time marks, the same marks, count and map, patterns too; esc or Screen back to the live program. *Built (2026-10-07): `SessionPage` (CalmModel, 7 unit tests: the shell's output, each program where it started in it, the screen now last, nothing twice), the viewer's own page in the terminal's font with a time mark and hairline per part, opened at the bottom with the newest match current; the viewer's find with Session chosen; Screen and esc come back to the terminal's find in Screen with the page's words; closing find (⌘F, the cap) leaves the page. Checked headless: "line 503" found 1 of 1 on a 172-line page that began with the shell's line and ended with the prompt; "line 5" opened on 96 of 96 and stepped up and down; `line 50\d` with `.*` found 10 of 10; after the program quit, the shell's later lines came after the program's. Not seen: esc pressed on the page (its path is Screen's), a real agent's conversation on the page.*
-
-**Exit criteria**
-- In the author's use, a line Claude Code showed an hour earlier in its full-screen view is found with ⌘F, Session, without thought.
-- Calm with a streaming full-screen program costs no more than its budget (`mise run perf`).
-
----
-
-## In every milestone
-
-- Keep FEATURES.md, DESIGNS.md and UIUX.md true in the same change as the code.
-- Update the design canvas before a milestone with new screens (M2, M3, M5, M6).
-- New logic comes with tests; the app is dogfooded daily from M1 on.
+**Exit criteria:** A line Claude Code showed an hour earlier is found with ⌘F, Session. Open. GOALS.md G7. Met (2026-10-07).
 
 ## Later
 
-- Release, beyond 0.1.x. 0.1.0 (2026-10-08) is a public preview with a disk image, signed ad hoc; 0.1.1 and 0.1.2 (both 2026-10-12) follow it, 0.1.1 with live status, project homes and the update notice, and 0.1.2 with macOS 14.5 support, in-app updates and reliability fixes (CHANGELOG.md); a pushed tag builds and publishes a release (DESIGNS.md → Distribution). An update notice is built (2026-10-09): Calm asks GitHub once a day for a newer release and says so in the sidebar, and Update and Restart installs it (2026-10-12; FEATURES.md → F17). Still to do: a download that opens with a double-click, which is Developer ID signing and notarization (they need an Apple Developer Program account, which the author doesn't have yet), then Sparkle, if it earns its place over get.sh, and a cask in Homebrew's own list, which takes only apps that pass Gatekeeper (Calm's own tap has the cask since 2026-10-08). The licenses of what the engine builds in and the pi mark were settled before the disk image (NOTICE; DESIGNS.md → Licensing and references).
-- Copy an attach command, to reach a session over SSH from another device.
-- Spotlight integration (semantic index on macOS 27+).
-- Scrollback search across open sessions; paste history.
-- Triggers on output patterns; a keyboard copy mode.
-
-## Not planned
-
-See [GOALS.md](GOALS.md#non-goals).
+Planned features without a milestone are in [FEATURES.md → Later, if needed](FEATURES.md#later-if-needed). What Calm will not do is in [FEATURES.md → Explicitly not planned](FEATURES.md#explicitly-not-planned).

@@ -74,6 +74,16 @@ public enum CalmUpdates {
     /// Homebrew keeps its own record of the app.
     public static let homebrewCommand = "brew upgrade --cask calm"
 
+    /// What Calm runs to install a release itself (Update and Restart): the same get.sh as the
+    /// one-line install, for that version, into the folder Calm runs from. The version is parsed,
+    /// so only digits and dots reach the shell; the folder is a script argument, not shell text.
+    public static func installArguments(version: ReleaseVersion, into folder: String) -> [String] {
+        let script = #"curl -fsSL "$1" | bash -s -- --version "$2" --dir "$3""#
+        return ["-o", "pipefail", "-c", script, "calm-update", scriptAddress, version.description, folder]
+    }
+
+    static let scriptAddress = "https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh"
+
     /// The command that updates Calm the way it was installed.
     public static func updateCommand(installedByHomebrew: Bool) -> String {
         installedByHomebrew ? homebrewCommand : installCommand

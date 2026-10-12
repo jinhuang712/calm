@@ -3,8 +3,8 @@ import CalmModel
 import Foundation
 
 /// Asks GitHub whether a newer Calm is out, and keeps the answer for the sidebar's notice
-/// (FEATURES.md → Updates, DESIGNS.md → Updates). It only tells: Calm doesn't install itself, so
-/// the notice's menu points to the release and to the one-line install.
+/// (FEATURES.md → Updates, DESIGNS.md → Updates). It only tells: installing is the user's choice
+/// (`UpdateInstaller`), and the menu also points to the release and to the one-line install.
 ///
 /// There is no timer. A check runs a few seconds after launch and whenever Calm comes forward,
 /// each time only when one is due (once a day; an hour after a failure, `UpdateSchedule`), so a

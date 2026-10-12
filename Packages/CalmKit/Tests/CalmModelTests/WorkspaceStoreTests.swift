@@ -87,6 +87,14 @@ struct WorkspaceStoreTests {
         #expect(!files.contains("state.json"))
     }
 
+    @Test func `the kept-aside file is reported, and only then`() throws {
+        #expect(store.loadReportingKeptFile().keptAside == nil)
+        try Data("{ not json".utf8).write(to: store.fileURL)
+        let kept = try #require(store.loadReportingKeptFile().keptAside)
+        #expect(FileManager.default.fileExists(atPath: kept.path))
+        #expect(store.loadReportingKeptFile().keptAside == nil)
+    }
+
     @Test func `a file from a newer version is kept aside`() throws {
         try Data(#"{"version": 99, "workspace": {"projects": [], "sessions": [], "layouts": []}}"#.utf8).write(to: store.fileURL)
         #expect(store.load() == Workspace())

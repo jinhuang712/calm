@@ -159,14 +159,21 @@ final class AttentionCenter: NSObject {
         content.userInfo = ["session": item.sessionID.uuidString]
         content.sound = manager.settings.notificationSound ? .default : nil // UIUX.md: no sound by default
         let request = UNNotificationRequest(identifier: Self.identifier(for: item.sessionID), content: content, trigger: nil)
-        let authorization = authorization ?? Task {
-            await (try? UNUserNotificationCenter.current().requestAuthorization(options: [.alert])) ?? false
-        }
-        self.authorization = authorization
+        let authorization = requestAuthorization()
         Task {
             guard await authorization.value else { return }
             try? await UNUserNotificationCenter.current().add(request)
         }
+    }
+
+    /// Asks macOS once per run (the answer is kept): at first launch (`FirstLaunchPermissions`),
+    /// and again here for a user who never saw that ask.
+    func requestAuthorization() -> Task<Bool, Never> {
+        let task = authorization ?? Task {
+            await (try? UNUserNotificationCenter.current().requestAuthorization(options: [.alert])) ?? false
+        }
+        authorization = task
+        return task
     }
 
     /// One notification per session: a newer one replaces it, and visiting removes it.

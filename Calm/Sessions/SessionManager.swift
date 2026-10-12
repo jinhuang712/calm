@@ -70,6 +70,8 @@ final class SessionManager {
     var runningVersions: [Session.ID: String] = [:]
     /// A version check is out, off the main thread.
     @ObservationIgnored var checkingVersions = false
+    /// Where the saved state went when it couldn't be read at launch (`StateAlerts`).
+    @ObservationIgnored let unreadableState: URL?
 
     /// Once shown, the loading state stays at least this long, so a check that ends just after
     /// the window opens doesn't flash.
@@ -79,7 +81,7 @@ final class SessionManager {
         self.store = store
         isFirstUse = !FileManager.default.fileExists(atPath: store.fileURL.path)
         stateSavedAt = (try? FileManager.default.attributesOfItem(atPath: store.fileURL.path))?[.modificationDate] as? Date
-        workspace = store.load()
+        (workspace, unreadableState) = store.loadReportingKeptFile()
     }
 
     // MARK: Lifecycle
@@ -674,8 +676,10 @@ final class SessionManager {
         saveTask?.cancel()
         do {
             try store.save(workspace)
+            StateAlerts.saved(failure: nil)
         } catch {
             FileHandle.standardError.write(Data("calm: could not save state: \(error)\n".utf8))
+            StateAlerts.saved(failure: error)
         }
     }
 }

@@ -42,6 +42,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UpdateChecker.shared.start()
             TerminalWindowManager.shared.openMainWindow()
             Trace.note("window open")
+            StateAlerts.tellAboutUnreadableState(SessionManager.shared.unreadableState)
+            FirstLaunchPermissions.askOnce()
             // Headless self-tests run without a Dock icon.
             if !Headless.isOn {
                 DockIcon.shared.start()
@@ -64,11 +66,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         if Restart.isRequested {
             alert.messageText = "Restart \(BuildVariant.appName)?"
-            alert.informativeText = "Processes are still running in some terminals. Restarting ends them."
+            alert.informativeText = "Some sessions are still running a program. Restarting ends them."
             alert.addButton(withTitle: "Restart")
         } else {
             alert.messageText = "Quit \(BuildVariant.appName)?"
-            alert.informativeText = "Processes are still running in some terminals."
+            alert.informativeText = "Some sessions are still running a program. Quitting ends them."
             alert.addButton(withTitle: "Quit")
         }
         alert.addButton(withTitle: "Cancel")

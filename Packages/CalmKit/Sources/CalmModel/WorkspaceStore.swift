@@ -28,17 +28,21 @@ public struct WorkspaceStore: Sendable {
     }
 
     public func load() -> Workspace {
-        guard let data = try? Data(contentsOf: fileURL) else { return Workspace() }
+        loadReportingKeptFile().workspace
+    }
+
+    /// `load()`, and where the state file went when it couldn't be read (nil when it could, or
+    /// when there was none), so the caller can tell the user their sessions are not lost.
+    public func loadReportingKeptFile() -> (workspace: Workspace, keptAside: URL?) {
+        guard let data = try? Data(contentsOf: fileURL) else { return (Workspace(), nil) }
         do {
             let envelope = try JSONDecoder().decode(Envelope.self, from: data)
             guard envelope.version <= Self.formatVersion else {
-                keepAside()
-                return Workspace()
+                return (Workspace(), keepAside())
             }
-            return envelope.workspace
+            return (envelope.workspace, nil)
         } catch {
-            keepAside()
-            return Workspace()
+            return (Workspace(), keepAside())
         }
     }
 
@@ -60,9 +64,9 @@ public struct WorkspaceStore: Sendable {
     }
 
     /// Moves an unreadable state file out of the way, so the next save doesn't destroy it.
-    private func keepAside() {
+    private func keepAside() -> URL? {
         let stamp = Int(Date().timeIntervalSince1970)
         let aside = fileURL.deletingPathExtension().appendingPathExtension("unreadable-\(stamp).json")
-        try? FileManager.default.moveItem(at: fileURL, to: aside)
+        return (try? FileManager.default.moveItem(at: fileURL, to: aside)) == nil ? nil : aside
     }
 }

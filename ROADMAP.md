@@ -36,7 +36,7 @@ M4 and M5 can run in parallel with M3 once M2 is done.
 
 An empty Calm app, built from a clean clone with one command, with GhosttyKit built from upstream Ghostty and Calm's patches.
 
-- [x] **M0.1 Decision:** minimum macOS version. **Decided: macOS 26**, Apple silicon only.
+- [x] **M0.1 Decision:** minimum macOS version. Decided macOS 26, Apple silicon only; lowered to macOS 14.5 on 2026-10-12, with the newer-only calls behind `#available`.
 - [x] **M0.2 Toolchain:** `mise.toml` pinning Zig (the version Ghostty requires), XcodeGen, swiftformat, swiftlint and xcbeautify; `mise run setup` installs everything.
 - [x] **M0.3 Ghostty source:** pin an upstream `ghostty-org/ghostty` commit in `scripts/ghostty.env`; it is fetched into `~/Library/Caches/calm/ghostty`.
 - [x] **M0.4 GhosttyKit build:** `scripts/ghosttykit.sh` builds `GhosttyKit.xcframework` from the pinned commit with `scripts/ghostty-patches` applied, cached by commit and patch set so rebuilds (and other worktrees) reuse it.

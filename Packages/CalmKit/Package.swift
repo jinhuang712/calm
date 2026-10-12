@@ -6,7 +6,7 @@ import PackageDescription
 
 let package = Package(
     name: "CalmKit",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS("14.5")],
     products: [
         .library(name: "CalmModel", targets: ["CalmModel"]),
         .library(name: "CalmControl", targets: ["CalmControl"]),

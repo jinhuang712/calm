@@ -53,7 +53,7 @@ final class ProjectDragModel {
     /// The project just let go, while it settles: it stays above the others until it's in place.
     private(set) var settling: Project.ID?
     /// Bound to the list's scroll view, so the drag can scroll it.
-    var scrollPosition = ScrollPosition()
+    let scrollDriver = ScrollDriver()
 
     @ObservationIgnored private var spans: [Project.ID: ProjectReorder.Span] = [:]
     @ObservationIgnored private var scroll = Scroll()
@@ -178,7 +178,7 @@ final class ProjectDragModel {
             autoscroll = nil
             return false
         }
-        scrollPosition.scrollTo(y: next)
+        scrollDriver.scroll(toY: next)
         return true
     }
 

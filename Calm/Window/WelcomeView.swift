@@ -43,7 +43,7 @@ struct WelcomeView: View {
     }
 
     @FocusState private var fieldFocused: Bool
-    @State private var caret: TextSelection?
+    @State private var caret = FieldCaret()
 
     /// The tallest a list gets before it scrolls: six rows.
     private static let listHeight: CGFloat = 334
@@ -123,8 +123,8 @@ struct WelcomeView: View {
         if model.query.isEmpty {
             return true
         }
-        guard case let .selection(range)? = caret?.indices, range.isEmpty else { return false }
-        return column == .projects ? range.upperBound == model.query.endIndex : range.lowerBound == model.query.startIndex
+        guard let offset = caret.offset(in: model.query) else { return false }
+        return column == .projects ? offset == model.query.count : offset == 0
     }
 
     private func clearQuery() -> KeyPress.Result {
@@ -231,7 +231,7 @@ struct WelcomeView: View {
             Image(systemName: "magnifyingglass")
                 .calmFont(size: 15)
                 .foregroundStyle(style.tertiary)
-            TextField("", text: $model.query, selection: $caret, prompt: Text(placeholder).foregroundStyle(style.secondary))
+            CaretTextField(text: $model.query, caret: $caret, prompt: Text(placeholder).foregroundStyle(style.secondary))
                 .textFieldStyle(.plain)
                 .calmFont(size: stacked ? 14 : 15)
                 .focused($fieldFocused)
@@ -407,11 +407,9 @@ private struct ResultScroller<Content: View>: View {
                 content
             }
             .scrollIndicators(.never)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentSize.height - geometry.contentOffset.y - geometry.containerSize.height > 2
-            } action: { _, more in
+            .onScrollChange(of: { $0.content - $0.offset - $0.viewport > 2 }, perform: { more in
                 moreBelow = more
-            }
+            })
             .mask {
                 VStack(spacing: 0) {
                     Rectangle()

@@ -15,9 +15,9 @@ struct SearchPanelView: View {
     let onDismiss: () -> Void
 
     @FocusState private var fieldFocused: Bool
-    @State private var caret: TextSelection?
+    @State private var caret = FieldCaret()
     @State private var scroll = ScrollState()
-    @State private var position = ScrollPosition()
+    @State private var driver = ScrollDriver()
     /// Where each row's bottom falls in the list (not the headers'), so the list can end on a whole row.
     @State private var bottoms: [AnyHashable: CGFloat] = [:]
     @State private var tops: [AnyHashable: CGFloat] = [:]
@@ -105,7 +105,7 @@ struct SearchPanelView: View {
             Image(systemName: "magnifyingglass")
                 .calmFont(size: 15)
                 .foregroundStyle(style.tertiary)
-            TextField("", text: $model.query, selection: $caret, prompt: Text("Search sessions").foregroundStyle(style.tertiary))
+            CaretTextField(text: $model.query, caret: $caret, prompt: Text("Search sessions").foregroundStyle(style.tertiary))
                 .textFieldStyle(.plain)
                 .calmFont(size: 17)
                 .foregroundStyle(style.primary)
@@ -165,12 +165,10 @@ struct SearchPanelView: View {
                 .coordinateSpace(.named(Self.space))
             }
             .scrollIndicators(.never)
-            .scrollPosition($position)
-            .onScrollGeometryChange(for: ScrollState.self) { geometry in
-                ScrollState(offset: geometry.contentOffset.y, viewport: geometry.containerSize.height, content: geometry.contentSize.height)
-            } action: { _, state in
+            .scrollDriver(driver)
+            .onScrollChange(of: { ScrollState(offset: $0.offset, viewport: $0.viewport, content: $0.content) }, perform: { state in
                 scroll = state
-            }
+            })
             .frame(height: height(limit: limit))
             .mask {
                 // A faded hint of the next row, while there is one.
@@ -183,7 +181,7 @@ struct SearchPanelView: View {
             .onChange(of: model.generation) {
                 bottoms = [:]
                 tops = [:]
-                position.scrollTo(edge: .top)
+                driver.scrollToTop()
             }
             .onChange(of: model.selection) { old, new in
                 reveal(new, from: old, proxy: proxy)
@@ -219,7 +217,7 @@ struct SearchPanelView: View {
             return
         }
         if index == 0 {
-            position.scrollTo(edge: .top)
+            driver.scrollToTop()
             return
         }
         let down = old.flatMap { model.entries.firstIndex(of: $0) }.map { $0 < index } ?? true
@@ -264,7 +262,7 @@ struct SearchPanelView: View {
             // Rows came in above it: move the list by as much, so it stays under the pointer.
             if let holding, holding.id == id {
                 self.holding = nil
-                position.scrollTo(y: max(frame.minY - holding.y, 0))
+                driver.scroll(toY: max(frame.minY - holding.y, 0))
             }
         }
     }
@@ -294,8 +292,7 @@ struct SearchPanelView: View {
         if model.query.isEmpty {
             return true
         }
-        guard case let .selection(range)? = caret?.indices, range.isEmpty else { return false }
-        return range.upperBound == model.query.endIndex
+        return caret.offset(in: model.query) == model.query.count
     }
 
     /// The last row of a group keeps one identity as it goes from "more" to "all", so opening the

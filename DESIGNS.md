@@ -12,7 +12,7 @@ Technical design of Calm Terminal. What the features do is in [FEATURES.md](FEAT
 | Storage | JSON for app state (`state.json`); SQLite FTS5 for the search index |
 | Build | XcodeGen (`project.yml`) + `mise` tasks |
 | Quality | swiftformat, swiftlint, Swift Testing |
-| Minimum OS | macOS 26, Apple silicon (decided in M0.1; keeps the codebase free of old-version branches) |
+| Minimum OS | macOS 14.5, Apple silicon (macOS 26 in M0.1, lowered 2026-10-12). Calls newer than 14.5 sit behind `#available` and keep the macOS 15+ behavior as it was; the macOS 14 side is `Window/ScrollCompat.swift` and `Window/CaretField.swift` |
 
 **GhosttyKit source:** built from upstream Ghostty (`ghostty-org/ghostty`) at the commit pinned in `scripts/ghostty.env`, with the patches in `scripts/ghostty-patches` applied, and the Zig version Ghostty requires (pinned in `mise.toml`), locally and in CI. No prebuilt binaries, and no fork as the source: the patches are reviewable files in this repository.
 

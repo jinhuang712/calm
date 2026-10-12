@@ -131,6 +131,15 @@ struct UpdateCommandTests {
         // get.sh refuses to replace a Calm Homebrew installed, so that command must never be the one offered.
         #expect(CalmUpdates.installCommand.hasSuffix("get.sh | bash"))
     }
+
+    @Test func `installing in the app runs get.sh for that version, with the folder as an argument`() throws {
+        let version = try #require(ReleaseVersion("0.2.0"))
+        let arguments = CalmUpdates.installArguments(version: version, into: "/Users/me/My Apps; rm -rf ~")
+        #expect(arguments.prefix(3) == ["-o", "pipefail", "-c"])
+        // The folder never becomes shell text: it is `$3`, after the script.
+        #expect(!arguments[3].contains("rm"))
+        #expect(Array(arguments.suffix(2)) == ["0.2.0", "/Users/me/My Apps; rm -rf ~"])
+    }
 }
 
 struct UpdateScheduleTests {

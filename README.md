@@ -29,7 +29,7 @@ Calm needs macOS 26 on Apple silicon.
 curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
 ```
 
-[`get.sh`](get.sh) downloads the newest release's disk image, puts Calm in Applications, takes macOS's download mark off (Calm isn't signed by Apple yet, so macOS won't open it with the mark on), and links the `calm` command into `~/.local/bin`. Run it again to update; a running Calm keeps going on the old version until you choose Calm → Restart Calm (your shells keep running). `| bash -s -- --help` lists its options: a version, the newest build of `main` (below), another folder, no `calm` link.
+[`get.sh`](get.sh) downloads the newest release's disk image, puts Calm in Applications, takes macOS's download mark off (Calm isn't signed by Apple yet, so macOS won't open it with the mark on), and links the `calm` command into `~/.local/bin`. To update, choose Update and Restart in the sidebar's `↑` notice (it runs this script), or run it again; a running Calm keeps going on the old version until you choose Calm → Restart Calm (your shells keep running). `| bash -s -- --help` lists its options: a version, the newest build of `main` (below), another folder, no `calm` link.
 
 ### Homebrew
 
@@ -98,7 +98,7 @@ Calm adds files to an agent's own folders only for what you turned on in **Calm 
 
 - **Calm is signed ad hoc**, downloaded or built yourself, so to macOS every install is a new app: it asks again for access to Desktop, Documents and Downloads after each one. A Developer ID signed and notarized download, which keeps those answers across updates, comes later (see the end of [ROADMAP.md](ROADMAP.md)).
 - **Agents need no setup to be seen.** Calm detects them from their process. To get their exact state (a question waiting, a turn finished), connect their hooks from **Calm → Agents…**; each one asks first and can be undone.
-- **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code makes one network request: once a day it asks GitHub which release of Calm is newest, sending only its version, and Settings → General → Check for updates turns that off. The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
+- **A terminal, not more.** Calm has no chat, editor or browser of its own, and no account. Its own code reaches the network for one thing, updates: once a day it asks GitHub which release of Calm is newest, sending only its version, and Settings → General → Check for updates turns that off. Only when you choose Update and Restart does it download that release, by running `get.sh` (below). The agents you run talk to their services as they always did, and the file viewer loads what a viewed file points to (a Markdown image, an HTML page's scripts), as a browser would.
 
 ## Known limits
 

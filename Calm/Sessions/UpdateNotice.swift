@@ -8,18 +8,23 @@ struct UpdateNotice: View {
     let release: CalmRelease
     let style: SidebarStyle
     @State private var hovered = false
+    private let installer = UpdateInstaller.shared
 
     var body: some View {
         Menu {
+            if UpdateInstaller.isAvailable {
+                Button("Update and Restart") { installer.install(release) }
+                Divider()
+            }
             Button("Release Notes") { UpdateChecker.openReleasePage(release) }
             Button("Copy Update Command") { UpdateChecker.copyUpdateCommand() }
             Divider()
             Button("Skip \(release.version.description)") { UpdateChecker.shared.skip(release) }
         } label: {
             HStack(spacing: 4.scaled) {
-                Image(systemName: "arrow.up")
+                Image(systemName: installer.isInstalling ? "arrow.triangle.2.circlepath" : "arrow.up")
                     .calmFont(size: 9.5, weight: .bold)
-                Text(release.version.description)
+                Text(installer.isInstalling ? "Updating…" : release.version.description)
                     .calmFont(size: 12, weight: .medium)
             }
             .foregroundStyle(hovered ? style.primary : style.secondary)
@@ -51,12 +56,19 @@ enum UpdateAlert {
         case let .offer(release):
             alert.messageText = "Calm \(release.version.description) is out"
             alert.informativeText = "You have \(running)."
+            let canInstall = UpdateInstaller.isAvailable
+            if canInstall {
+                alert.addButton(withTitle: "Update and Restart")
+            }
             alert.addButton(withTitle: "Release Notes")
             alert.addButton(withTitle: "Copy Update Command")
             alert.addButton(withTitle: "Not Now")
-            switch alert.runModal() {
-            case .alertFirstButtonReturn: UpdateChecker.openReleasePage(release)
-            case .alertSecondButtonReturn: UpdateChecker.copyUpdateCommand()
+            // Buttons come back in the order added; without the first, each answer is one earlier.
+            let answer = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + (canInstall ? 0 : 1)
+            switch answer {
+            case 0: UpdateInstaller.shared.install(release)
+            case 1: UpdateChecker.openReleasePage(release)
+            case 2: UpdateChecker.copyUpdateCommand()
             default: break
             }
             return

@@ -141,6 +141,11 @@ final class ControlServer {
         // connects) must not raise SIGPIPE here, which would end Calm.
         var noSignal: Int32 = 1
         setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size))
+        // Clients are served one at a time: one that connects and says nothing must not hold up
+        // every later command and hook, so a stalled read or write gives up.
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         var received = Data()
         var buffer = [UInt8](repeating: 0, count: 4096)
         while !received.contains(0x0A), received.count < 1_000_000 {

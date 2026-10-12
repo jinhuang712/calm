@@ -424,8 +424,12 @@ final class FileViewer: NSObject {
         switch kind {
         case .image:
             var parts = [type]
-            if let rep = NSImage(contentsOf: url)?.representations.first, rep.pixelsWide > 0 {
-                parts.append("\(rep.pixelsWide) × \(rep.pixelsHigh)")
+            // ImageIO reads the size from the header; NSImage would decode every pixel for it.
+            if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+               let info = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+               let width = info[kCGImagePropertyPixelWidth] as? Int,
+               let height = info[kCGImagePropertyPixelHeight] as? Int {
+                parts.append("\(width) × \(height)")
             }
             if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
                 parts.append(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
@@ -472,11 +476,13 @@ final class FileViewer: NSObject {
             pictureView = view
             return (view, nil)
         case .html, .image:
-            let web = makeWebView()
+            // An agent often wrote this page, or it came from the web: no script, so it can't read
+            // its neighbours (`.env`) or send them anywhere. Calm's own page below keeps its script.
+            let web = makeWebView(scripts: false)
             web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
             return (web, nil)
         case .markdown, .code, .text:
-            guard let text = try? String(contentsOf: url, encoding: .utf8),
+            guard let text = Self.text(of: url),
                   let page = Bundle.main.url(forResource: "viewer", withExtension: "html", subdirectory: "Viewer")
             else { return nil }
             let web = makeWebView()
@@ -487,8 +493,24 @@ final class FileViewer: NSObject {
         }
     }
 
-    private func makeWebView() -> WKWebView {
-        let web = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+    /// The file's text: UTF-8, else the encoding macOS detects, else Latin-1
+    /// (it maps every byte). A legacy-encoded file still opens.
+    private static func text(of url: URL) -> String? {
+        if let text = try? String(contentsOf: url, encoding: .utf8) {
+            return text
+        }
+        var encoding = String.Encoding.utf8
+        if let text = try? String(contentsOf: url, usedEncoding: &encoding) {
+            return text
+        }
+        return try? String(contentsOf: url, encoding: .isoLatin1)
+    }
+
+    private func makeWebView(scripts: Bool = true) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        // Page script only; the app's own `evaluateJavaScript` calls still run.
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = scripts
+        let web = WKWebView(frame: .zero, configuration: configuration)
         web.navigationDelegate = self
         web.setValue(false, forKey: "drawsBackground") // no white flash before the page's colors
         webView = web

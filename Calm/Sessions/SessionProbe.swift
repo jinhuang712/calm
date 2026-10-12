@@ -20,6 +20,7 @@ final class SessionProbe {
     private var timer: Timer?
     private var shellProcesses: [String: pid_t] = [:]
     private var lastListing = Date.distantPast
+    private var listing = false
     /// The foreground job last seen per session (0: the shell itself).
     private var foregroundJobs: [Session.ID: Int32] = [:]
     /// Size and modification time of each agent transcript when last read.
@@ -351,11 +352,21 @@ final class SessionProbe {
         if let pid = shellProcesses[name], kill(pid, 0) == 0 {
             return pid
         }
-        // Listing spawns zmx, so do it at most every few seconds.
-        guard Date().timeIntervalSince(lastListing) > 5 else { return nil }
+        // Listing spawns zmx, so do it at most every few seconds, and off the main thread: a zmx
+        // that is slow or stuck must not freeze the window. The answer is used from the next tick.
+        guard !listing, Date().timeIntervalSince(lastListing) > 5 else { return nil }
+        listing = true
+        Task.detached(priority: .utility) { [weak self] in
+            let shells = PersistentShell.shellProcesses()
+            await self?.finishListing(shells)
+        }
+        return nil
+    }
+
+    private func finishListing(_ shells: [String: pid_t]) {
+        listing = false
         lastListing = Date()
-        shellProcesses = PersistentShell.shellProcesses()
-        return shellProcesses[name]
+        shellProcesses = shells
     }
 
     static func workingDirectory(of pid: pid_t) -> String? {

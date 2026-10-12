@@ -89,8 +89,19 @@ final class UpdateInstaller {
         } catch {
             return Result(status: -1, output: "Couldn't start the installer: \(error.localizedDescription)")
         }
+        // A download that hangs on a bad network would leave "installing" up forever.
+        let timedOut = TimedOutFlag()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 180) {
+            if process.isRunning {
+                timedOut.set()
+                process.terminate()
+            }
+        }
         process.waitUntilExit()
         try? sink.close()
+        if timedOut.value {
+            return Result(status: -1, output: "The download took too long. Check your connection and try again.")
+        }
         return Result(status: process.terminationStatus, output: tail(of: (try? String(contentsOf: log, encoding: .utf8)) ?? ""))
     }
 
@@ -111,5 +122,19 @@ final class UpdateInstaller {
         if alert.runModal() == .alertSecondButtonReturn {
             UpdateChecker.copyUpdateCommand()
         }
+    }
+}
+
+/// Set by the timer that ends a stuck installer, read once the process has exited.
+private final class TimedOutFlag: @unchecked Sendable { // guarded by `lock`
+    private let lock = NSLock()
+    private var flag = false
+
+    var value: Bool {
+        lock.withLock { flag }
+    }
+
+    func set() {
+        lock.withLock { flag = true }
     }
 }

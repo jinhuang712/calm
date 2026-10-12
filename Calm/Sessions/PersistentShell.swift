@@ -107,6 +107,12 @@ enum PersistentShell {
         } catch {
             return nil
         }
+        // A zmx that hangs would block this caller for good; ending it closes the pipe.
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 10) {
+            if process.isRunning {
+                process.terminate()
+            }
+        }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         // What a failed command printed isn't an answer (an empty list would read as no shells).

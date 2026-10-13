@@ -2,6 +2,19 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## 0.1.3 — 2026-10-13
+
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.2. Exact behavior is in [FEATURES.md](FEATURES.md) and [CLI.md](CLI.md).
+
+**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
+
+### Agents
+- Claude Code, Codex, OpenCode and pi now know the `calm` commands. One shared skill teaches them to search, show, fork (always with `--background`) and list sessions. Claude Code gets it through Calm's plugin, pi through its extension, and OpenCode and Codex through Connect in Settings → Agents. Codex now has a Connect step.
+- `calm show <session id>` shows what a session is running or last ran, so an agent can check a fork without waiting. `calm list` prints the session id first on every row.
+
+### Fixes
+- After `/compact`, the compaction bar stays only on the finished card. It no longer hangs on the next turn's working card or comes back when that turn ends.
+
 ## 0.1.2 — 2026-10-12
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.1. Exact behavior is in [FEATURES.md](FEATURES.md).

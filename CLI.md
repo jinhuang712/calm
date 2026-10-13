@@ -1,92 +1,56 @@
 # The `calm` command line
 
-This file lists every `calm` command. [FEATURES.md](FEATURES.md) → F13 summarizes it. [DESIGNS.md](DESIGNS.md) → Control protocol describes how the CLI talks to the app.
-Status marks: ✅ built and working as described. ⏸ parked: specified, waiting for a real need. A parked command that replaces a built one says what changes.
+This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 says what the tool is for. [DESIGNS.md](DESIGNS.md) → Control protocol describes how the CLI talks to the app.
 
 ## At a glance
 
-| Command | What it does | Status |
-|---|---|---|
-| `calm` | Opens Calm | ⏸ (today: prints the help) |
-| `calm open file <path>[:line]` | Shows a file in Calm's viewer | ⏸ (today: `calm open <file>`) |
-| `calm open session [folder]` | Opens a new session in a folder | ⏸ |
-| `calm open project [folder]` | Makes a folder a project | ⏸ (today: `calm open <folder>`) |
-| `calm list` | Lists the open sessions | ✅ (⏸ ids, `--json`) |
-| `calm status` | Describes this session | ⏸ |
-| `calm fork ["<prompt>"]` | Forks this session's conversation into a new session | ✅ |
-| `calm search <text>` | Finds past conversations, each with its id | ✅ (⏸ `--limit`, `--json`) |
-| `calm show <conversation>` | Everything Calm knows about one conversation | ✅ |
-| `calm notify <message>` | Notifies you about this session | ✅ |
-| `calm config` | Reads and changes Calm's settings | ✅ |
-| `calm doctor` | Checks that Calm and the agents' hooks work | ✅ |
-| `calm trace` | Prints Calm's timeline log | ✅ |
-| `calm screenshot [<file>]` | Saves a PNG of Calm's window | ✅ |
-| `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state | ✅ |
-| `calm --help`, `calm --version` | Help, and the CLI's version | ✅ |
+| Command | What it does |
+|---|---|
+| `calm open [<folder\|file>]` | Opens a folder as a project, or a file in Calm's viewer |
+| `calm list` | Lists the open sessions, each with its id |
+| `calm fork ["<prompt>"]` | Forks this session's conversation into a new session |
+| `calm search <text>` | Finds past conversations, each with its id |
+| `calm show <conversation\|session>` | Everything Calm knows about one conversation |
+| `calm notify <message>` | Notifies you about this session |
+| `calm config` | Reads and changes Calm's settings |
+| `calm doctor` | Checks that Calm and the agents' hooks work |
+| `calm trace` | Prints Calm's timeline log |
+| `calm screenshot [<file>]` | Saves a PNG of Calm's window |
+| `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state |
+| `calm`, `calm --help`, `calm --version` | Help, and the CLI's version |
 
 Agents' hooks send almost all CLI traffic, and people rarely type `calm` (decided 2026-10-06). So `doctor`, `trace`, `config`, `fork` and `show` came first.
-Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, DESIGNS.md → Teaching agents about `calm`). Open items: the ⏸ commands, which wait for a real need such as a script or SSH.
+Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, DESIGNS.md → Teaching agents about `calm`).
 
 ## Conventions
 
 - **Exit codes:** 0 done. 1 failed, with the reason on stderr. 64 wrong usage.
-- **Output** is plain text, one record per line. Color and marks appear only on a terminal. **`--json`:** one JSON document with `"v": 1`. Built: `show`, `doctor`, `config list`. Parked: `list`, `status`, `search`.
-- **Starting Calm:** `calm`, `open` and `list` start the app the CLI came with and wait up to 5 seconds. A Debug build starts itself.
+- **Output** is plain text, one record per line. Color and marks appear only on a terminal. **`--json`:** one JSON document with `"v": 1`, from `show`, `doctor` and `config list`.
+- **Starting Calm:** `open` and `list` start the app the CLI came with and wait up to 5 seconds. A Debug build starts itself.
   They start Calm only for the standard socket: with another `CALM_SOCKET`, they say Calm is not running.
-  `search`, `show` and `trace` read files and need no Calm. `doctor` reports that Calm is not running. `notify` and the hook commands never start Calm.
-- **Session id:** the first 8 hex digits of a session's id (a full id also works). **Conversation id:** the agent's own id. **Copy Session ID** gives it.
+  `search`, `show` and `trace` read files and need no Calm, except `show` for a session id. `doctor` reports that Calm is not running. `notify` and the hook commands never start Calm.
+- **Session id:** the first 8 hex digits of a session's id, as `calm list` prints it (a full id also works). **Conversation id:** the agent's own id. **Copy Session ID** gives it.
 - **This session** is the session whose shell runs the command (`$CALM_SESSION_ID`). `--session <id>` picks another. Outside Calm, commands about this session fail. The hook commands and `notify` do nothing and exit 0. Relative paths start from the current folder.
 
 ## Opening
 
-### `calm` ⏸
+### `calm open [<folder|file>[:line]]`
 
-Opens Calm, starting it when needed, and brings its window to the front. *Replaces:* `calm` alone prints the help, which stays at `calm --help`.
-
-### `calm open` ⏸
-
-Alone, or with a path and no branch, it prints the three branches and exits 64. *Replaces:* `calm open <folder|file>`, which guesses from the path. A folder becomes a project and shows its home (with a new session until 2026-10-09). A file opens in the viewer.
-
-#### `calm open file <path>[:line]`
-
-- Shows the file in the viewer, over the session in view. In code, `:line` highlights and centers that line.
-- Uses the viewer even with `open-in = "editor"` under `[files]`. When the viewer cannot show the file (unknown kind, over 5 MB), the editor opens it at that line.
-- Fails for a missing file, and for a folder: "That's a folder: use `calm open session` or `calm open project`."
-
-#### `calm open session [folder]`
-
-- Opens a fresh shell in the folder (default: the current folder), goes to it and files it like any session started there. It never makes a project.
-- Fails for a missing folder, and for a file: "That's a file: use `calm open file`."
-
-#### `calm open project [folder] [--new-session]`
-
-- Makes the folder a project (default: the current folder), as ⌘O does, and shows its home. It starts no session, even for an existing project.
-- `--new-session` opens a new session in the project instead. A folder inside another project becomes a project of its own. Fails for a missing folder or a file.
+- A folder becomes a project, as ⌘O makes it, and Calm shows its home. It starts no session. With no argument, it opens the current folder.
+- A file opens in Calm's viewer, at `:line` when given. When the viewer cannot show it, the editor or the default app opens it.
+- Fails for a missing path: "No such file or folder: …". Starts Calm when needed.
 
 ## Sessions
 
-### `calm list [--json]` ✅
+### `calm list`
 
-- Prints one line per open session, in sidebar order, with tabs between: session id, state, project, title, agent (`-` for none), folder.
+- Prints one line per open session, in sidebar order, with tabs between: session id, state, project, title, agent (`-` for none), folder. `calm show` and `--session` take the id.
   ```
   a1b2c3d4  needs-you   calm    Fix flaky test  Claude Code /Users/me/dev/calm
   ```
-- `--json` also gives each session's full id and its agent's conversation id. Starts Calm in the background when needed.
-  Built: project, title, state, agent, folder. Parked: the session id first, and `--json`.
+- Starts Calm in the background when needed. The session id came first on 2026-10-13, so that a fork can be looked up.
 
-### `calm status [--json] [--session <id>]` ⏸
-
-- Describes this session, one field per line. Fails outside Calm: "Not in a Calm session." With a state (`calm status done`), it is the hook command.
-  ```
-  state         needs-you  Allow Bash: rm -rf build
-  agent         Claude Code
-  conversation  0f9c2a7e-…
-  transcript    ~/.claude/projects/-Users-me-dev-calm/0f9c2a7e-….jsonl
-  project       calm
-  folder        /Users/me/dev/calm
-  ```
-
-### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]` ✅
+### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]`
 
 - Forks the conversation that runs in this session, or ran here last, into a new session (tab) in the same project and folder.
   It runs the agent's own fork command with the agent's start options (FEATURES.md → F12). The original continues untouched.
@@ -95,24 +59,24 @@ Alone, or with a path and no branch, it prints the three branches and exits 64. 
 - Claude Code and Codex take a prompt: `claude <options> --resume <id> --fork-session '<prompt>'` and `codex fork <options> <id> '<prompt>'` (Claude Code 2.1.285, Codex 0.159). pi and OpenCode are not checked, so a prompt for them fails: "pi can't start a fork with a prompt."
 - `--in <folder>` runs the fork elsewhere. Claude Code finds the conversation from a git worktree of its repository, not from an unrelated folder
   ("No conversation found with session ID", 2.1.291). The other agents are not checked.
-- Prints the new session's full id. Fails outside Calm, for a missing folder, or with no conversation: "No conversation to fork here." Never starts Calm.
+- Prints the new session's full id, which `calm show` takes to tell how the fork went. Fails outside Calm, for a missing folder, or with no conversation: "No conversation to fork here." Never starts Calm.
   A fork cannot fork: "A fork can't fork: calm fork started this session." So an agent cannot start a chain. Right-click → Fork still works. A relaunch resets the rule.
 
-### `calm notify <message>` ✅
+### `calm notify <message>`
 
 - Notifies the user at the next pause when the user is elsewhere. The title is the session's name, the body the message. It is for people: `./deploy; calm notify "deploy finished"`. It shows a banner even with banners for *done* off (Settings → Agents). Agents report a state instead (`calm status`): a question is *needs you*, an end is *done* or *failed*. Anything else belongs on the card.
   Outside Calm, or with Calm not running, it does nothing and exits 0.
 
 ## Past conversations
 
-### `calm search <text> [--limit <n>] [--json]` ✅
+### `calm search <text>`
 
 - Searches the past conversations of every agent. One result per conversation, best first: last active, agent, project, title, id (for `calm show`), then the match in bold.
 - Goes through the running Calm. With no Calm, it updates and reads the index itself. When Calm answers with an error, the command says so and exits 1.
   When Calm has not answered after 15 seconds (a cold index), it says so and reads the index itself. A Calm older than the CLI says to update it.
-  Built: the above, with 20 results. Parked: `--limit` and `--json`.
+- It shows the best 20.
 
-### `calm show <conversation> [--prompts] [--all] [--json]` ✅
+### `calm show <conversation|session> [--prompts] [--all] [--json]`
 
 Prints one conversation on one screen: what it was for, where it got to, where its work lives, how to go back.
 
@@ -155,12 +119,13 @@ Id          0f9c2a7e-…
 
 - A part with nothing in it is left out. `--prompts` lists every prompt, numbered, in place of the last three. `--json` gives every part and message.
   `--all` prints every prompt (under "You") and reply (under the agent's name) in order, without tool calls, tool output or thinking.
-- Takes a conversation id from `calm search` or `calm status`, or the start of one (6 characters or more) that only one conversation has. For several matches, it lists them.
-  Needs no Calm, except for *Open in session*, and never starts it. For an id the index does not know, it updates the index once, then fails.
+- Takes a conversation id from `calm search`, or the start of one (6 characters or more) that only one conversation has. For several matches, it lists them.
+- Also takes a session id from `calm list` or `calm fork` (8 hex digits or more). It shows the conversation running or last run in that session, so an agent can tell how its fork went (since 2026-10-13).
+  Needs no Calm, except for *Open in session* and a session id, and never starts it. For an id the index does not know, it updates the index once, then fails.
 
 ## Settings
 
-### `calm config [list [--json] | get <key> | set <key> <value…> | unset <key>]` ✅
+### `calm config [list [--json] | get <key> | set <key> <value…> | unset <key>]`
 
 - `calm config` (or `list`) prints every setting: its value in force, `(default)` when config.toml does not set it, and what it takes.
   Keys Calm does not read, and lines it cannot read, follow on stderr. `--json` adds default, whether it is set, and what it does.
@@ -181,7 +146,7 @@ Id          0f9c2a7e-…
 
 ## Diagnosis
 
-### `calm doctor [--json]` ✅
+### `calm doctor [--json]`
 
 One line per check: ✓ fine, ✗ a problem with the action under it, · worth knowing (an unconnected agent is a choice). It only reads, never starts Calm, and exits 1 on a problem.
 
@@ -205,7 +170,7 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 | Each agent whose config folder exists, as Settings → Agents sees it | Claude Code's plugin missing, or a file Calm did not write in the way. pi or OpenCode unconnected or outdated is a note |
 | In a session: Calm knows it, its state, who reported it last, and whether the shell loads the Claude Code plugin | A shell that outlived its session. Hooks that never arrive |
 
-### `calm trace [--last <duration>] [--session <id>] [--follow]` ✅
+### `calm trace [--last <duration>] [--session <id>] [--follow]`
 
 - Prints Calm's trace (DESIGNS.md → Trace) from the unified log: each event's time and the trace's own words. A heading names the day and the Calm process.
   ```
@@ -216,14 +181,14 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 - Shows only the Calm this `calm` came with, every launch of it (both sides of a restart, any second copy), not a Debug build or a self-test. A `calm` outside an app shows every Calm.
   Works with or without Calm. When no line matches, it says so on stderr. Dump Logs (⌘P) writes the last 30 minutes to a file.
 
-### `calm screenshot [<file>]` ✅
+### `calm screenshot [<file>]`
 
 - Saves a PNG of Calm's window, title bar included, at the screen's pixel density, and prints its absolute path. The default name is `calm-<yyyyMMdd-HHmmss>.png` in the current folder.
 - For an agent that checks its own change, or a bug report. It is the self-tests' capture (`WindowSnapshot`): it needs no Screen Recording permission and works under other windows.
 - Calm sends the PNG over the socket, so the caller's permissions write the file. It shows whatever the sessions show, and any Calm shell, an agent included, can capture it. It never moves or focuses a window.
   Never starts Calm. Exits 1 with Calm not running or no window, and 64 for more than one file name. A Calm older than the CLI says to restart it. Only the main window is captured.
 
-## For agents' hooks ✅
+## For agents' hooks
 
 `calm --help` lists these apart. Both never fail the agent: outside Calm, or with Calm not running, they do nothing and exit 0, and they never start Calm.
 They give up on the socket after 1 second (`scripts/cli-hook-check.sh`). `hook` also gives up on stdin after 1 second, and reports nothing for a payload over 16 MB.
@@ -273,9 +238,9 @@ Reaching Calm over SSH from another device (ROADMAP.md → Later): `calm attach 
 
 Left out (decided 2026-09-30). Do not propose again without new facts.
 
-- **`calm resume`, `calm new`.** ⌘K and each agent's "continue" (`claude -c`, `codex resume --last`) resume. `calm open session` opens a session in a folder.
+- **`calm resume`, `calm new`.** ⌘K and each agent's "continue" (`claude -c`, `codex resume --last`) resume. ⌘T and ⌘N open a session.
 - **`calm next`, `calm go <session>`.** The sidebar, ⌘⇧A and a notification's click already take people to a session. An agent must not move the user's attention. Only *needs you* may.
 - **`calm status --step 3/5`.** The task line comes from Claude Code's todo list. Others put progress in the message (`calm status working "Running migrations (3/5)"`).
-- **`calm wait <session>`.** The card tells people when a session is done. Open case: an agent that waits for a fork's answer. Decide it once agents use `calm fork` for real (DESIGNS.md → Teaching agents about `calm`).
+- **`calm wait <session>`.** The card tells people when a session is done. An agent that wants a fork's answer runs `calm show <session id>` when the user asks (since 2026-10-13).
 - **`calm send <session> <text>`.** Text one agent reads could steer another with wider permissions. `zmx send` exists for whoever wants it.
 - **`calm theme`.** `calm config set theme …` does it. **`calm copy`, `calm paste`.** `pbcopy` and `pbpaste` exist. **An MCP server.** The CLI already reaches every agent that can run a command.

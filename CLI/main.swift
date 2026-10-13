@@ -13,9 +13,9 @@ calm \(version) — a minimal macOS terminal that keeps you calm and focused
 Usage:
   calm open <folder>                Add the folder as a project and show its home
   calm open <file>[:line]           View the file in Calm (or open it in your editor)
-  calm list                         List sessions
+  calm list                         List sessions, each with its id first
   calm search <text>                Search every agent's past sessions (each ends with its id)
-  calm show <conversation>          Everything Calm knows about one conversation
+  calm show <conversation|session>  Everything Calm knows about one conversation, or a session's
                                     [--prompts: every prompt; --all: the whole of it; --json]
   calm notify <message>             Notify about this session at the next pause
   calm fork ["<prompt>"]            Fork this session's conversation into a new session

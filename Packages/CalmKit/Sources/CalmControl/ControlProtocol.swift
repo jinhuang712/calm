@@ -122,6 +122,15 @@ public struct ControlResponse: Codable, Sendable, Equatable {
             self.agent = agent
             self.conversation = conversation
         }
+
+        /// The one session whose id starts with `id`: 8 hex digits or more, any case, dashes or
+        /// not (CLI.md → Session id). Shorter, it could be the start of a conversation id instead.
+        public static func named(_ id: String, in sessions: [Self]) -> Self? {
+            let wanted = id.lowercased().filter { $0 != "-" }
+            guard wanted.count >= 8, wanted.allSatisfy(\.isHexDigit) else { return nil }
+            let found = sessions.filter { $0.id.lowercased().filter { $0 != "-" }.hasPrefix(wanted) }
+            return found.count == 1 ? found[0] : nil
+        }
     }
 
     /// A session found by `search`.

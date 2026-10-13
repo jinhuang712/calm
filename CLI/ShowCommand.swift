@@ -4,28 +4,29 @@ import CalmModel
 import CalmSearch
 import Foundation
 
-/// `calm show <conversation> [--prompts] [--all] [--json]`: everything Calm knows about one
+/// `calm show <conversation|session> [--prompts] [--all] [--json]`: everything Calm knows about one
 /// conversation (CLI.md), from the search index, its transcript and, while Calm runs, the session
-/// it is open in. Works without Calm. Each part degrades to nothing: a transcript that is gone
-/// gives no recap or branch, an agent with no reader gives no tasks.
+/// it is open in. Works without Calm, except for a session id. Each part degrades to nothing: a
+/// transcript that is gone gives no recap or branch, an agent with no reader gives no tasks.
 enum ShowCommand {
-    static let usage = "calm show <conversation> [--prompts] [--all] [--json]"
+    static let usage = "calm show <conversation|session> [--prompts] [--all] [--json]"
 
     static func run(_ words: [String]) -> Never {
         var detail = ConversationReport.Detail.summary
         var json = false
-        var id: String?
+        var given: String?
         for word in words {
             switch word {
             case "--prompts": detail = .prompts
             case "--all": detail = .all
             case "--json": json = true
             default:
-                guard !word.hasPrefix("--"), id == nil else { fail(usage, code: 64) }
-                id = word
+                guard !word.hasPrefix("--"), given == nil else { fail(usage, code: 64) }
+                given = word
             }
         }
-        guard let id else { fail(usage, code: 64) }
+        guard let given else { fail(usage, code: 64) }
+        let id = conversationID(for: given)
         guard let index = try? SearchIndex() else { fail("couldn't open the search index") }
         var lookup = index.conversation(id: id)
         if case .failure(.none) = lookup {
@@ -38,7 +39,10 @@ enum ShowCommand {
         case let .success(found):
             conversation = found
         case .failure(.none):
-            fail("no conversation with the id '\(id)': `calm search` shows conversations and their ids")
+            // It may be a session's id, with no Calm running to say so.
+            let calmAway = TraceLog.shortID(id) != nil && (try? ControlClient.send(ControlRequest(cmd: .list), timeout: 2)) == nil
+            let session = calmAway ? ", and a session's id needs Calm running" : ""
+            fail("no conversation with the id '\(id)': `calm search` shows conversations and their ids\(session)")
         case let .failure(.several(ids)):
             fail("the ids of several conversations start with '\(id)': \(ids.joined(separator: ", "))")
         }
@@ -52,6 +56,19 @@ enum ShowCommand {
             print(report.text(detail, now: .now, width: terminalWidth(), home: home))
         }
         exit(0)
+    }
+
+    /// A session's id (`calm list`, `calm fork`) stands for the conversation running or last run
+    /// there, which only the running Calm knows; it is never started for this. Anything else is
+    /// a conversation id.
+    private static func conversationID(for id: String) -> String {
+        guard TraceLog.shortID(id) != nil, let response = try? ControlClient.send(ControlRequest(cmd: .list), timeout: 2),
+              let session = ControlResponse.SessionInfo.named(id, in: response.sessions ?? [])
+        else { return id }
+        guard let conversation = session.conversation else {
+            fail("session \(TraceLog.shortID(session.id) ?? id) has had no agent conversation yet")
+        }
+        return conversation
     }
 
     private static func report(for conversation: IndexedConversation) -> ConversationReport {

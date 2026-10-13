@@ -28,5 +28,7 @@ struct CalmSkillTests {
         #expect(CalmSkill.text.contains("Do not run `calm status` or `calm notify`"))
         // A permission rule can allow `calm …`, never `"$CALM_CLI" …`, and an agent that joins both asks.
         #expect(CalmSkill.text.contains("Do not join the two in one command."))
+        // A fork is looked up when asked, never waited on (CLI.md → Not planned: `calm wait`).
+        #expect(CalmSkill.text.contains("`calm show <session id>` gives its state and last reply. Do not wait or poll for it."))
     }
 }

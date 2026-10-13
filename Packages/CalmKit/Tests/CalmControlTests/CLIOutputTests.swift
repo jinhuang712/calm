@@ -3,16 +3,45 @@ import Foundation
 import Testing
 
 struct CLIOutputTests {
-    @Test func `a session is one line of tab-separated fields`() {
+    @Test func `a session is one line of tab-separated fields, its short id first`() {
         let session = ControlResponse.SessionInfo(
-            id: "A1", title: "Fix flaky test", project: "calm", directory: "/dev/calm", state: "needs-you", agent: "Claude Code",
+            id: "A1B2C3D4-0000-4000-8000-000000000001", title: "Fix flaky test", project: "calm", directory: "/dev/calm",
+            state: "needs-you", agent: "Claude Code",
         )
-        #expect(CLIOutput.line(for: session) == "calm\tFix flaky test\tneeds-you\tClaude Code\t/dev/calm")
+        #expect(CLIOutput.line(for: session) == "a1b2c3d4\tneeds-you\tcalm\tFix flaky test\tClaude Code\t/dev/calm")
     }
 
     @Test func `a session with no agent shows a dash`() {
         let session = ControlResponse.SessionInfo(id: "A2", title: "zsh", project: "home", directory: "/Users/me", state: "idle")
-        #expect(CLIOutput.line(for: session) == "home\tzsh\tidle\t-\t/Users/me")
+        #expect(CLIOutput.line(for: session) == "A2\tidle\thome\tzsh\t-\t/Users/me")
+    }
+
+    @Test func `a session is found by the start of its id, and only one`() {
+        let sessions = [
+            ControlResponse.SessionInfo(
+                id: "A1B2C3D4-0000-4000-8000-000000000001",
+                title: "a",
+                project: "p",
+                directory: "/",
+                state: "idle",
+            ),
+            ControlResponse.SessionInfo(
+                id: "A1B2C3D5-0000-4000-8000-000000000002",
+                title: "b",
+                project: "p",
+                directory: "/",
+                state: "idle",
+            ),
+        ]
+        // What `calm list` prints, and what `calm fork` prints: a short id in any case, or the whole one.
+        #expect(ControlResponse.SessionInfo.named("a1b2c3d4", in: sessions)?.title == "a")
+        #expect(ControlResponse.SessionInfo.named("a1b2c3d5-0000-4000-8000-000000000002", in: sessions)?.title == "b")
+        // Shorter than 8 digits, or not hex: a conversation id's start, never a session's.
+        #expect(ControlResponse.SessionInfo.named("a1b2c3", in: sessions) == nil)
+        #expect(ControlResponse.SessionInfo.named("ses_a1b2c3d4", in: sessions) == nil)
+        // Two sessions start alike: neither.
+        #expect(ControlResponse.SessionInfo.named("a1b2c3d", in: sessions + sessions) == nil)
+        #expect(ControlResponse.SessionInfo.named("a1b2c3d4", in: sessions + sessions) == nil)
     }
 
     @Test func `ages round down to the largest whole unit`() {

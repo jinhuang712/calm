@@ -268,7 +268,7 @@ Behavior: FEATURES.md → F4, F5.
 - **Fork during a turn** (checked 2026-10-13): each agent forks cleanly while its own `calm fork` call still runs, and the original finishes. Claude Code, Codex and pi close the open call as interrupted, aborted or failed. OpenCode copies only finished messages.
 - **Codex's commands see their own terminal's variables** (checked 2026-10-13 on the TUI, 0.162.1), not the shared daemon's. So `calm fork` from Codex forks the right session.
 - **Checked 2026-10-13:** Claude Code picks the skill for the right requests and no others (14 prompts).
-- **Open question:** an agent that forks usually wants the answer back. Decide when the skill is used for real.
+- **A fork's answer** (2026-10-13): `calm show` takes the session id that `calm fork` prints, and `calm list` prints session ids. So when the user asks, an agent shows the fork's state and last reply. The skill says not to wait or poll, so `calm wait` stays out (CLI.md → Not planned).
 
 **Claude Code's pasted images** (since 2026-10-06). Claude Code keeps the image behind `[Image #n]` in a per-session folder under its temporary folder.
 

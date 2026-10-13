@@ -48,8 +48,9 @@ public enum CalmSkill {
     - `calm search <words>` finds past conversations of every agent (Claude Code, Codex, OpenCode, pi), best first. \
     Each line ends with the conversation's id.
     - `calm show <id>` prints one conversation on one screen: what it was for, recent prompts, recap, last reply, and \
-    the commands that resume or fork it. The start of an id (6 characters or more) works. `--prompts` lists every \
-    prompt. `--all` prints every prompt and reply, without tool calls.
+    the commands that resume or fork it. The start of an id (6 characters or more) works, and so does a session id \
+    from `calm list` or `calm fork`. `--prompts` lists every prompt. `--all` prints every prompt and reply, without \
+    tool calls.
 
     Look a conversation up before you guess what it did.
 
@@ -61,6 +62,8 @@ public enum CalmSkill {
     - Always pass `--background`. The user stays where they are, and the fork appears in Calm's sidebar. Without it, \
     Calm moves the user to the fork.
     - It prints the new session's id. No answer comes back to you. Tell the user that the fork runs in the sidebar.
+    - When the user asks how the fork went, `calm show <session id>` gives its state and last reply. Do not wait or \
+    poll for it.
     - When Calm says the agent can't start a fork with a message, run `calm fork --background` alone, and tell the \
     user what to ask the fork.
     - `--in <folder>` runs the fork in another folder. For Claude Code, the folder must be a git worktree of this \
@@ -72,7 +75,7 @@ public enum CalmSkill {
 
     ## Sessions and settings
 
-    - `calm list` prints the open sessions, one per line: state, project, title, agent, folder.
+    - `calm list` prints the open sessions, one per line: session id, state, project, title, agent, folder.
     - `calm config` prints every setting with its value and what it takes. `calm config get <key>` prints one value.
     - `calm config set <key> <value>` and `calm config unset <key>` change a setting. Change one only when the user \
     asks.

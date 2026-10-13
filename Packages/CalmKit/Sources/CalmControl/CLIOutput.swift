@@ -3,9 +3,11 @@ import Foundation
 /// What `calm list` and `calm search` print: one record per line, fields separated by tabs, and
 /// styling only on a terminal (CLI.md → Conventions).
 public enum CLIOutput {
-    /// Project, title, state, agent (`-` for none) and folder.
+    /// Session id (its first 8 hex digits, which `calm show` and `--session` take), state, project,
+    /// title, agent (`-` for none) and folder.
     public static func line(for session: ControlResponse.SessionInfo) -> String {
-        [session.project, session.title, session.state, session.agent ?? "-", session.directory].joined(separator: "\t")
+        let id = TraceLog.shortID(session.id) ?? session.id
+        return [id, session.state, session.project, session.title, session.agent ?? "-", session.directory].joined(separator: "\t")
     }
 
     /// How long ago, in the largest whole unit: `30m`, `5h`, `3d`. A time ahead of this clock is `0m`.

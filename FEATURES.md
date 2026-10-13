@@ -45,7 +45,7 @@ The sidebar groups sessions in this order: Scratch, Projects, Folders. **Setting
 - **Scratch:** **⌘⇧N** or **New Scratch Session** starts a session in a new empty folder under `~/.local/share/calm/scratch`. It runs ⌘N's agent (F15), or a shell with no agent.
 - Only ⌘⇧N makes one: ⌘T or a split from it opens a normal session in the home folder. Calm marks the scratch root as trusted in `~/.claude.json`, so Claude Code does not ask.
 - ⌘W closes it. An empty folder is removed. Otherwise Calm asks: **Move to Trash**, **Keep as Project…** or Cancel. The menu offers Keep as Project… at any time.
-- **Projects:** make one with **New Project…**, **⌘O**, a folder dropped on the sidebar or `calm open <folder>`. Opening one shows its **home** and starts nothing.
+- **Projects:** make one with **New Project…**, **⌘O**, a folder dropped on the sidebar or `calm open` (F13). Opening one shows its **home** and starts nothing.
 - The home shows the project's mark, name, folder and branch, and **⌘N** *your agent* ⌄ and **⌘T** Shell, which start there while it is up.
 - **Earlier in *project*** lists the last six closed sessions from its folder. A click, or ↑ ↓ and ↵, resumes one. Esc leaves the home. A click on a project header shows its home, and the chevron folds it. **Drag a header** to reorder projects. ⌘1…9, ⌃Tab and Move to Project follow the order.
 - A session started in a project stays in it, also after `cd`, and so do ⌘T and splits from it. Right-click a session: **Move to Project** (not scratch), **Let It Follow Its Folder**. A project's **⋯** has **Remove Project**: sessions stay open and regroup by folder.
@@ -116,7 +116,7 @@ A strip at the top of the pane shows when the user switches into an agent sessio
 - Each group shows a few results (three of the user's, two of others). **"13 more in calm"** shows five more, **Show less** folds it. With nothing typed, the panel lists sessions to pick back up.
 - **Enter** jumps to an open session, or resumes in a new session in its folder (home if gone) with ⌘N's options (F12). ↑ ↓ move, ⇥ and ⇧⇥ jump between groups, → and ← choose more or Show less, Esc closes.
 - A conversation stays searchable after its agent deletes the transcript (Claude Code does after 30 days). Older ones are found through `~/.claude/history.jsonl`, cannot resume, and Enter opens a new session in their folder.
-- Search skips tool output. Ranking favors the best match, then recency, title matches and the current project. `calm search <text>` runs it from a shell.
+- Search skips tool output. Ranking favors the best match, then recency, title matches and the current project. `calm search` runs it from a shell (F13).
 
 ## F8 — Smart links 🚧
 
@@ -148,7 +148,7 @@ A quick, read-only look at the repository without leaving Calm. **Settings:** no
 - **Files** is the tree: folders first, natural order (`View2` before `View10`). A folder outside git is listed directly, skipping hidden folders and build output (`node_modules`, `build`, `DerivedData`, `Pods`, `target`, `dist`), up to 5,000 files, with no branch or Changes. Desktop, Documents and Downloads in the home folder list closed and are read when opened, so macOS asks once per folder.
 - **Finding the column:** the footer row **Show Files ⌘\\**, and while the project has uncommitted changes, the title strip readout `3 changed +58 −6`, which becomes `Show Files ⌘\` under the pointer.
 - **Viewer:** a viewable file (Markdown, HTML, PDF, images, highlighted code) **covers the main area** under the title strip. **Esc** or a click on the session's name returns to the session, still running. Going to another session closes it.
-- The file's row shows a `‹` back button, name, folder, type (`PNG · 2000 × 302 · 84 KB`, `PDF · 6 pages`), size and **Open in Editor** (**Open in Preview** for pictures and PDFs). Files open from the tree, ⌘-click (F8) or `calm open <file>` (also `file:line`).
+- The file's row shows a `‹` back button, name, folder, type (`PNG · 2000 × 302 · 84 KB`, `PDF · 6 pages`), size and **Open in Editor** (**Open in Preview** for pictures and PDFs). Files open from the tree, ⌘-click (F8) or `calm open` (F13).
 - **Size:** ⌘+, ⌘− and ⌘0 size the open file. Text formats step 50% to 300% and keep it across relaunches. Pictures and PDFs step 50% to 800% from fit. Off 100%, the row shows `125%` with − and + under the pointer.
 - **Changed files** add `+3 −3` and a switch **File | Unified | Split**. File, the default, marks changed lines with a bar. Unified and Split diff against the last commit with three context lines. A file opened from Changes starts on Unified.
 - A file not in the last commit says **New**. Pictures, PDFs and HTML show no changes. No editing, staging or review.
@@ -192,20 +192,10 @@ A theme styles the **whole window**: terminal colors, sidebar, cards, panels, fi
 
 ## F13 — `calm` command-line tool ✅
 
-Every command, with the planned ones, is in [CLI.md](CLI.md). The tool talks to the running app over a local socket. `status` and `hook` do nothing outside Calm. `open` and `list` start the Calm the CLI came with when none runs. **Settings:** none.
+The `calm` command reaches Calm from a shell. It opens a folder or file, lists the sessions, searches and shows past conversations, forks the current one, changes settings and checks that Calm works. Agents' hooks report through it too. [CLI.md](CLI.md) specifies every command. **Settings:** none.
 
-| Command | What it does |
-|---|---|
-| `calm open <folder\|file>` | Open a project's home, or a file (`file:line`). No argument means the current folder. |
-| `calm list`, `calm search <text>`, `calm show <conversation>` | List sessions. Search them (F7). Show one conversation with its resume and fork commands (`--prompts`, `--all`, `--json`). |
-| `calm fork ["<prompt>"]` | Fork this conversation beside it (Claude Code, Codex). `--background` keeps focus, `--in <folder>` (a git worktree) runs elsewhere. |
-| `calm status <state> [message]`, `calm hook <agent>` | Report agent state, the contract for any agent's hooks (`--agent`, `--transcript`, `--agent-session`). `hook` reads a hook payload on stdin. The Claude Code plugin runs `calm hook claude-code`. |
-| `calm notify <message>`, `calm screenshot [<file>]` | Notify for the current session. Save a PNG of Calm's window and print its path, with no Screen Recording permission. |
-| `calm doctor`, `calm trace` | Check Calm, `calm` and the hooks (reads only, exits 1 on a problem). Print Calm's trace (`--last 10m`, `--session <id>`, `--follow`). |
-| `calm config` | List settings. `get`, `set`, `unset` write config.toml as Settings does, applied at once, including ⌘N's agent and options (F15). |
-
-- **Agents know these commands.** All four agents get one skill, `calm`. It teaches search and show, fork, list, config and doctor, and forbids `status` and `notify`. Claude Code's comes with Calm's plugin, the others' with Connect (F5).
-- An agent forks only when asked, and always in the background, so the user stays where they are and the fork waits in the sidebar. Each `calm` command asks by the agent's own permission rules (DESIGNS.md → Teaching agents about `calm`).
+- **Agents know it.** All four agents get one skill, `calm`, which teaches them the commands people ask for and keeps them from reporting state themselves. Claude Code's comes with Calm's plugin, the others' with Connect (F5).
+- An agent forks only when asked, and in the background, so the user stays where they are and the fork waits in the sidebar. Later it can tell how the fork went. Each command asks by the agent's own permission rules (DESIGNS.md → Teaching agents about `calm`).
 
 ## F14 — Settings ✅
 
@@ -230,8 +220,8 @@ Every command, with the planned ones, is in [CLI.md](CLI.md). The tool talks to 
 | pi | Trust project files | `--approve` |
 
 - **New worktree** shows only when the session's folder is in a git repository. Other flags go in `flags` in the agent's section (`[agents.claude-code]`, `flags = "--model opus"`).
-- **The whole command:** `calm config set agents.claude-code.command claude -w` makes ⌘N type exactly that. `calm config unset agents.claude-code.command` restores the chips. **An empty worktree goes with its session.** Calm removes the worktree Claude Code made (`claude -w`) with `git worktree remove` and `git branch -d`, without force, only when Claude Code has exited, no other session is in it, and it has no change, untracked file or branch-only commit. Other worktrees stay.
-- **Another agent:** the ⌄ beside ⌘N's rows lists other agents and Choose What ⌘N Starts…. ⌘P has New *Agent* Session per agent. An agent can change these keys with `calm config` (F13), for example `agents.claude-code.worktree true`, and learns them from Calm's `calm` skill.
+- **The whole command:** an agent's `command` key makes ⌘N type exactly that, for example `claude -w`. Without the key, the chips decide again. **An empty worktree goes with its session.** Calm removes the worktree Claude Code made (`claude -w`) with `git worktree remove` and `git branch -d`, without force, only when Claude Code has exited, no other session is in it, and it has no change, untracked file or branch-only commit. Other worktrees stay.
+- **Another agent:** the ⌄ beside ⌘N's rows lists other agents and Choose What ⌘N Starts…. ⌘P has New *Agent* Session per agent. An agent can change these keys with `calm config` (F13), which it learns from Calm's `calm` skill.
 - A new agent version can rename a flag. The agent then refuses to start and says why, and the adapter changes the flag.
 
 **Settings:** over the budget: ⌘N's agent (`new-session` under `[agents]`) and a switch per chip (`skip-permissions`, `worktree`, `trust-project-files` in each agent's section). `flags` and `command` per agent are config-only.

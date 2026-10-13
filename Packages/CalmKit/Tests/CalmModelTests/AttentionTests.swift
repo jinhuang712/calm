@@ -195,7 +195,7 @@ struct AttentionTests {
         #expect(StatusReport(state: .done, source: .hook, backgroundShells: -4).backgroundShells == 0)
     }
 
-    @Test func `the shell count is a snapshot and isn't saved`() throws {
+    @Test func `the shell count is saved, so a restart keeps the card and its mark going`() throws {
         let fixture = Fixture()
         var workspace = fixture.workspace
         let (watched, other) = (fixture.watched, fixture.other)
@@ -204,7 +204,14 @@ struct AttentionTests {
         let decoded = try JSONDecoder().decode(Workspace.self, from: JSONEncoder().encode(workspace))
         #expect(decoded.session(other)?.state == .done)
         #expect(decoded.session(other)?.lastReport?.message == "Built.")
-        #expect(decoded.session(other)?.shellsStillRunning == 0)
+        #expect(decoded.session(other)?.shellsStillRunning == 2)
+    }
+
+    @Test func `a report saved before the count was kept reads as no shells`() throws {
+        let json = #"{"state":"done","source":"hook","date":0,"message":"Built."}"#
+        let report = try JSONDecoder().decode(StatusReport.self, from: Data(json.utf8))
+        #expect(report.backgroundShells == 0)
+        #expect(report.message == "Built.")
     }
 
     @Test func `blank messages are dropped and reports survive saving`() throws {

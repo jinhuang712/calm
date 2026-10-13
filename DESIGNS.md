@@ -226,7 +226,7 @@ Behavior: FEATURES.md → F4, F5.
 - Hooks run synchronously, so reports keep their order. `ClaudeCodeAdapter.hookReport` maps each payload.
 - A `Stop` with a `subagent` in flight stays *working*, because the subagent wakes Claude when it ends.
 - Decided 2026-09-29: every other background task counts as a shell, and the `Stop` is *done* with the count, because a dev server or watcher never ends.
-- The count (`Session.shellsStillRunning`) is not saved, since it is one Stop's snapshot.
+- The count (`Session.shellsStillRunning`) is saved (since 2026-10-13), so a Calm restart keeps "1 shell running" and the moving mark. It is one Stop's snapshot: a shell that ended while Calm was down shows until Claude's next report, which its wake-up turn sends.
 
 **Esc and the status file.** An Esc interrupt fires no hook, but Claude Code's status file (`~/.claude/sessions/<pid>.json`) turns `idle`.
 

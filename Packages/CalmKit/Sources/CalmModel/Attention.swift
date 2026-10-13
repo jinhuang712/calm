@@ -15,14 +15,37 @@ public struct StatusReport: Codable, Hashable, Sendable {
     public var source: Source
     public var date: Date
     /// Shells the agent's turn left running (a *done* report only). A snapshot from one report,
-    /// so it isn't saved: after a restart it may no longer be true, and *done* or idle alone still is.
+    /// saved so the card still says "1 shell running" and its mark keeps moving after a restart
+    /// (the shell lives on in its own process). If it ended while Calm was down, the number is
+    /// stale until the agent's next report: a shell that ends wakes Claude, whose turn reports again.
     public var backgroundShells = 0
     /// What the report says of a compaction (Claude Code's PreCompact and PostCompact). Not saved,
     /// as the compaction itself isn't.
     public var compaction: CompactionReport?
 
     private enum CodingKeys: String, CodingKey {
-        case state, message, source, date
+        case state, message, source, date, backgroundShells
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        state = try container.decode(SessionState.self, forKey: .state)
+        message = try container.decodeIfPresent(String.self, forKey: .message)
+        source = try container.decode(Source.self, forKey: .source)
+        date = try container.decode(Date.self, forKey: .date)
+        // Missing in state saved before the count was kept.
+        backgroundShells = try max(container.decodeIfPresent(Int.self, forKey: .backgroundShells) ?? 0, 0)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(state, forKey: .state)
+        try container.encodeIfPresent(message, forKey: .message)
+        try container.encode(source, forKey: .source)
+        try container.encode(date, forKey: .date)
+        if backgroundShells > 0 {
+            try container.encode(backgroundShells, forKey: .backgroundShells)
+        }
     }
 
     public init(

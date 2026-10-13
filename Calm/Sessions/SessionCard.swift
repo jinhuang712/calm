@@ -33,7 +33,7 @@ struct SessionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: (size == .full ? 6 : 4).scaled) {
             HStack(spacing: 10.scaled) {
-                AgentLogo(agent: agent, state: isConfirming ? .idle : session.state, style: style)
+                AgentLogo(agent: agent, state: markState, style: style)
                 ScrollingTitle(text: title, isHovered: isHovered)
                     .calmFont(size: 14.5, weight: .medium)
                     .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
@@ -96,6 +96,15 @@ struct SessionCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// The state the mark plays: it keeps moving while the agent's shells run, though the card
+    /// says done or idle, and settles when the last one ends.
+    private var markState: SessionState {
+        if isConfirming {
+            return .idle
+        }
+        return session.shellsStillRunning > 0 ? .working : session.state
     }
 
     /// What goes under the title, by the saved state, so a card being restored keeps its size.

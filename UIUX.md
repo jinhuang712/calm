@@ -165,7 +165,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 
 ## Agent marks
 
-Each agent shows its own logo. The logo moves only while the agent works, in the agent's own way, slowed and softened. See `AgentMarkArt`, `MarkMotion` and `AgentLogo`.
+Each agent shows its own logo. The logo moves only while the agent works, or while its shells still run (a done or idle card saying "1 shell running"), in the agent's own way, slowed and softened. See `AgentMarkArt`, `MarkMotion` and `AgentLogo`.
 
 | Agent | Mark | Working |
 |---|---|---|

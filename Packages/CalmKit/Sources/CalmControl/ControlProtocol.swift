@@ -48,6 +48,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var agent: String?
     public var agentSession: String?
     public var transcript: String?
+    /// From a hook: the processes that started it, nearest first, so Calm can tell the session's
+    /// own agent from one of the same kind that agent started (`AgentKind.isNested`).
+    public var ancestors: [Int32]?
     /// From a hook that ended a turn: shells still running (nil for none; older callers omit it).
     public var shells: Int?
     /// From a hook about a compaction: "start:manual", "end:auto" (`CompactionReport`; nil for none).
@@ -71,6 +74,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         agent: String? = nil,
         agentSession: String? = nil,
         transcript: String? = nil,
+        ancestors: [Int32]? = nil,
         shells: Int? = nil,
         compaction: String? = nil,
         activity: String? = nil,
@@ -88,6 +92,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.agent = agent
         self.agentSession = agentSession
         self.transcript = transcript
+        self.ancestors = ancestors
         self.shells = shells
         self.compaction = compaction
         self.activity = activity

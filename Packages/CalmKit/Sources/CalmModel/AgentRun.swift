@@ -46,6 +46,23 @@ public extension AgentKind {
     func speaksForSession(whileForeground foreground: AgentKind?) -> Bool {
         foreground == nil || foreground == self
     }
+
+    /// Whether a report came from an agent of this kind that another one of it started inside the
+    /// session: the survey runs of an evaluation that call `claude -p` from Claude Code's Bash
+    /// tool each report Stop and UserPromptSubmit under the session's `CALM_SESSION_ID`, and the
+    /// card flipped between done and working every second or two (seen 2026-10-13).
+    ///
+    /// `ancestors` are the reporter's parent processes, nearest first; `job` is the session's
+    /// foreground process. The session's own hooks run directly under the job, so an agent
+    /// process of this kind between the reporter and the job means a nested one, even a direct
+    /// child of the job (a Bash tool may run `claude -p` with no shell between). A launcher job
+    /// with the agent as its child isn't allowed for: only Claude Code reports this way, and it
+    /// is the process that runs the hooks. A job that isn't among the ancestors, or an ancestry
+    /// that was cut short, proves nothing, and the report stands.
+    func isNested(ancestors: [Int32], job: Int32, isAgent: (Int32) -> Bool) -> Bool {
+        guard let jobIndex = ancestors.firstIndex(of: job) else { return false }
+        return ancestors[..<jobIndex].contains(where: isAgent)
+    }
 }
 
 /// "3 of 5 todos".

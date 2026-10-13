@@ -351,7 +351,8 @@ Behavior: FEATURES.md → F5.
 - A hook reports with `"$CALM_CLI" status <state>`, or hands its payload to `"$CALM_CLI" hook <agent>`. Either sends a `status` request.
 - Hooks run in every terminal. So `status`, `notify` and `hook` exit 0 and do nothing outside a Calm session, and never launch Calm.
 - A request that names an agent is checked against the session's foreground (`AgentKind.speaksForSession`, since 2026-09-30), because Claude Code's Bash tool running `pi -p` turned the row into pi's.
-- Open: one agent of the same kind starting another (`claude -p` inside Claude Code) is not told apart.
+- A hook report that carries its process ancestors (`calm hook` sends them) is dropped when an agent process of the same kind sits between the hook and the session's foreground job (`AgentKind.isNested`, 2026-10-13). An evaluation that ran 72 `claude -p` from Claude Code's Bash tool flipped the card between done and working every second or two, and sent a notification for each answer. It is traced as `ignored … that the session's … started`. A job that isn't among the ancestors proves nothing, so the report stands.
+- Open: `calm status --agent …` (pi, OpenCode) sends no ancestors, so a nested pi or OpenCode of the same kind is still not told apart.
 
 **Fallback signals.** When no hook is installed, signals come from libghostty's actions. `Terminal` translates them into `TerminalSignal`, and one pure function reads them (`TerminalSignal.outcome`). Their source is `terminal`, so hooks still win.
 

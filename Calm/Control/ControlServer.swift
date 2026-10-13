@@ -207,6 +207,14 @@ final class ControlServer {
                     Trace.reportIgnored(id, kind, foreground: foreground)
                     return .success()
                 }
+                // The same agent started inside the session (`claude -p` in Claude Code's Bash
+                // tool) reports as the session's own, and its turns flipped the card between done
+                // and working. Its hook has an agent process of the kind between it and the job.
+                if let ancestors = request.ancestors,
+                   SessionProbe.shared.isNestedReport(of: id, kind: kind, ancestors: ancestors) {
+                    Trace.reportNested(id, kind)
+                    return .success()
+                }
                 manager.noteAgentSession(id, kind: kind, agentSessionID: request.agentSession, transcriptPath: request.transcript)
             }
             guard let state else {

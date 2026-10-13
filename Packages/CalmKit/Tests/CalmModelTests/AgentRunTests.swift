@@ -92,6 +92,32 @@ struct AgentRunTests {
         }
     }
 
+    @Test func `a hook straight under the session's agent is its own`() {
+        // Ancestors are nearest first; 100 is the job, 50 a shell, 7 a Claude process.
+        let isAgent: (Int32) -> Bool = { $0 == 100 }
+        #expect(!AgentKind.claudeCode.isNested(ancestors: [50, 100, 40, 1], job: 100, isAgent: isAgent))
+    }
+
+    @Test func `a claude started by the session's claude is nested`() {
+        // The incident (2026-10-13): 72 `claude -p` runs from Claude Code's Bash tool each reported
+        // Stop and UserPromptSubmit, and the card flipped between done and working.
+        let isAgent: (Int32) -> Bool = { $0 == 100 || $0 == 7 }
+        #expect(AgentKind.claudeCode.isNested(ancestors: [50, 7, 60, 100, 40], job: 100, isAgent: isAgent))
+    }
+
+    @Test func `a claude that is the job's direct child is nested too`() {
+        // A Bash tool can run `claude -p` with no shell between (seen in the stand-in, where bash
+        // replaced itself with its last command).
+        let isAgent: (Int32) -> Bool = { $0 == 100 || $0 == 7 }
+        #expect(AgentKind.claudeCode.isNested(ancestors: [7, 100, 40], job: 100, isAgent: isAgent))
+    }
+
+    @Test func `a report stands when the job isn't among the hook's ancestors`() {
+        // A wrapper, or an ancestry cut short: nothing proves it nested.
+        #expect(!AgentKind.claudeCode.isNested(ancestors: [50, 7], job: 100, isAgent: { _ in true }))
+        #expect(!AgentKind.claudeCode.isNested(ancestors: [], job: 100, isAgent: { _ in true }))
+    }
+
     @Test func `ending a run clears it`() {
         var (workspace, id) = workspaceWithSession()
         workspace.startAgentRun(id, AgentRun(kind: .pi, processID: 7))

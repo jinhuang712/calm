@@ -341,6 +341,13 @@ final class SessionProbe {
         return Agents.detect(processID: job)
     }
 
+    /// Whether a report from `kind` came from one that the session's own agent started
+    /// (`AgentKind.isNested`).
+    func isNestedReport(of id: Session.ID, kind: AgentKind, ancestors: [Int32]) -> Bool {
+        guard let job = foregroundJobs[id], job > 0 else { return false }
+        return kind.isNested(ancestors: ancestors, job: job) { Agents.detect(processID: $0) == kind }
+    }
+
     private func noteForegroundJob(_ job: Int32, of id: Session.ID) {
         guard foregroundJobs[id] != job else { return }
         foregroundJobs[id] = job

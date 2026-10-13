@@ -197,7 +197,7 @@ They give up on the socket after 1 second (`scripts/cli-hook-check.sh`). `hook` 
 
 - Reports `working`, `needs-you`, `done`, `failed` or `idle`. Hook scripts can use their agent's words: `busy`, `running`, `thinking`; `waiting`, `input`, `permission`, `attention`; `finished`, `complete`, `completed`, `stop`, `stopped`; `error`, `failure`.
 - The message shows on the card and in the notification. `--agent` (`claudeCode`, `codex`, `openCode`, `pi`), `--agent-session` and `--transcript` name the agent and conversation, for agents that cannot send a hook payload (pi, OpenCode).
-- Calm ignores a report that names an agent other than the foreground one, because an agent run by another agent's tool inherits the session's variables.
+- Calm ignores a report that names an agent other than the foreground one, because an agent run by another agent's tool inherits the session's variables. A `calm hook` report from a Claude Code that the session's own Claude Code started (`claude -p` in its Bash tool) is ignored the same way.
 
 ### `calm hook <agent>`
 

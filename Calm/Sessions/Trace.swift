@@ -67,6 +67,12 @@ enum Trace {
         note("ignored \(Trace.id(id)): report from \(kind.rawValue) while \(foreground?.rawValue ?? "no agent") has the foreground")
     }
 
+    /// A hook came from an agent that the session's own agent started (`claude -p` in its Bash
+    /// tool), and was left out.
+    static func reportNested(_ id: Session.ID, _ kind: AgentKind) {
+        note("ignored \(Trace.id(id)): report from a \(kind.rawValue) that the session's \(kind.rawValue) started")
+    }
+
     /// The probe saw an agent start or end in a session's foreground.
     static func probed(_ id: Session.ID, _ event: String, before: Session, after: Session?) {
         note("probe \(Trace.id(id)): \(event); \(describe(before)) → \(describe(after))")

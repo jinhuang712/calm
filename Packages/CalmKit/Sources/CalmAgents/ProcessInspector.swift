@@ -19,6 +19,19 @@ public enum ProcessInspector {
         return foreground
     }
 
+    /// The process's parents, nearest first, up to `limit` (a hook asks for who started it).
+    public static func ancestors(of pid: Int32, limit: Int = 24) -> [Int32] {
+        var found: [Int32] = []
+        var current = pid
+        while found.count < limit, let info = bsdInfo(current) {
+            let parent = Int32(bitPattern: info.pbi_ppid)
+            guard parent > 1, !found.contains(parent) else { break }
+            found.append(parent)
+            current = parent
+        }
+        return found
+    }
+
     /// Executable path and arguments of a process (`KERN_PROCARGS2`).
     public static func snapshot(of pid: Int32) -> ProcessSnapshot? {
         var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]

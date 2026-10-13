@@ -151,6 +151,7 @@ case "hook":
     report(ControlRequest(
         cmd: .status, session: session, state: hook.changesState ? hook.state.reportName : nil, message: hook.message,
         agent: reporter.kind.rawValue, agentSession: hook.agentSessionID, transcript: hook.transcriptPath,
+        ancestors: ProcessInspector.ancestors(of: getpid()),
         shells: hook.backgroundShells > 0 ? hook.backgroundShells : nil, compaction: hook.compaction?.reportName,
         activity: hook.activity?.reportName, activityWords: words.words, activityGroup: words.group,
     ))

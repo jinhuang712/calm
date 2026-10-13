@@ -238,6 +238,7 @@ Behavior: FEATURES.md → F4, F5.
 - `PreCompact` starts it and `PostCompact` ends it. A `/compact` ends as *done*, and an automatic one stays *working*.
 - The sizes come from the transcript (`ClaudeCodeTranscript`), and a cancelled compaction is read from it too.
 - `Session.compactionBar(now:)` says what the card draws. The compaction is not saved, so a restart cannot bring back one that ended while Calm was away.
+- A new turn drops a compaction that ended before it (since 2026-10-13, because a `/compact`'s bar stayed on the next turn's card and came back when that turn ended). The card reads a bar end that is already past at once, because its clock may not have moved since the compaction ended.
 
 **Live line** (since 2026-10-09). A working card says what the agent does, from hooks Calm already hears: no new hook, process or timer.
 

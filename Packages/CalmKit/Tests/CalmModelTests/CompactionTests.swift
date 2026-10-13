@@ -95,6 +95,35 @@ struct CompactionTests {
         #expect(session?.recap == "Running the suite before the docs.")
     }
 
+    @Test func `a compact's bar goes when the next turn starts, and doesn't come back when that turn ends`() {
+        var (workspace, id) = workspace(state: .idle)
+        workspace.report(id, hook(.working, nil, .started(.manual), at: 0), focusedSessionID: nil)
+        workspace.report(id, hook(.done, "Conversation compacted.", .ended(.manual), at: 108), focusedSessionID: nil)
+        workspace.updateTranscriptTail(id, recorded(at: 108))
+        // A prompt queued while it ran goes in the moment it ends.
+        workspace.report(id, hook(.working, at: 108.5), focusedSessionID: nil, newTurn: true)
+        // Gone even for a card whose clock last moved before the compaction ended.
+        #expect(workspace.session(id)?.compactionBar(now: start + 108) == nil)
+        #expect(workspace.session(id)?.compactionBarEnds == nil)
+        workspace.report(id, hook(.done, "Restyled the diff page.", at: 300), focusedSessionID: nil)
+        #expect(workspace.session(id)?.compactionBar(now: start + 3600) == nil)
+    }
+
+    @Test func `a compaction mid-turn keeps its bar a moment, and one starting a turn is kept`() {
+        var (workspace, id) = workspace(state: .idle)
+        // The prompt starts the turn, then Claude compacts before it replies.
+        workspace.report(id, hook(.working, at: 0), focusedSessionID: nil, newTurn: true)
+        workspace.report(id, hook(.working, nil, .started(.auto), at: 1), focusedSessionID: nil)
+        workspace.report(id, hook(.working, nil, .ended(.auto), at: 99), focusedSessionID: nil)
+        workspace.updateTranscriptTail(id, recorded(at: 99))
+        workspace.report(id, hook(.working, at: 100), focusedSessionID: nil)
+        #expect(workspace.session(id)?.compactionBar(now: start + 100) == .drained(from: 968_495, to: 13000))
+        // Heard of first at its end, on a card at rest: the turn it starts keeps it.
+        var (resting, restingID) = self.workspace(state: .idle)
+        resting.report(restingID, hook(.working, nil, .ended(.auto), at: 99), focusedSessionID: nil)
+        #expect(resting.session(restingID)?.compaction?.endedAt == start + 99)
+    }
+
     @Test func `a starting compaction isn't taken for a repeat of the working it already was`() {
         var (workspace, id) = workspace()
         workspace.report(id, hook(.working, at: 0), focusedSessionID: nil)

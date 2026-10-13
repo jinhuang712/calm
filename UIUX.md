@@ -95,7 +95,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 
 - The card stays *working* and says "Compacting". A breathing bar replaces the todo line, with the conversation's size ("968k").
 - When it ends, the bar drains to the share kept ("968k → 13k"), then fades and the todo line returns, so the card never changes height.
-- A `/compact` the user typed ends the turn: the card turns *done* with "Conversation compacted." Calm sends no notification for a compaction.
+- A `/compact` the user typed ends the turn: the card turns *done* with "Conversation compacted." and keeps the drained bar until the next turn starts. Calm sends no notification for a compaction.
 
 **The live line** (Claude Code only; other agents say "Working"): line 2 says what the agent does, taken from hooks the agent already sends, so nothing polls. See `LiveLine`.
 

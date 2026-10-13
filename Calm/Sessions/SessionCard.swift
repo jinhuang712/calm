@@ -84,9 +84,13 @@ struct SessionCard: View {
         }
         .task(id: session.compactionBarEnds) {
             // A drained bar goes by itself a few seconds after the compaction (`compactionBar`).
-            guard let ends = session.compactionBarEnds, ends > .now else { return }
-            try? await Task.sleep(for: .seconds(ends.timeIntervalSinceNow))
-            guard !Task.isCancelled else { return }
+            // An end already past (the card left *done* late) is read at once: the card's clock
+            // may not have moved since the compaction ended, and would hold the bar for good.
+            guard let ends = session.compactionBarEnds else { return }
+            if ends > .now {
+                try? await Task.sleep(for: .seconds(ends.timeIntervalSinceNow))
+                guard !Task.isCancelled else { return }
+            }
             Motion.animate(.easeInOut(duration: 0.25)) { now = .now }
         }
         .accessibilityElement(children: .combine)

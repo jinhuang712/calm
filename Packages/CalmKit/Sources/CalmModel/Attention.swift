@@ -157,6 +157,11 @@ public extension Workspace {
             break
         case (_, .working):
             sessions[index].turnStartedAt = date
+            // A compaction over before the turn began is done with: a `/compact`'s bar stays on
+            // its done card only until you move on, and must not come back when this turn ends.
+            if let ended = sessions[index].compaction?.endedAt, ended < date {
+                sessions[index].compaction = nil
+            }
         default:
             sessions[index].turnStartedAt = nil
         }

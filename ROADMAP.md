@@ -67,6 +67,7 @@ When exit criteria are met, update the milestone status and "Current milestone".
 | M3.5–M3.7b | Fallback signals (no window titles). States: idle, working, needs you, done, failed. Transcript tails for all four agents (DESIGNS.md → Transcript tails). | Codex and OpenCode never report working. Turn markers give it. |
 | M3.8–M3.12 | Cards, *needs you* notifications, ⌘⇧A, arrival card with ⌘⇧I, Settings → Agents. | No diff size on cards (2026-09-29): the files column counts lines. |
 | M3.13–M3.15 | ⌘ Return sends, Return makes a new line (Claude Code, OpenCode, pi). Compacting bar and live status words, Claude Code only. | Codex cannot bind ⌘. |
+| M3.16 | The `calm` skill for all four agents (F13): in Claude Code's plugin, from pi's extension, and through Connect for OpenCode and Codex. | Added 2026-10-13. Codex's first Connect. Forking during a turn checked with each agent. |
 
 **Exit criteria:** GOALS.md G1 and G2. Met (2026-09-30).
 

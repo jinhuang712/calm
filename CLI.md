@@ -25,7 +25,7 @@ Status marks: ✅ built and working as described. ⏸ parked: specified, waiting
 | `calm --help`, `calm --version` | Help, and the CLI's version | ✅ |
 
 Agents' hooks send almost all CLI traffic, and people rarely type `calm` (decided 2026-10-06). So `doctor`, `trace`, `config`, `fork` and `show` came first.
-Open items: a skill in Claude Code's plugin that teaches agents `calm fork` and `calm show`, designed 2026-10-12 and not built (DESIGNS.md → Teaching agents about `calm`; forking while a tool call runs is not checked), and the ⏸ commands, which wait for a real need such as a script or SSH.
+Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, DESIGNS.md → Teaching agents about `calm`). Open items: the ⏸ commands, which wait for a real need such as a script or SSH.
 
 ## Conventions
 
@@ -192,7 +192,7 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 ✓ This calm (0.1.0) belongs to the Calm answering.
 ✓ The calm on PATH is this Calm's.
 ✓ Claude Code: reports through Calm's plugin, in Calm's shells.
-· Codex: reports through its own notifications and transcript; no hooks, by design.
+· Codex: not connected (Settings → Agents).
 ✓ pi: connected.
 ✓ This session (bcf9f1b1): working, Claude Code, last reported by a hook 4 s ago.
 ```
@@ -276,6 +276,6 @@ Left out (decided 2026-09-30). Do not propose again without new facts.
 - **`calm resume`, `calm new`.** ⌘K and each agent's "continue" (`claude -c`, `codex resume --last`) resume. `calm open session` opens a session in a folder.
 - **`calm next`, `calm go <session>`.** The sidebar, ⌘⇧A and a notification's click already take people to a session. An agent must not move the user's attention. Only *needs you* may.
 - **`calm status --step 3/5`.** The task line comes from Claude Code's todo list. Others put progress in the message (`calm status working "Running migrations (3/5)"`).
-- **`calm wait <session>`.** The card tells people when a session is done. Open case: an agent that waits for a fork's answer. Decide it with how agents learn `calm fork`.
+- **`calm wait <session>`.** The card tells people when a session is done. Open case: an agent that waits for a fork's answer. Decide it once agents use `calm fork` for real (DESIGNS.md → Teaching agents about `calm`).
 - **`calm send <session> <text>`.** Text one agent reads could steer another with wider permissions. `zmx send` exists for whoever wants it.
 - **`calm theme`.** `calm config set theme …` does it. **`calm copy`, `calm paste`.** `pbcopy` and `pbpaste` exist. **An MCP server.** The CLI already reaches every agent that can run a command.

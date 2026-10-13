@@ -376,7 +376,7 @@ private struct AgentRow: View {
         case let (.files(files), .notInstalled?):
             Button("Connect", action: onConnect)
                 .buttonStyle(SettingsButtonStyle(style: style))
-                .help("Adds \(Self.paths(files)), so it can tell Calm when it's working or waiting.")
+                .help("Adds \(Self.paths(files)), so it \(row.adapter.connectionPurpose).")
         case (_, .connected?):
             HStack(spacing: 4.scaled) {
                 Menu {

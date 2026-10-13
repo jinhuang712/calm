@@ -174,6 +174,10 @@ struct ClaudeCodeHookTests {
         #expect(Set(ClaudeCodeAdapter.pluginFiles().keys) == ClaudeCodeAdapter.pluginFileNames)
     }
 
+    @Test func `the plugin carries the calm skill`() {
+        #expect(ClaudeCodeAdapter.pluginFiles()["skills/calm/SKILL.md"] == CalmSkill.text)
+    }
+
     @Test func `the hook name finds the adapter`() {
         #expect(Agents.hookReporter(named: "claude-code")?.kind == .claudeCode)
         #expect(Agents.hookReporter(named: "nothing") == nil)

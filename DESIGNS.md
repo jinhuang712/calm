@@ -247,19 +247,27 @@ Behavior: FEATURES.md → F4, F5.
 - A hook asks `SessionProbe.readSoon` to read the transcript sooner, not more often, because a changed tail writes the workspace.
 - Open question: whether a subagent's tool calls fire the parent's hooks.
 
-**Teaching agents about `calm`** (designed 2026-10-12, not built). An agent does not know that `calm fork`, `calm show`, `calm search` or `calm config` exist (CLI.md has the commands).
+**Teaching agents about `calm`** (since 2026-10-13). An agent does not know that `calm fork`, `calm show`, `calm search` or `calm config` exist (CLI.md has the commands). So all four agents get one Agent Skills file, `CalmSkill.text`, and each adapter delivers it in its own way.
 
-- **One skill, in the plugin that already exists.** `skills/calm/SKILL.md` is written at each launch with the other plugin files (`ClaudeCodeAdapter.pluginFiles`), and joins `pluginFileNames` so `calm doctor` checks it.
-- It is a Swift string, not a resource file, because the CLI once could not read `Bundle.module`.
-- It is on whenever the plugin is on, and `hooks = false` turns off both: no new setting.
-- **Why a skill:** Claude Code does not load a `CLAUDE.md` at a plugin's root. The description sits in every session's context, so it stays two or three sentences.
-- **What it says:** fork, search and show, config, list and doctor, in the agent's terms. Use `calm`, or `$CALM_CLI` when `calm` is not on `PATH`.
-- **What it forbids:** `calm status` and `calm notify`, because the hooks already report state (CLI.md → *Not planned*).
-- **Permissions:** `allowed-tools` grants only the reads. `calm fork` and `calm config set` still ask.
-- **Claude Code only.** The skill belongs to its adapter.
-- **Check before building:** whether `allowed-tools` takes the `Bash(calm search *)` form, and whether `$CALM_CLI search` matches a rule written for `calm`.
-- **Check before building:** `calm fork` run by the agent mid-turn, while its own tool call still runs.
-- **Check before building:** that Claude picks the skill for the right requests and no others.
+| Agent | How the skill arrives | Where the file is | Seen outside Calm |
+|---|---|---|---|
+| Claude Code | in Calm's plugin, as `calm:calm` | `<support>/agents/claude-code/skills/calm/` | no |
+| pi | Calm's extension returns its folder from `resources_discover` | `<support>/agents/skills/calm/`, written at each launch | no |
+| OpenCode | Connect writes it beside the TUI plugin | `~/.config/opencode/skills/calm/` | yes |
+| Codex | Connect writes it, Codex's first Connect | `~/.agents/skills/calm/` | yes |
+
+- **Why files for OpenCode and Codex** (checked 2026-10-13): neither reads a skill path from a variable. OpenCode's `OPENCODE_CONFIG_CONTENT` reaches only a service that a Calm shell started, and the Desktop app's service ignores it. Codex reads skills from fixed folders only.
+- Outside Calm, `calm search` and `calm show` still work, and the commands about this session fail with "not in a Calm session".
+- **pi and `~/.agents/skills`:** pi reads that folder too. The extension leaves its own folder out when Codex's copy is there, or pi warns about two skills with one name. OpenCode silently takes the later one.
+- **No new setting.** Claude Code's skill comes and goes with the plugin (`hooks = false`). The others come and go with Connect.
+- **What it says:** search and show, fork, list, config and doctor. Run `calm`, and `"$CALM_CLI"` only after `command not found`.
+- **What it forbids:** `calm status` and `calm notify`, because Calm already knows the state (CLI.md → *Not planned*).
+- **Always `--background`** (2026-10-13): without it, `calm fork` moves the user to the fork, and an agent must not move the user's attention.
+- **No `allowed-tools`** (2026-10-13). In Claude Code it makes loading the skill ask (changelog 2.1.19, seen on 2.1.296), and its grant ends with the turn. Codex ignores it, and pi never asks. Each `calm` command asks by the agent's own rules, where "don't ask again" saves a rule.
+- **Variables and rules:** no permission rule matches a command that starts with `$CALM_CLI` (Claude Code 2.1.296, Codex 0.162, OpenCode 2.0.12). In a test an agent ran `calm list || "$CALM_CLI" list`, which asked, so the skill says not to join the two.
+- **Fork during a turn** (checked 2026-10-13): each agent forks cleanly while its own `calm fork` call still runs, and the original finishes. Claude Code, Codex and pi close the open call as interrupted, aborted or failed. OpenCode copies only finished messages.
+- **Codex's commands see their own terminal's variables** (checked 2026-10-13 on the TUI, 0.162.1), not the shared daemon's. So `calm fork` from Codex forks the right session.
+- **Checked 2026-10-13:** Claude Code picks the skill for the right requests and no others (14 prompts).
 - **Open question:** an agent that forks usually wants the answer back. Decide when the skill is used for real.
 
 **Claude Code's pasted images** (since 2026-10-06). Claude Code keeps the image behind `[Image #n]` in a per-session folder under its temporary folder.
@@ -283,10 +291,12 @@ Behavior: FEATURES.md → F4, F5.
 - Codex's terminal rollouts are told from the desktop app's and subagents' by `originator` and `thread_source`, not `source` (found 2026-09-29).
 - Opt-in tests read real history (`CALM_REAL_*`) and print counts only.
 
-**Settings → Agents.** Each adapter declares its `AgentSetup`: `automatic` (Claude Code's plugin), `notifications` (Codex), `files` (pi's extension, OpenCode's plugin, written on Connect), or `hint`.
+**Settings → Agents.** Each adapter declares its `AgentSetup`: `automatic` (Claude Code's plugin), `notifications` (none since 2026-10-13), `files` (pi's extension, OpenCode's plugin and skill, Codex's skill, written on Connect), or `hint`.
 
 - Files Calm writes carry a marker line. Calm refuses to overwrite, and never removes, a file without it.
-- At each launch `AgentSetupFiles.refresh` rewrites only files that carry the marker, so a connection made before an update keeps up.
+- At each launch `AgentSetupFiles.refresh` rewrites the files that carry the marker, so a connection made before an update keeps up.
+- It also adds a file this version brings, once one of Calm's files for that agent is there (since 2026-10-13, for the skill). Connect gave the agent Calm's files, and Disconnect takes them all.
+- Connect's help says what the agent gains (`connectionPurpose`). Codex gains only the skill.
 
 **pi's extension.** It maps pi's events to states and names the conversation on every report.
 
@@ -300,6 +310,7 @@ Behavior: FEATURES.md → F4, F5.
 - Rejected: a persistent hook tied by folder, because it edits the user's hooks and is ambiguous with two sessions in one folder.
 - Rejected: a `codex` wrapper passing hooks by `-c`, because it is slower to start and invasive.
 - Revisit if the daemon changes.
+- Connect adds only the `calm` skill (Teaching agents about `calm`, above). Codex still reports through its notifications.
 
 **Agent marks.** Each adapter carries its mark as data (`AgentMarkArt` in `<Agent>+Mark.swift`). `MarkMotion` poses it as a function of time, and `AgentLogo` draws it.
 

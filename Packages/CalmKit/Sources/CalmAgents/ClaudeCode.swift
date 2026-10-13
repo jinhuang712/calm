@@ -226,10 +226,14 @@ extension ClaudeCodeAdapter: HookReporting {
     /// The paths `pluginFiles` writes, without building them: what `calm doctor` checks are there.
     /// (The CLI once couldn't call `pluginFiles`, when the plugin carried a mod read through
     /// `Bundle.module`, which stops a `calm` that can't find its resource bundle.)
-    public static let pluginFileNames: Set<String> = [".claude-plugin/plugin.json", "hooks/hooks.json"]
+    public static let pluginFileNames: Set<String> = [".claude-plugin/plugin.json", "hooks/hooks.json", skillPath]
 
-    /// The plugin's files: `.claude-plugin/plugin.json` and `hooks/hooks.json`. Hooks run
-    /// synchronously so reports arrive in order; `calm hook` returns within a second at most.
+    /// The `calm` skill (`CalmSkill`) inside the plugin: Claude Code names it `calm:calm`.
+    static let skillPath = "skills/\(CalmSkill.name)/SKILL.md"
+
+    /// The plugin's files: `.claude-plugin/plugin.json`, `hooks/hooks.json` and the `calm` skill.
+    /// Hooks run synchronously so reports arrive in order; `calm hook` returns within a second at
+    /// most.
     public static func pluginFiles() -> [String: String] {
         let command = #"[ -n "$CALM_CLI" ] && "$CALM_CLI" hook claude-code || true"#
         var hooks: [String: Any] = [:]
@@ -239,7 +243,7 @@ extension ClaudeCodeAdapter: HookReporting {
         let manifest: [String: Any] = [
             "name": "calm",
             "version": "1.0.0",
-            "description": "Reports this session's state to Calm Terminal (only inside Calm).",
+            "description": "Reports this session's state to Calm Terminal and teaches the calm command (only inside Calm).",
             "author": ["name": "Calm Terminal"],
         ]
         let hooksFile: [String: Any] = [
@@ -249,6 +253,7 @@ extension ClaudeCodeAdapter: HookReporting {
         return [
             ".claude-plugin/plugin.json": json(manifest),
             "hooks/hooks.json": json(hooksFile),
+            skillPath: CalmSkill.text,
         ]
     }
 

@@ -93,6 +93,7 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 - **done** and **failed** notify only when the user opts in (Settings → Agents). They stay in the sidebar until the user goes to another session or leaves Calm (another app with a Dock icon), then settle to idle.
 - **Settings → Agents** (**Calm → Agents…**) shows how each agent connects. Claude Code uses hooks, on by default, as a plugin loaded only in Calm's shells. Calm writes nothing to Claude's settings. Codex uses its own notifications.
 - pi and OpenCode connect through an extension or plugin that **Connect** adds and **Disconnect** removes. It reports needs you, turn events and the conversation, and applies Calm's theme (F11). Unconnected, OpenCode settles from its files.
+- Every agent also learns the `calm` command from Calm's skill (F13). Claude Code's comes with the plugin. Connect brings it to pi, OpenCode and Codex, for which Connect adds only the skill.
 - **Send with ⌘ Return** (Settings → Agents → Keys, off by default): ⌘ Return sends and Return starts a new line, in Claude Code, OpenCode and pi. Return still answers questions, allows permissions and chooses in pickers.
 - Calm intercepts no key. It adds its bindings to `~/.claude/keybindings.json`, `~/.pi/agent/keybindings.json` and OpenCode's `cli.json`, and removes only those when the setting goes off. Claude Code switches at once, OpenCode and pi on restart. Calm leaves alone a file it cannot edit safely and the user's own keys, and the row says so.
 - In other terminals ⌃X ↵ sends in Claude Code and OpenCode, ⌃S in pi. Codex keeps Return, since its keymap has no ⌘.
@@ -203,6 +204,9 @@ Every command, with the planned ones, is in [CLI.md](CLI.md). The tool talks to 
 | `calm doctor`, `calm trace` | Check Calm, `calm` and the hooks (reads only, exits 1 on a problem). Print Calm's trace (`--last 10m`, `--session <id>`, `--follow`). |
 | `calm config` | List settings. `get`, `set`, `unset` write config.toml as Settings does, applied at once, including ⌘N's agent and options (F15). |
 
+- **Agents know these commands.** All four agents get one skill, `calm`. It teaches search and show, fork, list, config and doctor, and forbids `status` and `notify`. Claude Code's comes with Calm's plugin, the others' with Connect (F5).
+- An agent forks only when asked, and always in the background, so the user stays where they are and the fork waits in the sidebar. Each `calm` command asks by the agent's own permission rules (DESIGNS.md → Teaching agents about `calm`).
+
 ## F14 — Settings ✅
 
 ⌘, turns the window into Settings (UIUX.md → Settings screen). ⌘, again, esc or going to a session leaves it. Sections: **Appearance** (window miniature, themes, window options, F11), **Agents**, **General**, **Shortcuts**.
@@ -227,7 +231,7 @@ Every command, with the planned ones, is in [CLI.md](CLI.md). The tool talks to 
 
 - **New worktree** shows only when the session's folder is in a git repository. Other flags go in `flags` in the agent's section (`[agents.claude-code]`, `flags = "--model opus"`).
 - **The whole command:** `calm config set agents.claude-code.command claude -w` makes ⌘N type exactly that. `calm config unset agents.claude-code.command` restores the chips. **An empty worktree goes with its session.** Calm removes the worktree Claude Code made (`claude -w`) with `git worktree remove` and `git branch -d`, without force, only when Claude Code has exited, no other session is in it, and it has no change, untracked file or branch-only commit. Other worktrees stay.
-- **Another agent:** the ⌄ beside ⌘N's rows lists other agents and Choose What ⌘N Starts…. ⌘P has New *Agent* Session per agent. An agent can change these keys with `calm config` (F13), for example `agents.claude-code.worktree true`. A skill that teaches Claude Code the `calm` commands is designed, not built (DESIGNS.md → Teaching agents about `calm`).
+- **Another agent:** the ⌄ beside ⌘N's rows lists other agents and Choose What ⌘N Starts…. ⌘P has New *Agent* Session per agent. An agent can change these keys with `calm config` (F13), for example `agents.claude-code.worktree true`, and learns them from Calm's `calm` skill.
 - A new agent version can rename a flag. The agent then refuses to start and says why, and the adapter changes the flag.
 
 **Settings:** over the budget: ⌘N's agent (`new-session` under `[agents]`) and a switch per chip (`skip-permissions`, `worktree`, `trust-project-files` in each agent's section). `flags` and `command` per agent are config-only.

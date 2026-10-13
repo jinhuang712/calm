@@ -91,12 +91,12 @@ Quitting Calm keeps your shells running. Close the sessions you want to end firs
 - **Homebrew:** run `brew uninstall --cask calm`. Add `--zap` to also trash the settings and saved sessions.
 - **Other installs:** drag Calm to the Trash, and run `rm ~/.local/bin/calm` if you linked it. Settings are in `~/.config/calm`. Saved sessions are in `~/Library/Application Support/Calm`.
 
-Calm adds files to agent folders only for what you turned on in **Calm → Agents…** (Connect for pi and OpenCode, Send with ⌘ Return). Turn these off there first.
+Calm adds files to agent folders only for what you turned on in **Calm → Agents…** (Connect for pi, OpenCode and Codex, Send with ⌘ Return). Turn these off there first.
 
 ### Good to know
 
 - **Calm is signed ad hoc.** To macOS, every install is a new app, so macOS asks again for Desktop, Documents and Downloads access. A notarized Developer ID build is planned (see [ROADMAP.md](ROADMAP.md)).
-- **Agents need no setup to be seen.** Calm detects them from their process. For exact state, connect hooks in **Calm → Agents…**. Each connection asks first and can be undone.
+- **Agents need no setup to be seen.** Calm detects them from their process. For exact state, connect hooks in **Calm → Agents…**. Connecting also teaches the agent the `calm` command. Each connection asks first and can be undone.
 - **Calm is a terminal and nothing more.** It has no chat, editor, browser or account. Its code uses the network only for updates.
 - Once a day, Calm asks GitHub for the newest release and sends only its version. Settings → General → Check for updates turns this off.
 - When you choose Update and Restart, Calm downloads the release by running `get.sh`.

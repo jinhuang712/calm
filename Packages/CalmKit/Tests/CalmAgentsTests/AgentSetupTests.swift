@@ -13,13 +13,23 @@ struct AgentSetupTests {
     @Test func `each agent says how it connects, through the protocol`() throws {
         let setups = Dictionary(uniqueKeysWithValues: Agents.adapters.map { ($0.kind, $0.setup) })
         #expect(setups[.claudeCode] == .automatic)
-        #expect(setups[.codex] == .notifications)
+        // Codex reports through its notifications; Connect only teaches it `calm`, from the folder it reads skills from.
+        #expect(setups[.codex] == .files([".agents/skills/calm/SKILL.md": CalmSkill.text]))
         guard case let .files(opencode) = try #require(setups[.openCode]) else { Issue.record("OpenCode should install a plugin"); return }
         // A folder with only a TUI entry: the shared service looks for `server` or `index`, so it never loads it.
-        #expect(opencode.keys.sorted() == [".config/opencode/plugins/calm/tui.ts"])
+        #expect(opencode.keys.sorted() == [".config/opencode/plugins/calm/tui.ts", ".config/opencode/skills/calm/SKILL.md"])
+        #expect(opencode[".config/opencode/skills/calm/SKILL.md"] == CalmSkill.text)
+        // pi's skill comes from the extension, out of Calm's own folder.
         guard case let .files(files) = try #require(setups[.pi]) else { Issue.record("pi should install a file"); return }
         #expect(files.keys.sorted() == [".pi/agent/extensions/calm.ts"])
         #expect(Agents.adapters.allSatisfy { $0.configFolder != nil })
+    }
+
+    @Test func `connect says what each agent gains`() {
+        let purposes = Dictionary(uniqueKeysWithValues: Agents.adapters.map { ($0.kind, $0.connectionPurpose) })
+        #expect(purposes[.codex] == "knows the calm command")
+        #expect(purposes[.pi] == "can tell Calm when it's working or waiting, and knows the calm command")
+        #expect(purposes[.openCode] == purposes[.pi])
     }
 
     @Test func `agents keep their static setup`() throws {
@@ -68,6 +78,17 @@ struct AgentSetupTests {
         }
     }
 
+    @Test func `the pi extension adds the calm skill from Calm's folder, once`() {
+        let source = PiAdapter.extensionSource
+        #expect(source.contains("pi.on(\"resources_discover\""))
+        // Where AgentIntegrations writes it (`CalmSkill.directory`), in a self-test's folder too.
+        #expect(CalmSkill.directory(in: URL(filePath: "/support")).path == "/support/agents/skills/calm")
+        #expect(source.contains(#"process.env.CALM_SUPPORT_DIR || join(home, "Library", "Application Support", "Calm")"#))
+        #expect(source.contains(#"return { skillPaths: [join(support, "agents", "skills", "calm")] };"#))
+        // pi reads ~/.agents/skills too, where Codex's copy goes, and warns about a second skill of one name.
+        #expect(source.contains(#"if (existsSync(join(home, ".agents", "skills", "calm", "SKILL.md"))) return {};"#))
+    }
+
     @Test func `the pi extension counts a prompt only during a run, and only answers one it counted`() {
         let source = PiAdapter.extensionSource
         // pi reports a passive overlay (pi-briefly's, opened at session_start and never closed)
@@ -96,21 +117,36 @@ struct AgentSetupTests {
         #expect(source.contains("} catch {\n      return [];"))
     }
 
-    @Test func `refresh brings Calm's own file up to date and touches nothing else`() throws {
+    @Test func `refresh brings a connected agent's files up to date and touches nothing else`() throws {
         let home = try temporaryHome()
         defer { try? FileManager.default.removeItem(at: home) }
         let old = ["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n// old\n"]
-        let new = ["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n// new\n", "tool/extensions/other.ts": "// \(AgentSetup.marker)\n"]
+        let new = [
+            "tool/extensions/calm.ts": "// \(AgentSetup.marker)\n// new\n",
+            "tool/skills/calm/SKILL.md": "<!-- \(AgentSetup.marker) -->\n",
+        ]
         // Not connected: nothing is added.
         #expect(try AgentSetupFiles.refresh(new, home: home).isEmpty)
         #expect(AgentSetupFiles.state(of: new, home: home) == .notInstalled)
-        // Connected with an older version: rewritten; the file the user never installed stays absent.
+        // Connected with an older version: rewritten, and the file this version adds is written too.
         try AgentSetupFiles.install(old, home: home)
-        #expect(try AgentSetupFiles.refresh(new, home: home) == ["tool/extensions/calm.ts"])
+        #expect(try AgentSetupFiles.refresh(new, home: home) == ["tool/extensions/calm.ts", "tool/skills/calm/SKILL.md"])
         #expect(try String(contentsOf: home.appending(path: "tool/extensions/calm.ts"), encoding: .utf8).contains("// new"))
-        #expect(!FileManager.default.fileExists(atPath: home.appending(path: "tool/extensions/other.ts").path))
+        #expect(AgentSetupFiles.state(of: new, home: home) == .connected)
         // Up to date: nothing to do.
         #expect(try AgentSetupFiles.refresh(new, home: home).isEmpty)
+    }
+
+    @Test func `refresh adds no file where the user has one of that name`() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        try AgentSetupFiles.install(["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n"], home: home)
+        let theirs = home.appending(path: "tool/skills/calm/SKILL.md")
+        try FileManager.default.createDirectory(at: theirs.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "the user's own skill\n".write(to: theirs, atomically: true, encoding: .utf8)
+        let new = ["tool/extensions/calm.ts": "// \(AgentSetup.marker)\n", "tool/skills/calm/SKILL.md": "<!-- \(AgentSetup.marker) -->\n"]
+        #expect(try AgentSetupFiles.refresh(new, home: home).isEmpty)
+        #expect(try String(contentsOf: theirs, encoding: .utf8) == "the user's own skill\n")
     }
 
     @Test func `refresh leaves a file Calm didn't write alone`() throws {

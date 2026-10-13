@@ -7,9 +7,9 @@ public enum AgentSetup: Sendable, Equatable {
     case automatic
     /// Calm reads the notifications the agent already sends; nothing to set up.
     case notifications
-    /// Files Calm may add to the agent's config folder, with the user's consent. Paths are
-    /// relative to the home folder; each file carries `AgentSetup.marker` so Calm only ever
-    /// removes files it wrote.
+    /// Files Calm may add for the agent, with the user's consent: in its config folder, or in a
+    /// folder it reads skills from. Paths are relative to the home folder; each file carries
+    /// `AgentSetup.marker` so Calm only ever removes files it wrote.
     case files([String: String])
     /// Nothing Calm can safely set up yet; the text says what the user can do.
     case hint(String)
@@ -25,6 +25,10 @@ public extension AgentAdapter {
 
     var setup: AgentSetup {
         .notifications
+    }
+
+    var connectionPurpose: String {
+        "can tell Calm when it's working or waiting, and knows the calm command"
     }
 
     /// How the agent connects right now, for agents whose own config decides it. Most don't.
@@ -43,9 +47,21 @@ public extension ClaudeCodeAdapter {
     }
 }
 
+/// Codex reports through its own notifications (DESIGNS.md → Codex hooks), so Connect only adds
+/// the `calm` skill. Codex reads skills from `~/.agents/skills` (0.162; `~/.codex/skills` is
+/// deprecated) and from no path a variable could name, so the file is the user's to allow, and
+/// Codex sees it outside Calm too, where `calm search` and `calm show` still work.
 public extension CodexAdapter {
     var configFolder: String? {
         ".codex"
+    }
+
+    var setup: AgentSetup {
+        .files([".agents/skills/\(CalmSkill.name)/SKILL.md": CalmSkill.text])
+    }
+
+    var connectionPurpose: String {
+        "knows the calm command"
     }
 }
 
@@ -54,8 +70,14 @@ public extension OpenCodeAdapter {
         ".config/opencode"
     }
 
+    /// The plugin, and the `calm` skill beside it: a plugin can't add a skill for one session
+    /// (the shared service has the first terminal's environment), and 2.0.x reads no skill path
+    /// from a variable the service would see.
     var setup: AgentSetup {
-        .files([".config/opencode/plugins/calm/tui.ts": Self.pluginSource])
+        .files([
+            ".config/opencode/plugins/calm/tui.ts": Self.pluginSource,
+            ".config/opencode/skills/\(CalmSkill.name)/SKILL.md": CalmSkill.text,
+        ])
     }
 
     /// An OpenCode TUI plugin (API read from 2.0.19's source, `@opencode/plugin/tui`). OpenCode 2
@@ -218,10 +240,10 @@ public extension PiAdapter {
     /// where pi's has taken its place. It stops its watcher at `session_shutdown`, because a
     /// reload runs the file again.
     internal static let extensionSource = """
-    // \(AgentSetup.marker): reports this pi session's state to Calm and dresses it in Calm's theme, only inside Calm.
-    // Delete this file (or use Calm → Agents… → Disconnect) to stop.
+    // \(AgentSetup.marker): reports this pi session's state to Calm, dresses it in Calm's theme and teaches it the
+    // calm command, only inside Calm. Delete this file (or use Calm → Agents… → Disconnect) to stop.
     import { spawn } from "node:child_process";
-    import { readFileSync, watch } from "node:fs";
+    import { existsSync, readFileSync, watch } from "node:fs";
     import { join } from "node:path";
 
     export default function (pi: any) {
@@ -243,6 +265,18 @@ public extension PiAdapter {
           spawn(cli, args, { stdio: "ignore", detached: true }).unref();
         } catch {}
       };
+      // The calm skill, from Calm's own folder. Not when ~/.agents/skills has one (Connect for
+      // Codex puts it there): pi reads that folder too, and would warn about the second.
+      pi.on("resources_discover", () => {
+        try {
+          const home = process.env.HOME ?? "";
+          if (existsSync(join(home, ".agents", "skills", "\(CalmSkill.name)", "SKILL.md"))) return {};
+          const support = process.env.CALM_SUPPORT_DIR || join(home, "Library", "Application Support", "Calm");
+          return { skillPaths: [join(support, "agents", "skills", "\(CalmSkill.name)")] };
+        } catch {
+          return {};
+        }
+      });
       // Calm's theme, set as a theme object (by name pi would save it to settings.json), and
       // again whenever Calm rewrites its file. pi's built-ins give way; a theme of the user's stays.
       const themes = join(process.env.PI_CODING_AGENT_DIR || join(process.env.HOME ?? "", ".pi", "agent"), "themes");
@@ -370,20 +404,29 @@ public enum AgentSetupFiles {
     }
 
     /// Brings files Calm wrote earlier (the user connected the agent) up to date with this
-    /// version's contents. Only a file that carries the marker and differs is rewritten; one
-    /// that isn't there, or that the user made, is left alone. Returns the paths rewritten.
+    /// version's contents. A file that carries the marker and differs is rewritten. A file this
+    /// version adds is written too, once one of Calm's is there: Connect gave the agent Calm's
+    /// files, and Disconnect takes them all (the `calm` skill came this way, 2026-10-13). Nothing
+    /// is added for an agent that isn't connected, and a file the user made is left alone.
+    /// Returns the paths written.
     @discardableResult
     public static func refresh(_ files: [String: String], home: URL) throws -> [String] {
-        var rewritten: [String] = []
+        let current = files.keys.reduce(into: [String: String]()) { found, path in
+            found[path] = try? String(contentsOf: home.appending(path: path), encoding: .utf8)
+        }
+        guard current.values.contains(where: { $0.contains(AgentSetup.marker) }) else { return [] }
+        var written: [String] = []
         for (path, contents) in files.sorted(by: { $0.key < $1.key }) {
             let url = home.appending(path: path)
-            guard let current = try? String(contentsOf: url, encoding: .utf8), current.contains(AgentSetup.marker),
-                  current != contents
-            else { continue }
+            if let text = current[path] {
+                guard text.contains(AgentSetup.marker), text != contents else { continue }
+            } else {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            }
             try contents.write(to: url, atomically: true, encoding: .utf8)
-            rewritten.append(path)
+            written.append(path)
         }
-        return rewritten
+        return written
     }
 
     public static func remove(_ files: [String: String], home: URL) throws {

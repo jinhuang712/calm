@@ -78,6 +78,8 @@ public protocol AgentAdapter: Sendable {
     var configFolder: String? { get }
     /// How the agent connects to Calm (the Agents panel).
     var setup: AgentSetup { get }
+    /// What Connect's files give the agent, finishing "so it …" in the button's help.
+    var connectionPurpose: String { get }
     /// `setup` as it stands now, for agents whose own config may already have done the work.
     func currentSetup(home: URL) -> AgentSetup
     /// The agent's own mark and how it moves while the agent works (in `<Agent>+Mark.swift`).

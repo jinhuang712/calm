@@ -32,12 +32,13 @@ enum AgentIntegrations {
         ClaudeCodeAdapter.pluginDirectory(in: CalmDefaults.directory)
     }
 
-    /// Writes the plugin files, so a moved or updated app still leaves a valid plugin behind for
-    /// shells that outlive it (they run under zmx).
+    /// Writes the plugin files, and the `calm` skill that pi's extension loads from Calm's folder,
+    /// so a moved or updated app still leaves valid files behind for shells that outlive it (they
+    /// run under zmx).
     static func prepare() {
-        let directory = claudeCodePluginDirectory
-        for (path, contents) in ClaudeCodeAdapter.pluginFiles() {
-            let url = directory.appending(path: path)
+        var files = ClaudeCodeAdapter.pluginFiles().map { (claudeCodePluginDirectory.appending(path: $0.key), $0.value) }
+        files.append((CalmSkill.directory(in: CalmDefaults.directory).appending(path: "SKILL.md"), CalmSkill.text))
+        for (url, contents) in files {
             do {
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try contents.write(to: url, atomically: true, encoding: .utf8)

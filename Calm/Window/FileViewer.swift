@@ -74,6 +74,7 @@ final class FileViewer: NSObject {
     var pdfMatches: [PDFSelection] = []
     var pdfMarks: [[(page: PDFPage, underline: PDFAnnotation)]] = []
     private let findMessages = ViewerFindMessages()
+    private let imageScheme = ViewerImages()
     /// The session the file was opened over; going to another one leaves the file.
     private(set) var session: Session.ID?
     /// Matches the terminal area's corners (a card window rounds them).
@@ -489,7 +490,7 @@ final class FileViewer: NSObject {
             // The map in Calm's page tells the field when a click on a tick changes the current match.
             web.configuration.userContentController.add(findMessages, name: "calmFind")
             web.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
-            return (web, Self.renderScript(kind: kind, text: text, line: line, background: background, style: style))
+            return (web, Self.renderScript(kind: kind, text: text, path: path, line: line, background: background, style: style))
         }
     }
 
@@ -510,6 +511,9 @@ final class FileViewer: NSObject {
         let configuration = WKWebViewConfiguration()
         // Page script only; the app's own `evaluateJavaScript` calls still run.
         configuration.defaultWebpagePreferences.allowsContentJavaScript = scripts
+        if scripts {
+            configuration.setURLSchemeHandler(imageScheme, forURLScheme: ViewerImages.scheme)
+        }
         let web = WKWebView(frame: .zero, configuration: configuration)
         web.navigationDelegate = self
         web.setValue(false, forKey: "drawsBackground") // no white flash before the page's colors
@@ -559,9 +563,13 @@ final class FileViewer: NSObject {
             : date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
     }
 
-    private static func renderScript(kind: ViewableKind, text: String, line: Int?, background: NSColor, style: SidebarStyle) -> String {
+    private static func renderScript(
+        kind: ViewableKind, text: String, path: String, line: Int?, background: NSColor, style: SidebarStyle,
+    ) -> String {
         var document: [String: Any] = [
             "text": text,
+            // Where a Markdown file's relative pictures are (ViewerImages).
+            "directory": (path as NSString).deletingLastPathComponent,
             "colors": style.viewerColors(background: background),
             "gutter": Double(ViewerHeader.leading),
         ]

@@ -792,6 +792,7 @@ Behavior: FEATURES.md → F10.
 - Agents write GitHub-flavored Markdown, and `AttributedString(markdown:)` does not render tables. HTML needs a web view anyway.
 - `Calm/Resources/Viewer/viewer.html` uses markdown-it and highlight.js, pinned with checksums in `scripts/viewer-assets.sh` and committed, so builds stay offline.
 - Raw HTML in Markdown is off. Since 2026-10-12, HTML and SVG files open with page JavaScript off.
+- The page may read only its own folder in the app, so a Markdown file's local pictures come through `ViewerImages`, a `calm-image://` scheme that serves image files only (since 2026-10-15). Web pictures load as they are.
 
 **Opening files (M5.5, M5.6).** `ViewableKind` picks the kind by extension. The viewer covers the terminal area and closes when another session shows. `open-in = "editor"` prefers the editor.
 

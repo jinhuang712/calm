@@ -216,6 +216,21 @@
     window.scrollTo(0, document.documentElement.scrollHeight);
   }
 
+  /// A picture beside the file (`docs/pipeline.png`, `../shot.png`, `/Users/…`, `file://…`) is
+  /// asked of Calm as calm-image://file/<path>, because this page may read only its own folder
+  /// in the app. Web pictures and data: URLs load as they are.
+  function showLocalPictures() {
+    if (!doc.directory) return;
+    const base = new URL(`file://${doc.directory.split("/").map(encodeURIComponent).join("/")}/`);
+    for (const image of content.querySelectorAll("img")) {
+      const source = image.getAttribute("src");
+      if (!source) continue;
+      let url;
+      try { url = new URL(source, base); } catch (error) { continue; }
+      if (url.protocol === "file:") image.src = `calm-image://file${url.pathname}`;
+    }
+  }
+
   function renderFile() {
     if (doc.kind === "session") {
       renderSession();
@@ -225,6 +240,7 @@
       const md = window.markdownit({ html: false, linkify: true, typographer: false, highlight: (code, lang) => highlight(code, lang) });
       content.className = "";
       content.innerHTML = md.render(doc.text);
+      showLocalPictures();
       return;
     }
     content.className = "code";

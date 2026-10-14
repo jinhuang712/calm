@@ -237,7 +237,15 @@
       return;
     }
     if (doc.kind === "markdown") {
-      const md = window.markdownit({ html: false, linkify: true, typographer: false, highlight: (code, lang) => highlight(code, lang) });
+      // Raw HTML stays text, as with `html: false`, but markdown-it has to parse it to find the
+      // comments (`<!-- … -->`), which GitHub hides and so does this page.
+      const md = window.markdownit({ html: true, linkify: true, typographer: false, highlight: (code, lang) => highlight(code, lang) });
+      const uncommented = (html) => html.replace(/<!--[\s\S]*?(-->|$)/g, "");
+      md.renderer.rules.html_block = (tokens, index) => {
+        const text = uncommented(tokens[index].content).trim();
+        return text ? `<p>${escape(text)}</p>\n` : "";
+      };
+      md.renderer.rules.html_inline = (tokens, index) => escape(uncommented(tokens[index].content));
       content.className = "";
       content.innerHTML = md.render(doc.text);
       showLocalPictures();

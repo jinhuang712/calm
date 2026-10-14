@@ -35,6 +35,11 @@
   th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
   th { font-weight: 600; }
   img { max-width: 100%; }
+  /* Front matter: small and muted, set apart from the text by one hairline. */
+  dl.front { margin: 0 0 1.6em; padding-bottom: 1em; border-bottom: 1px solid var(--line); font-size: 0.86em; line-height: 1.5; color: var(--muted); }
+  dl.front div { display: flex; gap: 14px; margin: 0.25em 0; }
+  dl.front dt { flex: none; width: 8.5em; color: var(--faint); }
+  dl.front dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 
   /* Code: no line numbers; the text starts under the file's name. */
   .lines { font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace; tab-size: 4; }
@@ -231,6 +236,24 @@
     }
   }
 
+  /// A leading `---` block of `key: value` lines (SKILL.md, notes with metadata) is front matter,
+  /// not Markdown: markdown-it would draw it as a rule and a heading. Show it as a quiet list of
+  /// keys and values above the text. A block that is not plain `key: value` lines (a long value
+  /// on indented lines, a list) stays as the file wrote it, so nothing is lost or misread.
+  function splitFrontMatter(text) {
+    const match = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(text);
+    if (!match) return { head: "", body: text };
+    const rows = [];
+    for (const line of match[1].split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const pair = /^([A-Za-z0-9_-]+):[ \t]*(.*)$/.exec(line);
+      if (!pair) return { head: "", body: text };
+      rows.push(`<div><dt>${escape(pair[1])}</dt><dd>${escape(pair[2].replace(/^(["'])(.*)\1$/, "$2"))}</dd></div>`);
+    }
+    if (!rows.length) return { head: "", body: text };
+    return { head: `<dl class="front">${rows.join("")}</dl>`, body: text.slice(match[0].length) };
+  }
+
   function renderFile() {
     if (doc.kind === "session") {
       renderSession();
@@ -247,7 +270,8 @@
       };
       md.renderer.rules.html_inline = (tokens, index) => escape(uncommented(tokens[index].content));
       content.className = "";
-      content.innerHTML = md.render(doc.text);
+      const { head, body } = splitFrontMatter(doc.text);
+      content.innerHTML = head + md.render(body);
       showLocalPictures();
       return;
     }

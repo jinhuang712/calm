@@ -25,7 +25,9 @@ enum MainMenu {
     private static func appMenu() -> NSMenu {
         let name = BuildVariant.appName
         let menu = NSMenu(title: name)
-        menu.addItem(withTitle: "About \(name)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let about = NSMenuItem(title: "About \(name)", action: #selector(TerminalMenuTarget.showAbout(_:)), keyEquivalent: "")
+        about.target = TerminalMenuTarget.shared
+        menu.addItem(about)
         let updates = NSMenuItem(title: "Check for Updates…", action: #selector(TerminalMenuTarget.checkForUpdates(_:)), keyEquivalent: "")
         updates.target = TerminalMenuTarget.shared
         menu.addItem(updates)
@@ -271,6 +273,13 @@ final class TerminalMenuTarget: NSObject {
 
     @objc func showAgentsPanel(_: Any?) {
         TerminalWindowManager.shared.openMainWindow().showSettings(.agents)
+    }
+
+    /// Calm → About: the standard panel, without the build number. The project sets
+    /// CFBundleVersion to a constant "1" that nothing bumps, so "(1)" only confuses;
+    /// an empty `.version` option hides the parenthesised part.
+    @objc func showAbout(_: Any?) {
+        NSApp.orderFrontStandardAboutPanel(options: [.version: ""])
     }
 
     /// Calm → Check for Updates…: asks GitHub now and says what it found.

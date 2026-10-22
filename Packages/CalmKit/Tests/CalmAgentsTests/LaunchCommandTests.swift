@@ -10,6 +10,24 @@ struct LaunchCommandTests {
         return adapter.launchCommand(settings: CalmSettings(text: config), inGitRepository: inGit)
     }
 
+    @Test func `calm new adds the quoted prompt to Claude Code's and Codex's command`() throws {
+        let claude = try #require(Agents.adapter(for: .claudeCode))
+        let codex = try #require(Agents.adapter(for: .codex))
+        let settings = CalmSettings(text: "[agents.claude-code]\nskip-permissions = true\n")
+        #expect(
+            claude.newSessionCommand(settings: settings, inGitRepository: true, prompt: "check it's fine")
+                == #"claude --dangerously-skip-permissions 'check it'\''s fine'"#,
+        )
+        #expect(codex.newSessionCommand(settings: CalmSettings(text: ""), inGitRepository: true, prompt: "go") == "codex 'go'")
+    }
+
+    @Test func `calm new refuses an agent whose prompt isn't checked`() throws {
+        for kind in [AgentKind.pi, .openCode] {
+            let adapter = try #require(Agents.adapter(for: kind))
+            #expect(adapter.newSessionCommand(settings: CalmSettings(text: ""), inGitRepository: true, prompt: "go") == nil)
+        }
+    }
+
     @Test func `with nothing chosen, each agent starts by its own name`() throws {
         #expect(try command(.claudeCode) == "claude")
         #expect(try command(.codex) == "codex")

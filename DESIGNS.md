@@ -1015,6 +1015,8 @@ Behavior: FEATURES.md → F13. Every command: CLI.md.
 
 **`calm trace`** (since 2026-10-06). It runs `/usr/bin/log show` filtered to the trace and the app the CLI came with. `TraceLog.Printer` formats it, tested on a real trace (`trace.ndjson`).
 
+**`calm new`** (since 2026-10-22). `ControlServer.newSession` builds `AgentAdapter.newSessionCommand` (⌘N's command and the quoted prompt; Claude Code and Codex only, `Agents.startsWithPrompt`), and `MainWindowController.newForCLI` opens it as `forkForCLI` opens a fork. It takes no session, so it works from a script outside Calm, and the CLI starts Calm when needed.
+
 **`calm fork`** (since 2026-10-06). `ControlServer.fork` builds the adapter's `forkCommand`, and `MainWindowController.forkForCLI` opens it as F12's Fork does.
 
 - An adapter that cannot take a prompt gives nil, so a prompt is refused rather than dropped.

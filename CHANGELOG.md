@@ -2,6 +2,10 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## Unreleased
+
+- `calm new "<first message>" --in <folder> [--background]` starts a clean session with a first message. It works from a script outside Calm.
+
 ## 0.1.3 — 2026-10-13
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.2. Exact behavior is in [FEATURES.md](FEATURES.md) and [CLI.md](CLI.md).

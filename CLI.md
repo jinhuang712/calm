@@ -62,6 +62,14 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 - Prints the new session's full id, which `calm show` takes to tell how the fork went. Fails outside Calm, for a missing folder, or with no conversation: "No conversation to fork here." Never starts Calm.
   A fork cannot fork: "A fork can't fork: calm fork started this session." So an agent cannot start a chain. Right-click → Fork still works. A relaunch resets the rule.
 
+### `calm new "<prompt>" [--background] [--in <folder>]`
+
+- Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (FEATURES.md → New agent sessions), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
+- Needs no session, so it works from outside Calm, in a script or a launchd job with an empty environment. It starts Calm in the background when Calm isn't running, as `calm list` does.
+- Goes to the new session. With `--background`, the user stays and the session waits in the sidebar, already running at its display size.
+- Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
+- Prints the new session's full id, which `calm show` takes. Fails for a missing folder or an empty message.
+
 ### `calm notify <message>`
 
 - Notifies the user at the next pause when the user is elsewhere. The title is the session's name, the body the message. It is for people: `./deploy; calm notify "deploy finished"`. It shows a banner even with banners for *done* off (Settings → Agents). Agents report a state instead (`calm status`): a question is *needs you*, an end is *done* or *failed*. Anything else belongs on the card.
@@ -238,7 +246,8 @@ Reaching Calm over SSH from another device (ROADMAP.md → Later): `calm attach 
 
 Left out (decided 2026-09-30). Do not propose again without new facts.
 
-- **`calm resume`, `calm new`.** ⌘K and each agent's "continue" (`claude -c`, `codex resume --last`) resume. ⌘T and ⌘N open a session.
+- **`calm resume`.** ⌘K and each agent's "continue" (`claude -c`, `codex resume --last`) resume. ⌘T and ⌘N open a session.
+  (`calm new` came back on 2026-10-22: a script outside Calm, such as a launchd job, has no keyboard and no session to fork.)
 - **`calm next`, `calm go <session>`.** The sidebar, ⌘⇧A and a notification's click already take people to a session. An agent must not move the user's attention. Only *needs you* may.
 - **`calm status --step 3/5`.** The task line comes from Claude Code's todo list. Others put progress in the message (`calm status working "Running migrations (3/5)"`).
 - **`calm wait <session>`.** The card tells people when a session is done. An agent that wants a fork's answer runs `calm show <session id>` when the user asks (since 2026-10-13).

@@ -202,6 +202,22 @@ extension MainWindowController {
         return forked
     }
 
+    /// `calm new` (CLI.md): a session in `folder`, running `command`, ⌘N's agent with a first
+    /// prompt. Placed by its folder, and shown as `forkForCLI` shows a fork.
+    func newForCLI(command: String, in folder: String, background: Bool) -> Session {
+        let created = manager.newSession(in: folder, selecting: !background)
+        let pane: TerminalSurfaceView?
+        if background {
+            pane = manager.pane(for: created.id, host: self, size: mainArea.bounds.size)
+        } else {
+            hideSettings()
+            showSelectedLayout(animated: true)
+            pane = manager.panes[created.id]
+        }
+        runAgentCommand(command, in: pane)
+        return created
+    }
+
     /// Types an agent's command into a pane. Headless self-tests log it instead: it would start
     /// the user's real agent, on their account.
     func runAgentCommand(_ command: String, in pane: TerminalSurfaceView?) {

@@ -34,6 +34,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         /// Fork `session`'s conversation into a new session (`calm fork`): `message` is the fork's
         /// first prompt, `path` its folder, `background` keeps the user where they are.
         case fork
+        /// A new session running ⌘N's agent (`calm new`): `message` is its first prompt, `path` its
+        /// folder, `background` keeps the user where they are. Needs no `session`.
+        case new
         /// A PNG of Calm's main window, in `ControlResponse.image` (`calm screenshot`).
         case screenshot
     }

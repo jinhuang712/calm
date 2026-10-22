@@ -73,6 +73,14 @@ public enum CalmSkill {
     - In the fork, the `calm fork` call that made it shows as unfinished, or not at all. That is expected: do what the \
     first message asks.
 
+    ## Start a clean session
+
+    `calm new --background --in <folder> "<first message>"` starts a new Calm session with no old conversation: the \
+    agent Calm's ⌘N starts, running in the folder, with the message as its first prompt.
+
+    - Always pass `--background`, as for a fork. It prints the new session's id.
+    - Start one only when the user asks. Use a fork instead when the new session needs this conversation.
+
     ## Sessions and settings
 
     - `calm list` prints the open sessions, one per line: session id, state, project, title, agent, folder.

@@ -101,6 +101,15 @@ public extension AgentAdapter {
         return parts.joined(separator: " ")
     }
 
+    /// What `calm new` types: ⌘N's command and `prompt` as the new conversation's first message
+    /// (`claude [options] [prompt]`, `codex [options] [prompt]`: both `--help`, 2026-10-22). Nil for
+    /// an agent whose prompt argument hasn't been checked. A `command` in config.toml is used as
+    /// written, with the prompt after it.
+    func newSessionCommand(settings: CalmSettings, inGitRepository: Bool, prompt: String) -> String? {
+        guard Agents.startsWithPrompt.contains(kind) else { return nil }
+        return launchCommand(settings: settings, inGitRepository: inGitRepository) + " " + shellQuoted(prompt)
+    }
+
     /// What a resume keeps of the command ⌘N types: the options a conversation starts with when
     /// Calm didn't see how it was started (one found by ⌘K search, or one that ended before Calm
     /// kept options). The author's call, 2026-10-10, knowing it can add ⌘N's Skip permissions to a
@@ -112,6 +121,9 @@ public extension AgentAdapter {
 }
 
 public extension Agents {
+    /// The agents `calm new "<prompt>"` can start with a first message.
+    static let startsWithPrompt: Set<AgentKind> = [.claudeCode, .codex]
+
     /// The agents installed under `home` (their config folder is there), in Calm's order.
     static func installed(home: URL) -> [AgentKind] {
         adapters.compactMap { adapter in

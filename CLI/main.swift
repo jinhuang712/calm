@@ -20,6 +20,8 @@ Usage:
   calm notify <message>             Notify about this session at the next pause
   calm fork ["<prompt>"]            Fork this session's conversation into a new session
                                     [--background: stay here; --in <folder>; --session <id>]
+  calm new "<prompt>"               Start a clean session with a first message, and print its id
+                                    [--background: stay here; --in <folder>]
   calm config [list]                Calm's settings: each one's value, and what it takes
   calm config get <key>             Print one setting's value
   calm config set <key> <value…>    Change a setting in config.toml; Calm applies it at once
@@ -183,6 +185,8 @@ case "config":
     ConfigCommand.run(Array(arguments.dropFirst()))
 case "fork":
     ForkCommand.run(Array(arguments.dropFirst()))
+case "new":
+    NewCommand.run(Array(arguments.dropFirst()))
 case "show":
     ShowCommand.run(Array(arguments.dropFirst()))
 case "doctor":

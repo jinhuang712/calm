@@ -242,6 +242,8 @@ final class ControlServer {
             return .success()
         case .fork:
             return fork(request)
+        case .new:
+            return newSession(request)
         case .screenshot:
             // The main window as it is; a screenshot must not open one.
             guard let window = TerminalWindowManager.shared.mainController?.window else {
@@ -313,6 +315,30 @@ final class ControlServer {
         let forked = controller.forkForCLI(of: id, command: command, in: folder, background: request.background == true)
         forkedByCLI.insert(forked.id)
         return .success(sessions: [sessionInfo(forked)])
+    }
+
+    /// `calm new` (CLI.md): a clean session in a folder, running ⌘N's agent with a first prompt.
+    /// Needs no session to start from, so it works from outside Calm.
+    private func newSession(_ request: ControlRequest) -> ControlResponse {
+        guard let prompt = request.message, !prompt.isEmpty else { return .failure("Give a first message.") }
+        guard let path = request.path else { return .failure("Give a folder.") }
+        let folder = WorkspacePath.standardize(path)
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: folder, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return .failure("No such folder: \(folder)")
+        }
+        guard let kind = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings),
+              let adapter = Agents.adapter(for: kind)
+        else {
+            return .failure("No agent to start: install Claude Code or Codex, or choose one in Settings → Agents.")
+        }
+        let inGit = GitRoot.find(folder) != nil
+        guard let command = adapter.newSessionCommand(settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt) else {
+            return .failure("\(kind.displayName) can't start with a first message.")
+        }
+        let controller = TerminalWindowManager.shared.openMainWindow()
+        let created = controller.newForCLI(command: command, in: folder, background: request.background == true)
+        return .success(sessions: [sessionInfo(created)])
     }
 
     private func session(_ value: String?) -> Session.ID? {

@@ -2,9 +2,21 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
-## Unreleased
+## 0.1.4 — 2026-10-22
 
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.3. Exact behavior is in [FEATURES.md](FEATURES.md) and [CLI.md](CLI.md).
+
+**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
+
+### Agents
 - `calm new "<first message>" --in <folder> [--background]` starts a clean session with a first message. It works from a script outside Calm.
+- While an agent's card says "1 shell running", its mark keeps moving as if working, and settles when the last shell ends.
+- After Calm restarts, a card keeps its count of running shells.
+
+### Fixes
+- `claude -p` run from inside a Claude Code session (by its Bash tool, say) no longer flips that session's card between done and working, or notifies for each nested answer.
+- Markdown files show their local pictures, hide HTML comments as GitHub does, and show front matter (the `---` block at the top of a SKILL.md) as a quiet key/value list, not a heading.
+- The About panel says "Version 0.1.4", not "0.1.4 (1)".
 
 ## 0.1.3 — 2026-10-13
 

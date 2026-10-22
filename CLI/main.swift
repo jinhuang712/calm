@@ -6,7 +6,7 @@ import Foundation
 // The `calm` command-line tool: talks to the running app over its local socket
 // (see DESIGNS.md → Control protocol).
 
-let version = "0.1.3"
+let version = "0.1.4"
 let usage = """
 calm \(version) — a minimal macOS terminal that keeps you calm and focused
 

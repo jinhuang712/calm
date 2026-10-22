@@ -333,7 +333,8 @@ final class ControlServer {
             return .failure("No agent to start: install Claude Code or Codex, or choose one in Settings → Agents.")
         }
         let inGit = GitRoot.find(folder) != nil
-        guard let command = adapter.newSessionCommand(settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt) else {
+        guard let command = adapter.newSessionCommand(settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt)
+        else {
             return .failure("\(kind.displayName) can't start with a first message.")
         }
         let controller = TerminalWindowManager.shared.openMainWindow()

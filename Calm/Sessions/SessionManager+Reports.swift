@@ -39,11 +39,16 @@ extension SessionManager {
     }
 
     /// The agent's own status file changed (`AgentStatusWatcher`). Saying idle ends a turn no hook
-    /// will end, as when Esc withdraws a prompt or answers a dialog; every other status is the
+    /// will end, as when Esc withdraws a prompt or answers a dialog; saying busy after a question
+    /// says it was answered (`Session.answered`); every other status is the
     /// hooks' to act on, which carry what the card shows.
     func agentStatusRead(_ id: Session.ID, _ status: AgentLiveStatus) {
-        guard workspace.session(id)?.turnEnded(accordingTo: status) == true else { return }
-        report(id, StatusReport(state: .idle, message: "Interrupted", source: .hook))
+        let session = workspace.session(id)
+        if session?.turnEnded(accordingTo: status) == true {
+            report(id, StatusReport(state: .idle, message: "Interrupted", source: .hook))
+        } else if session?.answered(accordingTo: status) == true {
+            report(id, StatusReport(state: .working, source: .hook))
+        }
     }
 
     /// A hook that only moves the working line along, saying nothing of the state (a failed tool

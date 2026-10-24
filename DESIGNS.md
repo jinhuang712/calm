@@ -232,6 +232,7 @@ Behavior: FEATURES.md → F4, F5.
 
 - `AgentStatusWatcher` keeps one file event source per Claude Code session, attached when the probe sees the agent start or end, never on a timer.
 - `Session.turnEnded(accordingTo:)` ends a *working* or *needs you* session whose agent says `idle`. A session at rest costs nothing for this.
+- `Session.answered(accordingTo:)` (since 2026-10-24) returns a *needs you* session to *working* when the file says `busy` from after the question's report. An approved tool that runs for minutes fires no hook until it ends, so the card kept asking while Claude worked.
 
 **Compaction** (since 2026-10-06, because a card showed the old step through a compaction that takes a minute or two).
 

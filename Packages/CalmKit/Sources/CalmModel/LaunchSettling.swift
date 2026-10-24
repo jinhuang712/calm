@@ -42,6 +42,16 @@ public extension Session {
     func turnEnded(accordingTo status: AgentLiveStatus) -> Bool {
         status.phase == .idle && (state == .working || state == .needsYou)
     }
+
+    /// Whether the agent, saying it is busy again after a question, shows that you answered it:
+    /// an approved tool runs for minutes (a build, a scan) and no hook speaks until it ends, so
+    /// *needs you* stood on a card whose agent was working (seen 2026-10-24, 1m 31s of it). Only a
+    /// busy that began after the question's report counts: the file may say busy a moment before
+    /// it says waiting.
+    func answered(accordingTo status: AgentLiveStatus) -> Bool {
+        guard state == .needsYou, status.phase == .busy, let asked = lastReport?.date else { return false }
+        return status.since > asked
+    }
 }
 
 public extension Workspace {

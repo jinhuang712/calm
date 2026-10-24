@@ -181,4 +181,19 @@ struct LaunchSettlingTests {
             #expect(workspace.session(id)?.turnEnded(accordingTo: status(.waiting, secondsAgo: 0)) == false)
         }
     }
+
+    @Test func `a busy agent after the question was asked says it was answered`() {
+        let (workspace, id) = fixture(.needsYou)
+        let asked = workspace.session(id)?.lastReport?.date ?? now
+        #expect(workspace.session(id)?.answered(accordingTo: AgentLiveStatus(phase: .busy, since: asked.addingTimeInterval(5))) == true)
+        #expect(workspace.session(id)?.answered(accordingTo: AgentLiveStatus(phase: .busy, since: asked.addingTimeInterval(-5))) == false)
+        #expect(workspace.session(id)?.answered(accordingTo: AgentLiveStatus(phase: .waiting, since: asked.addingTimeInterval(5))) == false)
+    }
+
+    @Test func `a busy agent answers nothing when no question is open`() {
+        for state in [SessionState.working, .idle, .done, .failed] {
+            let (workspace, id) = fixture(state)
+            #expect(workspace.session(id)?.answered(accordingTo: AgentLiveStatus(phase: .busy, since: now.addingTimeInterval(60))) == false)
+        }
+    }
 }

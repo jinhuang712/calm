@@ -42,7 +42,7 @@ Calm is a terminal for days spent supervising CLI coding agents such as Claude C
 - 📖 **Helps reading.** ⌘-click opens a path at its line. ⌥-click copies one table cell. A files column and a viewer show what an agent changed. ⌘F finds in a session, even in a full-screen agent.
 - 🧘 **Stays quiet by default.** Soft themes, gentle motion and few settings.
 
-What is built: [FEATURES.md](FEATURES.md). What comes next: [ROADMAP.md](ROADMAP.md).
+What is built: [FEATURES.md](FEATURES.md). What comes next: [ROADMAP.md](plans/ROADMAP.md).
 
 ## 👀 A look
 
@@ -120,9 +120,9 @@ Open an [issue](https://github.com/jinhuang712/calm/issues). **⌘P → Dump Log
 | [UIUX.md](UIUX.md) | How does it look and move? |
 | [INSTALL.md](INSTALL.md) | How do I install, update and remove it? |
 | [CLI.md](CLI.md) | What does every `calm` command do? |
-| [ROADMAP.md](ROADMAP.md) | When, and how far along? |
+| [ROADMAP.md](plans/ROADMAP.md) | When, and how far along? |
 | [RUNBOOK.md](RUNBOOK.md) | How do I build, release and install it? |
-| [TODO.md](TODO.md) | What is still open? |
+| [TODO.md](plans/TODO.md) | What is still open? |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each release? |
 | [AGENTS.md](AGENTS.md) | How do coding agents work in this repository? |
 

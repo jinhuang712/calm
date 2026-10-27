@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance (ROADMAP.md → M6.4): interface size, session cards, background, layout and motion. A
+/// Settings → Appearance (plans/ROADMAP.md → M6.4): interface size, session cards, background, layout and motion. A
 /// change is saved to config.toml (a default removes its key) and applied at once.
 @MainActor
 @Observable

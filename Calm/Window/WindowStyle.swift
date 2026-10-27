@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The window options (UIUX.md → Themes, ROADMAP.md → M6.4): a solid or glass background, and
+/// The window options (UIUX.md → Themes, plans/ROADMAP.md → M6.4): a solid or glass background, and
 /// the terminal area edge to edge or floating as a rounded card.
 @MainActor
 final class WindowStyle {

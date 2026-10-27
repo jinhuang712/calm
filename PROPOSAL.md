@@ -4,7 +4,7 @@
 
 > A minimal macOS terminal that keeps you calm and focused.
 
-Proposed 2026-09-27. This is what the project will be: what is built is in [FEATURES.md](FEATURES.md), and where the work stands is in [ROADMAP.md](ROADMAP.md).
+Proposed 2026-09-27. This is what the project will be: what is built is in [FEATURES.md](FEATURES.md), and where the work stands is in [ROADMAP.md](plans/ROADMAP.md).
 
 ## In short
 
@@ -78,7 +78,7 @@ Developers on macOS who run several CLI coding agents in parallel every day: Cla
 
 | Risk | What reduces it |
 |---|---|
-| A new codebase takes longer than a fork | Ship a usable plain terminal first (ROADMAP.md → M1), then add features to a working app. |
+| A new codebase takes longer than a fork | Ship a usable plain terminal first (plans/ROADMAP.md → M1), then add features to a working app. |
 | Terminal-embedding bugs that others already solved | Study Ghostty's macOS app for known pitfalls before writing each layer. |
 | Agents change their transcript formats without notice | One small adapter per agent, each with tests on real transcripts. A failure shows less, never crashes. |
 | Scope creep toward a platform | "What we don't want" above, and the test in PHILOSOPHY.md. |

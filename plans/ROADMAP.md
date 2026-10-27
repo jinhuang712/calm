@@ -2,7 +2,7 @@
 
 # Roadmap
 
-Calm is built in milestones. Each milestone ends in a working app. Feature IDs (F1…F17) refer to [FEATURES.md](FEATURES.md), and goal IDs (G1…G12) to [GOALS.md](GOALS.md).
+Calm is built in milestones. Each milestone ends in a working app. Feature IDs (F1…F17) refer to [FEATURES.md](../FEATURES.md), and goal IDs (G1…G12) to [GOALS.md](../GOALS.md).
 
 **Current milestone:** M9. M0 to M7 are built. M8 and M9 are built, and their exit criteria wait on use.
 
@@ -10,7 +10,7 @@ Calm is built in milestones. Each milestone ends in a working app. Feature IDs (
 
 A **milestone** is a usable state of the app. A **task** is one reviewable piece of work. Task IDs (`M2.4`) appear in branch names and commits. A row can cover a range of task IDs.
 
-A **design discussion** (`D6.1`) settles an open question before the milestone it blocks. The user approves the decisions, which then move to [DESIGNS.md](DESIGNS.md), or to FEATURES.md when they concern one feature.
+A **design discussion** (`D6.1`) settles an open question before the milestone it blocks. The user approves the decisions, which then move to [DESIGNS.md](../DESIGNS.md), or to FEATURES.md when they concern one feature.
 
 Status: ⬜ not started · 🟨 in progress · ✅ done.
 
@@ -142,4 +142,4 @@ Not yet used in real life: the OpenCode plugin has run only against a fake conte
 
 ## Later
 
-See [FEATURES.md → Later, if needed](FEATURES.md#later-if-needed).
+See [FEATURES.md → Later, if needed](../FEATURES.md#later-if-needed).

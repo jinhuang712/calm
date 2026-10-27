@@ -2,7 +2,7 @@
 
 # Features
 
-This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) has how it looks and moves, [CLI.md](CLI.md) every `calm` command, [DESIGNS.md](DESIGNS.md) the rules the code is built around, and [ROADMAP.md](ROADMAP.md) the order of work.
+This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) has how it looks and moves, [CLI.md](CLI.md) every `calm` command, [DESIGNS.md](DESIGNS.md) the rules the code is built around, and [ROADMAP.md](plans/ROADMAP.md) the order of work.
 
 Status: ✅ built · 🚧 built, with a gap named in its section · ⬜ planned, not built.
 
@@ -385,7 +385,7 @@ A strip at the top of the pane shows when the user switches into an agent sessio
 
 ### F16 — Find in a session (⌘F) 🚧
 
-Looks: UIUX.md → Find. Plan: ROADMAP.md → M8, M9. **Settings:** none.
+Looks: UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** none.
 
 - **⌘F** opens find for the current session or split pane, each with its own search, in the title strip's right. The last search returns selected. **⌘E** finds the selected text. **⌘F again closes it.** The Edit menu has Find…, Find Next ⌘G, Find Previous ⌘⇧G.
 - Matches mark as the user types. Case does not matter for A to Z. **`.*`** (click or ⌥⌘R) makes the words a regular expression: `(error|warn)\w*`. `(?-i)` first makes case matter. A half-typed pattern says "Incomplete pattern".
@@ -396,7 +396,7 @@ Looks: UIUX.md → Find. Plan: ROADMAP.md → M8, M9. **Settings:** none.
 - **A viewed file** (F10): ⌘F finds in it, with the field in the file's row. Esc closes find before the viewer. A PDF or web page has no `.*`, and a picture has nothing to find.
 - A narrow strip shrinks the field from 340 to 240 pt first (UIUX.md → Find). ⌘K searches conversations (F7).
 
-**Gap:** the exit criteria in ROADMAP.md (M8, M9) are not yet met by use. A view that changes only in digits keeps nothing for the session page, and a view that moves further than its height between reads loses what passed.
+**Gap:** the exit criteria in plans/ROADMAP.md (M8, M9) are not yet met by use. A view that changes only in digits keeps nothing for the session page, and a view that moves further than its height between reads loses what passed.
 
 #### Calm draws the marks, as underlines (decided 2026-10-06)
 

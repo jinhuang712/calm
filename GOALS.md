@@ -4,7 +4,7 @@
 
 Each row is built in this order: measure, benchmark, compare, threshold. The **measure** says what is counted. The **benchmark** is the last reading. **Compared with** names the reference that gives the reading meaning. The **threshold** is the line that passes or fails, set from the reading and the reference, and it comes last. A row with no threshold is tracked and has no pass or fail.
 
-The wants are the four in [PROPOSAL.md](PROPOSAL.md) → What we want. A goal counts as met when its threshold holds in the author's daily use (the user's own report) or in `mise run perf`. [ROADMAP.md](ROADMAP.md) uses these IDs as exit criteria. "Not set" means nobody has chosen a reference yet.
+The wants are the four in [PROPOSAL.md](PROPOSAL.md) → What we want. A goal counts as met when its threshold holds in the author's daily use (the user's own report) or in `mise run perf`. [ROADMAP.md](plans/ROADMAP.md) uses these IDs as exit criteria. "Not set" means nobody has chosen a reference yet.
 
 | # | Goal | Want | Measure | Benchmark | Compared with | Threshold | Method, and where | Status |
 |---|---|---|---|---|---|---|---|---|

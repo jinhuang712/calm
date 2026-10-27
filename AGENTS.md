@@ -11,10 +11,10 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - [FEATURES.md](FEATURES.md) — exact behavior of each feature, each feature's own decisions, what fails, *Later* and *Not planned*.
 - [UIUX.md](UIUX.md) — states, motion, color, keys.
 - [CLI.md](CLI.md) — every `calm` command, built and planned.
-- [ROADMAP.md](ROADMAP.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
+- [ROADMAP.md](plans/ROADMAP.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
 - [INSTALL.md](INSTALL.md) — every way to install, update and remove Calm.
 - [RUNBOOK.md](RUNBOOK.md) — build, release, the installers, and the first step when something is wrong.
-- [TODO.md](TODO.md) and [CHANGELOG.md](CHANGELOG.md) — small open items, and what shipped.
+- [TODO.md](plans/TODO.md) and [CHANGELOG.md](CHANGELOG.md) — small open items, and what shipped.
 
 ## Principles
 
@@ -25,7 +25,7 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - **Respect module boundaries.** Only `Terminal` touches GhosttyKit. `CalmKit` (CalmModel, CalmAgents, CalmSearch, CalmControl, CalmSQLite) has no UI framework.
 - **Agents are adapters.** Agent-specific code lives in its own adapter. The core never special-cases an agent.
 - **Degrade, don't crash.** Transcript formats and agent hooks change, so a failure falls back quietly.
-- **Keep docs true.** Each fact has one home. Behavior and a feature's own decisions go in FEATURES.md, a rule that spans the project in DESIGNS.md, how it looks in UIUX.md, a number in GOALS.md, and what shipped in CHANGELOG.md. When behavior changes, update the owner first and its summaries in the same change. When a milestone task lands, update ROADMAP.md.
+- **Keep docs true.** Each fact has one home. Behavior and a feature's own decisions go in FEATURES.md, a rule that spans the project in DESIGNS.md, how it looks in UIUX.md, a number in GOALS.md, and what shipped in CHANGELOG.md. When behavior changes, update the owner first and its summaries in the same change. When a milestone task lands, update plans/ROADMAP.md.
 - **Headings are addresses.** Code comments and docs cite headings (`FEATURES.md → Not planned`). Before you rename one, search for it and fix every reference in the same change.
 - **A claim is checked.** A command, a number or a behavior in a doc is run or measured, or marked "not yet verified". A goal is met only with a reading and a date.
 

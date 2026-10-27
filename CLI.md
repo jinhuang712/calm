@@ -249,7 +249,7 @@ The app bundles the CLI at `Calm.app/Contents/Resources/bin/calm`. `./install.sh
 
 ## Later
 
-Reaching Calm over SSH from another device (ROADMAP.md → Later): `calm attach <session>` joins a session's shell through zmx. `calm watch [--json]` prints one line per state change. Not checked: what a second client of another size does to Calm's pane.
+Reaching Calm over SSH from another device (plans/ROADMAP.md → Later): `calm attach <session>` joins a session's shell through zmx. `calm watch [--json]` prints one line per state change. Not checked: what a second client of another size does to Calm's pane.
 
 ## Not planned
 

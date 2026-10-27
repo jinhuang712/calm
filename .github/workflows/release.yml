@@ -7,7 +7,7 @@ name: Release
 # the version's CHANGELOG section as the release's notes, with the disk image attached. Last it
 # has homebrew.yml point the Homebrew cask at it, and get.yml try the one-line install. The app
 # is signed ad hoc, as every build here is: Developer ID signing waits for an Apple Developer
-# account (ROADMAP.md → Later), and README → Install says how to open it until then.
+# account (plans/ROADMAP.md → Later), and README → Install says how to open it until then.
 # Run it by hand (workflow_dispatch) for a dry run: everything but the publishing, with the disk
 # image kept as the run's artifact.
 

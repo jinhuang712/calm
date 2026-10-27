@@ -32,6 +32,17 @@ struct LinkOpenerTests {
         #expect(LinkOpener.resolve("src/gone.swift", directory: folder.path, projectDirectory: nil) == nil)
     }
 
+    @Test func `a relative path is found in the agent's worktree first`() throws {
+        let folder = try folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let worktree = folder.appending(path: "wt", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: worktree.appending(path: "design"), withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: worktree.appending(path: "design/a.html"))
+        let link = LinkOpener.resolve("design/a.html", directory: folder.path, projectDirectory: folder.path, agentDirectory: worktree.path)
+        #expect(link == .file(path: worktree.path + "/design/a.html", line: nil, column: nil))
+        #expect(LinkOpener.resolve("design/a.html", directory: folder.path, projectDirectory: folder.path) == nil)
+    }
+
     @Test func `the tag says what a click would do`() throws {
         let folder = try folder()
         defer { try? FileManager.default.removeItem(at: folder) }

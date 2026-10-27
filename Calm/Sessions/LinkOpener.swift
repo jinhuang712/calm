@@ -4,7 +4,7 @@ import OSLog
 
 /// Opens ⌘-clicked links (FEATURES.md → F8): URLs in the browser, files in Calm's viewer (the
 /// default for viewable files) or the user's editor at the line. Relative paths resolve against
-/// the session's folder, then its project's (agents often print repository-relative paths).
+/// the agent's folder, the session's, then its project's (agents often print repository-relative paths).
 @MainActor
 enum LinkOpener {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "links")
@@ -17,22 +17,26 @@ enum LinkOpener {
     /// What a link points at, trying the project's folder for a relative path that isn't in the
     /// session's, and a path without the words the terminal swept up after it (`Link.candidates`).
     /// Files that don't exist resolve to nil.
-    static func resolve(_ text: String, directory: String?, projectDirectory: String?) -> Link? {
-        Link.candidates(for: text).lazy.compactMap { resolveExactly($0, directory: directory, projectDirectory: projectDirectory) }.first
+    static func resolve(_ text: String, directory: String?, projectDirectory: String?, agentDirectory: String? = nil) -> Link? {
+        Link.candidates(for: text).lazy.compactMap {
+            resolveExactly($0, directory: directory, projectDirectory: projectDirectory, agentDirectory: agentDirectory)
+        }.first
     }
 
-    /// `resolve` for this text only.
-    static func resolveExactly(_ text: String, directory: String?, projectDirectory: String?) -> Link? {
+    /// `resolve` for this text only. The agent's folder (a git worktree it moved into while the
+    /// shell stayed behind) is tried first: it holds the files the agent just wrote.
+    static func resolveExactly(_ text: String, directory: String?, projectDirectory: String?, agentDirectory: String? = nil) -> Link? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        var link = Link.parse(text, relativeTo: directory, home: home)
-        if case let .file(path, _, _) = link, !FileManager.default.fileExists(atPath: path) {
-            link = nil
-            if let projectDirectory, let fromProject = Link.parse(text, relativeTo: projectDirectory, home: home),
-               case let .file(projectPath, _, _) = fromProject, FileManager.default.fileExists(atPath: projectPath) {
-                link = fromProject
+        let first = Link.parse(text, relativeTo: directory, home: home)
+        guard case .file = first else { return first }
+        // `nil` last: an absolute path or `~` means the same in every folder.
+        for folder in [agentDirectory, directory, projectDirectory, nil] {
+            if let link = Link.parse(text, relativeTo: folder, home: home),
+               case let .file(path, _, _) = link, FileManager.default.fileExists(atPath: path) {
+                return link
             }
         }
-        return link
+        return nil
     }
 
     /// Opens a link outside Calm. Returns false when it names nothing.

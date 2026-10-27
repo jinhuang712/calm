@@ -95,15 +95,31 @@ extension MainWindowController {
 
     // MARK: Links
 
-    /// The folders a pane's links resolve against: the session's, then its project's.
-    private func linkFolders(of view: TerminalSurfaceView) -> (directory: String?, project: String?) {
+    /// The folders a pane's links resolve against: the session's, its project's, and its agent's
+    /// (a worktree the shell isn't in).
+    private struct LinkFolders {
+        var directory: String?
+        var project: String?
+        var agent: String?
+    }
+
+    private func linkFolders(of view: TerminalSurfaceView) -> LinkFolders {
         let session = manager.workspace.session(view.id)
-        return (view.workingDirectory ?? session?.workingDirectory, session.flatMap { manager.workspace.project($0.projectID)?.path })
+        return LinkFolders(
+            directory: view.workingDirectory ?? session?.workingDirectory,
+            project: session.flatMap { manager.workspace.project($0.projectID)?.path },
+            agent: session?.activeDirectory,
+        )
     }
 
     func surface(_ view: TerminalSurfaceView, resolveLink text: String) -> Link? {
         let folders = linkFolders(of: view)
-        return LinkOpener.resolveExactly(text, directory: folders.directory, projectDirectory: folders.project)
+        return LinkOpener.resolveExactly(
+            text,
+            directory: folders.directory,
+            projectDirectory: folders.project,
+            agentDirectory: folders.agent,
+        )
     }
 
     func surface(_ view: TerminalSurfaceView, hoversLink hover: LinkHover?) {
@@ -116,7 +132,12 @@ extension MainWindowController {
             return
         }
         let folders = linkFolders(of: view)
-        let link = LinkOpener.resolve(hover.text, directory: folders.directory, projectDirectory: folders.project)
+        let link = LinkOpener.resolve(
+            hover.text,
+            directory: folders.directory,
+            projectDirectory: folders.project,
+            agentDirectory: folders.agent,
+        )
         let preview = LinkOpener.preview(of: link, text: hover.text)
         var image: String?
         if preview.kind == .image, case let .file(path, _, _) = link {
@@ -134,8 +155,9 @@ extension MainWindowController {
 
     func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String) {
         linkTag.hide(animated: false)
-        let (directory, project) = linkFolders(of: view)
-        guard let link = LinkOpener.resolve(text, directory: directory, projectDirectory: project) else {
+        let folders = linkFolders(of: view)
+        let link = LinkOpener.resolve(text, directory: folders.directory, projectDirectory: folders.project, agentDirectory: folders.agent)
+        guard let link else {
             CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
             return
         }

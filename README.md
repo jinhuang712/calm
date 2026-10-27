@@ -1,11 +1,6 @@
 <!-- what-we-build: drafted 2026-10-28 -->
 
-<div align="center">
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
-  <img src="assets/logo.png" alt="Calm's app icon: a ring of soft squares with one amber cursor" width="128">
-</picture>
+![Calm's app icon: a ring of soft squares with one amber cursor](assets/logo.png)
 
 # Calm Terminal
 
@@ -18,18 +13,11 @@
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)
 ![Status: public preview](https://img.shields.io/badge/status-public%20preview-f59e0b?style=flat-square)
 
-<br>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
-  <img src="assets/hero-light.png" alt="Calm with three Claude Code sessions in the sidebar: one finished, one thinking, and one that needs you, with its question on screen" width="100%">
-</picture>
-
-</div>
+![Calm with three Claude Code sessions in the sidebar: one finished, one thinking, and one that needs you, with its question on screen](assets/hero-dark.png)
 
 Calm is a terminal for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It interrupts you for one thing only: an agent that needs you. Calm stays a terminal, so the agents keep their own interfaces.
 
-> [!NOTE]
+> **Note**
 > Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges.
 
 ## 🔔 One look tells you who needs you
@@ -38,52 +26,47 @@ The sidebar above shows three real Claude Code sessions: one has finished, one i
 
 ## 🧭 Resume, restart or fork any session
 
-<img src="assets/menu.png" alt="The session menu: Restart after this turn, Fork into a split or a tab, Rename, copy the session id or the resume command" width="100%">
+![The session menu: Restart after this turn, Fork into a split or a tab, Rename, copy the session id or the resume command](assets/menu.png)
 
 Quit Calm and every shell, split and running agent comes back. Restart an agent on its conversation, fork it, or copy its resume command. **⌘K** searches the history of every agent, even after an agent deletes its transcripts.
 
 ## ⌘P Actions that have no key
 
-<img src="assets/palette.png" alt="The command palette, with rows such as Rename Session, New Codex Session and Show File Tree" width="100%">
+![The command palette, with rows such as Rename Session, New Codex Session and Show File Tree](assets/palette.png)
 
 Start any agent, hide the files column, go to the welcome page. Each row runs once.
 
 ## 📖 Read what an agent changed
 
-<img src="assets/files.png" alt="The files column beside a viewed Markdown file, with its tables rendered" width="100%">
+![The files column beside a viewed Markdown file, with its tables rendered](assets/files.png)
 
 A files column and a read-only viewer for Markdown, HTML, PDF, images, code and diffs. **⌘-click** a path opens it at its line, **⌥-click** copies one table cell, and **⌘F** finds in a session, even in a full-screen agent.
 
 ## 🪟 Splits that say where you are
 
-<img src="assets/split.png" alt="Two panes side by side; the pane the user is in is bright and the other is dimmed" width="100%">
+![Two panes side by side; the pane the user is in is bright and the other is dimmed](assets/split.png)
 
 Split toward any side with **⌘⌥ + arrow**, drag a session card in, or take a pane out. The pane you are in is the bright one.
 
 ## 🎨 Soft themes, few settings
 
-<table>
-  <tr>
-    <td width="33%"><img src="assets/theme-Dusk.png" alt="The Dusk theme, deep blue"></td>
-    <td width="33%"><img src="assets/theme-Forest.png" alt="The Forest theme, green-gray"></td>
-    <td width="33%"><img src="assets/theme-Plum.png" alt="The Plum theme, violet-gray"></td>
-  </tr>
-  <tr>
-    <td align="center">Dusk</td>
-    <td align="center">Forest</td>
-    <td align="center">Plum</td>
-  </tr>
-  <tr>
-    <td colspan="2"><img src="assets/settings.png" alt="Settings, Appearance: five themes, interface size and card sizes, each with a preview"></td>
-    <td><img src="assets/welcome.png" alt="The welcome page: Start Claude Code, Start a shell, Try a scratch session, Open a project"></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center">Settings → Appearance</td>
-    <td align="center">The welcome page</td>
-  </tr>
-</table>
+**Dusk, Forest and Plum**
 
-> [!NOTE]
+![The Dusk theme, deep blue](assets/theme-Dusk.png)
+
+![The Forest theme, green-gray](assets/theme-Forest.png)
+
+![The Plum theme, violet-gray](assets/theme-Plum.png)
+
+**Settings → Appearance**
+
+![Settings, Appearance: five themes, interface size and card sizes, each with a preview](assets/settings.png)
+
+**The welcome page**
+
+![The welcome page: Start Claude Code, Start a shell, Try a scratch session, Open a project](assets/welcome.png)
+
+> **Note**
 > The pictures are headless screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The sessions are real Claude Code 2.1.311 with Haiku 5.5 in manual permission mode, and no command was approved. `scripts/readme-shots.sh` makes them again.
 
 ## ⌨️ Keys

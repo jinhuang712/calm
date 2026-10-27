@@ -307,6 +307,45 @@ public enum Doctor {
         return (try? encoder.encode(Output(checks: checks))).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
 
+    // MARK: Report
+
+    /// `--report` (specs/CLI.md → `calm doctor --report`): one Markdown document a user can read
+    /// before an agent files it as an issue. The checks and the trace hold only ids, states, agent
+    /// names and paths, never a word the user or an agent wrote (`Trace`); the home folder
+    /// becomes `~` on top of that, because a path in a check can name the user.
+    public static func report(
+        _ checks: [Check],
+        trace: [String],
+        last: String,
+        cliVersion: String,
+        macOS: String,
+        home: String,
+        now: Date = Date(),
+    ) -> String {
+        func hide(_ text: String) -> String {
+            home.isEmpty || home == "/" ? text : text.replacingOccurrences(of: home, with: "~")
+        }
+        let day = now.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day().dateSeparator(.dash))
+        let events = trace.isEmpty ? "Nothing in Calm's trace." : trace.map(hide).joined(separator: "\n")
+        return """
+        ## Calm report
+
+        - calm \(cliVersion), macOS \(macOS), \(day)
+
+        ### Checks
+
+        ```
+        \(hide(text(checks)))
+        ```
+
+        ### Trace, last \(last)
+
+        ```
+        \(events)
+        ```
+        """
+    }
+
     /// "10:02", or with the day when it isn't today.
     static func clock(_ date: Date, now: Date) -> String {
         let calendar = Calendar.current

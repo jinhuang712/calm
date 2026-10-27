@@ -187,14 +187,14 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 | Each agent whose config folder exists, as Settings → Agents sees it | Claude Code's plugin missing, or a file Calm did not write in the way. pi or OpenCode unconnected or outdated is a note |
 | In a session: Calm knows it, its state, who reported it last, and whether the shell loads the Claude Code plugin | A shell that outlived its session. Hooks that never arrive |
 
-### `calm doctor --report`
+### `calm doctor --report [--last <duration>]`
 
-Added 2026-10-28 (not built yet). For a user who asks their agent to report a Calm problem: the agent runs this, shows the output to the user, and, once they agree, files the issue with its own tools (`gh issue create`). Calm only writes the text.
+Added 2026-10-28. For a user who asks their agent to report a Calm problem: the agent runs this, shows the output to the user, and, once they agree, files the issue with its own tools (`gh issue create`). Calm only writes the text. The `calm` skill says so (`CalmSkill`).
 
-- Prints one Markdown document on stdout: Calm, CLI and macOS versions, each agent's version and whether it is connected, the checks above as `✓ ✗ ·` lines, and the last 5 minutes of `calm trace` (`--last` as for `trace`) in a code block. It starts no Calm and exits 0 once it has printed; the problems are in the text.
-- **Redacted.** The home folder is `~`. A session is its short id and agent, never its title, folder name, prompt, recap or transcript. A trace line that cannot be reduced to that is left out. Not yet verified against real traces.
-- **Local only.** It never uploads, opens a browser or a page, or runs `gh`. The `calm` skill tells the agent to show the report first, because an issue is public and cannot be fully taken back.
-- Not combined with `--json` (exit 64). It adds no command: the report is `doctor`'s checks plus `trace`.
+- Prints one Markdown document on stdout: the CLI's version and macOS's, the checks above as `✓ ✗ ·` lines in a code block, and the last 5 minutes of `calm trace` (`--last` as for `trace`) in another. It starts no Calm and exits 0 once it has printed; the problems are in the text. An empty trace says so.
+- **Redacted.** The home folder is `~`. The checks and the trace hold ids, states, agent names and paths, never a title, prompt, recap or transcript: Calm's trace is written that way (`Trace`, checked 2026-10-28 at every call site). Not yet checked against a trace of a long-running Calm.
+- **Local only.** It never uploads, opens a browser or a page, or runs `gh`. The skill tells the agent to show the whole report first, because an issue is public and cannot be fully taken back.
+- `--json` with `--report`, or `--last` without it, exits 64. It adds no command: the report is `doctor`'s checks plus `trace`.
 
 ### `calm trace [--last <duration>] [--session <id>] [--follow]`
 

@@ -65,6 +65,23 @@ enum TraceCommand {
         exit(0)
     }
 
+    /// The trace's lines for the last `last`, as `calm trace` prints them; empty when `log` can't run or has none.
+    static func lines(last: String) -> [String] {
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/log")
+        process.arguments = TraceLog.arguments(last: last, session: nil, appExecutable: appExecutable(), follow: false)
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return [] }
+        // Read to the end before waiting, or a full pipe would stop `log`.
+        let output = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        var printer = TraceLog.Printer()
+        let records = String(bytes: output, encoding: .utf8) ?? ""
+        return records.split(separator: "\n").flatMap { printer.lines(for: String($0)) }
+    }
+
     /// The executable of the Calm this CLI came with: the trace of that app only, every launch
     /// of it, without a Debug build's or a self-test's. Nil outside an app, which keeps every Calm's.
     private static func appExecutable() -> String? {

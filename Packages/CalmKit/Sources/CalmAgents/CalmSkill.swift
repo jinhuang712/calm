@@ -88,6 +88,9 @@ public enum CalmSkill {
     - `calm config set <key> <value>` and `calm config unset <key>` change a setting. Change one only when the user \
     asks.
     - `calm doctor` checks that Calm and its hooks work. Run it when Calm shows this session in the wrong state.
+    - `calm doctor --report` prints a redacted Markdown bug report. When the user asks you to report a problem \
+    with Calm, run it, show them the whole report, and file the issue (`gh issue create`) only after they agree: \
+    an issue is public.
 
     ## Do not
 

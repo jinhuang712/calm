@@ -4,6 +4,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ## Unreleased
 
+### Agents
+- `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
+
 ### Fixes
 - A permission prompt you answered no longer keeps the card on "Needs you" while Claude Code works. The card returns to Working when Claude's status says it is busy.
 - A relative path in a link opens the file in the agent's git worktree first, then in the session's folder.

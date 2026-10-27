@@ -7,11 +7,45 @@ import Foundation
 /// and files, and this shell, then prints the verdicts. It reads; it never changes anything.
 enum DoctorCommand {
     static func run(_ words: [String], cliVersion: String) -> Never {
-        let json = words.contains("--json")
-        if let unknown = words.first(where: { $0 != "--json" }) {
-            fail("unknown option '\(unknown)'", code: 64)
+        var json = false
+        var report = false
+        var last: String?
+        var iterator = words.makeIterator()
+        while let word = iterator.next() {
+            switch word {
+            case "--json":
+                json = true
+            case "--report":
+                report = true
+            case "--last":
+                guard let value = iterator.next(), TraceLog.isDuration(value) else {
+                    fail("--last takes a time such as 30s, 10m, 2h or 1d", code: 64)
+                }
+                last = value
+            default:
+                fail("unknown option '\(word)'", code: 64)
+            }
+        }
+        if report, json {
+            fail("--report is Markdown; it can't be combined with --json", code: 64)
+        }
+        if last != nil, !report {
+            fail("--last goes with --report", code: 64)
         }
         let checks = Doctor.checks(facts(cliVersion: cliVersion))
+        if report {
+            let window = last ?? "5m"
+            print(Doctor.report(
+                checks,
+                trace: TraceCommand.lines(last: window),
+                last: window,
+                cliVersion: cliVersion,
+                macOS: ProcessInfo.processInfo.operatingSystemVersionString.replacingOccurrences(of: "Version ", with: ""),
+                home: FileManager.default.homeDirectoryForCurrentUser.path,
+            ))
+            // The problems are in the text: an agent that asked for a report wants it, not a failure.
+            exit(0)
+        }
         print(json ? Doctor.json(checks) : Doctor.text(checks))
         exit(checks.contains { $0.verdict == .problem } ? 1 : 0)
     }

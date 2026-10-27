@@ -171,4 +171,36 @@ struct DoctorTests {
         #expect(json.contains(#""v" : 1"#))
         #expect(json.contains(#""verdict" : "problem""#))
     }
+
+    @Test func `the report is Markdown with the checks and the trace, and the home folder is ~`() {
+        let checks = [
+            Doctor.Check(.ok, "Fine."),
+            Doctor.Check(.problem, "A file in /Users/ada/Library/x is in the way.", hint: "Remove it."),
+        ]
+        let trace = ["— 2026-10-06, Calm, process 14094 —", "22:38:13.364  +263.20 report 43e23209 from hook says working: done → working"]
+        let report = Doctor.report(
+            checks, trace: trace, last: "5m", cliVersion: "0.1.0", macOS: "27.0.1", home: "/Users/ada", now: now,
+        )
+
+        #expect(report.hasPrefix("## Calm report\n"))
+        #expect(report.contains("- calm 0.1.0, macOS 27.0.1, 2027-01-15"))
+        #expect(report.contains("✗ A file in ~/Library/x is in the way.\n    Remove it."))
+        #expect(report.contains("### Trace, last 5m"))
+        #expect(report.contains("report 43e23209 from hook says working: done → working"))
+        #expect(!report.contains("/Users/ada"))
+    }
+
+    @Test func `an empty trace is said, and a home of / hides nothing`() {
+        let report = Doctor.report(
+            [Doctor.Check(.ok, "See /usr/bin.")],
+            trace: [],
+            last: "1h",
+            cliVersion: "0.1.0",
+            macOS: "27",
+            home: "/",
+            now: now,
+        )
+        #expect(report.contains("Nothing in Calm's trace."))
+        #expect(report.contains("See /usr/bin."))
+    }
 }

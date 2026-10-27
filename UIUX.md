@@ -1,8 +1,19 @@
+<!-- what-we-build: drafted 2026-10-28 -->
+
 # UI and UX
 
 How Calm Terminal looks, moves and behaves. Principles are in [PHILOSOPHY.md](PHILOSOPHY.md). Behavior details are in [FEATURES.md](FEATURES.md).
 
-The design guidelines are restraint, elegance, minimalism, calm (see PHILOSOPHY.md). Every screen is checked against them.
+## Design guidelines
+
+Four words guide how Calm looks and moves, and every screen is checked against them.
+
+| Word | Means | Because |
+|---|---|---|
+| **Restraint** | Show only what helps. When in doubt, leave it out. | Attention is scarce, and every element takes some (PHILOSOPHY.md → What is scarce when agents do the typing?) |
+| **Elegance** | Care in every detail. Nothing jumps, flashes or crowds. | A screen that jumps is noise, and calm removes noise (PHILOSOPHY.md → What is calm?) |
+| **Minimalism** | Every element earns its place. | Each option is a question the tool asks back (PHILOSOPHY.md → What should a tool ask of its user?) |
+| **Calm** | The interface lowers the pulse. | Calm is knowing, without checking, that nothing needs you (PHILOSOPHY.md → What is calm?) |
 
 The periphery is the sidebar and the edges of the window. The center is the terminal the user works in. Agent status stays in the periphery. Only a session that needs the user comes to the center.
 
@@ -59,7 +70,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - **Files column:** an optional column for the focused session's project, one surface with the sidebar. The footer's Show Files row and the title strip's readout lead the user to it. See `FilesColumn`.
 - Its header shows the project, the branch and the line totals (added in *done*'s sage, removed in *failed*'s muted red). **CHANGES** lists changed files with their lines. **FILES** is the tree.
 - **Narrowest window:** the shown panels plus 400 pt for the main area, never wider than the screen. At the default sidebar, 720 pt, so two windows tile on a 13-inch screen. A panel opened in a window too narrow for it widens the window.
-- **Corners:** square while the window fills the screen. Otherwise rounded as macOS draws them. Where Calm cannot change them (DESIGNS.md → Window), they stay rounded. See `SquareCorners`.
+- **Corners:** square while the window fills the screen. Otherwise rounded as macOS draws them. Where Calm cannot change them (a macOS that no longer has the private methods it relies on), they stay rounded. See `SquareCorners`.
 
 **Title bar:** there is no visible title bar. A strip at the top stands in for it. The window's hidden title carries the session's name, or "Calm" with no session. A double-click on the strip does what System Settings → Desktop & Dock says.
 
@@ -159,7 +170,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 - There are no numeric badges, no rings around panes, and no reordering of rows when states change.
 - A session the user leaves (for another session or another app) clears *done* and *failed* to idle. Arriving keeps them while the user reads.
 
-**Restoring.** After a launch or a Restart, the sidebar comes back as it was left. Calm checks every saved agent first (DESIGNS.md → Launch), so normally there is nothing to see.
+**Restoring.** After a launch or a Restart, the sidebar comes back as it was left. Calm checks every saved agent first (DESIGNS.md → A missing fact shows as less, never as a guess), so normally there is nothing to see.
 
 - When the check takes longer than a quarter second, rows hold what was saved, quietly: no tint, a still gray mark, a breathing bar, and "Restoring sessions…" under the search field. Then every row settles together in one fade (a cut with Reduce Motion).
 
@@ -208,7 +219,7 @@ The Debug build ("Calm Dev": what `mise run run` and the self-tests launch) diff
 - **Name:** "Calm Dev" in the menu bar, Dock, notifications, About panel, the Calm menu and the window's title with no session. A **DEV tag** in violet sits at the right end of the strip above the search field (`DevTag`).
 - **Bundle id:** `com.jinhuang.calm.dev` (the installed Calm's is `com.jinhuang.calm`). So the Dock pin, `UserDefaults`, notification settings and privacy grants are separate.
 - **State and socket:** they are not separate. A Debug build run by hand uses the installed Calm's state folder and control socket (`~/Library/Application Support/Calm`). If that socket answers, the Debug Calm quits at once (`SingleInstance`), so the two cannot run together.
-- Self-tests set `CALM_STATE_FILE`, `CALM_SUPPORT_DIR` and `CALM_SOCKET` to their own paths, so they run beside the installed Calm (AGENTS.md, DESIGNS.md → Testing).
+- Self-tests set `CALM_STATE_FILE`, `CALM_SUPPORT_DIR` and `CALM_SOCKET` to their own paths, so they run beside the installed Calm (AGENTS.md, DESIGNS.md → A test never touches the user's machine).
 
 ## Arrival card
 
@@ -244,7 +255,7 @@ See FEATURES.md → F16. The look is Calm's own, drawn over the terminal as a fl
 
 - **Panel:** centered, on a regular material, with a field ("Run a command") and a list. Rows show the name, and the key that already does it for the keys only Calm has.
 - Only the selected row says in one short sentence what it does ("Start a copy of this conversation in a new split beside it."). Every row has one, in `PaletteRow`, and typing a word of it finds the row.
-- The palette holds what has no key everyone knows (FEATURES.md → Command palette). Rows are grouped by category with no headers. Every row is one-shot: none opens a second list.
+- The palette holds what has no key everyone knows (FEATURES.md → F1). Rows are grouped by category with no headers. Every row is one-shot: none opens a second list.
 
 ## Split panes
 
@@ -288,6 +299,12 @@ Motion is on by default, soft and never showy. Settings → Appearance holds one
 | Session cards | cards slide between projects. State changes cross-fade. A new card size eases every card to its height |
 | Files and viewer | the files column slides in. A viewed file fades up over the session, and esc fades it back |
 | Arrival card, adaptive background | the card fades in and dissolves on typing. The chrome follows the background color a full-screen app paints |
+
+- **Overlays stay still.** A program's overlay that it redraws in place (Claude Code's "Jump to bottom" hint) does not slide with the text around it, because an animated region showed two or three hints.
+- **The cursor glide stops.** It runs for about a second after the cursor or the focus moves, because a loop that never ends redraws a focused pane at rest.
+- **Marks and light are layers** that take their time from the clock, so cards side by side move together. They run only while the window can be seen.
+- **An overlay is removed on a timer,** not when its animation ends, so one never lingers invisibly and takes clicks. The sidebar peek's sensor takes no clicks either.
+- **A layout fade is only a picture.** A skipped animation never leaves a session invisible.
 
 ## Themes
 

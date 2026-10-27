@@ -62,10 +62,9 @@ for name in hero-dark hero-light menu palette files split theme-Dusk theme-Fores
 done
 
 ictool="/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool"
+# 144 px: the README shows it as plain Markdown, which cannot set a width, so the picture itself is small.
 "$ictool" Calm/Resources/AppIcon.icon --export-image --output-file assets/logo.png \
-  --platform macOS --rendition Default --width 512 --height 512 --scale 1 > /dev/null
-"$ictool" Calm/Resources/AppIcon.icon --export-image --output-file assets/logo-dark.png \
-  --platform macOS --rendition Dark --width 512 --height 512 --scale 1 > /dev/null
+  --platform macOS --rendition Default --width 144 --height 144 --scale 1 > /dev/null
 
 rm -rf "$tmp"
 ls -la assets

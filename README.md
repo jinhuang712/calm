@@ -30,7 +30,7 @@
 Calm is a terminal for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It interrupts you for one thing only: an agent that needs you. Calm stays a terminal, so the agents keep their own interfaces.
 
 > [!NOTE]
-> Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges (see Known limits below).
+> Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges.
 
 ## 🔔 One look tells you who needs you
 
@@ -118,15 +118,6 @@ That downloads the newest release, puts Calm in Applications and links the `calm
 - **Calm is a terminal and nothing more.** It has no chat, editor, browser or account. Its own code uses the network once a day, to ask GitHub for the newest release. **Settings → General → Check for updates** turns that off.
 - **The first launch asks for permissions once:** notifications, then Documents, Desktop and Downloads.
 - **Quitting keeps your shells running.** Close the sessions you want to end first (⌘W).
-
-## ⚠️ Known limits
-
-- Apple has not signed the download, so each update asks again for folder access. Homebrew's own cask list takes only signed apps, so Calm has its own tap.
-- Nobody has checked the first minute of a new user ([GOALS.md](GOALS.md) G10). Three features have more settings than the budget allows (G9).
-- The OpenCode plugin, which reports state, has run only against a fake context.
-- A window left in full screen can come back filled but not in full screen. The cause is unknown.
-- A link set with OSC 8 gets no dotted mark. Calm does not join some links that a program cut across lines.
-- There is no VoiceOver pass, and VoiceOver support is not a goal.
 
 ## 🛟 Reporting a problem
 

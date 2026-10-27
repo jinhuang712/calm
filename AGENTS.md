@@ -4,9 +4,17 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 
 ## Read first
 
-- [PROPOSAL.md](PROPOSAL.md) — what we measure, with readings and thresholds.
-- [FEATURES.md](specs/FEATURES.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
-- [INSTALL.md](INSTALL.md) — small open items, and what shipped.
+- [PROPOSAL.md](PROPOSAL.md) — why Calm exists, what we want and what we don't.
+- [PHILOSOPHY.md](PHILOSOPHY.md) — the stances every change is checked against. Its last section is the test for every change.
+- [DESIGNS.md](DESIGNS.md) — the eight principles the code is built around, and the decisions with their reasons.
+- [GOALS.md](GOALS.md) — what we measure, with readings and thresholds.
+- [FEATURES.md](specs/FEATURES.md) — exact behavior of each feature, each feature's own decisions, what fails, *Later* and *Not planned*.
+- [UIUX.md](specs/UIUX.md) — states, motion, color, keys.
+- [CLI.md](specs/CLI.md) — every `calm` command, built and planned.
+- [ROADMAP.md](plans/ROADMAP.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
+- [INSTALL.md](INSTALL.md) — every way to install, update and remove Calm.
+- [RUNBOOK.md](RUNBOOK.md) — build, release, the installers, and the first step when something is wrong.
+- [TODO.md](plans/TODO.md) and [CHANGELOG.md](CHANGELOG.md) — small open items, and what shipped.
 
 ## Principles
 

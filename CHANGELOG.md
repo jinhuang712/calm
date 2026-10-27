@@ -10,7 +10,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ## 0.1.4 — 2026-10-22
 
-A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.3. Exact behavior is in [FEATURES.md](specs/FEATURES.md).
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.3. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).
 
 **Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
 
@@ -26,7 +26,7 @@ A public preview for macOS 14.5 and later on Apple silicon. These changes follow
 
 ## 0.1.3 — 2026-10-13
 
-A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.2. Exact behavior is in [FEATURES.md](specs/FEATURES.md).
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.2. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).
 
 **Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
 
@@ -41,6 +41,8 @@ A public preview for macOS 14.5 and later on Apple silicon. These changes follow
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.1. Exact behavior is in [FEATURES.md](specs/FEATURES.md).
 
+**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads. A new install: [README → Install](README.md#install).
+
 ### Compatibility and updates
 - Calm now runs on macOS 14.5 and later. Older macOS versions use AppKit fallbacks for scrolling and text-field carets; CI type-checks the app and CLI against the minimum version.
 - The update notice offers Update and Restart: it installs the selected release with `get.sh`, then restarts Calm on that version.
@@ -53,7 +55,9 @@ A public preview for macOS 14.5 and later on Apple silicon. These changes follow
 
 ## 0.1.1 — 2026-10-12
 
-A public preview still, for macOS 26 on Apple silicon: what changed since 0.1.0. Exact behavior of everything below is in [FEATURES.md](specs/FEATURES.md), quit Calm, drag the new one over the old one, run the same `xattr` line and open Calm. Your shells keep running: after the one line or Homebrew, choose Calm → Restart Calm to switch to 0.1.1. macOS asks again for Desktop, Documents and Downloads. A new install: [README → Install](README.md#install).
+A public preview still, for macOS 26 on Apple silicon: what changed since 0.1.0. Exact behavior of everything below is in [FEATURES.md](specs/FEATURES.md).
+
+**Update** by running the one line again: `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash`. With Homebrew, run `brew upgrade --cask calm`, then `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app`. From the disk image (`Calm-0.1.1.dmg` below), quit Calm, drag the new one over the old one, run the same `xattr` line and open Calm. Your shells keep running: after the one line or Homebrew, choose Calm → Restart Calm to switch to 0.1.1. macOS asks again for Desktop, Documents and Downloads. A new install: [README → Install](README.md#install).
 
 ### Agents
 - A working card says what Claude Code is doing, from the hooks it already sends: "Reading SessionCard.swift", "Running the full test suite", "Thinking". A todo list is a quiet line, "3 of 5 · Adding tests", in place of the thin bar. Other agents still say "Working".
@@ -81,7 +85,9 @@ A public preview still, for macOS 26 on Apple silicon: what changed since 0.1.0.
 
 ## 0.1.0 — 2026-10-08
 
-The first release, a public preview, for macOS 26 on Apple silicon. Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so expect rough edges (README → Known limits). Exact behavior of everything below is in [FEATURES.md](specs/FEATURES.md), or with Homebrew: `brew install --cask jinhuang712/tap/calm`. To install `Calm-0.1.0.dmg` below by hand, drag Calm onto Applications, then run `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app` once before opening it, since Calm isn't signed by Apple yet (also after `brew install`). macOS asks again for Desktop, Documents and Downloads after each update. All the ways, and building from source: [README → Install](README.md#install).
+The first release, a public preview, for macOS 26 on Apple silicon. Its author has used it as their only terminal since 2026-09-29, and nobody else has tried it, so expect rough edges (README → Known limits). Exact behavior of everything below is in [FEATURES.md](specs/FEATURES.md).
+
+**Install** with one line: `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` (it downloads `Calm-0.1.0.dmg`, puts Calm in Applications and takes macOS's download mark off), or with Homebrew: `brew install --cask jinhuang712/tap/calm`. To install `Calm-0.1.0.dmg` below by hand, drag Calm onto Applications, then run `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app` once before opening it, since Calm isn't signed by Apple yet (also after `brew install`). macOS asks again for Desktop, Documents and Downloads after each update. All the ways, and building from source: [README → Install](README.md#install).
 
 ### The terminal
 - Ghostty's engine (libghostty): it reads your Ghostty config for fonts, colors and keybindings.
@@ -114,4 +120,4 @@ The first release, a public preview, for macOS 26 on Apple silicon. Its author h
 - A small settings page (⌘,): Appearance, Agents, General and Shortcuts.
 
 ### Command line
-- `calm open`, `list`, `search`, `show`, `fork`, `config`, `doctor` and `trace` for you and your agents; `status`, `hook` and `notify` for agents' hooks, safe to run anywhere: outside Calm they do nothing. Every command is in [CLI.md](specs/CLI.md
+- `calm open`, `list`, `search`, `show`, `fork`, `config`, `doctor` and `trace` for you and your agents; `status`, `hook` and `notify` for agents' hooks, safe to run anywhere: outside Calm they do nothing. Every command is in [CLI.md](specs/CLI.md).

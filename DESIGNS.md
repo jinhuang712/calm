@@ -15,7 +15,7 @@ Calm is designed around eight principles:
 7. **Calm stays on the Mac.** State is plain files, the network is for three things, and one socket is the only door in.
 8. **A test never touches the user's machine.** It runs headless, in its own folders, and starts no real agent.
 
-Each principle asks a question of every new requirement, and lists the decisions that follow from it. This page is the design we intend. What is built is in [FEATURES.md](specs/FEATURES.md).
+Each principle asks a question of every new requirement, and lists the decisions that follow from it. This page is the design we intend. What is built is in [FEATURES.md](specs/FEATURES.md), and open questions are in [ROADMAP.md](plans/ROADMAP.md).
 
 ## 1. Attention is a state of a session
 

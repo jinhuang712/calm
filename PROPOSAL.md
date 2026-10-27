@@ -4,7 +4,7 @@
 
 > A minimal macOS terminal that keeps you calm and focused.
 
-Proposed 2026-09-27. This is what the project will be: what is built is in [FEATURES.md](specs/FEATURES.md).
+Proposed 2026-09-27. This is what the project will be: what is built is in [FEATURES.md](specs/FEATURES.md), and where the work stands is in [ROADMAP.md](plans/ROADMAP.md).
 
 ## In short
 
@@ -52,6 +52,16 @@ Three agents run in two projects. The sidebar shows one card for each:
 
 ⌘⇧A jumps to the waiting session. ⌘K searches every past conversation of every agent, and a right-click resumes or forks the one you find. The exact behavior is in [FEATURES.md](specs/FEATURES.md).
 
+## What we don't want
+
+- **An IDE.** Editing and code review belong in the user's editor.
+- **An agent.** The agents bring their own chat. Calm makes no model calls.
+- **A platform.** No accounts, cloud or relays. The agents' own remote features and SSH cover remote access.
+- **A settings maze.** When an option needs a paragraph to explain, the default is wrong.
+- **Cross-platform.** Calm is macOS only, so it can be native.
+
+For the full list, see [FEATURES.md → Not planned](specs/FEATURES.md#not-planned).
+
 ## Who it is for
 
 Developers on macOS who run several CLI coding agents in parallel every day: Claude Code, Codex, OpenCode and pi. The first user is the author.
@@ -75,4 +85,4 @@ Developers on macOS who run several CLI coding agents in parallel every day: Cla
 
 ## How we know it works
 
-[GOALS.md](GOALS.md
+[GOALS.md](GOALS.md) holds the checks. The headline ones: 0 tab switches to find a waiting agent, 0 missed "needs you", search under 50 ms, and a cost at rest held to a budget.

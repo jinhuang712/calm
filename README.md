@@ -30,7 +30,7 @@
 Calm is a terminal for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It interrupts you for one thing only: an agent that needs you. Calm stays a terminal, so the agents keep their own interfaces.
 
 > [!NOTE]
-> Version [0.1.4](CHANGELOG.md).
+> Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges (see Known limits below).
 
 ## ✨ What it is
 
@@ -42,7 +42,7 @@ Calm is a terminal for days spent supervising CLI coding agents such as Claude C
 - 📖 **Helps reading.** ⌘-click opens a path at its line. ⌥-click copies one table cell. A files column and a viewer show what an agent changed. ⌘F finds in a session, even in a full-screen agent.
 - 🧘 **Stays quiet by default.** Soft themes, gentle motion and few settings.
 
-What is built: [FEATURES.md](specs/FEATURES.md).
+What is built: [FEATURES.md](specs/FEATURES.md). What comes next: [ROADMAP.md](plans/ROADMAP.md).
 
 ## 👀 A look
 
@@ -76,7 +76,7 @@ The pictures on this page are headless screenshots of the development build (Cal
 | Reopen the session you closed | ⌘⇧T |
 | Settings | ⌘, |
 
-Every key is in [UIUX.md](specs/UIUX.md).
+Every key is in [UIUX.md](specs/UIUX.md). The `calm` command reaches Calm from a shell: [CLI.md](specs/CLI.md).
 
 ## 📦 Install
 
@@ -87,6 +87,13 @@ curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
 ```
 
 That downloads the newest release, puts Calm in Applications and links the `calm` command into `~/.local/bin`. Homebrew, the disk image, the newest build of `main`, building from source, updating and uninstalling are in [INSTALL.md](INSTALL.md).
+
+## 💡 Good to know
+
+- **Agents need no setup to be seen.** Calm detects them from their process. For exact state, connect them in **Calm → Agents…**. Each connection asks first and can be undone.
+- **Calm is a terminal and nothing more.** It has no chat, editor, browser or account. Its own code uses the network once a day, to ask GitHub for the newest release. **Settings → General → Check for updates** turns that off.
+- **The first launch asks for permissions once:** notifications, then Documents, Desktop and Downloads.
+- **Quitting keeps your shells running.** Close the sessions you want to end first (⌘W).
 
 ## ⚠️ Known limits
 
@@ -105,10 +112,20 @@ Open an [issue](https://github.com/jinhuang712/calm/issues). **⌘P → Dump Log
 
 | Document | Answers |
 |---|---|
-| [PROPOSAL.md](PROPOSAL.md) | Why is it this way? |
-| [DESIGNS.md](DESIGNS.md) | What do we measure? |
-| [FEATURES.md](specs/FEATURES.md) | How does it look and move? |
-| [INSTALL.md](INSTALL.md) | What does every `calm` command do? |
-| [ROADMAP.md](plans/ROADMAP.md) | How do I build, release and install it? |
-| [TODO.md](plans/TODO.md) | What changed in each release? |
-| [AGENTS.md](AGENTS.md). See [NOTICE](NOTICE) for third-party attributions. Calm's terminal engine is libghostty from [Ghostty](https://github.com/ghostty-org/ghostty).
+| [PROPOSAL.md](PROPOSAL.md) | Why did we start this? |
+| [PHILOSOPHY.md](PHILOSOPHY.md) | Why is it this way? |
+| [DESIGNS.md](DESIGNS.md) | How is it built, and why that way? |
+| [GOALS.md](GOALS.md) | What do we measure? |
+| [FEATURES.md](specs/FEATURES.md) | What does it do, and what will it do? |
+| [UIUX.md](specs/UIUX.md) | How does it look and move? |
+| [INSTALL.md](INSTALL.md) | How do I install, update and remove it? |
+| [CLI.md](specs/CLI.md) | What does every `calm` command do? |
+| [ROADMAP.md](plans/ROADMAP.md) | When, and how far along? |
+| [RUNBOOK.md](RUNBOOK.md) | How do I build, release and install it? |
+| [TODO.md](plans/TODO.md) | What is still open? |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in each release? |
+| [AGENTS.md](AGENTS.md) | How do coding agents work in this repository? |
+
+## 📄 License
+
+[Apache-2.0](LICENSE). See [NOTICE](NOTICE) for third-party attributions. Calm's terminal engine is libghostty from [Ghostty](https://github.com/ghostty-org/ghostty).

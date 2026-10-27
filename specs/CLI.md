@@ -2,7 +2,7 @@
 
 # The `calm` command line
 
-This file specifies every `calm` command. [FEATURES.md](FEATURES.md).
+This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 says what the tool is for. How the CLI talks to the app is in [How the CLI talks to Calm](#how-the-cli-talks-to-calm).
 
 ## At a glance
 

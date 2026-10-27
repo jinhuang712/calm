@@ -76,8 +76,8 @@ Calm adds files to agent folders only for what you turned on in **Calm → Agent
 
 ## Good to know
 
-- **Calm is signed ad hoc.** To macOS, every install is a new app, so macOS asks again for Desktop, Documents and Downloads access. A notarized Developer ID build is planned (see [ROADMAP.md](plans/ROADMAP.md).
+- **Calm is signed ad hoc.** To macOS, every install is a new app, so macOS asks again for Desktop, Documents and Downloads access. A notarized Developer ID build is planned (see [ROADMAP.md](plans/ROADMAP.md)).
 - **Agents need no setup to be seen.** Calm detects them from their process. For exact state, connect hooks in **Calm → Agents…**. Connecting also teaches the agent the `calm` command. Each connection asks first and can be undone.
 - **Calm uses the network for updates only.** Once a day, it asks GitHub for the newest release and sends only its version. **Settings → General → Check for updates** turns this off. When you choose Update and Restart, Calm downloads the release by running `get.sh`. The agents you run talk to their own services, and the file viewer loads what a file points to (a Markdown image, HTML scripts), as a browser does.
 
-How releases and the installers are built is in [RUNBOOK.md](RUNBOOK.md
+How releases and the installers are built is in [RUNBOOK.md](RUNBOOK.md).

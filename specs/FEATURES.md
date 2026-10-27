@@ -2,11 +2,11 @@
 
 # Features
 
-This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) every `calm` command, [DESIGNS.md](../DESIGNS.md) the order of work.
+This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) has how it looks and moves, [CLI.md](CLI.md) every `calm` command, [DESIGNS.md](../DESIGNS.md) the rules the code is built around, and [ROADMAP.md](../plans/ROADMAP.md) the order of work.
 
 Status: ✅ built · 🚧 built, with a gap named in its section · ⬜ planned, not built.
 
-Each feature lists its settings. The budget is at most two per feature ([GOALS.md](../GOALS.md). A feature that is over says so.
+Each feature lists its settings. The budget is at most two per feature ([GOALS.md](../GOALS.md) G9). A feature that is over says so.
 
 ## TL;DR
 
@@ -637,7 +637,9 @@ Ghostty options load in this order, each over the one before: Calm's defaults, t
 
 ### F13 — `calm` command-line tool ✅
 
-The `calm` command reaches Calm from a shell. It opens a folder or file, lists the sessions, searches and shows past conversations, forks the current one, starts a clean one with a first message, changes settings and checks that Calm works. Agents' hooks report through it too. [CLI.md](CLI.md).
+The `calm` command reaches Calm from a shell. It opens a folder or file, lists the sessions, searches and shows past conversations, forks the current one, starts a clean one with a first message, changes settings and checks that Calm works. Agents' hooks report through it too. [CLI.md](CLI.md) specifies every command. **Settings:** none.
+
+- **Agents know it.** All four agents get one skill, `calm`, which teaches them the commands people ask for and keeps them from reporting state themselves. Claude Code's comes with Calm's plugin, the others' with Connect (F5).
 - An agent forks only when asked, and in the background, so the user stays where they are and the fork waits in the sidebar. Later it can tell how the fork went. Each command asks by the agent's own permission rules.
 - Outside a Calm session, `status`, `notify` and `hook` do nothing and exit 0. `open` and `list` start Calm when it is not running.
 - `calm trace` prints the timeline of what decides a session's row. It holds states, sources, counts and agent names, never text.

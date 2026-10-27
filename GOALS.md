@@ -4,7 +4,11 @@
 
 Each row is built in this order: measure, benchmark, compare, threshold. The **measure** says what is counted. The **benchmark** is the last reading. **Compared with** names the reference that gives the reading meaning. The **threshold** is the line that passes or fails, set from the reading and the reference, and it comes last. A row with no threshold is tracked and has no pass or fail.
 
-The wants are the four in [PROPOSAL.md](PROPOSAL.md) or in `mise run perf`. [ROADMAP.md](plans/ROADMAP.md) | Not set | 0 | The author's daily use | ✅ Met 2026-09-30 |
+The wants are the four in [PROPOSAL.md](PROPOSAL.md) → What we want. A goal counts as met when its threshold holds in the author's daily use (the user's own report) or in `mise run perf`. [ROADMAP.md](plans/ROADMAP.md) uses these IDs as exit criteria. "Not set" means nobody has chosen a reference yet.
+
+| # | Goal | Want | Measure | Benchmark | Compared with | Threshold | Method, and where | Status |
+|---|---|---|---|---|---|---|---|---|
+| G1 | Find a waiting agent | Know at a glance | Tab switches to find which agent waits | 0 (2026-09-30) | Not set | 0 | The author's daily use | ✅ Met 2026-09-30 |
 | G2 | Never miss "needs you" | Know at a glance | Misses in daily use | 0 in 4 days of heavy use (2026-09-30) | Not set | 0 in a week | The author's daily use | ✅ Met on 4 days, not a week. Not measured since |
 | G3 | Fast search | Come back without rebuilding the context | Time of a query while typing, and of an index update with nothing new | Query 0.7–14 ms, update 8 ms. First full index 12.6 s for 502 files and 1.4 GB (Debug build, before 2026-09-30) | Not set | < 50 ms each | A timing run on the author's own history. No script is committed | ✅ Met before 2026-09-30. Not reproducible by script |
 | G4 | Reading takes one action | Read output where it appears | Actions to copy a table cell, open a path at its line, view a file | 1 each (2026-09-30) | Not set | 1 each | The author's daily use | ✅ Met 2026-09-30 |

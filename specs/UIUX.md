@@ -2,7 +2,7 @@
 
 # UI and UX
 
-How Calm Terminal looks, moves and behaves. Principles are in [PHILOSOPHY.md](../PHILOSOPHY.md).
+How Calm Terminal looks, moves and behaves. Principles are in [PHILOSOPHY.md](../PHILOSOPHY.md). Behavior details are in [FEATURES.md](FEATURES.md).
 
 ## Design guidelines
 

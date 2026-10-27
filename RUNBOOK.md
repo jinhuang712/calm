@@ -35,6 +35,8 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 
 ## The four ways to install
 
+The user's steps for each way are in [INSTALL.md](INSTALL.md). This section is how they are built and kept working.
+
 | Way | What it does | Where it is built |
 |---|---|---|
 | `get.sh` (the one line) | Installs the newest `vMAJOR.MINOR.PATCH` release, checked against the asset's sha256, then swaps the app the way `install.sh` does. Refuses a Calm that Homebrew installed, and a Mac older than macOS 14.5 | The repository's root |

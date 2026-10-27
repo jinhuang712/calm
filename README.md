@@ -82,38 +82,11 @@ Every key is in [UIUX.md](UIUX.md). The `calm` command reaches Calm from a shell
 
 Calm needs macOS 14.5 or later on Apple silicon.
 
-**One line:**
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash
 ```
 
-[`get.sh`](get.sh) downloads the newest release, puts Calm in Applications and links the `calm` command into `~/.local/bin`. It also removes the macOS download mark, because Apple has not signed Calm. To update, choose **Update and Restart** in the `↑` notice of the sidebar, or run the script again. `| bash -s -- --help` lists the options.
-
-**Or Homebrew:**
-
-```sh
-brew install --cask jinhuang712/tap/calm
-/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app
-```
-
-The `xattr` line removes the download mark. Use the one in `/usr/bin`, because the Homebrew `xattr` package has no `-r`. To update, run `brew upgrade --cask calm` and the `xattr` line again.
-
-**Or the disk image:** download `Calm-<version>.dmg` from [Releases](https://github.com/jinhuang712/calm/releases), drag Calm onto Applications, and run `/usr/bin/xattr -dr com.apple.quarantine /Applications/Calm.app` once.
-
-**Or build it from source** (Xcode 26 with its Metal Toolchain, and [mise](https://mise.jdx.dev)):
-
-```sh
-git clone https://github.com/jinhuang712/calm.git && cd calm
-xcodebuild -downloadComponent MetalToolchain   # once, for Ghostty's shaders
-mise run setup                                 # tools, GhosttyKit, zmx, Xcode project
-mise run build                                 # or: mise run run
-```
-
-The first `setup` builds the Ghostty engine and takes about 8 minutes on a 3-core machine. `./install.sh` builds a Release copy into `/Applications`. The newest build of `main`, the release steps and the uninstall steps are in [RUNBOOK.md](RUNBOOK.md).
-
-> [!IMPORTANT]
-> **Restart Calm after you update.** Choose **Calm → Restart Calm**. Your shells keep running. Until then the old Calm's shells can lose access to Documents, Desktop and Downloads.
+That downloads the newest release, puts Calm in Applications and links the `calm` command into `~/.local/bin`. Homebrew, the disk image, the newest build of `main`, building from source, updating and uninstalling are in [INSTALL.md](INSTALL.md).
 
 ## 💡 Good to know
 
@@ -145,6 +118,7 @@ Open an [issue](https://github.com/jinhuang712/calm/issues). **⌘P → Dump Log
 | [GOALS.md](GOALS.md) | What do we measure? |
 | [FEATURES.md](FEATURES.md) | What does it do, and what will it do? |
 | [UIUX.md](UIUX.md) | How does it look and move? |
+| [INSTALL.md](INSTALL.md) | How do I install, update and remove it? |
 | [CLI.md](CLI.md) | What does every `calm` command do? |
 | [ROADMAP.md](ROADMAP.md) | When, and how far along? |
 | [RUNBOOK.md](RUNBOOK.md) | How do I build, release and install it? |

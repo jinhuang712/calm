@@ -12,7 +12,8 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 - [UIUX.md](UIUX.md) — states, motion, color, keys.
 - [CLI.md](CLI.md) — every `calm` command, built and planned.
 - [ROADMAP.md](ROADMAP.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
-- [RUNBOOK.md](RUNBOOK.md) — build, release, install, and the first step when something is wrong.
+- [INSTALL.md](INSTALL.md) — every way to install, update and remove Calm.
+- [RUNBOOK.md](RUNBOOK.md) — build, release, the installers, and the first step when something is wrong.
 - [TODO.md](TODO.md) and [CHANGELOG.md](CHANGELOG.md) — small open items, and what shipped.
 
 ## Principles

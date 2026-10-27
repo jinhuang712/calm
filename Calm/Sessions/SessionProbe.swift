@@ -8,7 +8,7 @@ import Foundation
 /// - **Folder:** for shells that don't report it themselves (no OSC 7, e.g. bash without
 ///   Ghostty's integration), read it from the shell process.
 /// - **Foreground job:** when it changes, read the new job's arguments once and let the agent
-///   adapters say whether an agent started or exited (FEATURES.md → F4).
+///   adapters say whether an agent started or exited (specs/FEATURES.md → F4).
 ///
 /// A persistent session's shell runs under zmx, so its process comes from `zmx list` (only
 /// when one isn't known yet) and works for sessions without a pane, e.g. after a relaunch.

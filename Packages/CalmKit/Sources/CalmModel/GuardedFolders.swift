@@ -2,7 +2,7 @@ import Foundation
 
 /// The home folders macOS keeps behind a privacy prompt (System Settings → Privacy & Security →
 /// Files & Folders). Reading one asks the user, and asks again whenever the app's signature isn't
-/// the one they granted. Calm reads them only when the user opens one (FEATURES.md → F10, guarded
+/// the one they granted. Calm reads them only when the user opens one (specs/FEATURES.md → F10, guarded
 /// folders). iCloud Drive, removable and network volumes are guarded too, but a walk never reaches
 /// them by itself: iCloud Drive sits in the hidden `Library`.
 public enum GuardedFolders {

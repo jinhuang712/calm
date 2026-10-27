@@ -2,7 +2,7 @@
 """Writes Calm's app icons, Calm/Resources/AppIcon.icon and AppIconDev.icon (Icon Composer documents).
 
 The mark is a 5 x 5 grid of cells: an open ring of ten, a still center, and the cursor cell
-just past the ring's end (UIUX.md -> App icon). One layer per part, each with a light and a
+just past the ring's end (specs/UIUX.md -> App icon). One layer per part, each with a light and a
 dark color, so the Finder and the Dock follow the system appearance. Liquid Glass is turned
 off: the mark is flat on purpose.
 
@@ -13,7 +13,7 @@ The same geometry and colors are drawn at runtime for the Dock's working, done a
 states (Calm/App/DockIcon.swift); change them together.
 
 Run from the repository root: scripts/app-icon.py
-Check the result with Icon Composer's ictool (see UIUX.md -> App icon).
+Check the result with Icon Composer's ictool (see specs/UIUX.md -> App icon).
 """
 
 import json

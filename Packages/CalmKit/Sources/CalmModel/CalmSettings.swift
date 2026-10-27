@@ -62,12 +62,12 @@ public struct CalmSettings: Equatable, Sendable {
 
     // MARK: Known settings
 
-    /// Sessions move between projects when their folder changes (FEATURES.md → F2).
+    /// Sessions move between projects when their folder changes (specs/FEATURES.md → F2).
     public var autoGrouping: Bool {
         bool("sidebar.auto-grouping", default: true)
     }
 
-    /// Calm asks GitHub once a day whether a newer release is out (FEATURES.md → Updates). Checking
+    /// Calm asks GitHub once a day whether a newer release is out (specs/FEATURES.md → Updates). Checking
     /// by hand from the Calm menu doesn't depend on it.
     public var checksForUpdates: Bool {
         bool("updates.check", default: true)
@@ -77,7 +77,7 @@ public struct CalmSettings: Equatable, Sendable {
         case full, reduced, off
     }
 
-    /// How much Calm animates (UIUX.md → Motion). The system's Reduce Motion always wins.
+    /// How much Calm animates (specs/UIUX.md → Motion). The system's Reduce Motion always wins.
     public var motion: MotionLevel {
         values["motion"].flatMap { MotionLevel(rawValue: $0.lowercased()) } ?? .full
     }

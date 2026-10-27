@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import Testing
 
-/// "Copy Last Reply" (FEATURES.md → F1): the agent's newest message as it wrote it,
+/// "Copy Last Reply" (specs/FEATURES.md → F1): the agent's newest message as it wrote it,
 /// where `readTail`'s `lastMessage` is a recap cut to a line.
 struct LastReplyTests {
     private func transcript(_ lines: [String]) throws -> URL {

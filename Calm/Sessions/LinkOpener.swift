@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import OSLog
 
-/// Opens ⌘-clicked links (FEATURES.md → F8): URLs in the browser, files in Calm's viewer (the
+/// Opens ⌘-clicked links (specs/FEATURES.md → F8): URLs in the browser, files in Calm's viewer (the
 /// default for viewable files) or the user's editor at the line. Relative paths resolve against
 /// the agent's folder, the session's, then its project's (agents often print repository-relative paths).
 @MainActor

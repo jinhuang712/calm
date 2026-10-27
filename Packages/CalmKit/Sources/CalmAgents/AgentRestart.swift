@@ -1,6 +1,6 @@
 import Foundation
 
-// Restarting a running agent on its conversation (FEATURES.md → F12, DESIGNS.md → An agent is quit in the
+// Restarting a running agent on its conversation (specs/FEATURES.md → F12, DESIGNS.md → An agent is quit in the
 // way it quits cleanly): ask it to quit the way that lets it tidy the terminal, then start it again with the
 // options it was started with, so a restart after an update changes nothing but the version. The
 // same options are kept for a resume or a fork once the agent has exited (`AgentRun.options`).

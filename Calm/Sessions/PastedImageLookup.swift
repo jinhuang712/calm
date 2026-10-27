@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import ImageIO
 
-/// Finds the image behind an agent's tag for a pasted image (`[Image #4]`, FEATURES.md → F8)
+/// Finds the image behind an agent's tag for a pasted image (`[Image #4]`, specs/FEATURES.md → F8)
 /// through the agent's adapter (`PastedImageResolving`): the core only asks.
 @MainActor
 enum PastedImageLookup {

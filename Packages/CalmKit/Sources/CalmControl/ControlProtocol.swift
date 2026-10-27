@@ -1,7 +1,7 @@
 import Foundation
 
 /// The local control protocol between the `calm` CLI (and agent hooks) and the app:
-/// one JSON object per line over a Unix socket (see CLI.md → How the CLI talks to Calm).
+/// one JSON object per line over a Unix socket (see specs/CLI.md → How the CLI talks to Calm).
 public enum ControlProtocol {
     public static let version = 1
 
@@ -132,7 +132,7 @@ public struct ControlResponse: Codable, Sendable, Equatable {
         }
 
         /// The one session whose id starts with `id`: 8 hex digits or more, any case, dashes or
-        /// not (CLI.md → Session id). Shorter, it could be the start of a conversation id instead.
+        /// not (specs/CLI.md → Session id). Shorter, it could be the start of a conversation id instead.
         public static func named(_ id: String, in sessions: [Self]) -> Self? {
             let wanted = id.lowercased().filter { $0 != "-" }
             guard wanted.count >= 8, wanted.allSatisfy(\.isHexDigit) else { return nil }

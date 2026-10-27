@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The settings page (FEATURES.md → F14, UIUX.md → Settings): ⌘, turns the whole window into
+/// The settings page (specs/FEATURES.md → F14, specs/UIUX.md → Settings): ⌘, turns the whole window into
 /// Settings, as the welcome page fills it. A list of sections takes the sidebar's place, and esc
 /// (or ⌘, again) goes back to the session exactly as it was; it keeps running underneath. Everything is saved to config.toml at once.
 @MainActor

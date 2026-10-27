@@ -66,7 +66,7 @@ final class SessionMenuState {
     }
 }
 
-/// The session menu (UIUX.md → Session cards → The session menu), drawn by Calm in the theme's
+/// The session menu (specs/UIUX.md → Session cards → The session menu), drawn by Calm in the theme's
 /// colors like ⌘P rather than as a system menu: a surface lifted off the terminal; the agent's
 /// actions as tiles under its name, a verb over what it does now; the rest as quiet rows, the
 /// copies under a small-caps label. Chosen by the author on 2026-10-06 (C of three, polished).

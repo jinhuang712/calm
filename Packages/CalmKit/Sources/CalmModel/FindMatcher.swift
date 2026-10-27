@@ -1,8 +1,8 @@
 import Foundation
 
-/// Find in a session (FEATURES.md → F16): where the words are in the terminal's text, matched
+/// Find in a session (specs/FEATURES.md → F16): where the words are in the terminal's text, matched
 /// as libghostty's search matches them, so the matches Calm marks are the ones the engine counts
-/// (FEATURES.md → F16). The engine compares bytes with only A to Z folded (`indexOfIgnoreCase`),
+/// (specs/FEATURES.md → F16). The engine compares bytes with only A to Z folded (`indexOfIgnoreCase`),
 /// counts a match at every place one starts, overlapping ones too (it looks again one byte past
 /// a match's start), and reads a line the terminal wrapped as one.
 public enum FindMatcher {

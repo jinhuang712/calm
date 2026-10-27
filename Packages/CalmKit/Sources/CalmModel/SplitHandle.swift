@@ -1,4 +1,4 @@
-/// When a pane shows its split icon (UIUX.md → Split panes): the small quiet icon in a pane's
+/// When a pane shows its split icon (specs/UIUX.md → Split panes): the small quiet icon in a pane's
 /// top right corner that opens the split's menu and can be dragged out of it.
 public enum SplitHandle {
     /// Whether the icon is drawn on a pane. Only in a split, where there is something to do; at

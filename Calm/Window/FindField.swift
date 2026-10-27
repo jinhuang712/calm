@@ -23,7 +23,7 @@ protocol FindFieldModel: AnyObject, Observable {
     var isPattern: Bool { get }
     var supportsPattern: Bool { get }
     func togglePattern()
-    /// Screen | Session (FEATURES.md → F16, the whole session): whether the switch shows, which
+    /// Screen | Session (specs/FEATURES.md → F16, the whole session): whether the switch shows, which
     /// side is chosen, and choosing a side.
     var showsScope: Bool { get }
     var isSession: Bool { get }
@@ -32,7 +32,7 @@ protocol FindFieldModel: AnyObject, Observable {
     func close()
 }
 
-/// The find field (UIUX.md → Find): the words, the count, ↑ ↓ and a ⌘F cap that closes it, in the
+/// The find field (specs/UIUX.md → Find): the words, the count, ↑ ↓ and a ⌘F cap that closes it, in the
 /// sidebar search field's soft fill. In the title strip ↵ goes to the older match and ⇧↵ to the
 /// newer, in a viewed file ↵ to the next; esc closes it. ⌘F, ⌘G and ⌘E come through the Edit menu
 /// (in the title strip) or the viewer's keys while it has the keyboard.
@@ -43,7 +43,7 @@ struct FindFieldView<Model: FindFieldModel>: View {
     let onFrame: (UUID, CGRect?) -> Void
     @FocusState private var focused: Bool
     @State private var id = UUID()
-    /// Faded in when find opens (UIUX.md → Find, motion).
+    /// Faded in when find opens (specs/UIUX.md → Find, motion).
     @State private var shown = false
 
     var body: some View {
@@ -107,7 +107,7 @@ struct FindFieldView<Model: FindFieldModel>: View {
         }
         .onChange(of: model.focusRequest, initial: true) {
             focused = true
-            // What's in it is selected, so typing replaces the last search (FEATURES.md → F16).
+            // What's in it is selected, so typing replaces the last search (specs/FEATURES.md → F16).
             DispatchQueue.main.async {
                 NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
             }
@@ -128,7 +128,7 @@ struct FindFieldView<Model: FindFieldModel>: View {
         model.isPattern && model.supportsPattern
     }
 
-    /// `.*`: find's one switch (UIUX.md → Find). Quiet when off; on, the text color on a tint of the accent.
+    /// `.*`: find's one switch (specs/UIUX.md → Find). Quiet when off; on, the text color on a tint of the accent.
     private var patternSwitch: some View {
         Button { model.togglePattern() } label: {
             Text(".*")

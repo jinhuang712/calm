@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Settings → Appearance → Session cards: Full, Compact and Minimal as chips like the interface
 /// sizes above them, each a slice of the sidebar in the picked theme with its cards at that size
-/// (UIUX.md → Session cards). The amber card keeps a line more at every size, as the cards that
+/// (specs/UIUX.md → Session cards). The amber card keeps a line more at every size, as the cards that
 /// wait for you do.
 struct SessionCardsPicker: View {
     let selection: CalmSettings.SessionCardSize

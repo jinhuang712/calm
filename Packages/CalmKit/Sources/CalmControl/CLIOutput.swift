@@ -1,7 +1,7 @@
 import Foundation
 
 /// What `calm list` and `calm search` print: one record per line, fields separated by tabs, and
-/// styling only on a terminal (CLI.md → Conventions).
+/// styling only on a terminal (specs/CLI.md → Conventions).
 public enum CLIOutput {
     /// Session id (its first 8 hex digits, which `calm show` and `--session` take), state, project,
     /// title, agent (`-` for none) and folder.

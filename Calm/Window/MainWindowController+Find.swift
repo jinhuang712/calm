@@ -1,7 +1,8 @@
 import AppKit
 import CalmModel
 
-/// Find in a session (FEATURES.md → F16, DESIGNS.md → Calm adds to the engine only what it cannot do from outside): libghostty's reports
+/// Find in a session (specs/FEATURES.md → F16, DESIGNS.md → Calm adds to the engine only what it cannot do from outside): libghostty's
+/// reports
 /// about a pane's
 /// search reach the window's FindModel, whose field sits in the title strip.
 extension MainWindowController {
@@ -35,7 +36,7 @@ extension MainWindowController {
     }
 
     /// Session, in the field or the note: what the session showed, as a page over the terminal
-    /// with find's words (FEATURES.md → F16, the whole session). The program goes on underneath.
+    /// with find's words (specs/FEATURES.md → F16, the whole session). The program goes on underneath.
     func showSessionPage() {
         guard let pane = (find.target as? TerminalSurfaceView) ?? focusedPane, !settingsPage.isShowing else { return }
         let words = find.query

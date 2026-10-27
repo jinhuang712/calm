@@ -3,7 +3,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// ⌘P (FEATURES.md → F1, UIUX.md → Command palette): what Calm does that has no key
+/// ⌘P (specs/FEATURES.md → F1, specs/UIUX.md → Command palette): what Calm does that has no key
 /// everyone knows. Every row does its whole job when chosen: no second list, no picker.
 extension MainWindowController {
     var isShowingCommandPalette: Bool {
@@ -117,7 +117,7 @@ extension MainWindowController {
         return rows
     }
 
-    /// A new session running each installed agent, with its options (FEATURES.md → New agent
+    /// A new session running each installed agent, with its options (specs/FEATURES.md → New agent
     /// sessions). The one ⌘N starts shows the key, which the palette is there to teach.
     private func newAgentCommands() -> [PaletteCommand] {
         let chosen = newSessionAgent

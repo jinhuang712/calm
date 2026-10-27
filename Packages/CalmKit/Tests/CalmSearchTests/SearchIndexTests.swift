@@ -300,7 +300,7 @@ struct SearchIndexTests {
         try fixture.write(".claude/projects/-y/new.jsonl", [Self.claudeUser("deploy notes", cwd: "/work/new")], modified: now)
         fixture.index.update(home: fixture.home)
         #expect(fixture.index.search("deploy", now: now).map(\.directory) == ["/work/new", "/work/old"])
-        // The current project ranks slightly higher (UIUX.md): enough to beat a few days, not months.
+        // The current project ranks slightly higher (specs/UIUX.md): enough to beat a few days, not months.
         #expect(fixture.index.search("deploy", currentProject: "/work/old", now: now).first?.directory == "/work/new")
         try fixture.write(
             ".claude/projects/-x/old.jsonl",

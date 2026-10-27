@@ -1,6 +1,6 @@
 import Foundation
 
-/// Find's map (FEATURES.md → F16, UIUX.md → Find): every line of the scrollback with a match, and
+/// Find's map (specs/FEATURES.md → F16, specs/UIUX.md → Find): every line of the scrollback with a match, and
 /// the row it starts on, so the map along the pane's edge can put a tick there. Made from the
 /// scrollback's text as libghostty reads it (`GHOSTTY_POINT_SCREEN`): soft-wrapped rows joined,
 /// one line per line of output, so a line's rows are its width over the pane's columns.

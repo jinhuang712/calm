@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a macOS notification says (UIUX.md → Notifications): a mark for the state and the
+/// What a macOS notification says (specs/UIUX.md → Notifications): a mark for the state and the
 /// session's name as the title, and what the agent said as the body. The app's icon already says
 /// it's Calm, so neither the project nor the agent is named.
 ///

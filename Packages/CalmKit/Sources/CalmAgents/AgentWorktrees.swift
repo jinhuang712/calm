@@ -1,6 +1,6 @@
 import Foundation
 
-// Worktrees an agent made for a session of its own (FEATURES.md → New agent sessions): Calm
+// Worktrees an agent made for a session of its own (specs/FEATURES.md → New agent sessions): Calm
 // removes one when its session closes, if the agent is gone and the worktree is still empty,
 // since closing a session ends the agent before it can clean up after itself.
 

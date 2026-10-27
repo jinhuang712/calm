@@ -1,7 +1,7 @@
 import CalmControl
 import Foundation
 
-/// `calm screenshot [<file>]`: saves a PNG of Calm's window and prints where it went (CLI.md).
+/// `calm screenshot [<file>]`: saves a PNG of Calm's window and prints where it went (specs/CLI.md).
 /// Calm renders the window itself and sends the PNG back, so the file is written with this shell's
 /// own permissions and nothing needs Screen Recording. It never starts Calm: with Calm not
 /// running there is no window to capture.

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Whether the user has left Calm, read from which app comes to the front (FEATURES.md → F5).
+/// Whether the user has left Calm, read from which app comes to the front (specs/FEATURES.md → F5).
 /// Leaving settles the finished session on screen, as going to another session does. Only an
 /// app with a Dock icon counts: a menu-bar tool that takes the front for a moment (a screenshot
 /// tool, a clipboard manager, Spotlight) is used over Calm, not instead of it. Snipaste froze

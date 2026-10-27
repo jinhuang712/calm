@@ -1,7 +1,7 @@
 import CalmAgents
 import Foundation
 
-/// How an agent's mark is posed at one moment of its motion (UIUX.md → Agent marks).
+/// How an agent's mark is posed at one moment of its motion (specs/UIUX.md → Agent marks).
 struct MarkPose: Equatable {
     /// Degrees, clockwise.
     var rotation = 0.0
@@ -28,7 +28,7 @@ struct MarkPose: Equatable {
 
 /// Each motion as a pure function of time: `working` loops while the agent works, and
 /// `finishing` plays once, from when the work ends, then the mark rests. Timings follow the
-/// agents' own marks, slowed and softened (UIUX.md → Agent marks).
+/// agents' own marks, slowed and softened (specs/UIUX.md → Agent marks).
 enum MarkMotion {
     static func working(_ motion: AgentMarkArt.Motion, shapes: Int, at time: TimeInterval) -> MarkPose {
         var pose = MarkPose()

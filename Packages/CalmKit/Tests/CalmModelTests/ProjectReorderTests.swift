@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// FEATURES.md → F2: a project's header dragged to another place among the projects.
+/// specs/FEATURES.md → F2: a project's header dragged to another place among the projects.
 struct ProjectReorderTests {
     // MARK: The order
 

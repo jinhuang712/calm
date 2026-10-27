@@ -4,7 +4,7 @@ import CalmModel
 import Foundation
 import Testing
 
-/// The split icon's place and what it takes a click for (UIUX.md → Split panes).
+/// The split icon's place and what it takes a click for (specs/UIUX.md → Split panes).
 @MainActor
 struct SplitHandleViewTests {
     /// A flipped parent, as the workspace view is, so the icons' own coordinates are the parent's.

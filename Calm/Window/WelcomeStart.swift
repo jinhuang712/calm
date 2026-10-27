@@ -1,8 +1,8 @@
 import CalmModel
 import SwiftUI
 
-// The ways to start on the welcome page (UIUX.md → Welcome page): the start line under the lists,
-// and the first launch's rows. ⌘N's carry a ⌄ for the other agents (FEATURES.md → New agent sessions).
+// The ways to start on the welcome page (specs/UIUX.md → Welcome page): the start line under the lists,
+// and the first launch's rows. ⌘N's carry a ⌄ for the other agents (specs/FEATURES.md → New agent sessions).
 
 extension OtherAgentsMenu {
     init(actions: WelcomeView.Actions) {

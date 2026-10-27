@@ -60,7 +60,7 @@ public struct CalmRelease: Equatable, Sendable {
     }
 }
 
-/// Where Calm looks for a newer release, and what it tells you to run (FEATURES.md → Updates).
+/// Where Calm looks for a newer release, and what it tells you to run (specs/FEATURES.md → Updates).
 public enum CalmUpdates {
     /// GitHub's list of the releases, not `/releases/latest`: that one leaves out pre-releases and
     /// answers 404 while every release is one, as 0.1.0 is.

@@ -3,7 +3,8 @@ import CalmModel
 import Foundation
 import OSLog
 
-/// Connects agents' hooks to Calm (FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only after Connect, and marked).
+/// Connects agents' hooks to Calm (specs/FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only after Connect, and
+/// marked).
 ///
 /// Claude Code's hooks ship as a plugin in `~/Library/Application Support/Calm/agents/claude-code`
 /// (rewritten at each launch) and are loaded through `CLAUDE_CODE_PLUGIN_DIRS` in the shells Calm
@@ -51,7 +52,7 @@ enum AgentIntegrations {
         syncSendKeys(on: SessionManager.shared.settings.sendWithCommandReturn)
     }
 
-    /// Send with ⌘ Return (FEATURES.md → F5): puts Calm's bindings into each installed agent's own
+    /// Send with ⌘ Return (specs/FEATURES.md → F5): puts Calm's bindings into each installed agent's own
     /// key settings while the setting is on, and takes them out while it's off (`SendKeysFile`,
     /// which only ever adds and removes Calm's own). At launch, so an agent installed since gets
     /// them, and whenever the setting changes. Returns where each agent stands, for Settings.
@@ -120,7 +121,7 @@ enum AgentIntegrations {
     private static var trustingScratch: Set<AgentKind> = []
 
     /// Scratch folders are Calm's own and start empty, so an agent that asks before it works in a
-    /// new folder (Claude Code) is told once that their root is trusted (FEATURES.md → F2). Called
+    /// new folder (Claude Code) is told once that their root is trusted (specs/FEATURES.md → F2). Called
     /// at each new scratch session, before its agent starts and whichever agent that is, so one the
     /// user starts there by hand doesn't ask either; after it succeeds, it costs nothing.
     static func trustScratchFolders(

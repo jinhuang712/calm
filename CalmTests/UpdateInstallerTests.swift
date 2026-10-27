@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import Testing
 
-/// Update and Restart (FEATURES.md → Updates), with a fake script run and a fake restart: no test
+/// Update and Restart (specs/FEATURES.md → Updates), with a fake script run and a fake restart: no test
 /// installs anything or restarts Calm.
 @MainActor
 struct UpdateInstallerTests {

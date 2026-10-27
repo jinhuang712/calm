@@ -1,5 +1,5 @@
 /// How much the panes of a split recede, so the one you're typing in is the bright one
-/// (UIUX.md → Split panes). The engine draws no such dim, and Calm's is its own: fixed, not read
+/// (specs/UIUX.md → Split panes). The engine draws no such dim, and Calm's is its own: fixed, not read
 /// from Ghostty's `unfocused-split-opacity`, whose value in the user's config was tuned for a
 /// terminal that draws it.
 public enum PaneDim {

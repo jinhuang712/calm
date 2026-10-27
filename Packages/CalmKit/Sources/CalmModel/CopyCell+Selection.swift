@@ -1,6 +1,6 @@
 import Foundation
 
-/// An ⌥-drag inside a table cell (FEATURES.md → F9): text selected from one point to another in
+/// An ⌥-drag inside a table cell (specs/FEATURES.md → F9): text selected from one point to another in
 /// reading order, never crossing the cell's own lines. A normal selection runs across a whole row,
 /// so in a cell that wraps onto several lines it picks up the neighbouring cells' text too.
 public extension CopyCell {

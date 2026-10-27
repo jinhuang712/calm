@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Calm's motion switch (UIUX.md → Motion): soft animation by default, none when the system's
+/// Calm's motion switch (specs/UIUX.md → Motion): soft animation by default, none when the system's
 /// Reduce Motion is on or `motion = reduced` / `off` in config.toml.
 @MainActor
 enum Motion {

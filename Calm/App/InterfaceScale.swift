@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance → Interface size (UIUX.md → Accessibility): one factor for every size
+/// Settings → Appearance → Interface size (specs/UIUX.md → Accessibility): one factor for every size
 /// and length in Calm's chrome (the sidebar, cards, Settings, search, panels), never the terminal.
 /// Views read it through `.calmFont` and `.scaled`; it's observable, so a change redraws them.
 @MainActor
@@ -25,7 +25,7 @@ final class InterfaceScale {
 }
 
 extension CGFloat {
-    /// This length at the interface size (UIUX.md → Accessibility).
+    /// This length at the interface size (specs/UIUX.md → Accessibility).
     @MainActor
     var scaled: CGFloat {
         self * InterfaceScale.shared.factor

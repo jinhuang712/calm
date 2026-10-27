@@ -1,4 +1,4 @@
-/// How big the viewer shows a file (FEATURES.md → F10): ⌘+ and ⌘− step through fixed sizes, as a
+/// How big the viewer shows a file (specs/FEATURES.md → F10): ⌘+ and ⌘− step through fixed sizes, as a
 /// browser does, and ⌘0 goes back to 1. A page of text is sized against its own text; a picture or
 /// a PDF against the size that fits the viewer.
 public enum ViewerZoom {
@@ -25,7 +25,7 @@ public enum ViewerZoom {
         return next ?? (bigger ? steps[steps.count - 1] : steps[0])
     }
 
-    /// "125%": how the file's row says a size (UIUX.md → Viewing files).
+    /// "125%": how the file's row says a size (specs/UIUX.md → Viewing files).
     public static func percent(_ zoom: Double) -> String {
         "\(Int((zoom * 100).rounded()))%"
     }

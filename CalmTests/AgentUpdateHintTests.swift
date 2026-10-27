@@ -3,7 +3,7 @@ import CalmAgents
 import CalmModel
 import Testing
 
-/// What the title strip's update hint says and does (UIUX.md → Title bar).
+/// What the title strip's update hint says and does (specs/UIUX.md → Title bar).
 struct AgentUpdateHintTests {
     private let update = AgentUpdate(installed: "2.1.291", running: "2.1.285")
 

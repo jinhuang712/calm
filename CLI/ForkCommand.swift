@@ -2,7 +2,7 @@ import CalmControl
 import Foundation
 
 /// `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]`: forks this session's
-/// conversation into a new session of its own and prints that session's id (CLI.md). The words
+/// conversation into a new session of its own and prints that session's id (specs/CLI.md). The words
 /// that aren't options are the prompt. It never starts Calm: a session to fork is in a running one.
 enum ForkCommand {
     static let usage = #"calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]"#

@@ -3,7 +3,7 @@ import CalmModel
 import QuickLookThumbnailing
 import SwiftUI
 
-/// The tag beside a ⌘-hovered link (FEATURES.md → F8, UIUX.md → Links): what the link is, where it
+/// The tag beside a ⌘-hovered link (specs/FEATURES.md → F8, specs/UIUX.md → Links): what the link is, where it
 /// is, and what a click does, with a small picture of an image. It shows only while ⌘ is held
 /// over the link, just under it (above it near the pane's bottom), and takes no clicks.
 @MainActor

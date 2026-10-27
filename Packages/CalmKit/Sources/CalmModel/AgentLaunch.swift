@@ -1,6 +1,6 @@
 import Foundation
 
-/// One way an agent can be started (FEATURES.md → New agent sessions): a flag of the agent's own,
+/// One way an agent can be started (specs/FEATURES.md → New agent sessions): a flag of the agent's own,
 /// shown as a chip under its name in Settings → Agents. Each adapter declares its own options;
 /// the core only reads whether one is on.
 public struct LaunchOption: Sendable, Equatable, Identifiable {

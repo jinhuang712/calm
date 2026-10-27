@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-// What ⌘N types to start each agent (FEATURES.md → New agent sessions): its command, the flags
+// What ⌘N types to start each agent (specs/FEATURES.md → New agent sessions): its command, the flags
 // written in config.toml, then the options chosen in Settings → Agents, each one of the agent's
 // own flags. Read from each agent's `--help` on 2026-10-06 and 2026-10-07: Claude Code 2.1.292,
 // Codex 0.159.0, OpenCode 2.0.20, pi 1.0.4 (which asks before nothing, so it has no option to

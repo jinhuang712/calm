@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the tag beside a ⌘-hovered link says (FEATURES.md → F8, UIUX.md → Links): what the link
+/// What the tag beside a ⌘-hovered link says (specs/FEATURES.md → F8, specs/UIUX.md → Links): what the link
 /// is, where it is, and what a click does.
 public struct LinkPreview: Equatable, Sendable {
     public enum Kind: Equatable, Sendable {

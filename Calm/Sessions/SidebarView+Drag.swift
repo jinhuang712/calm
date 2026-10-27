@@ -2,7 +2,7 @@ import CalmModel
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Sessions picked up from the sidebar, and put back on it (UIUX.md → Split panes).
+/// Sessions picked up from the sidebar, and put back on it (specs/UIUX.md → Split panes).
 extension SidebarView {
     /// What a dragged session is called on the pasteboard (Info.plist exports it).
     static let sessionType = UTType(exportedAs: SessionDrag.typeIdentifier, conformingTo: .data)

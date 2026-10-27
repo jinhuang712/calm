@@ -1,4 +1,4 @@
-/// Settings → Appearance → Session cards → Shrink to fit (UIUX.md → Session cards): the cards
+/// Settings → Appearance → Session cards → Shrink to fit (specs/UIUX.md → Session cards): the cards
 /// take the largest size, up to the one chosen, at which the sidebar's sessions fit without
 /// scrolling. The list steps down a size when what's drawn is taller than its room, and back up
 /// when the larger size is expected to fit again.
@@ -144,7 +144,7 @@ public extension CalmSettings.SessionCardSize {
 
 public extension SessionCardLayout {
     /// About how tall a card is at the standard interface size, measured from the drawn cards
-    /// (UIUX.md → Session cards: 111 pt for a working card at Full, 66 at Compact, 40 at
+    /// (specs/UIUX.md → Session cards: 111 pt for a working card at Full, 66 at Compact, 40 at
     /// Minimal). A recap counts as long enough to fill its lines, so the guess errs tall and the
     /// sidebar would rather stay a size too small than scroll.
     static func nominalHeight(

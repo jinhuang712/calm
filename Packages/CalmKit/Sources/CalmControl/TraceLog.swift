@@ -1,7 +1,7 @@
 import Foundation
 
-/// What `calm trace` runs and prints: Calm's trace (FEATURES.md → F13) from the unified log,
-/// through `/usr/bin/log`, one line per event (CLI.md → `calm trace`).
+/// What `calm trace` runs and prints: Calm's trace (specs/FEATURES.md → F13) from the unified log,
+/// through `/usr/bin/log`, one line per event (specs/CLI.md → `calm trace`).
 public enum TraceLog {
     /// `--last`: a whole number of seconds, minutes, hours or days, as `log show` takes it.
     public static func isDuration(_ text: String) -> Bool {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// What Calm's Dock icon shows (UIUX.md → App icon): the still mark; the chase while an agent
+/// What Calm's Dock icon shows (specs/UIUX.md → App icon): the still mark; the chase while an agent
 /// works; the ring closed, its cursor cell sage, when work is done; the ring dimmed to grey, its
 /// cursor cell red, when something failed.
 public enum AppIconState: Sendable, Equatable {
@@ -203,7 +203,7 @@ public struct DockSight: Sendable, Equatable {
     }
 }
 
-/// Moves the icon from state to state over time (UIUX.md → App icon): the chase starts at once;
+/// Moves the icon from state to state over time (specs/UIUX.md → App icon): the chase starts at once;
 /// when work stops, the cursor carries on to its resting place and takes the last step slowly
 /// (the settle), then the icon turns into the new state. Pure: frames are a function of time.
 public struct AppIconMotion: Sendable, Equatable {

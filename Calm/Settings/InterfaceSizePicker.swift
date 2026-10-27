@@ -2,7 +2,7 @@ import CalmModel
 import SwiftUI
 
 /// Settings → Appearance → Interface size: the sizes as chips like the themes above them, each a
-/// strip of Calm in the picked theme at that size (UIUX.md → Accessibility).
+/// strip of Calm in the picked theme at that size (specs/UIUX.md → Accessibility).
 struct InterfaceSizePicker: View {
     let selection: CalmSettings.InterfaceSize
     let preview: ThemePickerModel.Preview

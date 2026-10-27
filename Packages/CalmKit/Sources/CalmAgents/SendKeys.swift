@@ -1,6 +1,6 @@
 import Foundation
 
-/// Send with ⌘ Return (FEATURES.md → F5): the bindings that make ⌘ Return send an agent's prompt
+/// Send with ⌘ Return (specs/FEATURES.md → F5): the bindings that make ⌘ Return send an agent's prompt
 /// and Return start a new line in it, and the file of the agent's own they go in.
 ///
 /// Only the prompt changes. Each agent scopes these bindings to its prompt itself, so every other

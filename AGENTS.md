@@ -4,29 +4,21 @@ Guidance for coding agents working on Calm Terminal: a minimal macOS terminal th
 
 ## Read first
 
-- [PROPOSAL.md](PROPOSAL.md) — why Calm exists, what we want and what we don't.
-- [PHILOSOPHY.md](PHILOSOPHY.md) — the stances every change is checked against. Its last section is the test for every change.
-- [DESIGNS.md](DESIGNS.md) — the eight principles the code is built around, and the decisions with their reasons.
-- [GOALS.md](GOALS.md) — what we measure, with readings and thresholds.
-- [FEATURES.md](FEATURES.md) — exact behavior of each feature, each feature's own decisions, what fails, *Later* and *Not planned*.
-- [UIUX.md](UIUX.md) — states, motion, color, keys.
-- [CLI.md](CLI.md) — every `calm` command, built and planned.
-- [ROADMAP.md](plans/ROADMAP.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
-- [INSTALL.md](INSTALL.md) — every way to install, update and remove Calm.
-- [RUNBOOK.md](RUNBOOK.md) — build, release, the installers, and the first step when something is wrong.
-- [TODO.md](plans/TODO.md) and [CHANGELOG.md](CHANGELOG.md) — small open items, and what shipped.
+- [PROPOSAL.md](PROPOSAL.md) — what we measure, with readings and thresholds.
+- [FEATURES.md](specs/FEATURES.md) — milestones, progress and design questions still open. Do not start a *Later* item without asking.
+- [INSTALL.md](INSTALL.md) — small open items, and what shipped.
 
 ## Principles
 
 - **Calm first.** Before you add UI, a setting or a notification, apply the test at the end of PHILOSOPHY.md.
-- **Restraint, elegance, minimalism, calm.** These are the design guidelines for every screen (UIUX.md → Design guidelines).
+- **Restraint, elegance, minimalism, calm.** These are the design guidelines for every screen (specs/UIUX.md → Design guidelines).
 - **Settings are a last resort.** Get the default right. Give each feature at most one or two settings.
 - **Stay a terminal.** No built-in chat, editor, browser or cloud features.
 - **Respect module boundaries.** Only `Terminal` touches GhosttyKit. `CalmKit` (CalmModel, CalmAgents, CalmSearch, CalmControl, CalmSQLite) has no UI framework.
 - **Agents are adapters.** Agent-specific code lives in its own adapter. The core never special-cases an agent.
 - **Degrade, don't crash.** Transcript formats and agent hooks change, so a failure falls back quietly.
-- **Keep docs true.** Each fact has one home. Behavior and a feature's own decisions go in FEATURES.md, a rule that spans the project in DESIGNS.md, how it looks in UIUX.md, a number in GOALS.md, and what shipped in CHANGELOG.md. When behavior changes, update the owner first and its summaries in the same change. When a milestone task lands, update plans/ROADMAP.md.
-- **Headings are addresses.** Code comments and docs cite headings (`FEATURES.md → Not planned`). Before you rename one, search for it and fix every reference in the same change.
+- **Keep docs true.** Each fact has one home. Behavior and a feature's own decisions go in specs/FEATURES.md, a rule that spans the project in DESIGNS.md, how it looks in specs/UIUX.md, a number in GOALS.md, and what shipped in CHANGELOG.md. When behavior changes, update the owner first and its summaries in the same change. When a milestone task lands, update plans/ROADMAP.md.
+- **Headings are addresses.** Code comments and docs cite headings (`specs/FEATURES.md → Not planned`). Before you rename one, search for it and fix every reference in the same change.
 - **A claim is checked.** A command, a number or a behavior in a doc is run or measured, or marked "not yet verified". A goal is met only with a reading and a date.
 
 ## Code

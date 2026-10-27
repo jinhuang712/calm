@@ -2,7 +2,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// What the close question says (UIUX.md → Split panes): the running program's mark, one line
+/// What the close question says (specs/UIUX.md → Split panes): the running program's mark, one line
 /// and a quieter one, and the two answers. No card: the words stand on the asked pane's clearing
 /// (`ClearingView`), so nothing has a border.
 struct ClosePromptView: View {

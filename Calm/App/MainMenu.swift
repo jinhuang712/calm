@@ -110,7 +110,7 @@ enum MainMenu {
         return menu
     }
 
-    /// Find in a session (FEATURES.md → F16). libghostty's own bindings take these keys while a
+    /// Find in a session (specs/FEATURES.md → F16). libghostty's own bindings take these keys while a
     /// pane has the keyboard; the items take them while find's field has it, so both run the same
     /// binding actions. Find… reads Hide Find while find is open (`validateMenuItem`).
     private static func findMenu() -> NSMenu {
@@ -252,12 +252,12 @@ final class TerminalMenuTarget: NSObject {
         TerminalWindowManager.shared.focusedController?.focusedPane?.perform(action)
     }
 
-    /// ⌥⌘R: find's words become a pattern, or plain words again (FEATURES.md → F16).
+    /// ⌥⌘R: find's words become a pattern, or plain words again (specs/FEATURES.md → F16).
     @objc func toggleFindPattern(_: Any?) {
         TerminalWindowManager.shared.focusedController?.toggleFindPattern()
     }
 
-    /// ⌘⇧A: the session that has waited longest for you (UIUX.md → Keyboard).
+    /// ⌘⇧A: the session that has waited longest for you (specs/UIUX.md → Keyboard).
     @objc func jumpToWaitingSession(_: Any?) {
         let manager = SessionManager.shared
         let current = manager.workspace.selectedLayout?.focusedSessionID

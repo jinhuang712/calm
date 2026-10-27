@@ -1,7 +1,7 @@
 import Foundation
 
 /// One entry of `git worktree list --porcelain`: what Calm needs to clean up a worktree an agent
-/// made for a session and left empty (FEATURES.md → New agent sessions).
+/// made for a session and left empty (specs/FEATURES.md → New agent sessions).
 public struct GitWorktree: Equatable, Sendable {
     public var path: String
     /// The branch's short name; nil for a detached HEAD.

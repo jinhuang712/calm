@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// The agent ⌘N starts and the other agents installed, for the ways to start (FEATURES.md → New
+/// The agent ⌘N starts and the other agents installed, for the ways to start (specs/FEATURES.md → New
 /// agent sessions): the sidebar's footer, the first-launch rows and the start line. Read when
 /// those are built and passed in, since the settings aren't observed.
 struct StartAgents: Equatable {

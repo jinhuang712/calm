@@ -23,12 +23,12 @@ struct CalmSkillTests {
     }
 
     @Test func `it keeps an agent from moving the user or reporting for Calm`() {
-        // An agent must not move the user's attention (CLI.md → Not planned).
+        // An agent must not move the user's attention (specs/CLI.md → Not planned).
         #expect(CalmSkill.text.contains("calm fork --background"))
         #expect(CalmSkill.text.contains("Do not run `calm status` or `calm notify`"))
         // A permission rule can allow `calm …`, never `"$CALM_CLI" …`, and an agent that joins both asks.
         #expect(CalmSkill.text.contains("Do not join the two in one command."))
-        // A fork is looked up when asked, never waited on (CLI.md → Not planned: `calm wait`).
+        // A fork is looked up when asked, never waited on (specs/CLI.md → Not planned: `calm wait`).
         #expect(CalmSkill.text.contains("`calm show <session id>` gives its state and last reply. Do not wait or poll for it."))
     }
 }

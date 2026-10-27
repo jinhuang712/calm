@@ -1,6 +1,6 @@
 import Foundation
 
-/// A changed file in the files column (FEATURES.md → F10), from `git status`.
+/// A changed file in the files column (specs/FEATURES.md → F10), from `git status`.
 public enum GitChange: String, Sendable, Equatable {
     case modified = "M"
     case added = "A"

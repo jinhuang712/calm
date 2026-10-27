@@ -1,7 +1,7 @@
 import CalmModel
 import Testing
 
-/// ⌘N's settings in config.toml (FEATURES.md → New agent sessions): which agent, its options, the
+/// ⌘N's settings in config.toml (specs/FEATURES.md → New agent sessions): which agent, its options, the
 /// flags and the whole command typed as written, each agent in a `[agents.<agent>]` section, and
 /// quotes in those strings surviving a write and a read.
 struct AgentLaunchSettingsTests {

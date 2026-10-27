@@ -3,7 +3,7 @@ import CalmModel
 import SwiftUI
 
 /// Hold ⌃ and press Tab to cycle sessions in sidebar order, top to bottom; release ⌃ to settle
-/// on the chosen one (UIUX.md → Motion → Session switching). A quick ⌃Tab moves to the next
+/// on the chosen one (specs/UIUX.md → Motion → Session switching). A quick ⌃Tab moves to the next
 /// session down without showing anything; holding shows small live previews.
 @MainActor
 final class SessionSwitcher {

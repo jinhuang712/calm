@@ -3,7 +3,7 @@ import CalmModel
 import Observation
 import QuartzCore
 
-/// Calm's Dock icon while it runs (UIUX.md → App icon). At rest the Dock shows the app's own
+/// Calm's Dock icon while it runs (specs/UIUX.md → App icon). At rest the Dock shows the app's own
 /// icon (AppIcon.icon, in the user's icon style); while an agent works, or after work finished or
 /// failed, Calm draws the icon itself: the chase, the ring closed in sage, the ring dimmed with a
 /// red cell. It redraws only while something moves, and only frames that changed.
@@ -415,7 +415,7 @@ final class DockIconView: NSView {
         }
     }
 
-    /// The icon's colors, from Calm's own theme and state colors (UIUX.md → App icon).
+    /// The icon's colors, from Calm's own theme and state colors (specs/UIUX.md → App icon).
     private struct Palette {
         var top: RGB
         var bottom: RGB

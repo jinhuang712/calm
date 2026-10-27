@@ -10,7 +10,7 @@ final class TerminalWorkspaceView: NSView {
     private(set) var zoomedPane: UUID?
     /// The dotted lines under links that open, above the panes (they can't take subviews).
     private let linkMarks = LinkMarksView()
-    /// Find's underlines and band (FEATURES.md → F16), over the panes like the link marks.
+    /// Find's underlines and band (specs/FEATURES.md → F16), over the panes like the link marks.
     private let findMarks = FindMarksView()
     /// Find's map, beside the pane being searched (one at a time).
     private let findMap = FindMapView()
@@ -208,7 +208,7 @@ final class TerminalWorkspaceView: NSView {
     override func didAddSubview(_ subview: NSView) {
         super.didAddSubview(subview)
         guard let pane = subview as? TerminalSurfaceView else { return }
-        // Each set of marks steps aside for the other (UIUX.md → Find, links), so both redraw.
+        // Each set of marks steps aside for the other (specs/UIUX.md → Find, links), so both redraw.
         let redraw = { [weak self, weak pane] in
             guard let self, let pane else { return }
             linkMarks.update(pane)

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A folder with nothing tracked in it, as the files column shows it (FEATURES.md → F10).
+/// A folder with nothing tracked in it, as the files column shows it (specs/FEATURES.md → F10).
 /// `git status` reports one as a single `dir/` entry; the column lists the files inside, unless
 /// there are too many to be worth listing (a `node_modules` nobody ignored): then it is one row
 /// with the count, and nothing inside is read, counted or drawn.

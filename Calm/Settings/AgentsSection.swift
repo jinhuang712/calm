@@ -4,7 +4,7 @@ import CalmModel
 import SwiftUI
 import UserNotifications
 
-/// Settings → Agents (FEATURES.md → F5, New agent sessions; ROADMAP M3.11–M3.12): the agent ⌘N
+/// Settings → Agents (specs/FEATURES.md → F5, New agent sessions; ROADMAP M3.11–M3.12): the agent ⌘N
 /// starts, each installed agent with the options it starts with and how it connects (the one
 /// setup that needs consent writes files in an agent's own config folder), and the two
 /// notification settings. Calm → Agents… opens it. Nothing is written anywhere without a click.
@@ -148,7 +148,7 @@ final class AgentsSettingsModel {
         refresh()
     }
 
-    /// Choosing a default removes the key, as the other sections do (FEATURES.md → F14).
+    /// Choosing a default removes the key, as the other sections do (specs/FEATURES.md → F14).
     func setNotifyStates(_ value: CalmSettings.NotifyStates) {
         notifyStates = value
         save("agents.notify", value == .needsYou ? nil : value.rawValue)
@@ -159,7 +159,7 @@ final class AgentsSettingsModel {
         save("agents.sound", value ? "true" : nil)
     }
 
-    /// Send with ⌘ Return (FEATURES.md → F5): the agents' own key settings, then ⌘↵ itself, which
+    /// Send with ⌘ Return (specs/FEATURES.md → F5): the agents' own key settings, then ⌘↵ itself, which
     /// goes through to programs while it's on and types Return while it's off (`CalmDefaults`).
     func setSendWithCommandReturn(_ value: Bool) {
         sendWithCommandReturn = value
@@ -171,7 +171,7 @@ final class AgentsSettingsModel {
     }
 
     /// The line under "Send prompts with": what Return becomes, and words only when something
-    /// needs a step (UIUX.md → Settings → Agents).
+    /// needs a step (specs/UIUX.md → Settings → Agents).
     var sendKeysLine: String {
         var problems: [String] = []
         if sendWithCommandReturn {
@@ -317,7 +317,7 @@ struct AgentsSection: View {
     }
 }
 
-/// One installed agent on one row (UIUX.md → Settings → Agents): its mark (moving while one of
+/// One installed agent on one row (specs/UIUX.md → Settings → Agents): its mark (moving while one of
 /// its sessions works), its name, and under it a chip for each option it starts with on ⌘N. The
 /// right side stays empty while all is well (connected is the normal state) and holds only what
 /// is off: Connect, Left alone, Set Up…, and ••• for Disconnect.
@@ -421,7 +421,7 @@ private struct AgentRow: View {
 }
 
 /// One option an agent starts with, as a chip that turns on and off: on is a soft fill of the
-/// accent with a check, off a quiet outline (UIUX.md → Settings → Agents). Pointing at it names
+/// accent with a check, off a quiet outline (specs/UIUX.md → Settings → Agents). Pointing at it names
 /// the flag it adds.
 private struct LaunchChip: View {
     let option: LaunchOption
@@ -461,7 +461,7 @@ private struct LaunchChip: View {
     }
 }
 
-/// Send with ⌘ Return (UIUX.md → Settings → Agents): one switch. ⌘ ↩ before it, as two soft keys,
+/// Send with ⌘ Return (specs/UIUX.md → Settings → Agents): one switch. ⌘ ↩ before it, as two soft keys,
 /// say what it turns on (solid while on, an outline while off); the line under the title says
 /// what Return becomes, after the marks of the agents it reaches. Picked by the author from local
 /// mockups (2026-10-06): choices built from keys (pairs, boxes, chips) read as a legend, not a

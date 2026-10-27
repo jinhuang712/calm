@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A session's name on one line (UIUX.md → Session cards). A long name keeps its start and
+/// A session's name on one line (specs/UIUX.md → Session cards). A long name keeps its start and
 /// ends in "…"; while the pointer rests on its row, it glides once to its end and holds there,
 /// then slides back when the pointer leaves. With motion reduced it stays truncated.
 ///

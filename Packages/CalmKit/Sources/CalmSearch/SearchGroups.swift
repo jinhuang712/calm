@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// How ⌘K lays out its results (UIUX.md → Search): grouped like the sidebar, the group you're in
+/// How ⌘K lays out its results (specs/UIUX.md → Search): grouped like the sidebar, the group you're in
 /// first and the rest in the order of their best match. With results in more than one group,
 /// each shows a few and keeps the rest behind a row that shows five more at a time.
 public enum SearchGroups {
@@ -88,7 +88,7 @@ public enum SearchGroups {
     }
 }
 
-/// What a group's header counts (UIUX.md → Search): its sessions open in Calm and doing
+/// What a group's header counts (specs/UIUX.md → Search): its sessions open in Calm and doing
 /// something (working, done, waiting on you or failed), open and idle, and past ones you could
 /// resume. Three numbers at most, however long the history.
 public struct SearchGroupCounts: Equatable, Sendable {

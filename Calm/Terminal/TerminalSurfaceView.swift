@@ -150,7 +150,7 @@ final class TerminalSurfaceView: NSView {
         }
 
         var env = options.environment
-        // The status contract (CLI.md → For agents' hooks): hooks run `$CALM_CLI status …`, which
+        // The status contract (specs/CLI.md → For agents' hooks): hooks run `$CALM_CLI status …`, which
         // reports for `$CALM_SESSION_ID` over `$CALM_SOCKET`.
         env["CALM_SESSION_ID"] = id.uuidString
         env["CALM_SOCKET"] = ControlProtocol.defaultSocketPath

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Finding the projects a user made by what they type into the welcome page's search
-/// (FEATURES.md → F2): every word must be in the project's name or its folder, as the page shows
+/// (specs/FEATURES.md → F2): every word must be in the project's name or its folder, as the page shows
 /// them, ignoring case and accents. What matches is what's marked, so a word that only fits the
 /// part of a path the page abbreviates ("/Users/me" for "~") doesn't match.
 public enum ProjectSearch {

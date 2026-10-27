@@ -1,7 +1,7 @@
 import Foundation
 
 /// What an agent is doing this moment, in a few words for its working card: "Reading
-/// SessionCard.swift" (UIUX.md → Session cards). The adapter that hears the agent's hook picks
+/// SessionCard.swift" (specs/UIUX.md → Session cards). The adapter that hears the agent's hook picks
 /// the words; the card only shows them.
 public struct AgentActivity: Hashable, Sendable {
     public var words: String
@@ -46,7 +46,7 @@ public enum ActivityChange: Hashable, Sendable {
     }
 }
 
-/// The working line's words over time: live, but never flashing (UIUX.md → Session cards).
+/// The working line's words over time: live, but never flashing (specs/UIUX.md → Session cards).
 ///
 /// - Words show at once when the line has held its last ones for `hold`; others that come
 ///   sooner wait for that, and the latest waiting wins, so a burst of parallel calls shows once.
@@ -214,7 +214,7 @@ public struct LiveLine: Hashable, Sendable {
 
 public extension Session {
     /// What the corner's time counts from: a working agent's turn from its start, else the
-    /// latest report (UIUX.md → Session cards).
+    /// latest report (specs/UIUX.md → Session cards).
     var cornerDate: Date? {
         if state == .working, let turnStartedAt {
             return turnStartedAt

@@ -3,7 +3,7 @@ import CalmModel
 import CalmSQLite
 import Foundation
 
-/// One session found by a search (FEATURES.md → F7): sessions, not lines.
+/// One session found by a search (specs/FEATURES.md → F7): sessions, not lines.
 public struct SearchResult: Sendable, Equatable {
     public var transcriptPath: String
     public var agent: AgentKind

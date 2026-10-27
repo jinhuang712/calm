@@ -1,4 +1,4 @@
-/// What a folded group's one line shows (UIUX.md → Session cards): the states going on in it,
+/// What a folded group's one line shows (specs/UIUX.md → Session cards): the states going on in it,
 /// most urgent first, each as its marks. Up to three sessions in a state get a mark each, few
 /// enough to take in without counting; past that, one mark and the number. Idle sessions show
 /// only when nothing else is going on, so a quiet group still says it isn't empty.

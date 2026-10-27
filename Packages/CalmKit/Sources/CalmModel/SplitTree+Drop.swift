@@ -1,4 +1,4 @@
-/// Dropping a session onto a split (UIUX.md → Split panes): which pane it lands beside, on which
+/// Dropping a session onto a split (specs/UIUX.md → Split panes): which pane it lands beside, on which
 /// side, and what a pane leaving gives its room to.
 public extension SplitTree {
     /// A drop's landing: the new pane goes on `direction`'s side of `target`.

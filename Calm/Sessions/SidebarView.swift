@@ -3,7 +3,7 @@ import CalmModel
 import SwiftUI
 
 /// Colors for the sidebar, derived from the focused terminal's background so the chrome
-/// always matches the theme (UIUX.md → Color).
+/// always matches the theme (specs/UIUX.md → Color).
 struct SidebarStyle: Equatable {
     var background: Color
     var selection: Color
@@ -20,7 +20,7 @@ struct SidebarStyle: Equatable {
     var secondary: Color
     var tertiary: Color
     /// *Needs you*: a soft, low-saturation amber on every theme, so it never reads as another
-    /// state's color (a blue accent looked like *working*, a green one like *done*; UIUX.md → Color).
+    /// state's color (a blue accent looked like *working*, a green one like *done*; specs/UIUX.md → Color).
     var attention: Color
     /// The theme's accent, for chrome only: a switch that's on, the picked theme, the project mark.
     /// Calm's amber when the theme has none.
@@ -31,7 +31,7 @@ struct SidebarStyle: Equatable {
     /// How opaque the sidebar and files column are: less on a glass window (WindowStyle).
     var surfaceOpacity = 1.0
 
-    /// *Working*: a soft, cool blue, quieter than *needs you* (UIUX.md → Color).
+    /// *Working*: a soft, cool blue, quieter than *needs you* (specs/UIUX.md → Color).
     var working: Color {
         Color(hue: 0.59, saturation: isDark ? 0.31 : 0.45, brightness: isDark ? 0.85 : 0.58)
     }
@@ -47,7 +47,7 @@ struct SidebarStyle: Equatable {
     }
 
     /// With `theme` (the Calm theme whose background the terminal shows), the chrome takes the
-    /// theme's own sidebar, text, accent and red instead of derived ones (UIUX.md → Color).
+    /// theme's own sidebar, text, accent and red instead of derived ones (specs/UIUX.md → Color).
     static func derived(from terminalBackground: NSColor, theme: CalmTheme.Colors? = nil) -> SidebarStyle {
         var style = derived(from: terminalBackground)
         guard let theme else { return style }
@@ -68,7 +68,7 @@ struct SidebarStyle: Equatable {
         return style
     }
 
-    /// Increase Contrast (UIUX.md → Accessibility): secondary text, hints and the selection get
+    /// Increase Contrast (specs/UIUX.md → Accessibility): secondary text, hints and the selection get
     /// stronger; the layout and colors stay the same.
     @MainActor
     func contrasted(_ on: Bool = AccessibilitySettings.increaseContrast) -> SidebarStyle {
@@ -245,7 +245,7 @@ struct SidebarView: View {
         .frame(maxHeight: .infinity)
         .ignoresSafeArea(.container, edges: .top)
         .background(style.background.opacity(style.surfaceOpacity))
-        // The adaptive background (UIUX.md → Motion): when an app repaints the terminal's
+        // The adaptive background (specs/UIUX.md → Motion): when an app repaints the terminal's
         // background, the sidebar eases into the new colors instead of snapping.
         .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.35), value: style)
         // Laid out at full width and clipped while the sidebar slides, never squeezed.
@@ -313,7 +313,7 @@ struct SidebarView: View {
             }
     }
 
-    /// Agent sessions get a card; plain shells stay one compact line (UIUX.md → Session cards).
+    /// Agent sessions get a card; plain shells stay one compact line (specs/UIUX.md → Session cards).
     @ViewBuilder
     private func sessionView(_ session: Session) -> some View {
         if editing.renamingSessionID == session.id {
@@ -336,7 +336,7 @@ struct SidebarView: View {
         }
     }
 
-    /// ⌘K's search (FEATURES.md → F7), where the eye looks first: the top of the sidebar.
+    /// ⌘K's search (specs/FEATURES.md → F7), where the eye looks first: the top of the sidebar.
     private var searchField: some View {
         FooterButton(style: style, help: "Search Sessions (⌘K)", action: actions.search) {
             HStack(spacing: 10.scaled) {
@@ -359,7 +359,7 @@ struct SidebarView: View {
     }
 
     /// Shown only while saved rows are checked against their agents and that takes a moment
-    /// (UIUX.md → Restoring). Quiet and still; the cards' own placeholders breathe.
+    /// (specs/UIUX.md → Restoring). Quiet and still; the cards' own placeholders breathe.
     private var restoringLine: some View {
         Text("Restoring sessions…")
             .calmFont(size: 12)
@@ -446,11 +446,11 @@ struct SidebarView: View {
     }
 }
 
-/// A group's kind at a glance (UIUX.md → Layout): a project the user made, a folder, scratch.
+/// A group's kind at a glance (specs/UIUX.md → Layout): a project the user made, a folder, scratch.
 struct GroupMark: View {
     let project: Project
     let style: SidebarStyle
-    /// Clicking a project's mark swaps it for another (an easter egg, FEATURES.md → F2).
+    /// Clicking a project's mark swaps it for another (an easter egg, specs/FEATURES.md → F2).
     var shuffle: () -> Void = {}
     /// The mark's side at the standard interface size: 20 in the sidebar, larger in the title strip.
     /// The folder and scratch glyphs grow with it.
@@ -479,7 +479,7 @@ struct GroupMark: View {
     }
 }
 
-/// A folded group's line (UIUX.md → Session cards): the cards' own state marks, a mark per
+/// A folded group's line (specs/UIUX.md → Session cards): the cards' own state marks, a mark per
 /// session up to three, then one mark and the number in the state's color. Never cut: the
 /// group's name gives way instead, since the marks are what a folded group is for.
 struct GroupSummaryView: View {
@@ -533,7 +533,7 @@ extension GroupSummary {
 
 /// A project's pixel mark from its name, a 20 pt tile that fits the 26 pt header: the mark's soft
 /// hue on a pale tile of it (a deep one on a dark theme), low in saturation so it sits beside
-/// the state colors without competing (UIUX.md → Color).
+/// the state colors without competing (specs/UIUX.md → Color).
 struct IdenticonTile: View {
     let identicon: Identicon
     let style: SidebarStyle

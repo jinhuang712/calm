@@ -5,7 +5,7 @@ import CalmSQLite
 import Foundation
 import Testing
 
-/// OpenCode's history in search (FEATURES.md → F7): one database of OpenCode's own, shaped like
+/// OpenCode's history in search (specs/FEATURES.md → F7): one database of OpenCode's own, shaped like
 /// 2.0.19's (the columns Calm reads; the real tables have more).
 struct OpenCodeSearchTests {
     private static let schema = """

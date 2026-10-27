@@ -29,12 +29,12 @@ struct SidebarActions {
     /// Takes a pane out of its split: the session stays, on its own.
     let takeOut: (Session.ID) -> Void
     /// Restarts the agent on its conversation (now, or after its turn), and takes back a restart
-    /// still waiting (FEATURES.md → F12).
+    /// still waiting (specs/FEATURES.md → F12).
     var restart: (Session.ID) -> Void = { _ in }
     var cancelRestart: (Session.ID) -> Void = { _ in }
     /// Opens the session menu at a point in the window (a right-click on a card or a shell row).
     var showMenu: (Session.ID, CGPoint) -> Void = { _, _ in }
-    /// A click on a project's header: its home in the main area (UIUX.md → Project home).
+    /// A click on a project's header: its home in the main area (specs/UIUX.md → Project home).
     var showProjectHome: (Project.ID) -> Void = { _ in }
     /// A group header's agent mark: a session there running ⌘N's agent.
     var newAgentSessionIn: (Project) -> Void = { _ in }

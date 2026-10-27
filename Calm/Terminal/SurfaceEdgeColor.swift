@@ -5,7 +5,7 @@ import IOSurface
 ///
 /// With `window-padding-color = extend`, an app that paints its own background (OpenCode, Neovim)
 /// colors the padding too, but libghostty has no API for that color. The title strip above the
-/// terminal reads it from the pixels instead, so the two meet without a seam (UIUX.md → Themes).
+/// terminal reads it from the pixels instead, so the two meet without a seam (specs/UIUX.md → Themes).
 enum SurfaceEdgeColor {
     /// libghostty's renderer tags its frames Display P3 (renderer/metal/Target.zig); used when a
     /// frame carries no color space.

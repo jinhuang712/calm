@@ -3,7 +3,7 @@ import CalmModel
 import PDFKit
 import WebKit
 
-/// What ⌘+ and ⌘− size in the viewer, by what it shows (FEATURES.md → F10).
+/// What ⌘+ and ⌘− size in the viewer, by what it shows (specs/FEATURES.md → F10).
 enum ViewerZoomTarget {
     /// The web view: a page of text, whose size is kept for the next one when `remembered` (a
     /// file's, not the session page's), or an SVG.
@@ -80,7 +80,7 @@ extension FileViewer {
     }
 
     /// ⌘+ (`bigger`), ⌘− or ⌘0 (nil) while something shows: it grows or shrinks, not the terminal
-    /// under it (FEATURES.md → F10). A page of text keeps its size for the next one, and the next
+    /// under it (specs/FEATURES.md → F10). A page of text keeps its size for the next one, and the next
     /// launch; a picture or a PDF starts fitted again.
     func zoom(bigger: Bool?) {
         switch zoomTarget {

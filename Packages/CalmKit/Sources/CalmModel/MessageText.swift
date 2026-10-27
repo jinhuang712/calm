@@ -1,7 +1,7 @@
 import Foundation
 
 /// What an agent said, in plain words, for the places that show it in a line or two: a session
-/// card's recap, the arrival card and a notification's body (UIUX.md → Session cards,
+/// card's recap, the arrival card and a notification's body (specs/UIUX.md → Session cards,
 /// Notifications). Agents write Markdown; a card is not a page.
 ///
 /// This is for *prose*. Text that Calm formats itself, or that quotes a command someone is asked

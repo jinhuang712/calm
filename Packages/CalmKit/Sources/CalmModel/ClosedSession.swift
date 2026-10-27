@@ -1,6 +1,6 @@
 import Foundation
 
-/// What Calm keeps of a session that was closed, to open its like again (FEATURES.md → F12).
+/// What Calm keeps of a session that was closed, to open its like again (specs/FEATURES.md → F12).
 /// Closing ends the shell, so what comes back is the place, not the process: the folder, the
 /// name, the project, the spot in the sidebar and, if an agent was running, its conversation.
 public struct ClosedSession: Hashable, Sendable {

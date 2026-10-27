@@ -1,7 +1,7 @@
 import Foundation
 
 /// An agent summarizing its conversation to make room for more (Claude Code's compaction): a
-/// minute or two in which the agent is busy but does none of the turn's work (UIUX.md → Session
+/// minute or two in which the agent is busy but does none of the turn's work (specs/UIUX.md → Session
 /// cards). Known from the agent's own reports, with the sizes its transcript records. Not
 /// saved: after a restart the agent may long be done with it.
 public struct Compaction: Hashable, Sendable {
@@ -76,7 +76,7 @@ public struct CompactedContext: Codable, Hashable, Sendable {
     }
 }
 
-/// The bar a session card shows for a compaction, in the todo bar's place (UIUX.md → Session
+/// The bar a session card shows for a compaction, in the todo bar's place (specs/UIUX.md → Session
 /// cards): full while the agent compacts, then drained to the share it kept, for a few seconds
 /// after one the agent did on its own, and on the *done* card a `/compact` ends with until you
 /// move on.

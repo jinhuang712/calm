@@ -3,7 +3,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// An agent's own mark in its tile (UIUX.md → Agent marks): gray and quiet while the agent is
+/// An agent's own mark in its tile (specs/UIUX.md → Agent marks): gray and quiet while the agent is
 /// idle, moving in its own way while it works, settling once when the work ends, and still
 /// otherwise. Nothing moves with Reduce Motion.
 struct AgentLogo: View {
@@ -242,7 +242,7 @@ private struct PulseGrid: View {
     }
 }
 
-/// A line a soft light crosses now and then (UIUX.md → Session cards, Working): enough to see
+/// A line a soft light crosses now and then (specs/UIUX.md → Session cards, Working): enough to see
 /// the agent is at it, never enough to pull the eye. Still with Reduce Motion.
 struct ShimmerText: View {
     let text: String

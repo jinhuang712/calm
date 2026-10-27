@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// The main area with no session chosen (UIUX.md → No session chosen): the sessions that wait for a
+/// The main area with no session chosen (specs/UIUX.md → No session chosen): the sessions that wait for a
 /// look, each with all it last said, or with none waiting the welcome page's search and lists.
 struct NoSessionView: View {
     struct Actions {

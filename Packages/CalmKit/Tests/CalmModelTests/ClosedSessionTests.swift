@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// FEATURES.md → F12: ⌘⇧T opens the session closed last again.
+/// specs/FEATURES.md → F12: ⌘⇧T opens the session closed last again.
 struct ClosedSessionTests {
     private func gitRoot(_ directory: String) -> String? {
         directory.hasPrefix("/dev/apps/pinax") ? "/dev/apps/pinax" : nil

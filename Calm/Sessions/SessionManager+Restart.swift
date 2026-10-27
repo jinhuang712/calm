@@ -3,7 +3,7 @@ import CalmModel
 import Darwin
 import Foundation
 
-/// Where a restart stands (FEATURES.md → F12).
+/// Where a restart stands (specs/FEATURES.md → F12).
 enum RestartPhase: Equatable {
     /// Waiting for the agent's turn to end: a restart now would cut the turn off, or drop the
     /// question it is waiting on you for.
@@ -12,7 +12,7 @@ enum RestartPhase: Equatable {
     case restarting
 }
 
-/// Restarting an agent on its conversation (FEATURES.md → F12, DESIGNS.md → An agent is quit in the way it quits cleanly):
+/// Restarting an agent on its conversation (specs/FEATURES.md → F12, DESIGNS.md → An agent is quit in the way it quits cleanly):
 /// after an update, so the session runs the new version and carries on where it was. The agent
 /// is asked to quit with its adapter's signal; once its process is gone, the command that starts
 /// it again with the same options on the same conversation is typed into its shell. The session's
@@ -174,7 +174,7 @@ extension SessionManager {
     // MARK: Resume after a lost shell
 
     /// A session whose shell went with an agent in it (the Mac restarted) resumes the
-    /// conversation as it first opens (FEATURES.md → F3). The surface exists from the pane's
+    /// conversation as it first opens (specs/FEATURES.md → F3). The surface exists from the pane's
     /// start, so the command waits in the terminal's input until the new shell reads it, as
     /// ⌘⇧T's does.
     func resumeIfShellWasLost(_ id: Session.ID) {

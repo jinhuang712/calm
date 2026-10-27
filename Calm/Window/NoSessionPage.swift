@@ -3,7 +3,7 @@ import CalmModel
 import SwiftUI
 
 /// What the main area shows while sessions are open but none is chosen, as after closing the one on
-/// screen (UIUX.md → No session chosen): the sessions that wait for a look, or with none waiting the
+/// screen (specs/UIUX.md → No session chosen): the sessions that wait for a look, or with none waiting the
 /// welcome page's search and lists. It fills the main area only; the sidebar stays beside it. Calm
 /// still never picks a session for the user: the page shows what there is, and they choose.
 @MainActor

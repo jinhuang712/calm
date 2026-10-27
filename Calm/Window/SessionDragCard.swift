@@ -3,7 +3,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// The card in your hand while a session is dragged by a pane's icon (UIUX.md → Split panes): the
+/// The card in your hand while a session is dragged by a pane's icon (specs/UIUX.md → Split panes): the
 /// session's mark, its name and where it is, on the sidebar's own surface. (A card dragged from the
 /// sidebar shows itself.)
 struct SessionDragCard: View {

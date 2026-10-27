@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// FEATURES.md → F2: projects the user made keep their sessions, scratch sessions sit on top,
+/// specs/FEATURES.md → F2: projects the user made keep their sessions, scratch sessions sit on top,
 /// everything else groups by repository or folder.
 struct SessionGroupingTests {
     let repositories = ["/Users/me/dev/calm"]

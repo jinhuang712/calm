@@ -1,6 +1,6 @@
 import Foundation
 
-/// Folder trust (FEATURES.md → F2). Claude Code asks whether you trust a folder the first time it
+/// Folder trust (specs/FEATURES.md → F2). Claude Code asks whether you trust a folder the first time it
 /// starts in one, and keeps the answer in its global config as
 /// `projects["<folder>"].hasTrustDialogAccepted`. It takes the answer of any folder above the one
 /// it starts in, up to that folder's git repository root: read from 2.1.296's code and checked in

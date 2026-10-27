@@ -1,7 +1,8 @@
 import CalmModel
 import Foundation
 
-/// How an agent connects to Calm, for the Agents panel (FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only after
+/// How an agent connects to Calm, for the Agents panel (specs/FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only
+/// after
 /// Connect, and marked).
 public enum AgentSetup: Sendable, Equatable {
     /// Connected inside Calm with nothing written to the agent's own settings.

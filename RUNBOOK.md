@@ -2,7 +2,7 @@
 
 # Runbook
 
-Calm is not a service, but it has a pipeline that someone must keep working: the build, the release, and the four ways to install it. This page holds the procedures for that pipeline and the first step when a Mac misbehaves. The commands were copied from the earlier DESIGNS.md and are not yet verified in this rewrite. The reasons for the choices are in [DESIGNS.md](DESIGNS.md), and the rules for coding agents in [AGENTS.md](AGENTS.md).
+Calm is not a service, but it has a pipeline that someone must keep working: the build, the release, and the four ways to install it. This page holds the procedures for that pipeline and the first step when a Mac misbehaves. The commands were copied from the earlier DESIGNS.md and are not yet verified in this rewrite. The reasons for the choices are in [DESIGNS.md](DESIGNS.md).
 
 ## Build and check
 
@@ -35,11 +35,7 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 
 ## The four ways to install
 
-The user's steps for each way are in [INSTALL.md](INSTALL.md). This section is how they are built and kept working.
-
-| Way | What it does | Where it is built |
-|---|---|---|
-| `get.sh` (the one line) | Installs the newest `vMAJOR.MINOR.PATCH` release, checked against the asset's sha256, then swaps the app the way `install.sh` does. Refuses a Calm that Homebrew installed, and a Mac older than macOS 14.5 | The repository's root |
+The user's steps for each way are in [INSTALL.md](INSTALL.md) | Installs the newest `vMAJOR.MINOR.PATCH` release, checked against the asset's sha256, then swaps the app the way `install.sh` does. Refuses a Calm that Homebrew installed, and a Mac older than macOS 14.5 | The repository's root |
 | Homebrew | `brew install --cask jinhuang712/tap/calm`. `homebrew.yml` points the cask in the tap at the release, with a deploy key that can write to the tap only. The cask does not remove the download mark, so its caveats give the `xattr` line | `jinhuang712/homebrew-tap` |
 | The disk image | `Calm-<version>.dmg` on the release page | `release.yml` |
 | `install.sh` | Builds a Release Calm into `/Applications` and links `calm` into `~/.local/bin` | A local checkout |

@@ -1,12 +1,12 @@
 import SwiftUI
 
-// The pieces every Settings section is built from (UIUX.md → Settings): grouped rows with the
+// The pieces every Settings section is built from (specs/UIUX.md → Settings): grouped rows with the
 // label on the left and the control on the right, in the theme's own colors. Controls are drawn
 // here rather than taken from AppKit, whose segmented control and switch only know the
-// system's accent, which would clash with the theme's (UIUX.md → Color).
+// system's accent, which would clash with the theme's (specs/UIUX.md → Color).
 
 /// The page's sizes, in one place: roomy enough to read at a glance in a large window, as the
-/// sidebar is (UIUX.md → Settings screen).
+/// sidebar is (specs/UIUX.md → Settings screen).
 @MainActor
 enum SettingsMetrics {
     // Type sizes at the standard interface size: `.calmFont` grows them.

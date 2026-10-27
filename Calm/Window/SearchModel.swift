@@ -4,7 +4,7 @@ import CalmModel
 import CalmSearch
 import SwiftUI
 
-/// ⌘K (FEATURES.md → F7, UIUX.md → Search): every past and present session, grouped like the
+/// ⌘K (specs/FEATURES.md → F7, specs/UIUX.md → Search): every past and present session, grouped like the
 /// sidebar with the group you're in first. Every word typed shows in every result, marked; a
 /// group past its share waits behind a row that opens five more at a time. With nothing typed,
 /// a switcher of the sessions you could pick back up.

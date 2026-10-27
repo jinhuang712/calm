@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import Testing
 
-/// The update check (FEATURES.md → Updates), against a fake GitHub and a defaults suite of its
+/// The update check (specs/FEATURES.md → Updates), against a fake GitHub and a defaults suite of its
 /// own: no test reaches the network or the user's saved answer.
 @MainActor
 struct UpdateCheckerTests {

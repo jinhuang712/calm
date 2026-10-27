@@ -284,7 +284,7 @@ final class ControlServer {
         )
     }
 
-    /// `calm fork` (CLI.md): the session's conversation, running or ended, into a new session of
+    /// `calm fork` (specs/CLI.md): the session's conversation, running or ended, into a new session of
     /// its own, through the agent's own fork command. A session `calm fork` started can't fork in
     /// turn, so an agent that forks itself can't set off a chain; right-click → Fork still works.
     private func fork(_ request: ControlRequest) -> ControlResponse {
@@ -317,7 +317,7 @@ final class ControlServer {
         return .success(sessions: [sessionInfo(forked)])
     }
 
-    /// `calm new` (CLI.md): a clean session in a folder, running ⌘N's agent with a first prompt.
+    /// `calm new` (specs/CLI.md): a clean session in a folder, running ⌘N's agent with a first prompt.
     /// Needs no session to start from, so it works from outside Calm.
     private func newSession(_ request: ControlRequest) -> ControlResponse {
         guard let prompt = request.message, !prompt.isEmpty else { return .failure("Give a first message.") }

@@ -134,7 +134,7 @@ struct ThemeTests {
                 let colors = try #require(mode == .light ? theme.light : theme.dark, "\(theme.name) \(mode)")
                 #expect(colors.palette.count == 16)
                 #expect(colors.sidebar != nil && colors.accent != nil && colors.cursor != nil && colors.selection != nil)
-                // UIUX.md → Color: soft, roughly 6:1 to 11:1 between text and background.
+                // specs/UIUX.md → Color: soft, roughly 6:1 to 11:1 between text and background.
                 let text = Self.contrast(colors.foreground, colors.background)
                 #expect((6 ... 11).contains(text), "\(theme.name) \(mode): text contrast \(text)")
                 // The six hues, normal and bright, stay legible.

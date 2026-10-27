@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// What a session's menu can copy (FEATURES.md → F12): the agent's own id for the conversation,
+/// What a session's menu can copy (specs/FEATURES.md → F12): the agent's own id for the conversation,
 /// the command that resumes it, and the folder. Nil where the session has nothing to give.
 public enum SessionCopy: Sendable, CaseIterable {
     case sessionID, resumeCommand, folderPath

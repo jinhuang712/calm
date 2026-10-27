@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// Settings → General (UIUX.md → Settings): the editor, where paths open, auto-grouping, and the
+/// Settings → General (specs/UIUX.md → Settings): the editor, where paths open, auto-grouping, and the
 /// config files behind every setting, with any line of config.toml Calm had to skip and the font
 /// the Ghostty config sets.
 @MainActor
@@ -198,7 +198,7 @@ struct GeneralSection: View {
     }
 }
 
-/// Settings → Shortcuts: Calm's own keys (UIUX.md → Keyboard). They come from the Ghostty
+/// Settings → Shortcuts: Calm's own keys (specs/UIUX.md → Keyboard). They come from the Ghostty
 /// config, which is where they're changed.
 struct ShortcutsSection: View {
     let style: SidebarStyle

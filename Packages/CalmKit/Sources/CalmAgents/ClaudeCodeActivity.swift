@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// The working line for Claude Code (UIUX.md → Session cards): each tool call's PreToolUse and
+/// The working line for Claude Code (specs/UIUX.md → Session cards): each tool call's PreToolUse and
 /// PostToolUse hooks, which Calm already hears, say what it's doing. The tool names and inputs are
 /// Claude Code's own (2.1.291, 2026-10-09); counts of how often each runs are from the author's
 /// transcripts, so the common ones read best.

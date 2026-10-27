@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// The checks the design's color script ran (UIUX.md → Find), on the five built-in themes.
+/// The checks the design's color script ran (specs/UIUX.md → Find), on the five built-in themes.
 struct FindColorsTests {
     private static let themesFolder = URL(filePath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent() // CalmKit

@@ -2,28 +2,9 @@
 
 # Roadmap
 
-Calm is built in milestones. Each milestone ends in a working app. Feature IDs (F1…F17) refer to [FEATURES.md](../FEATURES.md), and goal IDs (G1…G12) to [GOALS.md](../GOALS.md).
+Calm is built in milestones. Each milestone ends in a working app. Feature IDs (F1…F17) refer to [FEATURES.md](../specs/FEATURES.md) to [GOALS.md](../GOALS.md) appear in branch names and commits. A row can cover a range of task IDs.
 
-**Current milestone:** M9. M0 to M7 are built. M8 and M9 are built, and their exit criteria wait on use.
-
-## How to read this
-
-A **milestone** is a usable state of the app. A **task** is one reviewable piece of work. Task IDs (`M2.4`) appear in branch names and commits. A row can cover a range of task IDs.
-
-A **design discussion** (`D6.1`) settles an open question before the milestone it blocks. The user approves the decisions, which then move to [DESIGNS.md](../DESIGNS.md), or to FEATURES.md when they concern one feature.
-
-Status: ⬜ not started · 🟨 in progress · ✅ done.
-
-## Overview
-
-| Milestone | Delivers | Features | Depends on | Status |
-|---|---|---|---|---|
-| **M0** Foundations | an empty app that builds, launches and passes CI | none | none | ✅ |
-| **M1** A plain terminal | tabs, splits and shells good enough for daily use | F1 | M0 | ✅ |
-| **M2** Sessions and projects | the session model, sidebar, grouping, sessions that survive quitting | F2, F3 | M1 | ✅ |
-| **M3** Attention | agent detection, session cards, status, calm notifications, arrival card | F4, F5, F6, F13 | M2 | ✅ |
-| **M4** Recall | search across every agent's history | F7 | M2 | ✅ |
-| **M5** Reading | smart links, Copy Cell, files column and viewer | F8, F9, F10 | M1 (M5.3+ need M2) | ✅ |
+A **design discussion** (`D6.1`) settles an open question before the milestone it blocks. The user approves the decisions, which then move to [DESIGNS.md](../DESIGNS.md) | ✅ |
 | **M6** Look and feel | whole-window themes, picker, settings screen | F11, F14 | M3 | 🟨 |
 | **M7** Session actions | rename, resume, fork, new agent sessions, restart | F12, F15 | M3, M4 | ✅ |
 | **M8** Find | ⌘F in a session: the field, Calm's own marks, the map of the scrollback | F16 | M5 | 🟨 built, exit criteria open |
@@ -142,4 +123,4 @@ Not yet used in real life: the OpenCode plugin has run only against a fake conte
 
 ## Later
 
-See [FEATURES.md → Later, if needed](../FEATURES.md#later-if-needed).
+See [FEATURES.md → Later, if needed](../specs/FEATURES.md#later-if-needed).

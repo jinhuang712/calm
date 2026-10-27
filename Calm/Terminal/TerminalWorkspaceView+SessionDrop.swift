@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Dropping a session onto the split (UIUX.md → Split panes): a card dragged from the sidebar, or a
+/// Dropping a session onto the split (specs/UIUX.md → Split panes): a card dragged from the sidebar, or a
 /// pane dragged by its icon, lands beside the pane under the pointer, on the side it is nearest.
 /// A dotted outline, the one links and table cells use, shows the half the new pane would take.
 extension TerminalWorkspaceView {

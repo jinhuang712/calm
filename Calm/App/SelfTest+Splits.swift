@@ -2,7 +2,7 @@
     import AppKit
     import CalmModel
 
-    /// Self-test drivers for getting into and out of a split (UIUX.md → Split panes). A headless
+    /// Self-test drivers for getting into and out of a split (specs/UIUX.md → Split panes). A headless
     /// run can't drag or hover, so each of these does what the pointer would, through the same code:
     /// - `select:<session>`: a click in the sidebar. Sessions count in creation order.
     /// - `take_out:<n>`, `unsplit`, `join:<session>:<n>:<side>`: the moves. Panes count in reading order.

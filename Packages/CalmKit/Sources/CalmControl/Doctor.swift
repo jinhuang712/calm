@@ -1,6 +1,6 @@
 import Foundation
 
-/// What `calm doctor` checks (CLI.md → `calm doctor`). The CLI gathers the facts; the verdicts are
+/// What `calm doctor` checks (specs/CLI.md → `calm doctor`). The CLI gathers the facts; the verdicts are
 /// made here from them alone, so each is testable. It only reports: nothing is changed.
 public enum Doctor {
     public struct Check: Codable, Sendable, Equatable {

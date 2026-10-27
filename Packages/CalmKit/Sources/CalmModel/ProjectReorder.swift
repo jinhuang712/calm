@@ -4,7 +4,7 @@ import Foundation
 
 public extension Workspace {
     /// Moves a project the user made to `position` among them, `madeProjects`'s order, where the
-    /// sidebar's drag let it go (FEATURES.md → F2). Scratch and folder groups keep their places, and
+    /// sidebar's drag let it go (specs/FEATURES.md → F2). Scratch and folder groups keep their places, and
     /// the order is saved with the rest of the workspace.
     mutating func moveProject(_ projectID: Project.ID, to position: Int) {
         guard let from = projects.firstIndex(where: { $0.id == projectID && $0.kind == .project }) else { return }
@@ -21,7 +21,7 @@ public extension Workspace {
 
 // MARK: The drag
 
-/// A project's header dragged to another place among the projects (UIUX.md → Layout): where it
+/// A project's header dragged to another place among the projects (specs/UIUX.md → Layout): where it
 /// would land, and how far each project is drawn from its place meanwhile. The sidebar measures
 /// the sections and draws them; the rules are here, so they're tested.
 public struct ProjectReorder: Hashable, Sendable {

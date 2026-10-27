@@ -1,6 +1,6 @@
 import Foundation
 
-/// A running agent older than the one installed (UIUX.md → Title bar → the update hint): what a
+/// A running agent older than the one installed (specs/UIUX.md → Title bar → the update hint): what a
 /// restart would start, and what runs now, as far as Calm can tell.
 public struct AgentUpdate: Equatable, Sendable {
     /// The installed version (`2.1.291`), when it can be read.
@@ -26,7 +26,7 @@ public struct AgentVersions: Equatable, Sendable {
 }
 
 /// Tells which version an agent's process runs and whether a newer one is installed, for any agent
-/// (FEATURES.md → F12). Nothing here is agent-specific: it follows how the agent was
+/// (specs/FEATURES.md → F12). Nothing here is agent-specific: it follows how the agent was
 /// installed.
 ///
 /// - **A native program behind a link whose path names the version** (Claude Code's

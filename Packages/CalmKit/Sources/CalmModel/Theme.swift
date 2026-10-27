@@ -1,7 +1,7 @@
 import Foundation
 
-/// A Calm theme (FEATURES.md → F11): terminal colors plus two chrome tints, in a light and a dark
-/// variant, from a small TOML file (FEATURES.md → F11).
+/// A Calm theme (specs/FEATURES.md → F11): terminal colors plus two chrome tints, in a light and a dark
+/// variant, from a small TOML file (specs/FEATURES.md → F11).
 public struct CalmTheme: Equatable, Sendable, Identifiable {
     public enum Mode: String, CaseIterable, Sendable {
         case light, dark
@@ -172,7 +172,7 @@ public struct CalmTheme: Equatable, Sendable, Identifiable {
         for (index, color) in colors.palette.enumerated() {
             lines.append("palette = \(index)=\(color)")
         }
-        // Find's current match (FEATURES.md → F16): the accent, with text in the background's color.
+        // Find's current match (specs/FEATURES.md → F16): the accent, with text in the background's color.
         if let accent = colors.findAccent {
             lines.append("search-selected-background = \(FindColors.solid(accent: accent, background: colors.background))")
             lines.append("search-selected-foreground = \(colors.background)")
@@ -187,7 +187,7 @@ public extension CalmTheme.Colors {
         accent ?? (palette.count == 16 ? palette[4] : nil)
     }
 
-    /// For Increase Contrast (UIUX.md → Accessibility): every text color reaches `minimum`
+    /// For Increase Contrast (specs/UIUX.md → Accessibility): every text color reaches `minimum`
     /// against the background by moving toward white (a dark theme) or black (a light one), so
     /// hues and the soft hierarchy stay (dim stays dimmer than text). Ghostty's own
     /// `minimum-contrast` swaps short colors to white or black instead, flattening that hierarchy.
@@ -259,7 +259,7 @@ public struct ThemeLibrary: Sendable {
 
 public extension CalmSettings {
     /// The theme picked in Calm (`theme = "Ink"`), or `nil` for the default, which gives way to a
-    /// theme or colors set in the user's Ghostty config (FEATURES.md → F11).
+    /// theme or colors set in the user's Ghostty config (specs/FEATURES.md → F11).
     var themeName: String? {
         values["theme"].flatMap { $0.isEmpty ? nil : $0 }
     }

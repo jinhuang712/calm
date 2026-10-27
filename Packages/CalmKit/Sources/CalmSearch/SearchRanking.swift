@@ -1,6 +1,6 @@
 import Foundation
 
-/// How search results are ordered (FEATURES.md → F7): text relevance first, then title
+/// How search results are ordered (specs/FEATURES.md → F7): text relevance first, then title
 /// matches, recency and the current project as smaller boosts.
 public enum SearchRanking {
     static let titleWeight = 0.35

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Rows that one line of text goes on across because a program cut it, not because the terminal
-/// wrapped it (FEATURES.md → F8). An agent's full-screen view lays its text out to its own width and
+/// wrapped it (specs/FEATURES.md → F8). An agent's full-screen view lays its text out to its own width and
 /// breaks a word longer than that (a URL, a long path) with a line break of its own, indenting the
 /// rest; libghostty joins only what the terminal wrapped, so it sees two unrelated rows.
 ///

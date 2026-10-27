@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the welcome page shows in its middle (UIUX.md → Welcome page).
+/// What the welcome page shows in its middle (specs/UIUX.md → Welcome page).
 public enum WelcomeContent: Equatable, Sendable {
     /// The three ways to start, one row each; a welcome above them on the first launch.
     case actions

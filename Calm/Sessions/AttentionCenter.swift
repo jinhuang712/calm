@@ -3,7 +3,7 @@ import CalmModel
 import OSLog
 import UserNotifications
 
-/// Turns attention into macOS notifications (FEATURES.md → F5, UIUX.md → Notifications):
+/// Turns attention into macOS notifications (specs/FEATURES.md → F5, specs/UIUX.md → Notifications):
 /// only for a session the user isn't looking at, held until a natural pause, never dropped,
 /// silent, taken back when the session is visited; clicking one focuses the session.
 @MainActor
@@ -157,7 +157,7 @@ final class AttentionCenter: NSObject {
         content.body = text.body
         content.threadIdentifier = item.sessionID.uuidString
         content.userInfo = ["session": item.sessionID.uuidString]
-        content.sound = manager.settings.notificationSound ? .default : nil // UIUX.md: no sound by default
+        content.sound = manager.settings.notificationSound ? .default : nil // specs/UIUX.md: no sound by default
         let request = UNNotificationRequest(identifier: Self.identifier(for: item.sessionID), content: content, trigger: nil)
         let authorization = requestAuthorization()
         Task {

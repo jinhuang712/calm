@@ -2,7 +2,7 @@ import CalmModel
 import Foundation
 import Observation
 
-/// What find searches: a pane, through libghostty's search binding actions (FEATURES.md → F16).
+/// What find searches: a pane, through libghostty's search binding actions (specs/FEATURES.md → F16).
 @MainActor
 protocol FindTarget: AnyObject {
     var id: UUID { get }
@@ -16,7 +16,7 @@ protocol FindTarget: AnyObject {
 /// What a pane tells its window about find (part of TerminalSurfaceHost).
 @MainActor
 protocol FindHost: AnyObject {
-    /// libghostty's report about the pane's search (FEATURES.md → F16).
+    /// libghostty's report about the pane's search (specs/FEATURES.md → F16).
     func surface(_ view: TerminalSurfaceView, didFind event: FindEvent)
     /// A key without ⌘ went to the pane: typing closes find.
     func surfaceDidType(_ view: TerminalSurfaceView)
@@ -45,7 +45,7 @@ enum FindEvent: Equatable {
     case chose(Int)
 }
 
-/// Find in a session (FEATURES.md → F16): the title strip's field and the one pane it searches.
+/// Find in a session (specs/FEATURES.md → F16): the title strip's field and the one pane it searches.
 /// libghostty does the searching; this keeps what the field shows and turns its keys into
 /// binding actions on the pane. One window has one; the pane that has the keyboard is searched.
 @MainActor
@@ -70,7 +70,7 @@ final class FindModel: FindFieldModel {
 
     private(set) var total: Int?
     private(set) var selected: Int?
-    /// `.*`: the words are a pattern, which Calm searches itself (FEATURES.md → F16, regular
+    /// `.*`: the words are a pattern, which Calm searches itself (specs/FEATURES.md → F16, regular
     /// expressions).
     private(set) var isPattern = false
     /// The words aren't a pattern (yet): the count says so, and the marks stay as they were.
@@ -113,7 +113,7 @@ final class FindModel: FindFieldModel {
     }
 
     /// The note under the field: a full-screen program's screen has none of the words, and the
-    /// rest of what it showed isn't in the terminal (UIUX.md → Find).
+    /// rest of what it showed isn't in the terminal (specs/UIUX.md → Find).
     var showsNote: Bool {
         isOpen && isFullScreen && !query.isEmpty && total == 0
     }

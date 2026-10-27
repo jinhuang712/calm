@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// Shrink to fit (Settings → Appearance → Session cards; UIUX.md → Session cards): the
+/// Shrink to fit (Settings → Appearance → Session cards; specs/UIUX.md → Session cards): the
 /// sidebar's cards step down from the chosen size when its sessions don't fit without
 /// scrolling, and back up when they do. `SessionCardFit` decides; this measures the list,
 /// guesses the cards' heights at the other sizes, and looks again when a wait after a step down

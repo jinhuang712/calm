@@ -1,7 +1,7 @@
 import Foundation
 
 /// What the main area shows while sessions are open but none is chosen, as after closing the one
-/// on screen (UIUX.md → No session chosen).
+/// on screen (specs/UIUX.md → No session chosen).
 public enum NoSessionContent: Equatable, Sendable {
     /// The sessions that wait for a look, so the one to pick up is in the middle of the screen.
     case waiting(Waiting)

@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The theme picker's model (FEATURES.md → F11, UIUX.md → Themes): each theme's colors for its
+/// The theme picker's model (specs/FEATURES.md → F11, specs/UIUX.md → Themes): each theme's colors for its
 /// previews; one click writes `theme` to config.toml and applies it.
 @MainActor
 @Observable

@@ -1,4 +1,4 @@
-/// What a session is doing, as shown in the sidebar (see UIUX.md → Session states).
+/// What a session is doing, as shown in the sidebar (see specs/UIUX.md → Session states).
 public enum SessionState: String, Sendable, CaseIterable, Codable {
     case idle
     case working

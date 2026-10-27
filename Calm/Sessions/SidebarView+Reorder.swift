@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// A project dragged by its header to another place among the projects (UIUX.md → Layout): it
+/// A project dragged by its header to another place among the projects (specs/UIUX.md → Layout): it
 /// follows the pointer, lifted over the list; the projects it passes step aside; letting go settles
 /// it into the hole they left. Only projects the user made move, and only among themselves. Where it
 /// lands and how far each section is drawn are `ProjectReorder`'s rules (CalmModel, tested); this
@@ -190,7 +190,7 @@ final class ProjectDragModel {
 }
 
 extension SessionManager {
-    /// A project dragged to another place among the projects (FEATURES.md → F2). Not animated here:
+    /// A project dragged to another place among the projects (specs/FEATURES.md → F2). Not animated here:
     /// the drag animates it together with its own end, so the two settle as one.
     func moveProject(_ projectID: Project.ID, to position: Int) {
         if changeWorkspace({ $0.moveProject(projectID, to: position) }) {

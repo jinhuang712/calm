@@ -2,7 +2,7 @@ import CalmControl
 import Foundation
 
 /// `calm new "<prompt>" [--in <folder>] [--background]`: a clean session in a folder, running ⌘N's
-/// agent with `prompt` as its first message, and prints its id (CLI.md). It needs no session, so
+/// agent with `prompt` as its first message, and prints its id (specs/CLI.md). It needs no session, so
 /// it works from a script outside Calm. It starts Calm when Calm isn't running, as `calm list` does.
 enum NewCommand {
     static let usage = #"calm new "<prompt>" [--in <folder>] [--background]"#

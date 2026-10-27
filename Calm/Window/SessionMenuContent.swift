@@ -2,7 +2,7 @@ import CalmAgents
 import CalmModel
 import Foundation
 
-/// What the session menu holds for one session (UIUX.md → Session cards → The session menu),
+/// What the session menu holds for one session (specs/UIUX.md → Session cards → The session menu),
 /// worked out once when it opens: the agent's actions as tiles under its name, then the rest as
 /// rows in groups. The ⋯ button and a right-click on a card open the same menu. Only what applies
 /// is there: the agent's actions where its agent has the command, the copies and the folder where

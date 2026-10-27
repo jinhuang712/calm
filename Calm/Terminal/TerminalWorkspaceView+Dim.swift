@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// In a split the pane you're in is the bright one and the others recede (UIUX.md → Split
+/// In a split the pane you're in is the bright one and the others recede (specs/UIUX.md → Split
 /// panes), and a pane that closes folds toward the one that takes its room.
 extension TerminalWorkspaceView {
     static let veilDuration: TimeInterval = 0.16

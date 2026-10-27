@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// A shell that went with an agent in it (the Mac restarted): the conversation resumes the first
-/// time the session opens (FEATURES.md → F3).
+/// time the session opens (specs/FEATURES.md → F3).
 struct ResumeWhenOpenedTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 

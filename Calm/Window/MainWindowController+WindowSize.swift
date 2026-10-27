@@ -1,6 +1,6 @@
 import AppKit
 
-/// How narrow the window can get (UIUX.md → Layout): the sidebar and the files column as they are,
+/// How narrow the window can get (specs/UIUX.md → Layout): the sidebar and the files column as they are,
 /// and room for the terminal beside them, never more than the screen holds.
 enum WindowMinimum {
     /// The terminal's least room at the standard interface size. With the sidebar shown that makes
@@ -29,7 +29,7 @@ enum WindowMinimum {
     }
 }
 
-/// The window's size across launches (FEATURES.md → F1): AppKit saves the windowed frame, and
+/// The window's size across launches (specs/FEATURES.md → F1): AppKit saves the windowed frame, and
 /// Calm adds whether the window was left filling the screen, or in full screen.
 extension MainWindowController {
     /// Sets the window's narrowest to what the sidebar and the files column take now, plus the

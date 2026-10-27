@@ -2,7 +2,7 @@ import AppKit
 import CalmAgents
 import CalmModel
 
-/// The session menu (UIUX.md → Session cards → The session menu): from the title strip's ⋯ for
+/// The session menu (specs/UIUX.md → Session cards → The session menu): from the title strip's ⋯ for
 /// the session in front, or a right-click on a card or a shell row for that one.
 extension MainWindowController {
     /// Opens the menu for `id` under the title strip's ⋯ button.

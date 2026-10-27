@@ -5,7 +5,7 @@ import Foundation
 import Testing
 
 /// Restarting an agent on its conversation: the command keeps how it was started and leaves out
-/// what would start something else (FEATURES.md → F12).
+/// what would start something else (specs/FEATURES.md → F12).
 struct AgentRestartTests {
     private func restart(_ arguments: [String], id: String? = "abc") -> String? {
         ClaudeCodeAdapter().restartCommand(arguments: arguments, agentSessionID: id, transcriptPath: "/x/def.jsonl")
@@ -234,7 +234,7 @@ private func requireStandIn(_ process: Process, _ snapshot: ProcessSnapshot) thr
     try #require(ProcessInspector.fileStatus(of: target) != nil, "no status for \(target)")
 }
 
-/// Telling a running agent from the one installed (FEATURES.md → F12).
+/// Telling a running agent from the one installed (specs/FEATURES.md → F12).
 struct AgentUpdateTests {
     /// Opt-in, against a real agent started from zsh: `CALM_REAL_AGENT_PID=<pid> swift test --filter
     /// "a real running agent"`. Prints what Calm reads; passes when it reads a version.

@@ -42,7 +42,7 @@ def contrast(x, y):
 
 
 # Each theme is its own direction, not a tint of another: they differ in hue, in depth (how
-# light the background is) or both, so the picker offers real choices (UIUX.md → Color).
+# light the background is) or both, so the picker offers real choices (specs/UIUX.md → Color).
 # Every role is an OKLCH (lightness, chroma, hue). The sixteen ANSI colors are black, six hues
 # at one lightness and chroma, and white; then the same again, brighter. `colors` and `bright`
 # are the (lightness, chroma) of the six hues, listed red, green, yellow, blue, magenta, cyan.

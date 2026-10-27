@@ -2,7 +2,7 @@ import CalmModel
 import Foundation
 
 /// A message worth searching: something the user or the agent wrote. Tool calls, tool output,
-/// thinking and context the agent injected are left out (FEATURES.md → F7).
+/// thinking and context the agent injected are left out (specs/FEATURES.md → F7).
 public struct TranscriptMessage: Sendable, Equatable {
     public enum Role: String, Sendable {
         case user

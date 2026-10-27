@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The files column (FEATURES.md → F10): the focused session's project, right of the sidebar.
+/// The files column (specs/FEATURES.md → F10): the focused session's project, right of the sidebar.
 /// What changed comes first, with the lines each change adds and removes; then the tree, with
 /// git-ignored files hidden. ⌘\ toggles it; a click opens the viewer.
 @MainActor
@@ -29,7 +29,7 @@ final class FilesModel {
     /// Whether the column is on screen. The sidebar's footer row reads Hide Files while it is, and
     /// the title strip's readout gives way to it: the column shows the same numbers.
     var isShown = false
-    /// What the project has changed, for the title strip's readout (FEATURES.md → F10). Nil for a
+    /// What the project has changed, for the title strip's readout (specs/FEATURES.md → F10). Nil for a
     /// clean project, a plain folder, or before the first reading. The open column keeps it
     /// current from its own listing; while it's away `watchSummary` does.
     private(set) var summary: ChangeSummary?
@@ -367,7 +367,7 @@ final class FilesColumn {
     }
 }
 
-/// The column in the sidebar's colors and metrics (UIUX.md → Layout): its header on the search
+/// The column in the sidebar's colors and metrics (specs/UIUX.md → Layout): its header on the search
 /// field's line, its first section header level with the sidebar's first group.
 struct FilesColumnView: View {
     let model: FilesModel

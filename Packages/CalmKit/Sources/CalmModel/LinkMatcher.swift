@@ -57,7 +57,7 @@ public struct LinkMatch: Hashable, Sendable {
     }
 }
 
-/// Finds URLs and file paths in terminal text with libghostty's own pattern (FEATURES.md → F8),
+/// Finds URLs and file paths in terminal text with libghostty's own pattern (specs/FEATURES.md → F8),
 /// so the links Calm marks at rest are the ones ⌘-click opens. libghostty only marks a link while
 /// ⌘ is held, and its link setting can't be changed yet, so Calm finds them itself.
 ///

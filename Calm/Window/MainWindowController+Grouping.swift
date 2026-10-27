@@ -1,13 +1,13 @@
 import AppKit
 import CalmModel
 
-/// Session grouping in the window (FEATURES.md → F2): scratch sessions, projects the user made,
+/// Session grouping in the window (specs/FEATURES.md → F2): scratch sessions, projects the user made,
 /// and the welcome page when nothing is open.
 extension MainWindowController {
     // MARK: Scratch sessions
 
     /// ⌘⇧N: a scratch session in a new hidden folder, on top of the sidebar, running the agent ⌘N
-    /// starts (FEATURES.md → New agent sessions), or a plain shell when there is none.
+    /// starts (specs/FEATURES.md → New agent sessions), or a plain shell when there is none.
     func newScratchSession() {
         hideSettings()
         guard let session = manager.newScratchSession() else { return }
@@ -80,7 +80,7 @@ extension MainWindowController {
 
     // MARK: Projects
 
-    /// Projects for `urls`, and the last one's home (FEATURES.md → F2): what to start there is the
+    /// Projects for `urls`, and the last one's home (specs/FEATURES.md → F2): what to start there is the
     /// user's to choose, so no session opens by itself.
     func addProjects(_ urls: [URL]) {
         let projects = urls.map { manager.addProject(path: $0.path) }
@@ -132,7 +132,7 @@ extension MainWindowController {
 
     // MARK: Project home
 
-    /// The project whose home the main area shows (UIUX.md → Project home), nil otherwise.
+    /// The project whose home the main area shows (specs/UIUX.md → Project home), nil otherwise.
     var homeProjectID: Project.ID? {
         sidebarEditing.homeProjectID
     }

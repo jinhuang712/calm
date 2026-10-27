@@ -2,7 +2,7 @@ import AppKit
 import ObjectiveC
 import OSLog
 
-/// Square corners for a Calm window that fills the screen (UIUX.md → Window). macOS rounds every
+/// Square corners for a Calm window that fills the screen (specs/UIUX.md → Window). macOS rounds every
 /// titled window, so a filled one let the desktop show through a sliver at each corner, against
 /// the menu bar and the screen's edges (seen 2026-10-07). AppKit has no public API for a window's
 /// corners, so this overrides four private methods of `NSThemeFrame`, the view that draws a

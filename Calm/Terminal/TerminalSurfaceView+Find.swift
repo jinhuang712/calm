@@ -14,10 +14,10 @@ struct ScrollbackPosition: Equatable {
     }
 }
 
-/// One pane's find marks (FEATURES.md → F16, FindMarksView): the matches on screen and which one
+/// One pane's find marks (specs/FEATURES.md → F16, FindMarksView): the matches on screen and which one
 /// is current. libghostty searches and draws the current match's pill, but tells the app only the
 /// count and the current match's number, so the pane finds the matches on screen itself, as the
-/// engine matches them (`FindMatcher`), and works out which one the number is (FEATURES.md → F16).
+/// engine matches them (`FindMatcher`), and works out which one the number is (specs/FEATURES.md → F16).
 @MainActor
 final class PaneFind {
     /// Called when the marks change, so the overlay can redraw.

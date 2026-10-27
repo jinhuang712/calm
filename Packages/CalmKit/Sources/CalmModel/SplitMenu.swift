@@ -1,4 +1,4 @@
-/// What the split icon's menu holds (UIUX.md → Split panes). The icon only exists inside a split, so
+/// What the split icon's menu holds (specs/UIUX.md → Split panes). The icon only exists inside a split, so
 /// its menu is for managing one: leave it, look at one pane, straighten it. Making a split has its
 /// own keys (⌘D, ⌘⌥ + an arrow) and the Shell menu, so it isn't here.
 public enum SplitMenu {

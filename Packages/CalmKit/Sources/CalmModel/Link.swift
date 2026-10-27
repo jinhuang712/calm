@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a ⌘-clicked link points at (FEATURES.md → F8): a URL, or a file with an optional line
+/// What a ⌘-clicked link points at (specs/FEATURES.md → F8): a URL, or a file with an optional line
 /// and column (`path:line[:column]`).
 public enum Link: Equatable, Sendable {
     case url(URL)

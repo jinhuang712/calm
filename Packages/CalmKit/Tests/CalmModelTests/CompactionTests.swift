@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// A compaction on a session card (UIUX.md → Session cards): the order of events is the one
+/// A compaction on a session card (specs/UIUX.md → Session cards): the order of events is the one
 /// Claude Code 2.1.291 sends (captured 2026-10-06), and the sizes are a real one's.
 struct CompactionTests {
     private let start = Date(timeIntervalSince1970: 1_000_000)

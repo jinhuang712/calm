@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Getting into a split and out of one (UIUX.md → Split panes). A split is only where sessions are
+/// Getting into a split and out of one (specs/UIUX.md → Split panes). A split is only where sessions are
 /// shown together, so bringing one in or taking one out ends nothing: the pane's view moves to
 /// another workspace, or to one of its own, and its shell runs on.
 extension MainWindowController {

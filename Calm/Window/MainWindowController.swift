@@ -254,7 +254,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         // and a file open over the one you were in.
         hideSettings()
         closeViewer()
-        // Going to another session closes find (FEATURES.md → F16).
+        // Going to another session closes find (specs/FEATURES.md → F16).
         if find.isOpen, find.target?.id != id {
             find.close()
         }
@@ -287,7 +287,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
         showSelectedLayout(animated: true)
     }
 
-    /// A project's home in the main area (UIUX.md → Project home): what opening a project shows,
+    /// A project's home in the main area (specs/UIUX.md → Project home): what opening a project shows,
     /// and a click on its header. Like closing the session in front, it chooses no session; every
     /// session keeps running.
     func showProjectHome(_ id: Project.ID) {
@@ -541,7 +541,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
             return
         }
         // In a split the question sits on the pane it is about: a sheet on the window says what
-        // would end, not which pane it is (UIUX.md → Split panes).
+        // would end, not which pane it is (specs/UIUX.md → Split panes).
         if let workspace = selectedWorkspace, let pane = workspace.askablePane(id) {
             closePrompt.ask(about: pane, in: workspace, agent: agent, style: sidebarStyle) { [weak self] in
                 self?.closeSession(id)
@@ -640,9 +640,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
 
 // MARK: Settings
 
-/// Settings (FEATURES.md → F14): the page that takes the whole window.
+/// Settings (specs/FEATURES.md → F14): the page that takes the whole window.
 extension MainWindowController {
-    /// ⌘, (FEATURES.md → F14): Settings takes the whole window; ⌘, again or esc goes back.
+    /// ⌘, (specs/FEATURES.md → F14): Settings takes the whole window; ⌘, again or esc goes back.
     func toggleSettings() {
         if settingsPage.isShowing {
             hideSettings()

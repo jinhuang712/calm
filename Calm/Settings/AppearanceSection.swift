@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// Settings → Appearance (UIUX.md → Settings, Themes): a live miniature of the window in the
+/// Settings → Appearance (specs/UIUX.md → Settings, Themes): a live miniature of the window in the
 /// picked theme and window options, the themes, the interface sizes and the session card sizes
 /// as chips, then background, layout and motion.
 struct AppearanceSection: View {

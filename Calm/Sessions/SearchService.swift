@@ -5,9 +5,9 @@ import CalmSearch
 import Foundation
 import OSLog
 
-/// Keeps the search index fresh and answers searches (FEATURES.md → F7). The index refreshes at
+/// Keeps the search index fresh and answers searches (specs/FEATURES.md → F7). The index refreshes at
 /// launch, every few minutes, and whenever ⌘K opens: an update with nothing new costs a few
-/// milliseconds (FEATURES.md → F7). Everything here may run on any thread.
+/// milliseconds (specs/FEATURES.md → F7). Everything here may run on any thread.
 enum SearchService {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "search")
 

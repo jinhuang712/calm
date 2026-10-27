@@ -2,7 +2,7 @@ import CalmModel
 import Foundation
 
 /// Agents that put a tag in for an image pasted into their prompt, such as Claude Code's
-/// `[Image #4]` (FEATURES.md → F8): Calm finds the image behind it for ⌘-hover and ⌘-click.
+/// `[Image #4]` (specs/FEATURES.md → F8): Calm finds the image behind it for ⌘-hover and ⌘-click.
 /// The agent keeps the image itself, where only its adapter knows to look.
 public protocol PastedImageResolving: AgentAdapter {
     /// The tag, as an `NSRegularExpression` pattern whose one capture group is the image's number.

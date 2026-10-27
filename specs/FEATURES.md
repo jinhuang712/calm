@@ -2,11 +2,11 @@
 
 # Features
 
-This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) has how it looks and moves, [CLI.md](CLI.md) every `calm` command, [DESIGNS.md](DESIGNS.md) the rules the code is built around, and [ROADMAP.md](plans/ROADMAP.md) the order of work.
+This file states what Calm does and will do, from the user's side. [UIUX.md](UIUX.md) every `calm` command, [DESIGNS.md](../DESIGNS.md) the order of work.
 
 Status: ✅ built · 🚧 built, with a gap named in its section · ⬜ planned, not built.
 
-Each feature lists its settings. The budget is at most two per feature ([GOALS.md](GOALS.md) G9). A feature that is over says so.
+Each feature lists its settings. The budget is at most two per feature ([GOALS.md](../GOALS.md). A feature that is over says so.
 
 ## TL;DR
 
@@ -179,7 +179,7 @@ Quitting Calm detaches shells and does not kill them. **Settings:** none.
 - Closing a session ends its shell. At the next launch Calm ends shells it no longer knows, and never touches other apps' sessions.
 - While an agent or process runs, closing asks first, because Calm cannot see an agent behind the shell keeper.
 - A saved state that Calm cannot read is moved aside, never overwritten, and the next launch says so.
-- The reason a session returns and resumes when first opened is in [DESIGNS.md → What the user made outlives the app](DESIGNS.md#4-what-the-user-made-outlives-the-app).
+- The reason a session returns and resumes when first opened is in [DESIGNS.md → What the user made outlives the app](../DESIGNS.md#4-what-the-user-made-outlives-the-app).
 
 ### F15 — New agent sessions ✅
 
@@ -224,7 +224,7 @@ Quitting Calm detaches shells and does not kill them. **Settings:** none.
 
 ### F12 — Session actions ✅
 
-**Settings:** none. Right-click a card, or use ⋯ at the title strip's right, for one menu with agent actions as tiles (UIUX.md → The session menu).
+**Settings:** none. Right-click a card, or use ⋯ at the title strip's right, for one menu with agent actions as tiles (specs/UIUX.md → The session menu).
 
 - **Rename…** edits in place (return keeps, esc cancels, empty restores the title). The name wins everywhere and survives relaunch. **Resume:** after the agent exits, Resume *Agent* Conversation continues it in the same shell with its start options. A closed session resumes from ⌘K with ⌘N's options.
 - **Restart** a running agent on its conversation: Restart *Agent* in the menu and ⌘P, Restart All *Agent* Sessions in ⌘P only, or a click on the update hint. While the agent works or waits, it reads Restart After This Turn, then Don't Restart. Calm quits the agent cleanly and types the start command with the same options, without the prompt.
@@ -272,7 +272,7 @@ Quitting Calm detaches shells and does not kill them. **Settings:** none.
 **Settings:** none. Calm detects **Claude Code, Codex, OpenCode or pi** in a session's foreground within a couple of seconds, also off screen.
 
 - It shows the agent's icon, uses the agent's session title, and links the session to the agent's transcript on disk (F6, F7, F12). It drops the status glyph at the start of the terminal title (Claude Code's ✳, ◐◓◑◒), because the card shows state.
-- Each agent has its own mark, which moves only while the agent works, or while its shells still run (UIUX.md → Agent marks).
+- Each agent has its own mark, which moves only while the agent works, or while its shells still run (specs/UIUX.md → Agent marks).
 
 | Agent | Where its conversations are | Where its state comes from |
 |---|---|---|
@@ -385,7 +385,7 @@ A strip at the top of the pane shows when the user switches into an agent sessio
 
 ### F16 — Find in a session (⌘F) 🚧
 
-Looks: UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** none.
+Looks: specs/UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** none.
 
 - **⌘F** opens find for the current session or split pane, each with its own search, in the title strip's right. The last search returns selected. **⌘E** finds the selected text. **⌘F again closes it.** The Edit menu has Find…, Find Next ⌘G, Find Previous ⌘⇧G.
 - Matches mark as the user types. Case does not matter for A to Z. **`.*`** (click or ⌥⌘R) makes the words a regular expression: `(error|warn)\w*`. `(?-i)` first makes case matter. A half-typed pattern says "Incomplete pattern".
@@ -394,7 +394,7 @@ Looks: UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** none.
 - ⌘F, esc in the field, or typing into the session closes find. Esc in the terminal always goes to the program. Another session or pane closes it.
 - **Full-screen programs** (Claude Code's view, vim, less, htop) keep no scrollback, so find sees the screen: "2 of 3 on screen". No map. With no match, an agent offers **Search all of it ⌘K**. **The whole session:** **Screen | Session** shows in a full-screen program. Session searches shell output and every line the program showed, except in-place changes of spinners and status bars, as a page over the terminal. Esc returns to the live program. Calm keeps up to 50,000 lines per session in memory.
 - **A viewed file** (F10): ⌘F finds in it, with the field in the file's row. Esc closes find before the viewer. A PDF or web page has no `.*`, and a picture has nothing to find.
-- A narrow strip shrinks the field from 340 to 240 pt first (UIUX.md → Find). ⌘K searches conversations (F7).
+- A narrow strip shrinks the field from 340 to 240 pt first (specs/UIUX.md → Find). ⌘K searches conversations (F7).
 
 **Gap:** the exit criteria in plans/ROADMAP.md (M8, M9) are not yet met by use. A view that changes only in digits keeps nothing for the session page, and a view that moves further than its height between reads loses what passed.
 
@@ -474,7 +474,7 @@ Copy Cell copies one cell of a table drawn with box characters (`│ ─ ┼`), 
 
 A quick, read-only look at the repository without leaving Calm. **Settings:** none.
 
-- The **files column** sits right of the sidebar and shows the focused session's project: changes, then the tree, without git-ignored files. **⌘\\** toggles it. A user ⌘\\ keybinding or a global shortcut (1Password) wins (UIUX.md → Keyboard).
+- The **files column** sits right of the sidebar and shows the focused session's project: changes, then the tree, without git-ignored files. **⌘\\** toggles it. A user ⌘\\ keybinding or a global shortcut (1Password) wins (specs/UIUX.md → Keyboard).
 - The header shows the project, the branch when it fits, and added and removed lines (`calm  main  +128 −41`). The column follows the focused session and re-reads every 5 seconds while it is shown.
 - **Changes** lists changed files, staged or not, in path order: letter, name, folder if room and `+64 −31` against the last commit. Letters: **M** modified, **A** added, **D** deleted, **R** renamed, **U** untracked.
 - **An untracked folder over 500 files** is one unread row (`620 files`, **U**). The header total leaves it out, but the title strip's `N changed` counts it.
@@ -599,7 +599,7 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 
 ### F14 — Settings ✅
 
-⌘, turns the window into Settings (UIUX.md → Settings screen). ⌘, again, esc or going to a session leaves it. Sections: **Appearance** (window miniature, themes, window options, F11), **Agents**, **General**, **Shortcuts**.
+⌘, turns the window into Settings (specs/UIUX.md → Settings screen). ⌘, again, esc or going to a session leaves it. Sections: **Appearance** (window miniature, themes, window options, F11), **Agents**, **General**, **Shortcuts**.
 
 - **Agents:** **⌘N starts**, a row per installed agent (mark, name, a chip per start option, Connect / Set Up… / Disconnect), which states notify, and sound.
 - **General:** editor and where paths open (F8), auto-grouping (F2), update checks (F17), config files with Open. **Shortcuts:** Calm's shortcuts. Change keys in the Ghostty config, where a keybinding wins.
@@ -637,9 +637,7 @@ Ghostty options load in this order, each over the one before: Calm's defaults, t
 
 ### F13 — `calm` command-line tool ✅
 
-The `calm` command reaches Calm from a shell. It opens a folder or file, lists the sessions, searches and shows past conversations, forks the current one, starts a clean one with a first message, changes settings and checks that Calm works. Agents' hooks report through it too. [CLI.md](CLI.md) specifies every command. **Settings:** none.
-
-- **Agents know it.** All four agents get one skill, `calm`, which teaches them the commands people ask for and keeps them from reporting state themselves. Claude Code's comes with Calm's plugin, the others' with Connect (F5).
+The `calm` command reaches Calm from a shell. It opens a folder or file, lists the sessions, searches and shows past conversations, forks the current one, starts a clean one with a first message, changes settings and checks that Calm works. Agents' hooks report through it too. [CLI.md](CLI.md).
 - An agent forks only when asked, and in the background, so the user stays where they are and the fork waits in the sidebar. Later it can tell how the fork went. Each command asks by the agent's own permission rules.
 - Outside a Calm session, `status`, `notify` and `hook` do nothing and exit 0. `open` and `list` start Calm when it is not running.
 - `calm trace` prints the timeline of what decides a session's row. It holds states, sources, counts and agent names, never text.
@@ -652,7 +650,7 @@ The `calm` command reaches Calm from a shell. It opens a folder or file, lists t
 #### The skill forbids `calm status` and `calm notify`
 
 - **Instead of:** letting agents report their own state.
-- **Why:** Calm already knows the state (CLI.md → Not planned).
+- **Why:** Calm already knows the state (specs/CLI.md → Not planned).
 
 #### The skill says to run `calm`, and the path variable only after "command not found"
 
@@ -668,7 +666,7 @@ The `calm` command reaches Calm from a shell. It opens a folder or file, lists t
 
 **Settings:** 1, Settings → General → **Check for updates** (`updates.check`, default on). Off, Calm never asks on its own and Check for Updates… still works.
 
-- A newer release shows as `↑ 0.2.0` at the sidebar's top right (UIUX.md → The update notice). No dialog, sound or badge. A click opens a menu: **Update and Restart** (not in Homebrew or Debug builds), **Release Notes**, **Copy Update Command** and **Skip 0.2.0**.
+- A newer release shows as `↑ 0.2.0` at the sidebar's top right (specs/UIUX.md → The update notice). No dialog, sound or badge. A click opens a menu: **Update and Restart** (not in Homebrew or Debug builds), **Release Notes**, **Copy Update Command** and **Skip 0.2.0**.
 - Copy Update Command gives `brew upgrade --cask calm` for Homebrew, else the README's one-line install. **Update and Restart** runs `get.sh` into the folder Calm runs from, then restarts like Calm → Restart Calm. Calm never installs on its own. **When:** a few seconds after launch and when Calm comes forward, only when due: daily, or an hour after a failure. No timer runs. It sends one request to GitHub's releases list. A failure is quiet.
 - **Newer** means the highest `vMAJOR.MINOR.PATCH` among non-draft releases. The pre-release flag and other tags such as `edge` are ignored (RUNBOOK.md → Edge builds). An edge build reads `0.1.0-dc970ac` and counts as the release it follows.
 - **Calm → Check for Updates…** asks now and answers in a dialog. A skipped release is offered again. The Dev build and self-tests never look on their own.

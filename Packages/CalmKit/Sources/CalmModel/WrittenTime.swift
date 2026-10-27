@@ -1,6 +1,6 @@
 import Foundation
 
-/// How long ago, written out (UIUX.md → Search): "just now", "4 minutes ago", "2 hours ago",
+/// How long ago, written out (specs/UIUX.md → Search): "just now", "4 minutes ago", "2 hours ago",
 /// "yesterday", "3 days ago", then the date. The sidebar's cards say "4m"; a search result has
 /// the room to say it in words.
 public enum WrittenTime {

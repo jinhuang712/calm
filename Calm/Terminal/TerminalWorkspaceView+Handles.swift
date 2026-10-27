@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// The split icon (UIUX.md → Split panes): a small quiet icon in the top right corner of a pane
+/// The split icon (specs/UIUX.md → Split panes): a small quiet icon in the top right corner of a pane
 /// that is in a split. It says that what there is to do about splitting is here: click it for
 /// the menu (Take Out of Split, Zoom, Equalize), or drag it onto the sidebar to take the pane out.
 extension TerminalWorkspaceView {

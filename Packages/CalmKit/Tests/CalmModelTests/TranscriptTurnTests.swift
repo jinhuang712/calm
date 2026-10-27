@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// What a transcript's newest turn does to a session's state, for agents with no hook or
-/// extension of their own to say they are working (FEATURES.md → F5).
+/// extension of their own to say they are working (specs/FEATURES.md → F5).
 struct TranscriptTurnTests {
     private let now = Date()
 

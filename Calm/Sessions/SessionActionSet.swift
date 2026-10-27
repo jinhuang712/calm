@@ -2,7 +2,7 @@ import CalmAgents
 import CalmModel
 import Foundation
 
-/// Which of a session's actions apply to it (FEATURES.md → F12). The card's right-click menu and
+/// Which of a session's actions apply to it (specs/FEATURES.md → F12). The card's right-click menu and
 /// the ⌘P palette both read it, so the two can't drift: the agent-backed actions appear only where
 /// its agent has the command, and the copy and Finder ones only where there is something to give.
 @MainActor

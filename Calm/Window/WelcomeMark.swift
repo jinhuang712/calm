@@ -3,7 +3,7 @@ import CalmModel
 import Observation
 import SwiftUI
 
-/// Calm's mark on the welcome page (UIUX.md → Welcome page). It is drawn by the Dock icon's own
+/// Calm's mark on the welcome page (specs/UIUX.md → Welcome page). It is drawn by the Dock icon's own
 /// view, so it is always the real icon, in the theme's light or dark version, and it moves as
 /// `WelcomeMarkMotion` says: it arrives once, waits with a breathing cursor for a while, then
 /// rests. A click runs one lap of the chase, a small easter egg like the project marks'. Reduce

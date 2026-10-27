@@ -1,6 +1,6 @@
 import Foundation
 
-/// Where `calm screenshot` writes, and a check of what came back (CLI.md).
+/// Where `calm screenshot` writes, and a check of what came back (specs/CLI.md).
 public enum ScreenshotFile {
     /// `calm-<yyyyMMdd-HHmmss>.png` in `directory` when the caller names no file, so two shots
     /// never overwrite each other. A relative name starts from `directory`; `~` is the home folder.

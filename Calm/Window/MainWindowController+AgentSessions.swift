@@ -2,7 +2,7 @@ import AppKit
 import CalmAgents
 import CalmModel
 
-/// ⌘N and ⌘⇧N start an agent (FEATURES.md → New agent sessions): the one chosen in Settings →
+/// ⌘N and ⌘⇧N start an agent (specs/FEATURES.md → New agent sessions): the one chosen in Settings →
 /// Agents, with its options, typed into a new session's shell as resume and fork are, so the
 /// shell is still there when the agent exits. ⌘T stays a plain shell.
 extension MainWindowController {

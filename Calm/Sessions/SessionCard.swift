@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// An agent session in the sidebar (UIUX.md → Session cards): who, what state, what it last
+/// An agent session in the sidebar (specs/UIUX.md → Session cards): who, what state, what it last
 /// said, and where. Each state has its look: idle recedes, working is a soft blue with the
 /// agent's mark in motion, *needs you* is amber, done is sage until you look. An idle card
 /// (read, or never started) is also shorter, so the sessions that need a look stand out.
@@ -17,10 +17,10 @@ struct SessionCard: View {
     var isHovered = false
     /// The saved row is still being checked against the running agent (only when that takes
     /// longer than the window can wait): the card keeps its saved size but says nothing about
-    /// the state, so nothing shown is wrong. UIUX.md → Restoring.
+    /// the state, so nothing shown is wrong. specs/UIUX.md → Restoring.
     var isConfirming = false
     /// On screen beside the session you're in, in a split: lifted like the selected card, with no
-    /// ring (UIUX.md → Split panes).
+    /// ring (specs/UIUX.md → Split panes).
     var inView = false
     /// A restart waiting for the turn to end, or under way: a footnote on the state line.
     var restart: RestartPhase?
@@ -508,7 +508,7 @@ struct LoadingBar: View {
     }
 }
 
-/// A compaction, in the todo bar's place (UIUX.md → Session cards): the bar full while the agent
+/// A compaction, in the todo bar's place (specs/UIUX.md → Session cards): the bar full while the agent
 /// compacts, breathing like the restoring bar, then drained to the share it kept over 0.6 s, the
 /// sizes beside it ("968k", then "968k → 13k"). The breathing is a layer (BreathingFill) over the
 /// SwiftUI bar, which stays hidden under it at full width, so the drain is SwiftUI's own width

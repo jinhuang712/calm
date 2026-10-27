@@ -276,7 +276,7 @@ final class TerminalEngine {
         case GHOSTTY_ACTION_MOUSE_SHAPE:
             view?.setMouseShape(action.action.mouse_shape)
         case GHOSTTY_ACTION_MOUSE_OVER_LINK:
-            // The link under ⌘, for the tag beside it (FEATURES.md → F8); empty when it's left.
+            // The link under ⌘, for the tag beside it (specs/FEATURES.md → F8); empty when it's left.
             let link = action.action.mouse_over_link
             let text = link.url
                 .flatMap { link.len > 0 ? String(bytes: UnsafeRawBufferPointer(start: $0, count: link.len), encoding: .utf8) : nil }
@@ -307,7 +307,7 @@ final class TerminalEngine {
                 MainActor.assumeIsolated { view.host?.surfaceChildExited(view) }
             }
         case GHOSTTY_ACTION_START_SEARCH, GHOSTTY_ACTION_END_SEARCH, GHOSTTY_ACTION_SEARCH_TOTAL, GHOSTTY_ACTION_SEARCH_SELECTED:
-            // Find (FEATURES.md → F16). Later, so the window's answer (a new search, a step to the
+            // Find (specs/FEATURES.md → F16). Later, so the window's answer (a new search, a step to the
             // newest match) isn't a binding action run from inside libghostty's own call.
             guard let view, let event = Self.findEvent(action) else { return false }
             DispatchQueue.main.async {

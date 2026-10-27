@@ -40,7 +40,7 @@ enum CalmDefaults {
         var lines = ["# Written by Calm on every launch. Put your own settings in your Ghostty config."]
         // Calm's default theme; a theme or colors in the user's Ghostty config win (TerminalTheme).
         lines += theme
-        // Find (FEATURES.md → F16): Ghostty fills every match, which reads as a selection, so its
+        // Find (specs/FEATURES.md → F16): Ghostty fills every match, which reads as a selection, so its
         // fill goes and Calm underlines the matches instead (FindMarksView). The current match keeps
         // Ghostty's fill, the pill: Calm's themes color it, and `findPill` does for the user's own colors.
         lines.append("search-foreground = cell-foreground")
@@ -51,7 +51,7 @@ enum CalmDefaults {
         // Ghostty keeps the theme color at a shell prompt, where extending looks worse.
         lines.append("window-padding-color = extend")
 
-        // ⌘K searches sessions in Calm (UIUX.md → Keyboard); clear screen moves to ⌘⇧K.
+        // ⌘K searches sessions in Calm (specs/UIUX.md → Keyboard); clear screen moves to ⌘⇧K.
         lines.append("keybind = super+k=unbind")
         lines.append("keybind = super+shift+k=clear_screen")
         // ⌘, opens Settings, the Mac convention; Ghostty's open_config isn't supported in Calm.
@@ -61,7 +61,7 @@ enum CalmDefaults {
         lines.append("keybind = super+shift+t=unbind")
         // Esc always reaches the program, so it still interrupts Claude Code while find is open.
         // Ghostty binds it to end_search, which takes the key whenever a search is active; find's
-        // field takes esc itself, and typing into the session closes find (FEATURES.md → F16).
+        // field takes esc itself, and typing into the session closes find (specs/FEATURES.md → F16).
         lines.append("keybind = escape=unbind")
         // ⌘N starts the agent chosen in Settings → Agents. Ghostty binds it to new_window, which in
         // Calm's one window was a second ⌘T; left bound, Ghostty would take the key before the menu.
@@ -71,7 +71,7 @@ enum CalmDefaults {
         // which Calm doesn't do, and macOS encodes no bytes for an unbound ⌘-letter, so it did nothing.
         lines.append("keybind = super+z=text:\\x1f")
         // ⌘↵ is never full screen in Calm (⌃⌘F and the green button are). With Send with ⌘ Return
-        // on (FEATURES.md → F5) programs get it as ⌘+Return: the agents send with it (`SendKeys`), and
+        // on (specs/FEATURES.md → F5) programs get it as ⌘+Return: the agents send with it (`SendKeys`), and
         // Calm's zsh startup runs the line with it (`ShellIntegration`). Off, it types Return.
         lines.append(sendWithCommandReturn ? "keybind = super+enter=unbind" : "keybind = super+enter=text:\\r")
         // ⌘⌥ + arrow splits toward that side (⌘D and ⌘⇧D stay for right and down). Ghostty binds the
@@ -81,7 +81,7 @@ enum CalmDefaults {
             lines.append("keybind = super+alt+\(direction)=new_split:\(direction)")
         }
         if !reduceMotion, let cursorShader {
-            // A soft cursor glide (UIUX.md → Motion). The animation loop runs in the focused pane
+            // A soft cursor glide (specs/UIUX.md → Motion). The animation loop runs in the focused pane
             // only, and only for a second after its cursor moves (engine patch 0014); with `true`
             // it redrew every 8 ms all day. An engine without the patch reports `cursor` as an
             // invalid value and keeps `true`.
@@ -89,7 +89,7 @@ enum CalmDefaults {
             lines.append("custom-shader-animation = cursor")
         }
         if !reduceMotion, smoothScroll {
-            // Scrolling moves by pixels (UIUX.md → Motion): trackpad scrollback, and a program
+            // Scrolling moves by pixels (specs/UIUX.md → Motion): trackpad scrollback, and a program
             // scrolling a region of its screen (Claude Code's full-screen view, less) slides instead
             // of jumping rows. The key comes with Calm's engine patch (scripts/ghostty-patches); an
             // engine without it would report an unknown key, so it's left out there.

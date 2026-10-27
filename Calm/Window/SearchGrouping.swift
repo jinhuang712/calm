@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// A group ⌘K shows results under (UIUX.md → Search): the one the sidebar would put the
+/// A group ⌘K shows results under (specs/UIUX.md → Search): the one the sidebar would put the
 /// session in.
 struct SearchGroup: Hashable, Sendable {
     enum Key: Hashable, Sendable {

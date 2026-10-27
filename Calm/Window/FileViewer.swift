@@ -4,7 +4,7 @@ import PDFKit
 import SwiftUI
 import WebKit
 
-/// What the viewer shows a file as (FEATURES.md → F10), by extension; small UTF-8 files without a
+/// What the viewer shows a file as (specs/FEATURES.md → F10), by extension; small UTF-8 files without a
 /// known extension show as text.
 enum ViewableKind: Equatable {
     case markdown
@@ -50,7 +50,7 @@ enum ViewableKind: Equatable {
     ]
 }
 
-/// The file viewer (FEATURES.md → F10): a viewable file covers the terminal area, under the title
+/// The file viewer (specs/FEATURES.md → F10): a viewable file covers the terminal area, under the title
 /// strip, which stays the session's; esc returns to the session exactly as it was (it keeps running
 /// underneath).
 @MainActor
@@ -170,7 +170,7 @@ final class FileViewer: NSObject {
         return true
     }
 
-    /// What the session page shows (FEATURES.md → F16, the whole session).
+    /// What the session page shows (specs/FEATURES.md → F16, the whole session).
     struct SessionOpening {
         var page: SessionPage
         /// "Claude Code · since 14:02 · 1,240 lines"
@@ -267,7 +267,7 @@ final class FileViewer: NSObject {
     }
 
     /// The viewer's keys, ahead of the terminal under it: esc closes find first, then the viewer;
-    /// ⌘F, ⌘G, ⌘⇧G and ⌘E find in the file (FEATURES.md → F16); ⌘+, ⌘− and ⌘0 size it, not the
+    /// ⌘F, ⌘G, ⌘⇧G and ⌘E find in the file (specs/FEATURES.md → F16); ⌘+, ⌘− and ⌘0 size it, not the
     /// terminal (F10).
     private func handleKey(_ event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function])

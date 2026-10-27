@@ -2,7 +2,7 @@ import AppKit
 import CalmAgents
 import CalmModel
 
-/// Session actions (FEATURES.md → F12): rename a session, resume the conversation that ended in
+/// Session actions (specs/FEATURES.md → F12): rename a session, resume the conversation that ended in
 /// it, fork a conversation into a new split or tab, each with the agent's own command.
 extension MainWindowController {
     enum ForkDestination {
@@ -182,7 +182,7 @@ extension MainWindowController {
         runAgentCommand(command, in: pane)
     }
 
-    /// `calm fork` (CLI.md): `command`, the agent's fork command, in a new session of its own, in
+    /// `calm fork` (specs/CLI.md): `command`, the agent's fork command, in a new session of its own, in
     /// `id`'s project and in `folder` or `id`'s own. It's brought to the front, unless `background`:
     /// then it waits in the sidebar, its pane made now at the terminal area's size, so the agent
     /// starts at once and at the size it will be shown at (a pane made later starts at a
@@ -202,7 +202,7 @@ extension MainWindowController {
         return forked
     }
 
-    /// `calm new` (CLI.md): a session in `folder`, running `command`, ⌘N's agent with a first
+    /// `calm new` (specs/CLI.md): a session in `folder`, running `command`, ⌘N's agent with a first
     /// prompt. Placed by its folder, and shown as `forkForCLI` shows a fork.
     func newForCLI(command: String, in folder: String, background: Bool) -> Session {
         let created = manager.newSession(in: folder, selecting: !background)
@@ -231,8 +231,8 @@ extension MainWindowController {
 }
 
 /// What the sidebar shows that the workspace doesn't hold: which session's name is being edited
-/// (UIUX.md → Session cards), and the project whose home is in the main area, whose header is
-/// drawn selected (UIUX.md → Project home).
+/// (specs/UIUX.md → Session cards), and the project whose home is in the main area, whose header is
+/// drawn selected (specs/UIUX.md → Project home).
 @MainActor
 @Observable
 final class SidebarEditing {

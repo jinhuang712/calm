@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Find's map (FEATURES.md → F16, UIUX.md → Find): along the searched pane's right edge, a tick
+/// Find's map (specs/FEATURES.md → F16, specs/UIUX.md → Find): along the searched pane's right edge, a tick
 /// for every line of the scrollback with a match and a box for the part on screen. Under the
 /// pointer it widens and names the line nearest it; a click makes that line's first match the
 /// current one. It shows only while there's more log than the screen holds (`showsFindMap`).
@@ -208,7 +208,7 @@ final class FindMapView: NSView {
     }
 
     /// The current match's tick: 4 pt, solid, sticking out 2 pt to the left. A layer of its own,
-    /// so it can slide (UIUX.md → Find, motion).
+    /// so it can slide (specs/UIUX.md → Find, motion).
     private func placeCurrentTick() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)

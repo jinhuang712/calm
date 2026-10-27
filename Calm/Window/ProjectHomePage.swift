@@ -3,7 +3,7 @@ import CalmModel
 import CalmSearch
 import SwiftUI
 
-/// A project's home in the main area (UIUX.md → Project home): what opening a project shows, and
+/// A project's home in the main area (specs/UIUX.md → Project home): what opening a project shows, and
 /// a click on its name in the sidebar. The project, the ways to start a session in it, and the
 /// sessions that ran there before. It starts nothing itself: Calm never opens a session nobody
 /// asked for, and nothing on it is chosen until the user chooses.

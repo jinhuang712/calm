@@ -5,7 +5,7 @@ import Foundation
 import Testing
 
 /// What the Calm-drawn session menu holds, how its keys move, and where it opens
-/// (UIUX.md → Session cards → The session menu).
+/// (specs/UIUX.md → Session cards → The session menu).
 @MainActor
 struct SessionMenuTests {
     private let home = Project(path: "/tmp/app", kind: .directory)

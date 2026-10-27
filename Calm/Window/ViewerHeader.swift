@@ -3,7 +3,7 @@ import CalmModel
 import SwiftUI
 
 /// Whether a file is open over the session: the title strip dims the session's name while it is,
-/// and the name becomes the way back (UIUX.md → Viewing files).
+/// and the name becomes the way back (specs/UIUX.md → Viewing files).
 @MainActor @Observable
 final class ViewerPresence {
     var isShowing = false
@@ -40,11 +40,11 @@ final class ViewerModel {
     #endif
 }
 
-/// The file's row under the title strip (UIUX.md → Viewing files): its name and folder, lined up
+/// The file's row under the title strip (specs/UIUX.md → Viewing files): its name and folder, lined up
 /// under the session's name, with the back button at its left, under the session's mark (it steps
 /// away while find is open, since esc closes find first); at the right,
 /// for a changed file its `+3 −3` and the switch between the file and its diff, find's field while
-/// it's open (FEATURES.md → F16), the size while it isn't 100% (F10), then Open in Editor.
+/// it's open (specs/FEATURES.md → F16), the size while it isn't 100% (F10), then Open in Editor.
 struct ViewerHeader: View {
     /// Where the name starts: under the title strip's name (its inset, the group's mark and the gap).
     @MainActor
@@ -157,7 +157,7 @@ struct ViewerHeader: View {
     }
 }
 
-/// The size while it isn't the file's own (UIUX.md → Viewing files): quiet text at rest, like the
+/// The size while it isn't the file's own (specs/UIUX.md → Viewing files): quiet text at rest, like the
 /// title strip's readout; under the pointer − and + come in around it on the switch's soft track,
 /// and a click on the size goes back to 100%. The size stays where it is, so only the track and
 /// the two buttons come and go, and it stays while the pointer is on it, even at 100%.

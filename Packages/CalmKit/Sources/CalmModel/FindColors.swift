@@ -1,10 +1,10 @@
 import Foundation
 
-/// The colors find draws with (FEATURES.md → F16, UIUX.md → Find), from the colors on screen:
+/// The colors find draws with (specs/FEATURES.md → F16, specs/UIUX.md → Find), from the colors on screen:
 /// the background, the text and the accent. Checked on the five built-in themes by a script
 /// first (2026-10-07) and now by `FindColorsTests`: text in the background color reads at 4.5:1
 /// on the pill, the underline and edge bar stand at 3:1 or more, and the band stays a tint that
-/// doesn't read as a selection (UIUX.md → Find).
+/// doesn't read as a selection (specs/UIUX.md → Find).
 public struct FindColors: Equatable, Sendable {
     public let background: String
     public let foreground: String

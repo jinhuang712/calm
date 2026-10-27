@@ -3,7 +3,7 @@ import Observation
 import SwiftUI
 
 /// The note under find's field when a full-screen program's screen has none of the words
-/// (FEATURES.md → F16, UIUX.md → Find): such a screen keeps no scrollback, but Calm kept what the
+/// (specs/FEATURES.md → F16, specs/UIUX.md → Find): such a screen keeps no scrollback, but Calm kept what the
 /// session showed, and the note's button searches all of it (the session page). With nothing kept,
 /// an agent's conversation is in ⌘K, and the button takes the words there. It hangs under the
 /// field's right end, over the terminal, on the ⌘-link tag's surface, and shows only while

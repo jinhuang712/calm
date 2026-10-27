@@ -60,7 +60,7 @@ final class SessionManager {
     private(set) var confirming: Set<Session.ID> = []
     @ObservationIgnored private var confirmingSince: ContinuousClock.Instant?
 
-    /// Agents being restarted, or waiting for their turn to end to be (FEATURES.md → F12,
+    /// Agents being restarted, or waiting for their turn to end to be (specs/FEATURES.md → F12,
     /// `SessionManager+Restart`). Not saved: a relaunch forgets a restart that hadn't begun.
     var restarts: [Session.ID: RestartPhase] = [:]
     /// Sessions whose agent runs an older version than the one installed (the title strip's
@@ -97,7 +97,7 @@ final class SessionManager {
         for session in workspace.sessions {
             Trace.note("restore \(Trace.id(session.id)): \(Trace.describe(session)) (saved)")
         }
-        // Sessions filed under older rules find their groups (FEATURES.md → F2).
+        // Sessions filed under older rules find their groups (specs/FEATURES.md → F2).
         if autoGrouping {
             workspace.refileAll(gitRoot: GitRoot.find)
         }
@@ -238,7 +238,7 @@ final class SessionManager {
         }
     }
 
-    /// One text size for every session (FEATURES.md → F1): a pane that changed size takes the
+    /// One text size for every session (specs/FEATURES.md → F1): a pane that changed size takes the
     /// others with it, and the size is saved for the next launch.
     func paneFontSizeDidChange(_ pane: TerminalSurfaceView) {
         // Panes the sync below resizes report back the size just saved, so this stops there.
@@ -541,7 +541,7 @@ final class SessionManager {
         scheduleSave()
     }
 
-    /// Names a session (FEATURES.md → F12); an empty name gives it back its own title.
+    /// Names a session (specs/FEATURES.md → F12); an empty name gives it back its own title.
     func rename(_ id: Session.ID, to name: String?) {
         workspace.rename(id, to: name)
         scheduleSave()
@@ -575,13 +575,13 @@ final class SessionManager {
         return project ?? workspace.addProject(path: path, gitRoot: GitRoot.find)
     }
 
-    /// A directory group becomes a project (FEATURES.md → F2).
+    /// A directory group becomes a project (specs/FEATURES.md → F2).
     func makeProject(_ projectID: Project.ID) {
         Motion.animate { workspace.makeProject(projectID) }
         scheduleSave()
     }
 
-    /// A project the user made goes back to being folders (FEATURES.md → F2).
+    /// A project the user made goes back to being folders (specs/FEATURES.md → F2).
     func removeProject(_ projectID: Project.ID) {
         Motion.animate { workspace.removeProject(projectID, gitRoot: GitRoot.find) }
         scheduleSave()

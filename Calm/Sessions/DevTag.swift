@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The dev build's mark of itself (BuildVariant): plain small capitals in the icon's violet, on the
 /// line of the strip above the sidebar's search field, where the section headers' type already
-/// lives. No box, and nothing else in the chrome takes the color (UIUX.md → The dev build).
+/// lives. No box, and nothing else in the chrome takes the color (specs/UIUX.md → The dev build).
 struct DevTag: View {
     let isDark: Bool
 

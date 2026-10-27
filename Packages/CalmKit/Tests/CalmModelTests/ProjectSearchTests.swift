@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// FEATURES.md → F2, the welcome page: projects are searchable along with sessions.
+/// specs/FEATURES.md → F2, the welcome page: projects are searchable along with sessions.
 struct ProjectSearchTests {
     let home = "/Users/me"
 

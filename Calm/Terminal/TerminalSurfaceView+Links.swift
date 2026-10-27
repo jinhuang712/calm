@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import GhosttyKit
 
-/// A link under the pointer while ⌘ is held (FEATURES.md → F8): what libghostty would open, and
+/// A link under the pointer while ⌘ is held (specs/FEATURES.md → F8): what libghostty would open, and
 /// the cells it covers.
 struct LinkHover: Equatable {
     /// libghostty's text for it: the matched text, or an OSC 8 link's URL.
@@ -44,7 +44,7 @@ final class PaneLinks {
         }
     }
 
-    /// The table cell under the pointer while ⌥ is held (Copy Cell, FEATURES.md → F9), in the
+    /// The table cell under the pointer while ⌥ is held (Copy Cell, specs/FEATURES.md → F9), in the
     /// pane's coordinates; the same overlay draws it.
     var cellOutline: NSRect? {
         didSet {
@@ -83,7 +83,7 @@ final class PaneLinks {
     fileprivate var isScanPending = false
 }
 
-/// Links at rest and under ⌘ (FEATURES.md → F8). libghostty marks a link only while ⌘ is held
+/// Links at rest and under ⌘ (specs/FEATURES.md → F8). libghostty marks a link only while ⌘ is held
 /// (its `link` setting can't be set yet), so Calm finds the links in the visible text itself, with
 /// libghostty's own pattern (LinkMatcher), and marks each one that opens (LinkMarksView). It looks
 /// again only once the text holds still, so marks never trail moving text: rows that change lose

@@ -1,6 +1,6 @@
 import Foundation
 
-/// The session page (FEATURES.md → F16, UIUX.md → Find): everything a session showed, in order.
+/// The session page (specs/FEATURES.md → F16, specs/UIUX.md → Find): everything a session showed, in order.
 /// The shell's output, with each full-screen program's lines, as Calm kept them (`ScreenKeeper`),
 /// where the program started in it; while a program runs, what's on its screen now comes last.
 /// A time mark goes before each part a program showed.

@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// What git says about a file in the viewer (FEATURES.md → F10), against the last commit, as the
+/// What git says about a file in the viewer (specs/FEATURES.md → F10), against the last commit, as the
 /// files column counts it: staged and unstaged changes together.
 enum ViewerChange: Equatable {
     /// Not changed, outside a repository, or ignored by git.

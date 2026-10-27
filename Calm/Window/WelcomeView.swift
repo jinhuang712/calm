@@ -4,7 +4,7 @@ import CalmModel
 import CalmSearch
 import SwiftUI
 
-/// The welcome page (UIUX.md → Welcome page): Calm's mark, then either search with a list of recent
+/// The welcome page (specs/UIUX.md → Welcome page): Calm's mark, then either search with a list of recent
 /// sessions and one of projects, or, with nothing to list, the three ways to start.
 struct WelcomeView: View {
     struct Actions {

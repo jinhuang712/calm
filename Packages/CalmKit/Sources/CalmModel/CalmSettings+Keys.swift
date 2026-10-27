@@ -1,6 +1,6 @@
 import Foundation
 
-/// Every key Calm reads from config.toml, for `calm config` (CLI.md → `calm config`): what it takes,
+/// Every key Calm reads from config.toml, for `calm config` (specs/CLI.md → `calm config`): what it takes,
 /// what applies when it isn't set, and what it does. A key Calm starts reading goes here too, or
 /// `calm config` won't know it; tests check the choices and defaults against the typed accessors.
 public extension CalmSettings {

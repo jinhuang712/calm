@@ -1,6 +1,6 @@
 import Foundation
 
-/// What a dragged session carries (UIUX.md → Split panes): whose it is, and where it was picked
+/// What a dragged session carries (specs/UIUX.md → Split panes): whose it is, and where it was picked
 /// up. The terminal panes already take dropped files and text (a path is pasted), so a session
 /// travels under a type of its own, which only the sidebar and the split's panes accept.
 public struct SessionDrag: Hashable, Sendable {

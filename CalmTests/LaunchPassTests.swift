@@ -106,7 +106,7 @@ struct LaunchPassTests {
         #expect(manager.confirming.isEmpty)
     }
 
-    // MARK: A shell that went with its agent (FEATURES.md → F3)
+    // MARK: A shell that went with its agent (specs/FEATURES.md → F3)
 
     @Test func `a shell is gone only when zmx listed the shells and it isn't there`() {
         #expect(LaunchPass.Answer(outcomes: [:], shells: [:], shellsListed: true).shellIsGone("calm-a"))

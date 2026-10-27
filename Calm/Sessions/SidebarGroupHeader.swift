@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// A group's header in the sidebar (UIUX.md → Layout): its chevron, mark and name, and under the
+/// A group's header in the sidebar (specs/UIUX.md → Layout): its chevron, mark and name, and under the
 /// pointer its controls in the place of a folded group's summary. A project's header is one bar
 /// that opens the project's home; its chevron alone folds it. A folder's or scratch's header folds.
 /// (Its own file: SidebarView.swift had reached its length limit.)
@@ -112,7 +112,7 @@ struct SidebarGroupHeader: View {
         .accessibilityAddTraits(isHome ? .isSelected : [])
     }
 
-    /// The drag that moves a project among the others (UIUX.md → Layout), followed in the list's
+    /// The drag that moves a project among the others (specs/UIUX.md → Layout), followed in the list's
     /// visible part, which stays put while the header moves with the pointer.
     private var reorder: some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .named(SidebarView.viewportSpace))
@@ -182,7 +182,7 @@ struct SidebarGroupHeader: View {
 
     // MARK: Controls
 
-    /// A group's own actions, shown on hover in the place of its summary (UIUX.md → Layout): the
+    /// A group's own actions, shown on hover in the place of its summary (specs/UIUX.md → Layout): the
     /// agent's mark starts a session running it there, `>_` a plain shell (a scratch group has one
     /// +, a scratch session); ⋯ holds what changes the group itself, one step away.
     private var controls: some View {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// What `calm show` prints for one conversation (CLI.md → `calm show`). The CLI gathers it from
+/// What `calm show` prints for one conversation (specs/CLI.md → `calm show`). The CLI gathers it from
 /// the search index, the transcript and the running Calm; this lays it out, so the layout is
 /// tested. A part with nothing in it is left out, not printed empty.
 public struct ConversationReport: Codable, Sendable, Equatable {

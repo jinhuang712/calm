@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Find's marks over one workspace's panes (FEATURES.md → F16, UIUX.md → Find): a 2 pt underline
+/// Find's marks over one workspace's panes (specs/FEATURES.md → F16, specs/UIUX.md → Find): a 2 pt underline
 /// in the accent under every match on screen, and on the current match's line a faint band from
 /// edge to edge with a 3 pt bar at the pane's left. libghostty draws the current match itself (the
 /// pill: its `search-selected` colors, which Calm sets), and its fill for the other matches is
@@ -44,7 +44,7 @@ final class FindMarksView: NSView {
         nil
     }
 
-    /// Draws `pane`'s marks where its matches are now (UIUX.md → Find, motion). Only a step to a
+    /// Draws `pane`'s marks where its matches are now (specs/UIUX.md → Find, motion). Only a step to a
     /// match on the same screen moves something: the band and the bar slide to its line. Marks
     /// that come with typing, output or a scroll are where their text is at once, so they ride
     /// with it; closing find fades them.
@@ -63,7 +63,7 @@ final class FindMarksView: NSView {
         let solid = NSColor(hex: colors.solid)?.cgColor ?? NSColor.controlAccentColor.cgColor
 
         // Every match but the current one, which wears the pill. Under ⌘ a link wins: find's line
-        // steps aside under it while the link's own underline shows (UIUX.md → Find, links).
+        // steps aside under it while the link's own underline shows (specs/UIUX.md → Find, links).
         let hovered = pane.links.hovered?.runs ?? []
         var frames: [NSRect] = []
         for (index, match) in find.matches.enumerated() where index != find.current {

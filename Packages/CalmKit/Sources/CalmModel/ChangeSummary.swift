@@ -1,7 +1,7 @@
 import Foundation
 
 /// What the title strip says about the project's uncommitted work while the files column is away
-/// (FEATURES.md → F10): how many files changed, and the lines they add and remove ("3 changed
+/// (specs/FEATURES.md → F10): how many files changed, and the lines they add and remove ("3 changed
 /// +58 −6"). The files column's Changes section lists the same files, so the two agree.
 public struct ChangeSummary: Sendable, Equatable {
     public var count: Int

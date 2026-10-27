@@ -1,6 +1,6 @@
 import Foundation
 
-/// Where a word the user typed counts as found (FEATURES.md → F7). One rule for the index and for
+/// Where a word the user typed counts as found (specs/FEATURES.md → F7). One rule for the index and for
 /// what search marks on screen, so every mark is a match and every match can be marked.
 public enum SearchMatch {
     /// One or two letters or digits match only where a word starts: "d" finds "Draft" and

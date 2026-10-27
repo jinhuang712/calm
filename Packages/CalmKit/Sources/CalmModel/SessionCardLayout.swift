@@ -1,4 +1,4 @@
-/// What an agent's card shows under its title at each card size (UIUX.md → Session cards).
+/// What an agent's card shows under its title at each card size (specs/UIUX.md → Session cards).
 /// Full is every line; Compact puts the state and the recap on one line; Minimal is the title
 /// alone. At the smaller sizes a card that waits for a look (needs you, done, failed) grows a
 /// line, so what it asks or did is never cut away, and settles once it's answered or seen.

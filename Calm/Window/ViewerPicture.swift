@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// A picture in the viewer (FEATURES.md → F10): fitted to the viewer and never grown past its own
+/// A picture in the viewer (specs/FEATURES.md → F10): fitted to the viewer and never grown past its own
 /// size, as before; ⌘+ and ⌘− (or a pinch) magnify it, with room to scroll around it. Smaller than
 /// the view, it sits in the middle.
 final class ViewerPictureView: NSScrollView {

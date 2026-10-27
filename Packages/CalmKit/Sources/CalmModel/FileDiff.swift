@@ -1,6 +1,6 @@
 import Foundation
 
-/// One file's changes against the last commit, from `git diff -U3 HEAD -- <file>` (FEATURES.md →
+/// One file's changes against the last commit, from `git diff -U3 HEAD -- <file>` (specs/FEATURES.md →
 /// F10): the viewer's changed-line marks, its unified diff and its split diff all come from it.
 public struct FileDiff: Sendable, Equatable {
     public enum Kind: String, Sendable, Equatable {

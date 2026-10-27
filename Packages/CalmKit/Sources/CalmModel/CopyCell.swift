@@ -78,7 +78,7 @@ public struct TextGrid: Equatable, Sendable {
     }
 }
 
-/// Copy Cell (FEATURES.md → F9): the text of one cell of a table drawn with box characters,
+/// Copy Cell (specs/FEATURES.md → F9): the text of one cell of a table drawn with box characters,
 /// instead of whole rows. Pure over a text grid, so it's tested with fixtures of real tables.
 public enum CopyCell {
     /// Characters that draw a table's vertical lines, including junctions and plain `|`.

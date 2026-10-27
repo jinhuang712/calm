@@ -1,6 +1,6 @@
 import Foundation
 
-/// Sessions and the splits they're shown in (UIUX.md → Split panes). A split is only where
+/// Sessions and the splits they're shown in (specs/UIUX.md → Split panes). A split is only where
 /// sessions are displayed together: bringing one in, or taking one out, ends nothing. (Undoing a
 /// whole split is `unsplit`, in Workspace+Palette.)
 public extension Workspace {

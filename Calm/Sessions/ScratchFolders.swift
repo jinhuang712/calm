@@ -1,6 +1,6 @@
 import Foundation
 
-/// The hidden folders scratch sessions start in (FEATURES.md → F2): one per ⌘⇧N, kept across
+/// The hidden folders scratch sessions start in (specs/FEATURES.md → F2): one per ⌘⇧N, kept across
 /// restarts rather than in a temporary directory, which macOS clears on its own.
 enum ScratchFolders {
     /// Self-tests and unit tests keep theirs with their own support files, away from the real ones.

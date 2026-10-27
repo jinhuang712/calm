@@ -3,7 +3,7 @@ import CalmModel
 import CalmSearch
 import SwiftUI
 
-/// The welcome page's search (UIUX.md → Welcome page): recent sessions, or the ones a query finds,
+/// The welcome page's search (specs/UIUX.md → Welcome page): recent sessions, or the ones a query finds,
 /// as a flat list. Enter goes to a session if it's open in Calm, otherwise resumes it in its
 /// project folder. The index refreshes as the page asks, then typing only queries it. ⌘K lays
 /// its results out in groups instead (SearchModel).

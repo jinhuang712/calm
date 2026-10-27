@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import Testing
 
-/// What ⌘N types for each agent (FEATURES.md → New agent sessions), and which agent it starts.
+/// What ⌘N types for each agent (specs/FEATURES.md → New agent sessions), and which agent it starts.
 struct LaunchCommandTests {
     private func command(_ kind: AgentKind, _ config: String = "", inGit: Bool = true) throws -> String {
         let adapter = try #require(Agents.adapter(for: kind))

@@ -2,7 +2,7 @@ import CalmModel
 import Testing
 
 /// Reading `git worktree list --porcelain` and deciding a worktree is empty, for the cleanup of
-/// the worktrees agents make (FEATURES.md → New agent sessions).
+/// the worktrees agents make (specs/FEATURES.md → New agent sessions).
 struct GitWorktreeTests {
     /// The shape of the author's real listing (2026-10-07): the main checkout, a worktree of this
     /// tooling, and one `claude -w` made and locked.

@@ -1,7 +1,7 @@
 import Foundation
 
 public extension CalmSettings {
-    /// Which states notify (FEATURES.md → F5): *needs you* only, or also *done* and *failed*.
+    /// Which states notify (specs/FEATURES.md → F5): *needs you* only, or also *done* and *failed*.
     enum NotifyStates: String, Sendable {
         case needsYou = "needs-you"
         case all
@@ -11,18 +11,18 @@ public extension CalmSettings {
         values["agents.notify"].flatMap { NotifyStates(rawValue: $0.lowercased()) } ?? .needsYou
     }
 
-    /// Notification sound (default off: UIUX.md → Notifications).
+    /// Notification sound (default off: specs/UIUX.md → Notifications).
     var notificationSound: Bool {
         bool("agents.sound", default: false)
     }
 
-    /// Send with ⌘ Return (FEATURES.md → F5): ⌘ Return sends an agent's prompt and Return starts a
+    /// Send with ⌘ Return (specs/FEATURES.md → F5): ⌘ Return sends an agent's prompt and Return starts a
     /// new line in it, in the agents that can bind ⌘ (`SendKeys`). Off: Return sends, as everywhere.
     var sendWithCommandReturn: Bool {
         bool("agents.send-with-cmd-return", default: false)
     }
 
-    /// The window's background (UIUX.md → Themes): solid, or the system's glass behind a
+    /// The window's background (specs/UIUX.md → Themes): solid, or the system's glass behind a
     /// translucent terminal and sidebar.
     enum WindowBackground: String, Sendable, CaseIterable {
         case solid, glass
@@ -41,7 +41,7 @@ public extension CalmSettings {
         values["window.layout"].flatMap { WindowLayout(rawValue: $0.lowercased()) } ?? .edge
     }
 
-    /// How large Calm's own interface is drawn (UIUX.md → Accessibility): the sidebar, cards,
+    /// How large Calm's own interface is drawn (specs/UIUX.md → Accessibility): the sidebar, cards,
     /// Settings and panels, not the terminal, whose text is the Ghostty font's.
     enum InterfaceSize: String, Sendable, CaseIterable {
         case standard, large, larger, largest
@@ -61,7 +61,7 @@ public extension CalmSettings {
         values["ui-size"].flatMap { InterfaceSize(rawValue: $0.lowercased()) } ?? .standard
     }
 
-    /// How much an agent's card in the sidebar shows (UIUX.md → Session cards): every line, the
+    /// How much an agent's card in the sidebar shows (specs/UIUX.md → Session cards): every line, the
     /// state and the recap on one line, or the title alone.
     enum SessionCardSize: String, Sendable, CaseIterable {
         case full, compact, minimal
@@ -72,7 +72,7 @@ public extension CalmSettings {
     }
 
     /// Whether the sidebar's footer (New Session, New Scratch Session, New Project… and their
-    /// shortcuts) shows. The footer's own hover handle writes it (UIUX.md → Layout); the
+    /// shortcuts) shows. The footer's own hover handle writes it (specs/UIUX.md → Layout); the
     /// shortcuts and menu items work either way.
     var sidebarFooter: Bool {
         bool("sidebar.footer", default: true)

@@ -1,7 +1,7 @@
 #!/bin/bash
-# A stand-in Claude Code with a pasted image, for self-tests of ⌘ over `[Image #n]` (FEATURES.md
+# A stand-in Claude Code with a pasted image, for self-tests of ⌘ over `[Image #n]` (specs/FEATURES.md
 # → F8). Run it in a self-test whose Calm has CLAUDE_CODE_TMPDIR set to a scratch folder (its
-# shells inherit it), as FEATURES.md → F8 shows: it lays out image #1 where Claude Code keeps
+# shells inherit it), as specs/FEATURES.md → F8 shows: it lays out image #1 where Claude Code keeps
 # one, says which conversation this is through `calm status` as the hooks would, draws a prompt
 # holding the tags (#9 has no file), and stands in for claude. It draws after Calm knows the
 # agent, as the real one keeps redrawing.

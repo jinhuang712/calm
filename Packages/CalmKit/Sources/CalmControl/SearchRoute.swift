@@ -1,4 +1,4 @@
-/// Where `calm search` takes its results from, given how Calm answered (CLI.md → `calm search`).
+/// Where `calm search` takes its results from, given how Calm answered (specs/CLI.md → `calm search`).
 public enum SearchRoute: Equatable, Sendable {
     case results([ControlResponse.SearchHit])
     /// Calm answered with an error: say it, rather than search behind its back (a Calm older than

@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// Bringing an existing session into a split, taking a pane out of one, and unsplitting
-/// (UIUX.md → Split panes). None of them ends a session.
+/// (specs/UIUX.md → Split panes). None of them ends a session.
 struct WorkspaceSplitTests {
     /// A split of `a` and `b`, and a session `c` alone in its own layout (the one on screen).
     private struct Trio {

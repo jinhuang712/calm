@@ -1,6 +1,6 @@
 import Foundation
 
-/// How Calm's mark moves on the welcome page (UIUX.md → Welcome page). It arrives once: the ring
+/// How Calm's mark moves on the welcome page (specs/UIUX.md → Welcome page). It arrives once: the ring
 /// draws itself in typing order, the center follows, and the cursor appears on the ring's last
 /// cell and takes the last step to its resting place slowly, settling once, as it does when an
 /// agent stops working. Then it waits, the cursor breathing slowly, the way a cursor waits for the

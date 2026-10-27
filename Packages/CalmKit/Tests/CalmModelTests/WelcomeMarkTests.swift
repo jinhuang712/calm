@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// UIUX.md → Welcome page: the mark arrives once, then waits with a breathing cursor.
+/// specs/UIUX.md → Welcome page: the mark arrives once, then waits with a breathing cursor.
 struct WelcomeMarkMotionTests {
     private func places(at time: TimeInterval) -> [AppIconFrame.Place] {
         WelcomeMarkMotion.frame(at: time).places

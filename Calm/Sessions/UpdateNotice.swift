@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// The sidebar strip's notice that a newer Calm is out (UIUX.md → The sidebar): `↑ 0.2.0` in quiet
+/// The sidebar strip's notice that a newer Calm is out (specs/UIUX.md → The sidebar): `↑ 0.2.0` in quiet
 /// text, on the line beside the traffic lights where the dev build's tag sits. No box, and not
 /// amber, which is *needs you*: an update never does. A click opens a small menu.
 struct UpdateNotice: View {

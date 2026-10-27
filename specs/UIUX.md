@@ -2,7 +2,7 @@
 
 # UI and UX
 
-How Calm Terminal looks, moves and behaves. Principles are in [PHILOSOPHY.md](PHILOSOPHY.md). Behavior details are in [FEATURES.md](FEATURES.md).
+How Calm Terminal looks, moves and behaves. Principles are in [PHILOSOPHY.md](../PHILOSOPHY.md).
 
 ## Design guidelines
 
@@ -27,7 +27,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 ┌─────────────────────────┬──────────────────┬───────────────────────────┐
 │ ⌕ Search sessions   ⌘ K │ calm ⎇ main +52  │ ▦ fix link marks        ⋯ │
 │ ▾ ▦ CALM                │ CHANGES 2        │   ~/dev/apps/calm         │
-│ ┌─────────────────────┐ │ M UIUX.md   +12  │                           │
+│ ┌─────────────────────┐ │ M specs/UIUX.md   +12  │                           │
 │ │ C fix link marks 4m │ │ FILES            │   (the agent's own TUI,   │
 │ │   Running swift test│ │ ▾ docs         • │    untouched)             │
 │ └─────────────────────┘ │   plan.md      A │                           │
@@ -46,7 +46,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - A chevron above the footer's hairline folds the footer away. A thin strip along the bottom edge brings it back.
 - **Group header controls** replace the summary under the pointer: the ⌘N agent's mark starts that agent there, **>_** starts a plain shell, **⋯** is Make Project or Remove Project. Scratch has only **+**.
 - **Dragging a project's bar** moves the project among the others. A press that does not move is a click. Folder groups and scratch do not drag. With Reduce Motion, the other projects jump aside. See `ProjectReorder`.
-- **The update notice** (FEATURES.md → F17): `↑ 0.2.0` at the right end of the strip above the search field, before the dev build's tag. It is quiet text, not amber, because an update never needs the user.
+- **The update notice** (specs/FEATURES.md → F17): `↑ 0.2.0` at the right end of the strip above the search field, before the dev build's tag. It is quiet text, not amber, because an update never needs the user.
 - A click opens a menu: Update and Restart (absent for Homebrew and Debug builds), Release Notes, Copy Update Command, Skip 0.2.0. It goes away when the release is skipped or running. See `UpdateNotice`.
 - **No session chosen:** after the session on screen closes, no row is selected and Calm does not pick the next one. The main area follows the sidebar and shows one of two things. See `NoSessionContent`.
 - **Waiting on you:** when any session needs a look (needs you, done, failed), large cards show under a **WAITING ON YOU** header. Questions come first, then finished turns, each newest first.
@@ -78,7 +78,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - **Worktree label:** when the session works in a linked git worktree, its mark and name follow the folder after a "·". A main checkout, a plain folder and a submodule show nothing.
 - **Files readout:** `3 changed +58 −6` at the right end, while the project has uncommitted changes and the files column is away. Under the pointer it reads `Show Files ⌘\`. It is absent for a clean project, a non-git folder and Desktop, Documents or Downloads themselves.
 - Each item shows whole or not at all. A narrow window drops the readout first, then the worktree label.
-- **Update hint** (FEATURES.md → F12): an amber capsule, `↑ Claude Code 2.1.291`, while the agent in front runs an older version than the one installed. It uses amber on purpose, because the hint must be seen. See `AgentUpdateHint`.
+- **Update hint** (specs/FEATURES.md → F12): an amber capsule, `↑ Claude Code 2.1.291`, while the agent in front runs an older version than the one installed. It uses amber on purpose, because the hint must be seen. See `AgentUpdateHint`.
 - Under the pointer, it names the click: `Restart Claude Code`, or `Restart After This Turn` while the agent works or waits. A waiting restart reads `Restarts after this turn`. A click takes it back.
 - An agent that Calm does not restart gets the capsule with no click. Its tooltip says to quit and start the agent again. The title gives way to the hint, never the reverse.
 
@@ -110,7 +110,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 
 **The live line** (Claude Code only; other agents say "Working"): line 2 says what the agent does, taken from hooks the agent already sends, so nothing polls. See `LiveLine`.
 
-- Each tool call is a step: "Reading SessionCard.swift", "Editing UIUX.md", "Searching the web", a subagent's description. Claude's bookkeeping (todo list, asking the user) leaves the line as it was.
+- Each tool call is a step: "Reading SessionCard.swift", "Editing specs/UIUX.md", "Searching the web", a subagent's description. Claude's bookkeeping (todo list, asking the user) leaves the line as it was.
 - A command shows as Claude describes it ("Running the full test suite"), else "Running swift test".
 - Words hold briefly, so a burst of parallel calls does not flash. Steps of one kind add up ("Reading 3 files"). A prompt starts at "Thinking", and a quiet gap returns to it.
 
@@ -239,7 +239,7 @@ A centered panel on a surface a step off the terminal's background, in the chrom
 
 ## Find (⌘F)
 
-See FEATURES.md → F16. The look is Calm's own, drawn over the terminal as a flat fill. The pill is the engine's own cell fill, so its ends are square and flush with the letters. Colors come from `FindColors`.
+See specs/FEATURES.md → F16. The look is Calm's own, drawn over the terminal as a flat fill. The pill is the engine's own cell fill, so its ends are square and flush with the letters. Colors come from `FindColors`.
 
 - **The field** stands in the title strip where the files readout was, in the look of the sidebar's search field, with the count and a **⌘F** cap that closes it (`FindField`). When the strip is short of room, the field narrows first, and the count never goes.
 - **`.*`:** the field's one switch. On, the typed words turn monospaced. A half-typed pattern reads "Incomplete pattern". Help text: "Regular expression (⌥⌘R)". A PDF or web page has no switch.
@@ -255,7 +255,7 @@ See FEATURES.md → F16. The look is Calm's own, drawn over the terminal as a fl
 
 - **Panel:** centered, on a regular material, with a field ("Run a command") and a list. Rows show the name, and the key that already does it for the keys only Calm has.
 - Only the selected row says in one short sentence what it does ("Start a copy of this conversation in a new split beside it."). Every row has one, in `PaletteRow`, and typing a word of it finds the row.
-- The palette holds what has no key everyone knows (FEATURES.md → F1). Rows are grouped by category with no headers. Every row is one-shot: none opens a second list.
+- The palette holds what has no key everyone knows (specs/FEATURES.md → F1). Rows are grouped by category with no headers. Every row is one-shot: none opens a second list.
 
 ## Split panes
 
@@ -371,7 +371,7 @@ Calm's shortcuts follow Ghostty's macOS defaults, with these changes. Calm's def
 - **⌘↵** (toggle full screen) types Return. ⌃⌘F and the green button remain. With Send with ⌘ Return on, programs get ⌘+Return (`ESC[13;9u` under the kitty keyboard protocol, `ESC[27;9;13~` without).
 - **⌘⌥ + arrow** (move focus) splits toward that side. ⌘[ and ⌘] still move focus. ⌘D and ⌘⇧D keep working, unlisted in the Shell menu. A user with their own `goto_split` lines on those keys gets no splits until the lines go.
 - **⌘\\** toggles the files column. 1Password's autofill takes ⌘\\ first while it runs. View → Toggle Files still works then.
-- **Check for Updates…** and **Restart Calm** (Calm menu) have no shortcut. Updates are checked once a day, and next to ⌘Q a Restart would be easy to hit by mistake (FEATURES.md → F17).
+- **Check for Updates…** and **Restart Calm** (Calm menu) have no shortcut. Updates are checked once a day, and next to ⌘Q a Restart would be easy to hit by mistake (specs/FEATURES.md → F17).
 
 ## Accessibility
 

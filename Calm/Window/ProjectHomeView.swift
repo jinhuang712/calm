@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// A project's home (UIUX.md → Project home): its mark, name and folder at the left, the ways to
+/// A project's home (specs/UIUX.md → Project home): its mark, name and folder at the left, the ways to
 /// start a session in it as the welcome page's start line, and the sessions that ran there before.
 struct ProjectHomeView: View {
     struct Actions {

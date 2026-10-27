@@ -1,6 +1,6 @@
 import AppKit
 
-/// The system's display accessibility settings Calm follows (UIUX.md → Accessibility), and
+/// The system's display accessibility settings Calm follows (specs/UIUX.md → Accessibility), and
 /// applying a change to them without a relaunch.
 @MainActor
 enum AccessibilitySettings {

@@ -128,7 +128,7 @@ struct CellDrag {
     }
 }
 
-/// Copy Cell (FEATURES.md → F9): holding ⌥ over a table an agent drew outlines the cell under the
+/// Copy Cell (specs/FEATURES.md → F9): holding ⌥ over a table an agent drew outlines the cell under the
 /// pointer, an ⌥-click copies it and an ⌥-drag selects inside it, instead of across whole rows.
 /// The table logic is `CopyCell` (CalmModel); this reads the grid and maps the pointer to a cell.
 ///

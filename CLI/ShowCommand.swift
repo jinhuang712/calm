@@ -5,7 +5,7 @@ import CalmSearch
 import Foundation
 
 /// `calm show <conversation|session> [--prompts] [--all] [--json]`: everything Calm knows about one
-/// conversation (CLI.md), from the search index, its transcript and, while Calm runs, the session
+/// conversation (specs/CLI.md), from the search index, its transcript and, while Calm runs, the session
 /// it is open in. Works without Calm, except for a session id. Each part degrades to nothing: a
 /// transcript that is gone gives no recap or branch, an agent with no reader gives no tasks.
 enum ShowCommand {

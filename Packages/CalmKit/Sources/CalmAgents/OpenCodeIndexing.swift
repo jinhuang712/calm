@@ -2,7 +2,7 @@ import CalmModel
 import CalmSQLite
 import Foundation
 
-/// OpenCode 2's history for search (FEATURES.md → F7), read from `session_v2` and
+/// OpenCode 2's history for search (specs/FEATURES.md → F7), read from `session_v2` and
 /// `session_message` (see OpenCodeTranscript.swift for the tables). Checked against 2.0.19's
 /// database on 2026-09-30:
 ///

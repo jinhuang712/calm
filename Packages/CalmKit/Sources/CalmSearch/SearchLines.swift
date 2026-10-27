@@ -3,7 +3,7 @@ import Foundation
 
 public extension SearchResult {
     /// A message of the session that holds words the user typed: what the rows under a result's
-    /// title are made of (UIUX.md → Search).
+    /// title are made of (specs/UIUX.md → Search).
     struct Line: Sendable, Equatable {
         /// The message's place in the index, which is the order it was said in.
         public var id: Int64
@@ -54,7 +54,7 @@ public extension SearchResult {
     }
 }
 
-/// One line built around the words it has to show (UIUX.md → Search): a few words of context
+/// One line built around the words it has to show (specs/UIUX.md → Search): a few words of context
 /// around each, trimmed before a word ever is, and the stretch between two words far apart
 /// left out.
 public enum SearchLineFit {

@@ -2,9 +2,9 @@ import AppKit
 import CalmModel
 import GhosttyKit
 
-/// Find's map (FEATURES.md → F16, FindMapView): every line of the scrollback with a match. Calm
+/// Find's map (specs/FEATURES.md → F16, FindMapView): every line of the scrollback with a match. Calm
 /// searches the scrollback itself, since libghostty tells the app where no match is
-/// (FEATURES.md → F16): one read of all of it, scanned off the main thread.
+/// (specs/FEATURES.md → F16): one read of all of it, scanned off the main thread.
 extension TerminalSurfaceView {
     /// Whether the map shows: matches somewhere, and more log than the screen holds. A full-screen
     /// program's screen has no scrollback, so it never has one.

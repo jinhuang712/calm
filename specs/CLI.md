@@ -2,7 +2,7 @@
 
 # The `calm` command line
 
-This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 says what the tool is for. How the CLI talks to the app is in [How the CLI talks to Calm](#how-the-cli-talks-to-calm).
+This file specifies every `calm` command. [FEATURES.md](FEATURES.md).
 
 ## At a glance
 
@@ -22,7 +22,7 @@ This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 say
 | `calm`, `calm --help`, `calm --version` | Help, and the CLI's version |
 
 Agents' hooks send almost all CLI traffic, and people rarely type `calm` (decided 2026-10-06). So `doctor`, `trace`, `config`, `fork` and `show` came first.
-Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, FEATURES.md → F13).
+Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, specs/FEATURES.md → F13).
 
 ## Conventions
 
@@ -62,7 +62,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 ### `calm fork ["<prompt>"] [--background] [--in <folder>] [--session <id>]`
 
 - Forks the conversation that runs in this session, or ran here last, into a new session (tab) in the same project and folder.
-  It runs the agent's own fork command with the agent's start options (FEATURES.md → F12). The original continues untouched.
+  It runs the agent's own fork command with the agent's start options (specs/FEATURES.md → F12). The original continues untouched.
 - Goes to the fork. With `--background`, the user stays and the fork waits in the sidebar, already running at its display size.
   The words that are not options are the fork's first message: `calm fork try the CRDT approach`.
 - Claude Code and Codex take a prompt: `claude <options> --resume <id> --fork-session '<prompt>'` and `codex fork <options> <id> '<prompt>'` (Claude Code 2.1.285, Codex 0.159). pi and OpenCode are not checked, so a prompt for them fails: "pi can't start a fork with a prompt."
@@ -73,7 +73,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 
 ### `calm new "<prompt>" [--background] [--in <folder>]`
 
-- Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (FEATURES.md → F15), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
+- Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (specs/FEATURES.md → F15), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
 - Needs no session, so it works from outside Calm, in a script or a launchd job with an empty environment. It starts Calm in the background when Calm isn't running, as `calm list` does.
 - Goes to the new session. With `--background`, the user stays and the session waits in the sidebar, already running at its display size.
 - Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
@@ -156,8 +156,8 @@ Id          0f9c2a7e-…
 - `set` checks the value: a theme must exist, and true/false also take yes/no, on/off, 1/0. It writes one line as Settings does, so comments stay.
   A default removes the line, except for the theme. It prints what it wrote: `theme = Forest`. `unset <key>` removes the line.
 - Then Calm reads config.toml and the Ghostty config again (⌘⇧,). The command never starts Calm. With none running, the change waits for the next launch, and the command says so.
-- Keys: FEATURES.md → F14 lists them. A wrong key or value exits 64: `motion can't be 'fast': it takes full, reduced or off`.
-  ⌘N's keys (FEATURES.md → F15): `agents.new-session`, each agent's options (`agents.claude-code.skip-permissions`, `agents.claude-code.worktree`, …),
+- Keys: specs/FEATURES.md → F14 lists them. A wrong key or value exits 64: `motion can't be 'fast': it takes full, reduced or off`.
+  ⌘N's keys (specs/FEATURES.md → F15): `agents.new-session`, each agent's options (`agents.claude-code.skip-permissions`, `agents.claude-code.worktree`, …),
   `agents.<agent>.flags` and `agents.<agent>.command`, the whole command ⌘N types, which only `calm config` and config.toml set.
   Added 2026-10-06 so the user can ask an agent to change them, after `calm config` was left out on 2026-09-30.
 

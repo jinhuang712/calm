@@ -3,9 +3,9 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// ⌘K: search every session (FEATURES.md → F7, UIUX.md → Search).
+/// ⌘K: search every session (specs/FEATURES.md → F7, specs/UIUX.md → Search).
 extension MainWindowController {
-    /// ⌘K: search every session (FEATURES.md → F7).
+    /// ⌘K: search every session (specs/FEATURES.md → F7).
     func toggleSearch(query: String = "") {
         if searchHost != nil {
             hideSearch()
@@ -16,7 +16,7 @@ extension MainWindowController {
             .flatMap { manager.workspace.project($0.projectID)?.path }
         let model = SearchModel(query: query, grouping: SearchGrouping(workspace: manager.workspace), currentProject: project)
         searchModel = model
-        // A step off the terminal's background, as the link tag is (UIUX.md → Search).
+        // A step off the terminal's background, as the link tag is (specs/UIUX.md → Search).
         let background = (focusedPane?.effectiveBackgroundColor ?? TerminalEngine.shared.config?.backgroundColor)?
             .usingColorSpace(.sRGB)
         let surface = background.flatMap { $0.blended(withFraction: sidebarStyle.isDark ? 0.07 : 0.55, of: .white) }

@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// What the window shows with no session open (FEATURES.md → F2). It covers the whole window,
+/// What the window shows with no session open (specs/FEATURES.md → F2). It covers the whole window,
 /// sidebar included, so it carries what the sidebar would: search over past sessions and over the
 /// projects the user made, a list of each, and the three ways to start. On Calm's very first
 /// launch there is nothing to list, so it welcomes instead. Calm never opens a session nobody
@@ -59,7 +59,7 @@ final class WelcomePage {
     }
 }
 
-/// What the page is showing and which row the keys are on (UIUX.md → Welcome page).
+/// What the page is showing and which row the keys are on (specs/UIUX.md → Welcome page).
 @MainActor
 @Observable
 final class WelcomeModel {

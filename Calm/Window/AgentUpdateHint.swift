@@ -2,7 +2,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// What the title strip's update hint says (UIUX.md → Title bar): the agent in front runs an
+/// What the title strip's update hint says (specs/UIUX.md → Title bar): the agent in front runs an
 /// older version than the one installed, or a restart is waiting or under way. Nil when there is
 /// nothing to say.
 struct AgentUpdateHint: Equatable {

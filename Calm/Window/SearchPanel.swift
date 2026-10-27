@@ -4,7 +4,7 @@ import CalmModel
 import CalmSearch
 import SwiftUI
 
-/// ⌘K's panel (UIUX.md → Search): the field, then the results in groups drawn like the sidebar's,
+/// ⌘K's panel (specs/UIUX.md → Search): the field, then the results in groups drawn like the sidebar's,
 /// in the chrome's own colors and a session card's type sizes, all grown with the interface size.
 struct SearchPanelView: View {
     @Bindable var model: SearchModel

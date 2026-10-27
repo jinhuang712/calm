@@ -1,7 +1,7 @@
 import CalmModel
 import SwiftUI
 
-/// A plain shell in the sidebar: one compact line (UIUX.md → Session cards). Agent sessions
+/// A plain shell in the sidebar: one compact line (specs/UIUX.md → Session cards). Agent sessions
 /// get a `SessionCard`.
 struct SessionRow: View {
     let session: Session
@@ -10,7 +10,7 @@ struct SessionRow: View {
     /// The pointer rests on the row: a long name glides to its end.
     var isHovered = false
     /// On screen beside the session you're in, in a split: lifted like the selected row, with no
-    /// ring (UIUX.md → Split panes).
+    /// ring (specs/UIUX.md → Split panes).
     var inView = false
 
     var body: some View {

@@ -2,7 +2,7 @@
     import AppKit
     import CalmModel
 
-    /// Self-test drivers for moving a project among the others (UIUX.md → Layout). A headless run
+    /// Self-test drivers for moving a project among the others (specs/UIUX.md → Layout). A headless run
     /// can't press or drag, so each does what the pointer would, through the sidebar's own code:
     /// - `project_drag:<name>:<points>[:hold]`: that project's header dragged `points` down (up when
     ///   negative) in ten steps, the pointer in the middle of the list, through the sidebar's drag

@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// The resting marks (FEATURES.md → F8, UIUX.md → Links): a faint dotted line under each link in
+/// The resting marks (specs/FEATURES.md → F8, specs/UIUX.md → Links): a faint dotted line under each link in
 /// the visible text that opens, over one workspace's panes. libghostty draws nothing for links
 /// until ⌘ is held, so Calm draws these; they take no clicks. The link under ⌘ loses its mark
 /// while libghostty underlines it. The same dots outline the table cell under the pointer while
@@ -37,7 +37,7 @@ final class LinkMarksView: NSView {
             views[match] = nil
         }
         // Letters find marks (an underline, or the current match's pill) lose their dots: never two
-        // marks on one letter (UIUX.md → Find, links).
+        // marks on one letter (specs/UIUX.md → Find, links).
         let found = pane.find.matches.flatMap(\.self)
         for (match, rects) in wanted {
             // A strip along the bottom of the cells, below the text's own underline.

@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Reading (FEATURES.md → F8–F10): the files column, the viewer, links and Copy Cell's toast.
+/// Reading (specs/FEATURES.md → F8–F10): the files column, the viewer, links and Copy Cell's toast.
 extension MainWindowController {
     // MARK: Files column
 
@@ -211,7 +211,7 @@ extension MainWindowController {
 
     // MARK: Viewer
 
-    /// Shows a file over the terminal area (FEATURES.md → F10); esc returns to the session.
+    /// Shows a file over the terminal area (specs/FEATURES.md → F10); esc returns to the session.
     /// `preferDiff` opens a changed file on its diff. Returns false for files Calm can't show.
     @discardableResult
     func showFile(_ path: String, line: Int? = nil, preferDiff: Bool = false) -> Bool {

@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The question ⌘W asks when something runs in a pane of a split (UIUX.md → Split panes): words
+/// The question ⌘W asks when something runs in a pane of a split (specs/UIUX.md → Split panes): words
 /// in the middle of that pane, on a clearing of its own background. A sheet on the window says
 /// what would end but not which pane it is; where these words stand is the answer, and the
 /// workspace dims the other panes while it's up. Return closes, Esc keeps; any other key, or a

@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The arrival card (FEATURES.md → F6, UIUX.md → Arrival card): switching into an agent session
+/// The arrival card (specs/FEATURES.md → F6, specs/UIUX.md → Arrival card): switching into an agent session
 /// shows, at the top of its pane, what it is and what it last said, so there's no need to
 /// scroll back to remember. It fades on the first keystroke or after a few seconds; ⌘⇧I
 /// recalls it. It sits at the top, never over the agent's input line.

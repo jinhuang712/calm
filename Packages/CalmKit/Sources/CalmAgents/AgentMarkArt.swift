@@ -1,6 +1,6 @@
 import Foundation
 
-/// An agent's own mark and the way it moves while the agent works (UIUX.md → Agent marks).
+/// An agent's own mark and the way it moves while the agent works (specs/UIUX.md → Agent marks).
 /// Data only: shapes as SVG path data, colors as hex, and for some an animation's frames. The sidebar draws and animates any mark
 /// the same way, so a new agent brings its art here and the core never special-cases it.
 ///

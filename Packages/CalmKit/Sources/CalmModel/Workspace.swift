@@ -1,6 +1,6 @@
 import Foundation
 
-/// A group of sessions in the sidebar (FEATURES.md → F2): a project the user made, a folder
+/// A group of sessions in the sidebar (specs/FEATURES.md → F2): a project the user made, a folder
 /// sessions happen to be in, or the scratch sessions.
 public struct Project: Identifiable, Codable, Hashable, Sendable {
     public enum Kind: String, Codable, Sendable {
@@ -88,14 +88,14 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// The agent in the foreground, if one is running.
     public var agent: AgentRun?
     public var createdAt: Date
-    /// A name the user gave the session (FEATURES.md → F12); wins over every other title.
+    /// A name the user gave the session (specs/FEATURES.md → F12); wins over every other title.
     public var customName: String?
     /// The agent conversation that last ran here, kept after the agent exits so it can be resumed.
     public var lastConversation: AgentConversation?
     /// A scratch session's own folder (⌘⇧N). Calm never shows it.
     public var scratchFolder: String?
     /// True when the shell went away with an agent running in it (the Mac restarted) and the
-    /// conversation resumes the first time the session opens, nil otherwise (FEATURES.md → F3).
+    /// conversation resumes the first time the session opens, nil otherwise (specs/FEATURES.md → F3).
     /// Saved, so a session left unopened still resumes after another launch.
     public var resumesWhenOpened: Bool?
     /// The agent's latest compaction while its card shows it; not saved (`CodingKeys`, `Compaction`).
@@ -185,7 +185,7 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
         agent?.tail?.directory.map(WorkspacePath.standardize) ?? workingDirectory
     }
 
-    /// What the title strip above the terminal shows (UIUX.md → Title bar): the session's title
+    /// What the title strip above the terminal shows (specs/UIUX.md → Title bar): the session's title
     /// and the folder it's in. The title is left out when it only repeats the folder (a
     /// plain shell titled "~" or "calm"); a scratch session shows no folder, as everywhere else.
     public func titleStrip(agentTitle: String?, home: String = NSHomeDirectory()) -> (folder: String?, title: String?) {
@@ -275,18 +275,18 @@ public struct Workspace: Codable, Hashable, Sendable {
     public var layouts: [PaneLayout] = []
     public var selectedLayoutID: PaneLayout.ID?
     /// The text size, in points, that every session shows after ⌘+ or ⌘−; nil means the
-    /// config's `font-size` (FEATURES.md → F1).
+    /// config's `font-size` (specs/FEATURES.md → F1).
     public var fontSize: Float?
     /// The size a viewed page of text shows at after ⌘+ or ⌘− in the viewer (`ViewerZoom`); nil
-    /// is its own size (FEATURES.md → F10).
+    /// is its own size (specs/FEATURES.md → F10).
     public var viewerZoom: Double?
     /// True when the window was last left filling the screen (Zoom, Fill or a window manager's
     /// maximize), nil otherwise. The size it had before is the window frame AppKit autosaves,
-    /// which stays at the windowed size while the window is zoomed (FEATURES.md → F1).
+    /// which stays at the windowed size while the window is zoomed (specs/FEATURES.md → F1).
     public var windowFilled: Bool?
     /// True when the window was last left in full screen, nil otherwise. Kept apart from
     /// `windowFilled`: the window under full screen may be filled too, and leaving full screen
-    /// goes back to it (FEATURES.md → F1).
+    /// goes back to it (specs/FEATURES.md → F1).
     public var windowFullScreen: Bool?
 
     public init() {}
@@ -323,7 +323,7 @@ public struct Workspace: Codable, Hashable, Sendable {
         layouts.first { $0.id == selectedLayoutID }
     }
 
-    /// The sidebar's order (UIUX.md → Layout): scratch sessions on top, then the projects the user
+    /// The sidebar's order (specs/UIUX.md → Layout): scratch sessions on top, then the projects the user
     /// made, then the directory groups, each in the order they appeared.
     public var orderedProjects: [Project] {
         let rank: (Project.Kind) -> Int = { kind in
@@ -404,7 +404,7 @@ public struct Workspace: Codable, Hashable, Sendable {
 
     // MARK: Sessions
 
-    /// Where a new session goes (FEATURES.md → F2).
+    /// Where a new session goes (specs/FEATURES.md → F2).
     public enum Placement: Hashable, Sendable {
         /// Grouped by its folder, moving when the folder changes.
         case directory

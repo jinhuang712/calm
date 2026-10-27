@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import SwiftUI
 
-/// The focused session's name in the header row above the terminal (UIUX.md → Title bar), with
+/// The focused session's name in the header row above the terminal (specs/UIUX.md → Title bar), with
 /// the folder it's in on a quieter line below, like a window's title and subtitle, and a ⋯ button
 /// at the right with the session's actions.
 struct SessionTitleView: View {
@@ -36,9 +36,9 @@ struct SessionTitleView: View {
     /// The update hint's click: restart the agent, or take back a restart still waiting.
     var onRestart: (Session.ID) -> Void = { _ in }
     var onCancelRestart: (Session.ID) -> Void = { _ in }
-    /// Find (FEATURES.md → F16): while it's open its field takes the readout's place.
+    /// Find (specs/FEATURES.md → F16): while it's open its field takes the readout's place.
     let find: FindModel
-    /// A file open over the session (UIUX.md → Viewing files): the name dims and becomes the way
+    /// A file open over the session (specs/UIUX.md → Viewing files): the name dims and becomes the way
     /// back, and the readout steps away (the file's row shows its own changes).
     let viewer: ViewerPresence
     var onCloseViewer: () -> Void = {}
@@ -112,14 +112,14 @@ struct SessionTitleView: View {
         .onChange(of: watch, initial: true) { _, watch in files.watchSummary(of: watch.root, working: watch.working) }
     }
 
-    /// While finding (UIUX.md → Find): the title and, at the right, the field. When the row is short
+    /// While finding (specs/UIUX.md → Find): the title and, at the right, the field. When the row is short
     /// the field narrows from 340 to 240 pt first (with Screen | Session it stays 440); then the worktree goes, the name shortens down to
     /// 96 pt, the name and folder go leaving the mark, and the mark goes. Only the title changes
     /// between ViewThatFits's children, so the field is never rebuilt and keeps the keyboard.
     private func findingRow(strip: (folder: String?, title: String?), title: String, worktree: String?) -> some View {
         let gap = 8.scaled
         // With Screen | Session the field's fixed parts (the count, .*, the switch, the arrows and
-        // the cap) take about 360 pt, so it stays 440 pt and the title gives way (UIUX.md → Find).
+        // the cap) take about 360 pt, so it stays 440 pt and the title gives way (specs/UIUX.md → Find).
         let scope = find.showsScope
         let field = Self.findFieldWidth(
             row: findRowWidth, title: findTitleWidth, gap: gap,

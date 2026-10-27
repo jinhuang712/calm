@@ -1,7 +1,7 @@
 import AppKit
 
 /// While the sidebar is hidden, it peeks in over the terminal when the pointer reaches the
-/// window's left edge, and slides away once the pointer leaves it (UIUX.md → Motion → Sidebar).
+/// window's left edge, and slides away once the pointer leaves it (specs/UIUX.md → Motion → Sidebar).
 @MainActor
 final class SidebarPeek {
     private weak var container: NSView?

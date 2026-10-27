@@ -4,7 +4,7 @@ import Observation
 import PDFKit
 import WebKit
 
-/// Find in a viewed file (FEATURES.md → F16, F10): the field in the viewer's header and what it
+/// Find in a viewed file (specs/FEATURES.md → F16, F10): the field in the viewer's header and what it
 /// found. The viewer does the searching, each kind of file its own way (`FileViewer`): Calm's own
 /// page marks and counts in the page, PDFKit searches a PDF, and an HTML or SVG file gets the web
 /// view's find, which has no count. A picture has nothing to find.
@@ -47,7 +47,7 @@ final class ViewerFindModel: FindFieldModel {
     @ObservationIgnored var onSearch: ((String) -> Void)?
     @ObservationIgnored var onStep: ((Bool) -> Void)?
     @ObservationIgnored var onClose: (() -> Void)?
-    /// The viewer shows the session page (FEATURES.md → F16): Screen | Session shows, Session chosen.
+    /// The viewer shows the session page (specs/FEATURES.md → F16): Screen | Session shows, Session chosen.
     private(set) var showsScope = false
     /// Screen chosen on the session page: the window goes back to the live program.
     @ObservationIgnored var onScreen: (() -> Void)?

@@ -13,6 +13,7 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 | Check cost at rest | `mise run perf` (after a change to rendering, animation or timers) |
 | Run one self-test, headless | `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` |
 | Take a window snapshot | `scripts/xcode.sh snapshot <out.png> [delay]` |
+| Make the README's logo and screenshots again | `DEMO_PROJECT=~/dev/apps/calm scripts/readme-shots.sh` after `mise run build`. Headless, with stand-in sessions, and it writes `assets/`. The Debug build shows the violet mark and a DEV tag |
 | Read the trace | `calm trace`, or `/usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'` (plain `log` is a zsh builtin) |
 
 - `Calm.xcodeproj` is generated from `project.yml`. Never edit it by hand.

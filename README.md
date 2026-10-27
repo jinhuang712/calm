@@ -30,41 +30,13 @@ The sidebar above shows three real Claude Code sessions: one has finished, one i
 
 Quit Calm and every shell, split and running agent comes back. Restart an agent on its conversation, fork it, or copy its resume command. **⌘K** searches the history of every agent, even after an agent deletes its transcripts.
 
-## ⌘P Actions that have no key
-
-![The command palette, with rows such as Rename Session, New Codex Session and Show File Tree](assets/palette.png)
-
-Start any agent, hide the files column, go to the welcome page. Each row runs once.
-
-## 📖 Read what an agent changed
+## 📖 Read what the agent wrote, right there
 
 ![The files column beside a viewed Markdown file, with its tables rendered](assets/files.png)
 
-A files column and a read-only viewer for Markdown, HTML, PDF, images, code and diffs. **⌘-click** a path opens it at its line, **⌥-click** copies one table cell, and **⌘F** finds in a session, even in a full-screen agent.
+Open the Markdown, HTML, PDF, image or diff that an agent produced in a read-only viewer, without leaving Calm. **⌘-click** a path and it opens at its line, **⌥-click** copies one table cell, and **⌘F** finds in a session, even in a full-screen agent.
 
-## 🪟 Splits that say where you are
-
-![Two panes side by side; the pane the user is in is bright and the other is dimmed](assets/split.png)
-
-Split toward any side with **⌘⌥ + arrow**, drag a session card in, or take a pane out. The pane you are in is the bright one.
-
-## 🎨 Soft themes, few settings
-
-**Dusk, Forest and Plum**
-
-![The Dusk theme, deep blue](assets/theme-Dusk.png)
-
-![The Forest theme, green-gray](assets/theme-Forest.png)
-
-![The Plum theme, violet-gray](assets/theme-Plum.png)
-
-**Settings → Appearance**
-
-![Settings, Appearance: five themes, interface size and card sizes, each with a preview](assets/settings.png)
-
-**The welcome page**
-
-![The welcome page: Start Claude Code, Start a shell, Try a scratch session, Open a project](assets/welcome.png)
+There is also a command palette (**⌘P**), splits (**⌘⌥ + arrow**), five soft themes and a `calm` command for scripts and agents.
 
 > **Note**
 > The pictures are headless screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The sessions are real Claude Code 2.1.311 with Haiku 5.5 in manual permission mode, and no command was approved. `scripts/readme-shots.sh` makes them again.

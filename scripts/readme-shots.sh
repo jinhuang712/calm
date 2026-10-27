@@ -36,6 +36,16 @@ shoot() { # name, look, then the self-test's own options
   scripts/selftest.sh "$name" --appearance "$look" --resize "$size" "$@" > /dev/null
 }
 
+# A plain shell, with the files column and a viewed file. The viewer is a web view that now and then has not
+# finished loading when the snapshot is taken, which leaves it empty. Try up to three times and keep the
+# picture with the most in it.
+for try in 1 2 3; do
+  shoot "files-$try" dark --delay 15 --actions \
+    "calm.add_project:$project,calm.new_session,$log,wait,calm.toggle_files,wait,wait,calm.view:$project/specs/FEATURES.md,wait,wait,wait,wait,wait,wait"
+done
+fullest="$(ls -S "$tmp"/files-?.png | head -1)"
+cp "$fullest" "$tmp/files.png"
+
 # The sidebar: one session that finished, one that is busy writing, one that asks to run a command.
 for look in dark light; do
   shoot "hero-$look" "$look" --delay 12 --actions \
@@ -44,22 +54,18 @@ done
 shoot menu dark --delay 3 --actions \
   "calm.add_project:$project,calm.new_session,calm.type:$asks,wait,wait,wait,wait,wait,wait,wait,wait,calm.session_menu,wait"
 
-# Plain shells running read-only git commands.
-shoot palette dark --delay 3 --actions "calm.add_project:$project,calm.new_session,$log,wait,calm.cmd_p,wait"
-shoot files dark --delay 15 --actions \
-  "calm.add_project:$project,calm.new_session,$log,wait,calm.toggle_files,wait,wait,calm.view:$project/specs/FEATURES.md,wait,wait,wait,wait,wait,wait"
-shoot split dark --delay 3 --actions \
-  "calm.add_project:$project,calm.new_session,$log,wait,calm.cmd_opt_right,wait,calm.type:clear; git status -sb; git branch --show-current,wait"
-for theme in Dusk Forest Plum; do
-  shoot "theme-$theme" dark --delay 3 --config "theme = \"$theme\"\n" --actions "calm.add_project:$project,calm.new_session,$log,wait"
-done
-shoot welcome dark --delay 3 --welcome
-shoot settings dark --delay 3 --actions "calm.settings:appearance"
-
-# Pictures at 1600 px wide are sharp enough for a README and a third of the size.
-for name in hero-dark hero-light menu palette files split theme-Dusk theme-Forest theme-Plum welcome settings; do
+# Each picture shows its subject and nothing else. The whole window is 1240 x 780 pt (2480 x 1560 px), and the
+# subject's box is given in points: x, y, width, height. Pictures end up 1600 px wide at most, which is sharp
+# enough for a README and a third of the size.
+crop() { # name x y width height
+  sips -c $(($5 * 2)) $(($4 * 2)) --cropOffset $(($3 * 2)) $(($2 * 2)) "$tmp/$1.png" --out "assets/$1.png" > /dev/null
+  sips -Z 1600 "assets/$1.png" > /dev/null
+}
+for name in hero-dark hero-light; do # the sidebar and the session are both the subject
   sips -Z 1600 "$tmp/$name.png" --out "assets/$name.png" > /dev/null
 done
+crop menu 680 0 560 470      # the menu, and the title strip it hangs from
+crop files 320 0 920 600     # the files column and the viewer, not the sidebar
 
 ictool="/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool"
 # 144 px: the README shows it as plain Markdown, which cannot set a width, so the picture itself is small.

@@ -13,7 +13,7 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 | Check cost at rest | `mise run perf` (after a change to rendering, animation or timers) |
 | Run one self-test, headless | `scripts/selftest.sh <name> [--type …] [--actions …] [--after …]` |
 | Take a window snapshot | `scripts/xcode.sh snapshot <out.png> [delay]` |
-| Make the README's logo and screenshots again | `DEMO_PROJECT=~/dev/apps/calm scripts/readme-shots.sh` after `mise run build`. Headless, and it writes `assets/`. The sessions are real Claude Code (Haiku, manual permission mode, nothing approved): about five short model calls, and Claude Code must be logged in. The Debug build shows the violet mark and a DEV tag |
+| Make the README's logo, hero GIF and screenshots again | `DEMO_PROJECT=~/dev/apps/calm scripts/readme-shots.sh` after `mise run build`. Headless, and it writes `assets/`. It needs ffmpeg for the GIF. The sessions are real Claude Code (Haiku, manual permission mode, nothing approved): about six short model calls, and Claude Code must be logged in. It removes the demo conversations from your Claude history when it is done. The Debug build shows the violet mark and a DEV tag |
 | Read the trace | `calm trace`, or `/usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'` (plain `log` is a zsh builtin) |
 
 - `Calm.xcodeproj` is generated from `project.yml`. Never edit it by hand.

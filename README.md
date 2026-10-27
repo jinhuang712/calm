@@ -13,7 +13,7 @@
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)
 ![Status: public preview](https://img.shields.io/badge/status-public%20preview-f59e0b?style=flat-square)
 
-![Calm with three Claude Code sessions in the sidebar: one finished, one thinking, and one that needs you, with its question on screen](assets/hero-dark.png)
+![Calm with three Claude Code sessions in the sidebar: one finished, one thinking, and a new one that goes from Thinking to Needs you, with its question on screen](assets/hero.gif)
 
 Calm is a terminal for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It interrupts you for one thing only: an agent that needs you. Calm stays a terminal, so the agents keep their own interfaces.
 
@@ -22,7 +22,7 @@ Calm is a terminal for days spent supervising CLI coding agents such as Claude C
 
 ## 🔔 One look tells you who needs you
 
-The sidebar above shows three real Claude Code sessions: one has finished, one is thinking, and one wants to run a command. Only *needs you* sends a notification, at the next natural pause. **⌘⇧A** jumps to the session that has waited longest.
+The sidebar above shows three real Claude Code sessions: one has finished, one is thinking, and one asks to run a command, so its card turns amber. Only *needs you* sends a notification, at the next natural pause. **⌘⇧A** jumps to the session that has waited longest.
 
 ## 🧭 Resume, restart or fork any session
 
@@ -39,7 +39,7 @@ Open the Markdown, HTML, PDF, image or diff that an agent produced in a read-onl
 There is also a command palette (**⌘P**), splits (**⌘⌥ + arrow**), five soft themes and a `calm` command for scripts and agents.
 
 > **Note**
-> The pictures are headless screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The sessions are real Claude Code 2.1.311 with Haiku 5.5 in manual permission mode, and no command was approved. `scripts/readme-shots.sh` makes them again.
+> The pictures are headless recordings and screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The sessions are real Claude Code 2.1.312 with Haiku 5.5 in manual permission mode, and no command was approved. `scripts/readme-shots.sh` makes them again.
 
 ## ⌨️ Keys
 

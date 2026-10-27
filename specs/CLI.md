@@ -15,7 +15,7 @@ This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 say
 | `calm show <conversation\|session>` | Everything Calm knows about one conversation |
 | `calm notify <message>` | Notifies you about this session |
 | `calm config` | Reads and changes Calm's settings |
-| `calm doctor` | Checks that Calm and the agents' hooks work |
+| `calm doctor` | Checks that Calm and the agents' hooks work; `--report` writes a redacted bug report |
 | `calm trace` | Prints Calm's timeline log |
 | `calm screenshot [<file>]` | Saves a PNG of Calm's window |
 | `calm status <state>`, `calm hook <agent>` | For agents' hooks: report a state |
@@ -186,6 +186,15 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 | This `calm` and the `calm` on `PATH` belong to the Calm answering | A Debug `calm` that talks to the installed Calm, or a stale link. Nothing on `PATH` is a note (shells have `$CALM_CLI`) |
 | Each agent whose config folder exists, as Settings → Agents sees it | Claude Code's plugin missing, or a file Calm did not write in the way. pi or OpenCode unconnected or outdated is a note |
 | In a session: Calm knows it, its state, who reported it last, and whether the shell loads the Claude Code plugin | A shell that outlived its session. Hooks that never arrive |
+
+### `calm doctor --report`
+
+Added 2026-10-28 (not built yet). For a user who asks their agent to report a Calm problem: the agent runs this, shows the output to the user, and, once they agree, files the issue with its own tools (`gh issue create`). Calm only writes the text.
+
+- Prints one Markdown document on stdout: Calm, CLI and macOS versions, each agent's version and whether it is connected, the checks above as `✓ ✗ ·` lines, and the last 5 minutes of `calm trace` (`--last` as for `trace`) in a code block. It starts no Calm and exits 0 once it has printed; the problems are in the text.
+- **Redacted.** The home folder is `~`. A session is its short id and agent, never its title, folder name, prompt, recap or transcript. A trace line that cannot be reduced to that is left out. Not yet verified against real traces.
+- **Local only.** It never uploads, opens a browser or a page, or runs `gh`. The `calm` skill tells the agent to show the report first, because an issue is public and cannot be fully taken back.
+- Not combined with `--json` (exit 64). It adds no command: the report is `doctor`'s checks plus `trace`.
 
 ### `calm trace [--last <duration>] [--session <id>] [--follow]`
 

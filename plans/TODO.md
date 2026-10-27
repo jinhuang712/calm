@@ -10,3 +10,4 @@ Small open items, not scheduled. Design questions are in [ROADMAP.md → Waiting
 - [ ] **Never-missed check is short (G2):** the goal asks for a week and was met on 4 days. Measure a full week and record it.
 - [ ] **F2 has no named gap:** specs/FEATURES.md marks Projects and auto-grouping 🚧 and names nothing. Name the gap or mark it ✅.
 - [ ] **Second copy of the Weiser and Brown quotes:** PHILOSOPHY.md quotes them from one copy (calmtech.com). Check them against another.
+- [ ] **Build `calm doctor --report`:** specs/CLI.md → `calm doctor --report` is written, not built. Build it, check the redaction against real traces, then add a "report a Calm problem" step to the `calm` skill (show the report first, then `gh issue create`).

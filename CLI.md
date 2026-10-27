@@ -1,6 +1,8 @@
+<!-- what-we-build: drafted 2026-10-28 -->
+
 # The `calm` command line
 
-This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 says what the tool is for. [DESIGNS.md](DESIGNS.md) → Control protocol describes how the CLI talks to the app.
+This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 says what the tool is for. How the CLI talks to the app is in [How the CLI talks to Calm](#how-the-cli-talks-to-calm).
 
 ## At a glance
 
@@ -20,17 +22,24 @@ This file specifies every `calm` command. [FEATURES.md](FEATURES.md) → F13 say
 | `calm`, `calm --help`, `calm --version` | Help, and the CLI's version |
 
 Agents' hooks send almost all CLI traffic, and people rarely type `calm` (decided 2026-10-06). So `doctor`, `trace`, `config`, `fork` and `show` came first.
-Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, DESIGNS.md → Teaching agents about `calm`).
+Agents learn these commands from Calm's `calm` skill, which all four agents get (since 2026-10-13, FEATURES.md → F13).
 
 ## Conventions
 
 - **Exit codes:** 0 done. 1 failed, with the reason on stderr. 64 wrong usage.
 - **Output** is plain text, one record per line. Color and marks appear only on a terminal. **`--json`:** one JSON document with `"v": 1`, from `show`, `doctor` and `config list`.
-- **Starting Calm:** `open` and `list` start the app the CLI came with and wait up to 5 seconds. A Debug build starts itself.
+- **Starting Calm:** `open` and `list` start the app the CLI came with, not one found by bundle id (decided 2026-09-30, because a Debug build's CLI once started the installed Calm), and wait up to 5 seconds. A Debug build starts itself.
   They start Calm only for the standard socket: with another `CALM_SOCKET`, they say Calm is not running.
   `search`, `show` and `trace` read files and need no Calm, except `show` for a session id. `doctor` reports that Calm is not running. `notify` and the hook commands never start Calm.
 - **Session id:** the first 8 hex digits of a session's id, as `calm list` prints it (a full id also works). **Conversation id:** the agent's own id. **Copy Session ID** gives it.
 - **This session** is the session whose shell runs the command (`$CALM_SESSION_ID`). `--session <id>` picks another. Outside Calm, commands about this session fail. The hook commands and `notify` do nothing and exit 0. Relative paths start from the current folder.
+
+## How the CLI talks to Calm
+
+- **The socket** is `~/Library/Application Support/Calm/calm.sock`, mode 600. `CALM_SOCKET` overrides it.
+- **One request per connection:** a line of JSON with a version `v` and a command `cmd`. A request from a newer `calm` is refused, with a note to update Calm.
+- **Clients are served one at a time.** A stalled read or write times out (since 2026-10-12), so a silent client cannot hold up every hook.
+- **One Calm per socket** (since 2026-09-30). A Calm that starts while another answers on the same socket quits at once, because a second copy once took the socket and left it dead on quit, and every hook was refused. A running Calm checks that the path still leads to its listener, and listens again when it does not.
 
 ## Opening
 
@@ -64,7 +73,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 
 ### `calm new "<prompt>" [--background] [--in <folder>]`
 
-- Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (FEATURES.md → New agent sessions), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
+- Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (FEATURES.md → F15), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
 - Needs no session, so it works from outside Calm, in a script or a launchd job with an empty environment. It starts Calm in the background when Calm isn't running, as `calm list` does.
 - Goes to the new session. With `--background`, the user stays and the session waits in the sidebar, already running at its display size.
 - Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
@@ -147,7 +156,7 @@ Id          0f9c2a7e-…
 - `set` checks the value: a theme must exist, and true/false also take yes/no, on/off, 1/0. It writes one line as Settings does, so comments stay.
   A default removes the line, except for the theme. It prints what it wrote: `theme = Forest`. `unset <key>` removes the line.
 - Then Calm reads config.toml and the Ghostty config again (⌘⇧,). The command never starts Calm. With none running, the change waits for the next launch, and the command says so.
-- Keys: DESIGNS.md → Configuration (`Agents.settingsKeys`). A wrong key or value exits 64: `motion can't be 'fast': it takes full, reduced or off`.
+- Keys: FEATURES.md → F14 lists them. A wrong key or value exits 64: `motion can't be 'fast': it takes full, reduced or off`.
   ⌘N's keys (FEATURES.md → F15): `agents.new-session`, each agent's options (`agents.claude-code.skip-permissions`, `agents.claude-code.worktree`, …),
   `agents.<agent>.flags` and `agents.<agent>.command`, the whole command ⌘N types, which only `calm config` and config.toml set.
   Added 2026-10-06 so the user can ask an agent to change them, after `calm config` was left out on 2026-09-30.
@@ -180,7 +189,7 @@ One line per check: ✓ fine, ✗ a problem with the action under it, · worth k
 
 ### `calm trace [--last <duration>] [--session <id>] [--follow]`
 
-- Prints Calm's trace (DESIGNS.md → Trace) from the unified log: each event's time and the trace's own words. A heading names the day and the Calm process.
+- Prints Calm's trace, the timeline of what decides a session's row, from the unified log: each event's time and the trace's own words. A heading names the day and the Calm process.
   ```
   — 2026-10-06, Calm, process 14094 —
   22:52:26.691  +1116.52 report fe7faaaa from hook says working: done → working
@@ -222,7 +231,7 @@ Any program can tell Calm its state. A long script, for example:
 ```
 
 Use `$CALM_CLI`, not `calm`: Calm sets it in every Calm shell, even when `calm` is not on `PATH`, and it is the CLI of the Calm that started the shell.
-Escape sequences work without the CLI as a fallback that a CLI report overrides: OSC 9;4 progress and OSC 9 or 777 notifications. DESIGNS.md → Attention → Fallback signals has the table.
+Escape sequences work without the CLI as a fallback that a CLI report overrides: OSC 9;4 progress and OSC 9 or 777 notifications. DESIGNS.md → Terminal signals are a fallback that reads words, not a feature has the rules.
 
 ## Environment
 

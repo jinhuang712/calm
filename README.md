@@ -1,4 +1,4 @@
-<!-- what-we-build: approved 2026-10-28 -->
+<!-- what-we-build: drafted 2026-10-28 -->
 
 <div align="center">
 
@@ -22,7 +22,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
-  <img src="assets/hero-light.png" alt="Calm: three Claude Code sessions in the sidebar, one idle, one working and one that needs you, with its question on screen" width="100%">
+  <img src="assets/hero-light.png" alt="Calm with three Claude Code sessions in the sidebar: one finished, one thinking, and one that needs you, with its question on screen" width="100%">
 </picture>
 
 </div>
@@ -32,35 +32,59 @@ Calm is a terminal for days spent supervising CLI coding agents such as Claude C
 > [!NOTE]
 > Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges (see Known limits below).
 
-## ✨ What it is
+## 🔔 One look tells you who needs you
 
-- 🔔 **Shows which session needs you.** The sidebar shows whether each agent is working, needs you, is done or has failed. Only *needs you* sends a notification, at the next natural pause.
-- 💾 **Keeps sessions alive.** Quit Calm and your shells keep running. On relaunch every session, split and running agent returns.
-- 🚀 **Starts your agent with one key.** ⌘N opens a session with Claude Code, or the agent you choose, with your options. ⌘T opens a plain shell.
-- 🗂️ **Groups by project.** Each session is filed under its project or folder. ⌘⇧N starts a scratch session for throwaway work.
-- 🔎 **Finds any past conversation.** ⌘K searches the history of every agent. Resume a conversation, or fork it into a new split.
-- 📖 **Helps reading.** ⌘-click opens a path at its line. ⌥-click copies one table cell. A files column and a viewer show what an agent changed. ⌘F finds in a session, even in a full-screen agent.
-- 🧘 **Stays quiet by default.** Soft themes, gentle motion and few settings.
+The sidebar above shows three real Claude Code sessions: one has finished, one is thinking, and one wants to run a command. Only *needs you* sends a notification, at the next natural pause. **⌘⇧A** jumps to the session that has waited longest.
 
-What is built: [FEATURES.md](specs/FEATURES.md). What comes next: [ROADMAP.md](plans/ROADMAP.md).
+## 🧭 Resume, restart or fork any session
 
-## 👀 A look
+<img src="assets/menu.png" alt="The session menu: Restart after this turn, Fork into a split or a tab, Rename, copy the session id or the resume command" width="100%">
 
-The pictures on this page are headless screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The three sessions are stand-ins: no agent ran and no model was called. `scripts/readme-shots.sh` makes them again.
+Quit Calm and every shell, split and running agent comes back. Restart an agent on its conversation, fork it, or copy its resume command. **⌘K** searches the history of every agent, even after an agent deletes its transcripts.
+
+## ⌘P Actions that have no key
+
+<img src="assets/palette.png" alt="The command palette, with rows such as Rename Session, New Codex Session and Show File Tree" width="100%">
+
+Start any agent, hide the files column, go to the welcome page. Each row runs once.
+
+## 📖 Read what an agent changed
+
+<img src="assets/files.png" alt="The files column beside a viewed Markdown file, with its tables rendered" width="100%">
+
+A files column and a read-only viewer for Markdown, HTML, PDF, images, code and diffs. **⌘-click** a path opens it at its line, **⌥-click** copies one table cell, and **⌘F** finds in a session, even in a full-screen agent.
+
+## 🪟 Splits that say where you are
+
+<img src="assets/split.png" alt="Two panes side by side; the pane the user is in is bright and the other is dimmed" width="100%">
+
+Split toward any side with **⌘⌥ + arrow**, drag a session card in, or take a pane out. The pane you are in is the bright one.
+
+## 🎨 Soft themes, few settings
 
 <table>
   <tr>
-    <td width="50%"><img src="assets/welcome-dark.png" alt="The welcome page: Start Claude Code, Start a shell, Try a scratch session, Open a project"></td>
-    <td width="50%"><img src="assets/settings-dark.png" alt="Settings, Appearance: five themes, interface size and card sizes, each with a preview"></td>
+    <td width="33%"><img src="assets/theme-Dusk.png" alt="The Dusk theme, deep blue"></td>
+    <td width="33%"><img src="assets/theme-Forest.png" alt="The Forest theme, green-gray"></td>
+    <td width="33%"><img src="assets/theme-Plum.png" alt="The Plum theme, violet-gray"></td>
   </tr>
   <tr>
-    <td align="center">The welcome page, with nothing open</td>
-    <td align="center">Settings → Appearance: five themes</td>
+    <td align="center">Dusk</td>
+    <td align="center">Forest</td>
+    <td align="center">Plum</td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="assets/settings.png" alt="Settings, Appearance: five themes, interface size and card sizes, each with a preview"></td>
+    <td><img src="assets/welcome.png" alt="The welcome page: Start Claude Code, Start a shell, Try a scratch session, Open a project"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">Settings → Appearance</td>
+    <td align="center">The welcome page</td>
   </tr>
 </table>
 
-> [!TIP]
-> **⌘⇧A** jumps to the session that has waited longest. **⌘P** lists the actions that have no key of their own.
+> [!NOTE]
+> The pictures are headless screenshots of the development build (Calm Dev, which is why the mark is violet and the sidebar says DEV). The sessions are real Claude Code 2.1.311 with Haiku 5.5 in manual permission mode, and no command was approved. `scripts/readme-shots.sh` makes them again.
 
 ## ⌨️ Keys
 
@@ -98,7 +122,7 @@ That downloads the newest release, puts Calm in Applications and links the `calm
 ## ⚠️ Known limits
 
 - Apple has not signed the download, so each update asks again for folder access. Homebrew's own cask list takes only signed apps, so Calm has its own tap.
-- Nobody has checked the first minute of a new user (GOALS.md G10). Three features have more settings than the budget allows (GOALS.md G9).
+- Nobody has checked the first minute of a new user ([GOALS.md](GOALS.md) G10). Three features have more settings than the budget allows (G9).
 - The OpenCode plugin, which reports state, has run only against a fake context.
 - A window left in full screen can come back filled but not in full screen. The cause is unknown.
 - A link set with OSC 8 gets no dotted mark. Calm does not join some links that a program cut across lines.
@@ -118,9 +142,9 @@ Open an [issue](https://github.com/jinhuang712/calm/issues). **⌘P → Dump Log
 | [GOALS.md](GOALS.md) | What do we measure? |
 | [FEATURES.md](specs/FEATURES.md) | What does it do, and what will it do? |
 | [UIUX.md](specs/UIUX.md) | How does it look and move? |
-| [INSTALL.md](INSTALL.md) | How do I install, update and remove it? |
 | [CLI.md](specs/CLI.md) | What does every `calm` command do? |
 | [ROADMAP.md](plans/ROADMAP.md) | When, and how far along? |
+| [INSTALL.md](INSTALL.md) | How do I install, update and remove it? |
 | [RUNBOOK.md](RUNBOOK.md) | How do I build, release and install it? |
 | [TODO.md](plans/TODO.md) | What is still open? |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each release? |

@@ -163,6 +163,9 @@ enum MainMenu {
             key: "a",
             mods: [.command, .shift],
         ))
+        menu.addItem(actionItem(
+            "Go to Welcome Page", #selector(TerminalMenuTarget.goToWelcomePage(_:)), key: "h", mods: [.command, .shift],
+        ))
         menu.addItem(actionItem("Show Arrival Card", #selector(TerminalMenuTarget.showArrivalCard(_:)), key: "i", mods: [.command, .shift]))
         menu.addItem(.separator())
         menu.addItem(actionItem("Search Sessions", #selector(TerminalMenuTarget.searchSessions(_:)), key: "k"))
@@ -191,6 +194,7 @@ enum MainMenu {
             "toggleSidebar", "toggleFiles",
             "jumpToWaitingSession",
             "showArrivalCard",
+            "goToWelcomePage",
             "searchSessions",
             "takePaneOutOfSplit",
             "unsplitAll",
@@ -290,6 +294,11 @@ final class TerminalMenuTarget: NSObject {
     /// Quit and open again; shells stay alive in between (see Restart).
     @objc func restart(_: Any?) {
         Restart.request()
+    }
+
+    /// ⌘⇧H: back out to the page with no session chosen; from a project's home, out of the home.
+    @objc func goToWelcomePage(_: Any?) {
+        TerminalWindowManager.shared.focusedController?.goToWelcomePage()
     }
 
     /// ⌘⇧I: what the focused agent session is and last said.

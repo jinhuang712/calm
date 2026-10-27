@@ -274,6 +274,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, Terminal
     /// Chooses no session, so the main area shows what waits for a look, or search (`NoSessionPage`),
     /// as when the session in front is closed. Nothing closes; every session keeps running.
     func goToWelcomePage() {
+        // A project's home is a page with no session chosen: the key takes it away too.
+        if manager.workspace.selectedLayout == nil {
+            leaveProjectHome()
+            return
+        }
         guard let left = manager.workspace.selectedLayout?.focusedSessionID else { return }
         hideSettings()
         closeViewer()

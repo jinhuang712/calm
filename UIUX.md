@@ -341,6 +341,7 @@ Motion is on by default, soft and never showy. Settings → Appearance holds one
 | ⌘1…9, ⌘⇧[ / ⌘⇧] | Jump to session by position; previous / next session |
 | ⌃Tab / ⌃⇧Tab | Cycle sessions down / up the sidebar (hold ⌃) |
 | ⌘⇧A | Jump to the next session that needs you |
+| ⌘⇧H | Go to the welcome page (from a project home, leave it) |
 | ⌘⌃S / ⌘\\ | Show or hide the sidebar / the files column |
 | esc, ⌘⇧I, ⌘, | Return from a viewed file; show the arrival card; Settings |
 

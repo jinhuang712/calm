@@ -29,7 +29,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 |---|---|
 | Agent conversation | Fork into New Split / New Tab · Resume · Restart or Don't Restart *Agent* (F12) · Copy Last Reply (Claude Code, Codex, pi) · Copy Session ID · Copy Resume Command · Open Transcript · Restart All *Agent* Sessions · Mark All Done as Seen |
 | Session and layout | New *Agent* Session per agent · Rename Session · Keep Scratch Session as Project… · Jump to Waiting Session ⌘⇧A · Unsplit |
-| View, folder, look | Show / Hide File Tree ⌘\ · Go to Welcome Page · Fold / Unfold All Groups · Open Folder in Finder · Copy Folder Path · Randomize Theme |
+| View, folder, look | Show / Hide File Tree ⌘\ · Go to Welcome Page ⌘⇧H · Fold / Unfold All Groups · Open Folder in Finder · Copy Folder Path · Randomize Theme |
 | Calm, terminal | Restart Calm · Agents Settings… · Dump Logs (writes `~/Library/Logs/Calm/calm-diagnostics-<time>.txt`: ids, states and counts only) · Reset Terminal · Toggle Mouse Reporting |
 
 - One text size applies to all sessions. ⌘+ and ⌘− resize them, ⌘0 returns to the config's `font-size`, and Calm keeps it. While a file is open, these keys size the file (F10).

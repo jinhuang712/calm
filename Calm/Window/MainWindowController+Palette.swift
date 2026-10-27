@@ -136,7 +136,7 @@ extension MainWindowController {
             .fileTree, title: filesColumn.isShown ? "Hide File Tree" : "Show File Tree", trailing: "⌘\\",
         ) { [weak self] in self?.toggleFiles() }]
         if manager.workspace.selectedLayout != nil {
-            rows.append(PaletteCommand(.welcome, title: "Go to Welcome Page") { [weak self] in self?.goToWelcomePage() })
+            rows.append(PaletteCommand(.welcome, title: "Go to Welcome Page", trailing: "⌘⇧H") { [weak self] in self?.goToWelcomePage() })
         }
         let groups = manager.workspace.projects
         if groups.contains(where: { !$0.isCollapsed }) {

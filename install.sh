@@ -39,7 +39,7 @@ step() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 # The copy a running Calm was moved aside to goes the moment that Calm quits. Calm 0.1.2 and later
 # delete it themselves once they've exited (Calm/App/Restart.swift). An older one reopens by the
 # path it started from (Calm → Restart Calm), and macOS started the moved copy again rather than
-# the new one there (2026-10-12, twice in a row; DESIGNS.md → Distribution). So this leaves a
+# the new one there (2026-10-12, twice in a row; RUNBOOK.md → Installing under a running Calm). So this leaves a
 # waiter behind, which sleeps in zsh's own zselect, starting no process: every 20 ms for an
 # older Calm, to come before its restart's reopen (that looks every 0.1 s), and once a second for
 # a newer one, whose own cleanup it only backs up (a crash, a kill). The program file goes first:

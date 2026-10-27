@@ -4,7 +4,7 @@ import Darwin
 import Foundation
 
 /// Removes the git worktree an agent made for a session (`claude -w`) once the session closes, if
-/// nothing in it would be lost (FEATURES.md → New agent sessions; DESIGNS.md → Session actions).
+/// nothing in it would be lost (FEATURES.md → F15; DESIGNS.md → An empty worktree goes with its session, only when git agrees).
 ///
 /// Claude Code removes an empty worktree of its own when it exits, but closing a session in Calm
 /// ends the agent first, so it never gets to: ⌘N with New worktree on left four empty ones behind

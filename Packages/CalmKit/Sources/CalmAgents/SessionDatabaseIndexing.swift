@@ -28,7 +28,7 @@ public struct DatabaseSession: Sendable, Equatable {
 
 /// Agents that keep every session in one database of their own rather than a file per session
 /// (OpenCode 2), so search reads them by session instead of by file and offset (FEATURES.md →
-/// F7, DESIGNS.md → Search). The database is another program's: read-only, and anything
+/// F7, DESIGNS.md → Agents' data is read, not owned). The database is another program's: read-only, and anything
 /// unexpected reads as nothing.
 public protocol SessionDatabaseIndexing: AgentAdapter {
     /// The database under home, and the files beside it whose change means it changed (its

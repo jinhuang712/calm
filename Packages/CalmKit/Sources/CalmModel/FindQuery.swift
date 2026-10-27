@@ -3,7 +3,7 @@ import Foundation
 /// What find looks for (FEATURES.md → F16): plain words, matched as libghostty's search matches
 /// them (`FindMatcher`), or a pattern, with `.*` on. A pattern is ICU's, as `NSRegularExpression`
 /// reads it, case-insensitive unless it starts with `(?-i)`, and matched line by line, so a match
-/// never crosses a line's end (DESIGNS.md → Find, regular expressions).
+/// never crosses a line's end (FEATURES.md → F16, regular expressions).
 public struct FindQuery: Sendable {
     public let words: String
     public let isPattern: Bool

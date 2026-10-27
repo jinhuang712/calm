@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 import OSLog
 
-/// Connects agents' hooks to Calm (FEATURES.md → F5, DESIGNS.md → Agents).
+/// Connects agents' hooks to Calm (FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only after Connect, and marked).
 ///
 /// Claude Code's hooks ship as a plugin in `~/Library/Application Support/Calm/agents/claude-code`
 /// (rewritten at each launch) and are loaded through `CLAUDE_CODE_PLUGIN_DIRS` in the shells Calm

@@ -96,7 +96,8 @@ final class SessionProbe {
 
     // MARK: Launch
 
-    /// Settles the saved agent runs before the window opens (DESIGNS.md → Launch): is each agent
+    /// Settles the saved agent runs before the window opens (DESIGNS.md → The sidebar comes back as it was left, checked before the window
+    /// opens): is each agent
     /// still running in its shell, and what does it say about itself? The reads run off the main
     /// thread and the window waits for them up to `LaunchPass.budget`, so the sidebar almost
     /// always opens right. If they take longer, the rows show as loading until they finish, and

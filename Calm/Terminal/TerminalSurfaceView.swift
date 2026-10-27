@@ -24,7 +24,8 @@ protocol TerminalSurfaceHost: AnyObject, FindHost {
     func surfaceRequestsCommandPalette(_ view: TerminalSurfaceView)
     func surfaceChildExited(_ view: TerminalSurfaceView)
     func surfaceWorkingDirectoryDidChange(_ view: TerminalSurfaceView)
-    /// Bell, desktop notification, progress or command finished (DESIGNS.md → Attention).
+    /// Bell, desktop notification, progress or command finished (DESIGNS.md → Terminal signals are a fallback that reads words, not a
+    /// feature).
     func surface(_ view: TerminalSurfaceView, didSignal signal: TerminalSignal)
     /// A link was ⌘-clicked (a URL, or a path as the terminal matched it, maybe with `:line`).
     func surface(_ view: TerminalSurfaceView, requestsOpenLink text: String)
@@ -149,7 +150,7 @@ final class TerminalSurfaceView: NSView {
         }
 
         var env = options.environment
-        // The status contract (DESIGNS.md → Attention): hooks run `$CALM_CLI status …`, which
+        // The status contract (CLI.md → For agents' hooks): hooks run `$CALM_CLI status …`, which
         // reports for `$CALM_SESSION_ID` over `$CALM_SOCKET`.
         env["CALM_SESSION_ID"] = id.uuidString
         env["CALM_SOCKET"] = ControlProtocol.defaultSocketPath

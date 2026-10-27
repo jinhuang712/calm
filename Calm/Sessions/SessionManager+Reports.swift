@@ -69,7 +69,7 @@ extension SessionManager {
         return box
     }
 
-    /// A program in the session signalled something (DESIGNS.md → Attention → fallback signals).
+    /// A program in the session signalled something (DESIGNS.md → Terminal signals are a fallback that reads words, not a feature).
     /// Reports go in with source `terminal`, so an agent's hooks still outrank them.
     func terminalSignal(_ id: Session.ID, _ signal: TerminalSignal) {
         guard let session = workspace.session(id) else { return }

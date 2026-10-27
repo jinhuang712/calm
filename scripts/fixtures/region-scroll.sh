@@ -20,7 +20,7 @@
 # The cursor is hidden, as Claude Code hides it: a visible one moves with every step, which keeps
 # the cursor glide's animation loop drawing every frame for a second after each move.
 #
-# Used by the smooth-scroll self-tests (DESIGNS.md → Motion in the terminal). Rows get bars of
+# Used by the smooth-scroll self-tests (UIUX.md → Motion). Rows get bars of
 # different lengths so no two look alike, which lets the motion probe tell shifts apart.
 set -eu
 step=3 steps=20 hint="" repaint="" burst="" pause=0.1 numbers=0

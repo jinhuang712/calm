@@ -1,7 +1,7 @@
 import AppKit
 import CalmModel
 
-/// Applies Calm's themes to the terminal (DESIGNS.md → Themes).
+/// Applies Calm's themes to the terminal (FEATURES.md → F11).
 ///
 /// Ghostty ranks a theme's colors below any color set directly in the config, wherever it is
 /// set, while `theme =` itself goes to the last file that sets it. So:

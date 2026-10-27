@@ -1,7 +1,8 @@
 import CalmModel
 import Foundation
 
-/// Agents that keep a file saying what they are doing right now (DESIGNS.md → Launch). Calm asks
+/// Agents that keep a file saying what they are doing right now (DESIGNS.md → The sidebar comes back as it was left, checked before the
+/// window opens). Calm asks
 /// once at launch, so a row that was *working* when Calm quit doesn't wait for the agent's next
 /// hook to say so. Formats are undocumented and change: anything unexpected reads as "nothing
 /// known", never an error.

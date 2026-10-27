@@ -13,7 +13,7 @@ The same geometry and colors are drawn at runtime for the Dock's working, done a
 states (Calm/App/DockIcon.swift); change them together.
 
 Run from the repository root: scripts/app-icon.py
-Check the result with Icon Composer's ictool (see DESIGNS.md -> App icon).
+Check the result with Icon Composer's ictool (see UIUX.md -> App icon).
 """
 
 import json

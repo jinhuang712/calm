@@ -3,7 +3,7 @@ import CalmAgents
 import CalmModel
 import SwiftUI
 
-/// ⌘P (FEATURES.md → Command palette, UIUX.md → Command palette): what Calm does that has no key
+/// ⌘P (FEATURES.md → F1, UIUX.md → Command palette): what Calm does that has no key
 /// everyone knows. Every row does its whole job when chosen: no second list, no picker.
 extension MainWindowController {
     var isShowingCommandPalette: Bool {

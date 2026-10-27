@@ -62,7 +62,7 @@ public struct ProcessSnapshot: Sendable, Equatable {
     }
 }
 
-/// One agent's knowledge (DESIGNS.md → Agents). Adding an agent means adding an adapter;
+/// One agent's knowledge (DESIGNS.md → One adapter per agent). Adding an agent means adding an adapter;
 /// the core never special-cases one.
 public protocol AgentAdapter: Sendable {
     var kind: AgentKind { get }

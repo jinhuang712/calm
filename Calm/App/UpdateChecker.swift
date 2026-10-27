@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 
 /// Asks GitHub whether a newer Calm is out, and keeps the answer for the sidebar's notice
-/// (FEATURES.md → Updates, DESIGNS.md → Updates). It only tells: installing is the user's choice
+/// (FEATURES.md → F17, DESIGNS.md → Calm stays on the Mac). It only tells: installing is the user's choice
 /// (`UpdateInstaller`), and the menu also points to the release and to the one-line install.
 ///
 /// There is no timer. A check runs a few seconds after launch and whenever Calm comes forward,

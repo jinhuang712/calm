@@ -2,7 +2,7 @@
 import Foundation
 import Testing
 
-/// DESIGNS.md → Teaching agents about `calm`: one Agent Skills file for all four agents.
+/// DESIGNS.md → Each agent learns the `calm` command through its own skill door: one Agent Skills file for all four agents.
 struct CalmSkillTests {
     private let lines = CalmSkill.text.split(separator: "\n", omittingEmptySubsequences: false)
 

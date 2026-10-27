@@ -1,7 +1,8 @@
 import CalmModel
 import Foundation
 
-/// How an agent connects to Calm, for the Agents panel (FEATURES.md → F5, DESIGNS.md → Agents).
+/// How an agent connects to Calm, for the Agents panel (FEATURES.md → F5, DESIGNS.md → A file in an agent's folder is written only after
+/// Connect, and marked).
 public enum AgentSetup: Sendable, Equatable {
     /// Connected inside Calm with nothing written to the agent's own settings.
     case automatic
@@ -47,7 +48,7 @@ public extension ClaudeCodeAdapter {
     }
 }
 
-/// Codex reports through its own notifications (DESIGNS.md → Codex hooks), so Connect only adds
+/// Codex reports through its own notifications (DESIGNS.md → Codex gets no hook), so Connect only adds
 /// the `calm` skill. Codex reads skills from `~/.agents/skills` (0.162; `~/.codex/skills` is
 /// deprecated) and from no path a variable could name, so the file is the user's to allow, and
 /// Codex sees it outside Calm too, where `calm search` and `calm show` still work.

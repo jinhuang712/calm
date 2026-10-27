@@ -56,7 +56,7 @@ jobs:
           short="$(git rev-parse --short=7 "$SHA")"
           { echo "base=$base"; echo "short=$short"; echo "version=$base-$short"; } >> "$GITHUB_OUTPUT"
 
-      # In the two places the version is written (DESIGNS.md → Distribution), on this runner's
+      # In the two places the version is written (RUNBOOK.md → Cut a release), on this runner's
       # copy only: the app's Info.plist is generated from project.yml, and `calm --version` is
       # the constant in CLI/main.swift. Stamped before the build, so the app is signed once, as
       # built. The tests (VersionTests) ran in CI on the commit as it is.

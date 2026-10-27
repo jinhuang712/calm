@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-// How each agent resumes a past session (DESIGNS.md → Agents, research of 2026-09-27) and forks
+// How each agent resumes a past session (FEATURES.md → F12) and forks
 // one (research of 2026-09-28): for search results, and for a session card's menu (F12). Each
 // takes the options the agent was started with (`resumeOptions`, in AgentRestart.swift), so a
 // conversation started with `--dangerously-skip-permissions` comes back with it; where Calm didn't

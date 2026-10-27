@@ -23,7 +23,7 @@ public struct AgentLiveStatus: Sendable, Equatable {
 }
 
 /// What the launch pass found in a session whose saved state says an agent was running there
-/// (DESIGNS.md → Launch).
+/// (DESIGNS.md → The sidebar comes back as it was left, checked before the window opens).
 public enum AgentAtLaunch: Sendable, Equatable {
     /// No agent has the shell's foreground any more: its process ended, the shell is gone, or
     /// another program is running.

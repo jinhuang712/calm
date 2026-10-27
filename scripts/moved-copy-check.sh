@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks remove_once_quit, the waiter install.sh and get.sh leave for a Calm still running from the
-# copy they moved aside (DESIGNS.md → Distribution): both scripts' copies of it, against a
+# copy they moved aside (RUNBOOK.md → Installing under a running Calm): both scripts' copies of it, against a
 # scratch folder and /bin/sleep standing in for that Calm. For an older Calm the program file
 # must go within 0.1 s of its exit, before that Calm's restart reopens (it looks every 0.1 s),
 # and for a newer one within about a second; never while it runs.

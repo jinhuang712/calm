@@ -1,6 +1,6 @@
 import Foundation
 
-/// What every agent learns about the `calm` command (DESIGNS.md → Teaching agents about `calm`):
+/// What every agent learns about the `calm` command (DESIGNS.md → Each agent learns the `calm` command through its own skill door):
 /// one Agent Skills file, the same for all four agents, which each adapter delivers its own way.
 /// Claude Code's is in Calm's plugin, pi's comes from Calm's extension, OpenCode's and Codex's are
 /// files that Connect adds. A Swift string, not a resource file, so the CLI can name the files

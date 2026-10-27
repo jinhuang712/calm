@@ -12,7 +12,7 @@ enum RestartPhase: Equatable {
     case restarting
 }
 
-/// Restarting an agent on its conversation (FEATURES.md → F12, DESIGNS.md → Agents → Restart):
+/// Restarting an agent on its conversation (FEATURES.md → F12, DESIGNS.md → An agent is quit in the way it quits cleanly):
 /// after an update, so the session runs the new version and carries on where it was. The agent
 /// is asked to quit with its adapter's signal; once its process is gone, the command that starts
 /// it again with the same options on the same conversation is typed into its shell. The session's

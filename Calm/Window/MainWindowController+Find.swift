@@ -1,7 +1,8 @@
 import AppKit
 import CalmModel
 
-/// Find in a session (FEATURES.md → F16, DESIGNS.md → Find): libghostty's reports about a pane's
+/// Find in a session (FEATURES.md → F16, DESIGNS.md → Calm adds to the engine only what it cannot do from outside): libghostty's reports
+/// about a pane's
 /// search reach the window's FindModel, whose field sits in the title strip.
 extension MainWindowController {
     func surface(_ view: TerminalSurfaceView, didFind event: FindEvent) {

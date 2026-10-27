@@ -15,7 +15,7 @@ public struct ClaudeCodeAdapter: AgentAdapter {
 
 // MARK: Hooks
 
-/// Claude Code's hooks (DESIGNS.md → Agents). Calm ships them as a plugin that Claude loads
+/// Claude Code's hooks (DESIGNS.md → Hooks arrive as a plugin that only Calm's shells load). Calm ships them as a plugin that Claude loads
 /// from `CLAUDE_CODE_PLUGIN_DIRS`, set only in the shells Calm starts, so nothing is written to
 /// the user's Claude settings.
 extension ClaudeCodeAdapter: HookReporting {

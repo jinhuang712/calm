@@ -1,6 +1,7 @@
 import Foundation
 
-/// What a full-screen program showed (FEATURES.md → F16, the whole session; DESIGNS.md → Find).
+/// What a full-screen program showed (FEATURES.md → F16, the whole session; DESIGNS.md → Calm adds to the engine only what it cannot do
+/// from outside).
 /// Its screen keeps no history, so the pane reads it a few times a second while it draws, and
 /// this keeps what went between two reads:
 ///

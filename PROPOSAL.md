@@ -60,7 +60,7 @@ Three agents run in two projects. The sidebar shows one card for each:
 - **A settings maze.** When an option needs a paragraph to explain, the default is wrong.
 - **Cross-platform.** Calm is macOS only, so it can be native.
 
-For the full list, see [FEATURES.md → Explicitly not planned](FEATURES.md#explicitly-not-planned).
+For the full list, see [FEATURES.md → Not planned](FEATURES.md#not-planned).
 
 ## Who it is for
 

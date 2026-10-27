@@ -26,7 +26,7 @@ public struct AgentVersions: Equatable, Sendable {
 }
 
 /// Tells which version an agent's process runs and whether a newer one is installed, for any agent
-/// (DESIGNS.md → Agents → Updates). Nothing here is agent-specific: it follows how the agent was
+/// (FEATURES.md → F12). Nothing here is agent-specific: it follows how the agent was
 /// installed.
 ///
 /// - **A native program behind a link whose path names the version** (Claude Code's

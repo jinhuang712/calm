@@ -34,7 +34,7 @@ public struct IndexStats: Sendable, Equatable {
     public var filesRemoved = 0
 }
 
-/// The search index (DESIGNS.md → Search): SQLite FTS5 with the trigram tokenizer, updated
+/// The search index (DESIGNS.md → Search is SQLite FTS5 with the trigram tokenizer): SQLite FTS5 with the trigram tokenizer, updated
 /// incrementally from each transcript's last read offset. All database access happens on one
 /// serial queue, so any thread may call it.
 ///

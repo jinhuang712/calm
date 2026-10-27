@@ -15,7 +15,7 @@ import Darwin
 /// - A copy installed meanwhile moved this one aside (install.sh and get.sh rename it
 ///   `.Calm.app.previous-…`), and macOS went on starting that moved copy for the path, twice in a
 ///   row on 2026-10-12, with the new copy registered there; with the moved copy gone, it started
-///   the new one (DESIGNS.md → Distribution). So once this Calm has exited, its moved copy is
+///   the new one (RUNBOOK.md → Installing under a running Calm). So once this Calm has exited, its moved copy is
 ///   deleted before the path is opened, and after a plain quit too, since the Dock and Spotlight
 ///   lead to it as well.
 /// - The new Calm gets this one's environment (`open` hands on its own), so shells keep the

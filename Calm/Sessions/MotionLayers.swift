@@ -7,7 +7,7 @@ import SwiftUI
 /// A `.frames` mark's working loop (Claude Code's spinner), played by Core Animation. The same
 /// frames in a `TimelineView` had SwiftUI lay out and render the whole sidebar again 30 times a
 /// second per working card, about 2% of a core each (2026-09-30), and nothing inside SwiftUI
-/// kept a frame to the mark alone (DESIGNS.md → Agent marks). A layer animation runs in the
+/// kept a frame to the mark alone (DESIGNS.md → Motion is Core Animation layers). A layer animation runs in the
 /// render server: the app does nothing between frames.
 ///
 /// It keeps to the wall clock as `MarkMotion.frameIndex` does, so it shows the frame the SwiftUI

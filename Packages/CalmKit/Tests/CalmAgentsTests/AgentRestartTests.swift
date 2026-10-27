@@ -234,7 +234,7 @@ private func requireStandIn(_ process: Process, _ snapshot: ProcessSnapshot) thr
     try #require(ProcessInspector.fileStatus(of: target) != nil, "no status for \(target)")
 }
 
-/// Telling a running agent from the one installed (DESIGNS.md → Agents → Updates).
+/// Telling a running agent from the one installed (FEATURES.md → F12).
 struct AgentUpdateTests {
     /// Opt-in, against a real agent started from zsh: `CALM_REAL_AGENT_PID=<pid> swift test --filter
     /// "a real running agent"`. Prints what Calm reads; passes when it reads a version.

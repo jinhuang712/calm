@@ -40,7 +40,7 @@ cleanup() {
 # The copy a running Calm was moved aside to goes the moment that Calm quits. Calm 0.1.2 and later
 # delete it themselves once they've exited. An older one reopens by the path it started from
 # (Calm → Restart Calm), and macOS started the moved copy again rather than the new one there
-# (2026-10-12, twice in a row; DESIGNS.md → Distribution). So this leaves a waiter behind, which
+# (2026-10-12, twice in a row; RUNBOOK.md → Installing under a running Calm). So this leaves a waiter behind, which
 # sleeps in zsh's own zselect, starting no process: every 20 ms for an older Calm, to come before
 # its restart's reopen (that looks every 0.1 s), and once a second for a newer one, whose own
 # cleanup it only backs up (a crash, a kill). The program file goes first: without it macOS can't
@@ -150,8 +150,8 @@ main() {
 
   # Copied beside the old app first, then swapped in with two renames, so a failed copy never
   # leaves no Calm. A running Calm keeps working from the old app, moved aside: deleting the file
-  # a running app came from stops macOS letting it show the folder picker (DESIGNS.md →
-  # Distribution). A moved copy goes once nothing runs from it: now, or when its Calm quits
+  # a running app came from stops macOS letting it show the folder picker (RUNBOOK.md →
+  # Installing under a running Calm). A moved copy goes once nothing runs from it: now, or when its Calm quits
   # (remove_once_quit). ./install.sh does the same.
   local target="$app_dir/Calm.app" staging="$app_dir/.Calm.app.installing" was="" running=0
   step "Installing to $target"

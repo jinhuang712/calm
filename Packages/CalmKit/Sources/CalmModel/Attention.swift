@@ -1,7 +1,7 @@
 import Foundation
 
 /// The latest word about a session: its state, what the agent last said, and who said so
-/// (see DESIGNS.md → Attention).
+/// (see DESIGNS.md → Attention is a state of a session).
 public struct StatusReport: Codable, Hashable, Sendable {
     /// Hooks are the agent speaking for itself; terminal signals (bell, progress, titles) are
     /// Calm's guess. While an agent reports through hooks, guesses don't override it.

@@ -3,7 +3,7 @@ import CalmModel
 import GhosttyKit
 
 /// What a full-screen program showed in this pane, for find's whole session (FEATURES.md → F16,
-/// DESIGNS.md → Find). The screen is read at most every `keepInterval` while the program draws:
+/// FEATURES.md → F16). The screen is read at most every `keepInterval` while the program draws:
 /// after a frame while the pane is shown, and on a timer while it's hidden and its session works
 /// (a hidden pane draws no frames, and an agent there still shows lines). Nothing runs at rest or
 /// in a plain shell.

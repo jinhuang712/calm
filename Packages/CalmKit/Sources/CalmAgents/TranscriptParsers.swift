@@ -2,7 +2,7 @@ import CalmModel
 import Foundation
 
 // Record shapes seen in real files on 2026-09-27 (Claude Code 2.1.283, Codex 0.157.1, pi 0.87.1);
-// see DESIGNS.md → Agents and Search.
+// see FEATURES.md → F4 and F7.
 
 extension ClaudeCodeAdapter: TranscriptIndexing {
     public var transcriptFolders: [String] {

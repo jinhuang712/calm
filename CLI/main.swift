@@ -4,7 +4,7 @@ import CalmSearch
 import Foundation
 
 // The `calm` command-line tool: talks to the running app over its local socket
-// (see DESIGNS.md → Control protocol).
+// (see CLI.md → How the CLI talks to Calm).
 
 let version = "0.1.4"
 let usage = """

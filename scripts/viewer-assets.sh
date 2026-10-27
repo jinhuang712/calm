@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fetches the viewer's JavaScript libraries at pinned versions and checks them (DESIGNS.md →
-# Files and viewer). The files are committed, so builds stay offline; run this to update them.
+# The viewer is a web view for text formats, PDFKit for PDFs, an image view for images). The files are committed, so builds stay offline; run this to update them.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

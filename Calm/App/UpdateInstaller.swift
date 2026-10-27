@@ -3,7 +3,7 @@ import CalmModel
 import Foundation
 
 /// Update and Restart: installs a newer release over this Calm, then restarts it (FEATURES.md →
-/// Updates, DESIGNS.md → Updates). It runs the same get.sh as the one-line install, so the swap
+/// F17, DESIGNS.md → The update installer is the install script). It runs the same get.sh as the one-line install, so the swap
 /// that keeps a running Calm working, the checksum and macOS's download mark are one piece of code,
 /// not two. Restart Calm does the rest: shells keep running through it.
 @MainActor @Observable

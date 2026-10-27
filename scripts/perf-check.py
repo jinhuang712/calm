@@ -4,7 +4,7 @@ measured with the kernel's own counters for the process (proc_pid_rusage) and he
 
 Retired instructions and interrupt wakeups are measured rather than CPU time: on a busy Mac the
 same run took 3% to 13% of a core depending on which cores it landed on and how fast they ran,
-while its instruction count stayed within a few percent (DESIGNS.md → Testing). A budget sits
+while its instruction count stayed within a few percent (DESIGNS.md → Cost is a budget of instructions and wakeups, checked by a script). A budget sits
 well above what a run costs today and well below what the regressions it guards against cost:
 
 - idle: an idle, focused shell. The cursor glide's animation loop running all the time

@@ -1,6 +1,6 @@
 import Foundation
 
-/// What `calm trace` runs and prints: Calm's trace (DESIGNS.md → Trace) from the unified log,
+/// What `calm trace` runs and prints: Calm's trace (FEATURES.md → F13) from the unified log,
 /// through `/usr/bin/log`, one line per event (CLI.md → `calm trace`).
 public enum TraceLog {
     /// `--last`: a whole number of seconds, minutes, hours or days, as `log show` takes it.

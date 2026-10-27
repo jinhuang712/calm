@@ -1,7 +1,7 @@
 import CalmModel
 import Foundation
 
-/// Agents whose transcripts Calm can read for session cards (DESIGNS.md → Agents). Formats are
+/// Agents whose transcripts Calm can read for session cards (FEATURES.md → F4). Formats are
 /// undocumented and change: anything unexpected reads as "nothing known", never an error.
 public protocol TranscriptReading: AgentAdapter {
     /// The transcript of the agent running as `processID`, found without hooks. Declines

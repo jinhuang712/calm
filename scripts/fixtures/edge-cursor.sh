@@ -13,7 +13,7 @@
 #   rows 14-18  the pane painted in one color, content inset two cells from either edge
 #                                                           OpenCode: every row's padding takes the pane's color
 #
-# Used by the padding self-test (DESIGNS.md → Padding and title strip).
+# Used by the padding self-test (UIUX.md → Themes).
 set -eu
 read -r rows cols < <(stty size)
 bar=$(printf '%*s' "$cols" '')

@@ -3,7 +3,7 @@ import Observation
 
 /// One session's working line (`LiveLine`), kept apart from the workspace. It moves on every tool
 /// call an agent makes, and a write to the workspace has the whole sidebar render again (13 to 20
-/// million instructions, DESIGNS.md → State machine); a write here has only its own card render.
+/// million instructions, DESIGNS.md → Per-tool-call state lives outside the workspace); a write here has only its own card render.
 @MainActor
 @Observable
 final class LiveLineBox {

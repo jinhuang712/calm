@@ -1,7 +1,7 @@
 import Foundation
 
 /// A Calm theme (FEATURES.md → F11): terminal colors plus two chrome tints, in a light and a dark
-/// variant, from a small TOML file (DESIGNS.md → Themes).
+/// variant, from a small TOML file (FEATURES.md → F11).
 public struct CalmTheme: Equatable, Sendable, Identifiable {
     public enum Mode: String, CaseIterable, Sendable {
         case light, dark
@@ -259,7 +259,7 @@ public struct ThemeLibrary: Sendable {
 
 public extension CalmSettings {
     /// The theme picked in Calm (`theme = "Ink"`), or `nil` for the default, which gives way to a
-    /// theme or colors set in the user's Ghostty config (DESIGNS.md → Themes).
+    /// theme or colors set in the user's Ghostty config (FEATURES.md → F11).
     var themeName: String? {
         values["theme"].flatMap { $0.isEmpty ? nil : $0 }
     }

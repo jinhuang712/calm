@@ -55,8 +55,8 @@ final class SessionManager {
     @ObservationIgnored let stateSavedAt: Date?
 
     /// Sessions whose rows show as loading: their saved agent run is being checked against the
-    /// running agent and the check is taking a moment (DESIGNS.md → Launch). Empty almost
-    /// always, since the check is over before the window opens. Not saved.
+    /// running agent and the check is taking a moment (DESIGNS.md → The sidebar comes back as it was left, checked before the window
+    /// opens). Empty almost always, since the check is over before the window opens. Not saved.
     private(set) var confirming: Set<Session.ID> = []
     @ObservationIgnored private var confirmingSince: ContinuousClock.Instant?
 

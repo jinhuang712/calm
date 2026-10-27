@@ -7,7 +7,7 @@ struct TerminalSignalTests {
     }
 
     @Test func `agents' notifications are read by their words`() {
-        // Messages agents send (DESIGNS.md → Agents).
+        // Messages agents send (DESIGNS.md → Terminal signals are a fallback that reads words, not a feature).
         #expect(agentNotification("Claude needs your permission to use Bash") == .report(
             .needsYou,
             message: "Claude needs your permission to use Bash",

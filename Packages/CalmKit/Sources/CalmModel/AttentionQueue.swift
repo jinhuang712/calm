@@ -1,7 +1,7 @@
 import Foundation
 
-/// Holds notifications until a natural pause (DESIGNS.md → Attention → notification
-/// scheduling): the user stops typing for a moment, switches focus, or a maximum wait passes.
+/// Holds notifications until a natural pause (DESIGNS.md → A notification waits for a natural
+/// pause): the user stops typing for a moment, switches focus, or a maximum wait passes.
 /// Nothing is ever dropped; a session's newer message replaces its older one.
 public struct AttentionQueue: Sendable, Equatable {
     public struct Item: Sendable, Equatable {

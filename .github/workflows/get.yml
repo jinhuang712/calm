@@ -67,7 +67,7 @@ jobs:
 
       # Calm is still running from the first install. The copy it runs from stays, moved aside,
       # until it quits, then goes at once: macOS would otherwise start it again for the path
-      # (DESIGNS.md → Distribution).
+      # (RUNBOOK.md → Installing under a running Calm).
       - name: Install over a running Calm
         run: |
           bash < get.sh | tee "$RUNNER_TEMP/again.txt"

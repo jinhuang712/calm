@@ -7,7 +7,7 @@ import OSLog
 ///
 ///     /usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'
 ///
-/// Made to see why a session's status is slow to appear after a launch (DESIGNS.md → Testing).
+/// Made to see why a session's status is slow to appear after a launch (RUNBOOK.md → Build and check).
 /// Each line is the seconds since launch, what happened, and which session, by the first eight
 /// hex digits of its id (as in `state.json` and the zmx names). Only states, sources, counts and
 /// agent names: never a word the user or an agent wrote.

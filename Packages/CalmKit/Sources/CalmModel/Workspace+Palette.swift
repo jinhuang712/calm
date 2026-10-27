@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the ⌘P palette does to the workspace (FEATURES.md → Command palette).
+/// What the ⌘P palette does to the workspace (FEATURES.md → F1).
 public extension Workspace {
     /// Folds or unfolds every group in the sidebar.
     mutating func setAllCollapsed(_ collapsed: Bool) {

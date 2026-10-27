@@ -3,7 +3,8 @@ import CalmModel
 import Foundation
 
 /// The check made at launch of every saved agent run: is that agent still running in its shell,
-/// and what does it say about itself (DESIGNS.md → Launch)? Only process and file reads, so it
+/// and what does it say about itself (DESIGNS.md → The sidebar comes back as it was left, checked before the window opens)? Only process
+/// and file reads, so it
 /// runs off the main thread; the window waits for it no longer than `budget`.
 enum LaunchPass {
     /// A saved run to check: which session, which zmx session holds its shell, which agent.

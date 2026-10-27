@@ -2,7 +2,7 @@ import CalmAgents
 import CalmModel
 import Foundation
 
-/// One row of the ⌘P palette (FEATURES.md → Command palette): what it does, and what to call it.
+/// One row of the ⌘P palette (FEATURES.md → F1): what it does, and what to call it.
 struct PaletteCommand: Identifiable {
     let id: String
     let title: String

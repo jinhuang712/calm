@@ -2,7 +2,7 @@ import AppKit
 import CalmModel
 import Foundation
 
-/// Dump Logs (FEATURES.md → Command palette): a text file to attach to a bug report, written and
+/// Dump Logs (FEATURES.md → F1): a text file to attach to a bug report, written and
 /// shown in Finder. What it holds is what Calm's own trace holds (Trace.swift): ids, states, agent
 /// names, counts and settings. Never a folder, a title or a word the user or an agent wrote.
 struct DiagnosticsReport {

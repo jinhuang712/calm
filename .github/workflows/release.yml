@@ -1,6 +1,6 @@
 name: Release
 
-# A release is a tag, vX.Y.Z, pushed on a commit of main (DESIGNS.md → Distribution). This builds
+# A release is a tag, vX.Y.Z, pushed on a commit of main (RUNBOOK.md → Cut a release). This builds
 # that commit the way the README tells a new user to, with nothing cached: Ghostty's engine from
 # source, its downloads from their hosts. It runs the tests, builds the Release app install.sh
 # installs, puts that app on a disk image and checks it as a download, and only then publishes

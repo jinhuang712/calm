@@ -1,7 +1,7 @@
 import Foundation
 
 /// The local control protocol between the `calm` CLI (and agent hooks) and the app:
-/// one JSON object per line over a Unix socket (see DESIGNS.md → Control protocol).
+/// one JSON object per line over a Unix socket (see CLI.md → How the CLI talks to Calm).
 public enum ControlProtocol {
     public static let version = 1
 

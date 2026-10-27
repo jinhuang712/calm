@@ -3,7 +3,7 @@ import Foundation
 
 public extension OpenCodeAdapter {
     /// OpenCode's own themes paint every cell in fixed truecolor, so a Calm theme never reached it
-    /// (DESIGNS.md → Themes). The shells Calm starts ask for a theme through
+    /// (FEATURES.md → F11). The shells Calm starts ask for a theme through
     /// `OPENCODE_CLI_CONFIG_CONTENT`, which OpenCode 2 merges over `cli.json` without writing it;
     /// older versions don't read it: Calm's own `calm` theme while its file is there (OpenCode is
     /// connected, see `syncTheme`), else `system`, drawn from the terminal's colors. A theme the

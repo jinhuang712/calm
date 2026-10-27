@@ -20,7 +20,7 @@ loop).
 
 Calm's own patch (not from thdxg/ghostty); applies on top of 0005–0016. No Zig test: the
 decision is in the renderer thread's event loop, which needs a surface; the frame check is a
-self-test (DESIGNS.md → Motion in the terminal).
+self-test (UIUX.md → Motion).
 
 diff --git a/src/renderer/Thread.zig b/src/renderer/Thread.zig
 --- a/src/renderer/Thread.zig

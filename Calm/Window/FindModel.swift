@@ -2,7 +2,7 @@ import CalmModel
 import Foundation
 import Observation
 
-/// What find searches: a pane, through libghostty's search binding actions (DESIGNS.md → Find).
+/// What find searches: a pane, through libghostty's search binding actions (FEATURES.md → F16).
 @MainActor
 protocol FindTarget: AnyObject {
     var id: UUID { get }
@@ -70,7 +70,7 @@ final class FindModel: FindFieldModel {
 
     private(set) var total: Int?
     private(set) var selected: Int?
-    /// `.*`: the words are a pattern, which Calm searches itself (DESIGNS.md → Find, regular
+    /// `.*`: the words are a pattern, which Calm searches itself (FEATURES.md → F16, regular
     /// expressions).
     private(set) var isPattern = false
     /// The words aren't a pattern (yet): the count says so, and the marks stay as they were.

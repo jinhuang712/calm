@@ -1,7 +1,7 @@
 import Foundation
 
 /// Things a program in a terminal can say without any hooks: the fallback signals of
-/// DESIGNS.md → Attention.
+/// DESIGNS.md → Terminal signals are a fallback that reads words, not a feature.
 public enum TerminalSignal: Equatable, Sendable {
     /// OSC 9;4 progress.
     public enum Progress: Equatable, Sendable {

@@ -19,6 +19,7 @@ GOALS holds two kinds of number: goals that pass or fail, and benchmarks tracked
 | G9 | Few settings | Calm by default | ≤ 2 settings per feature | Count the **Settings:** line of each feature in FEATURES.md | FEATURES.md | ❌ Not met 2026-10-28: Agent status (3), Themes (7), New agent sessions (4) |
 | G10 | A new user's first minute | Calm by default | A new user makes Calm look right in < 1 minute, without editing a file | Watch new users, 5 sessions | Nobody but the author has used Calm | ⬜ Open: not yet measured |
 | G11 | Daily driver | All four wants | The author uses no other terminal | The author's report | The author's Mac | ✅ Met since 2026-09-29 |
+| G12 | Find a line from earlier in a session | Come back without rebuilding the context | Number not set. The check: ⌘F finds a line in a long log, and in Claude Code's full-screen view finds a line shown an hour earlier (Session) | The author's daily use | The author's Mac | ⬜ Open: not yet measured |
 
 ## Benchmarks
 

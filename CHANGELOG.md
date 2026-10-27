@@ -2,6 +2,12 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## Unreleased
+
+### Fixes
+- A permission prompt you answered no longer keeps the card on "Needs you" while Claude Code works. The card returns to Working when Claude's status says it is busy.
+- A relative path in a link opens the file in the agent's git worktree first, then in the session's folder.
+
 ## 0.1.4 — 2026-10-22
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.3. Exact behavior is in [FEATURES.md](FEATURES.md) and [CLI.md](CLI.md).

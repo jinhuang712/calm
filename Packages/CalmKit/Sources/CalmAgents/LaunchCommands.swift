@@ -104,10 +104,16 @@ public extension AgentAdapter {
     /// What `calm new` types: ⌘N's command and `prompt` as the new conversation's first message
     /// (`claude [options] [prompt]`, `codex [options] [prompt]`: both `--help`, 2026-10-22). Nil for
     /// an agent whose prompt argument hasn't been checked. A `command` in config.toml is used as
-    /// written, with the prompt after it.
-    func newSessionCommand(settings: CalmSettings, inGitRepository: Bool, prompt: String) -> String? {
+    /// written, with the prompt after it. `model` adds `--model <model>` before the prompt, after
+    /// everything config.toml says, so it wins over a `--model` in `flags` (both agents take the last).
+    func newSessionCommand(settings: CalmSettings, inGitRepository: Bool, prompt: String, model: String? = nil) -> String? {
         guard Agents.startsWithPrompt.contains(kind) else { return nil }
-        return launchCommand(settings: settings, inGitRepository: inGitRepository) + " " + shellQuoted(prompt)
+        var parts = [launchCommand(settings: settings, inGitRepository: inGitRepository)]
+        if let model {
+            parts.append("--model " + shellQuoted(model))
+        }
+        parts.append(shellQuoted(prompt))
+        return parts.joined(separator: " ")
     }
 
     /// What a resume keeps of the command ⌘N types: the options a conversation starts with when
@@ -121,7 +127,8 @@ public extension AgentAdapter {
 }
 
 public extension Agents {
-    /// The agents `calm new "<prompt>"` can start with a first message.
+    /// The agents `calm new "<prompt>"` can start with a first message, and with `--model`
+    /// (`claude --model`, `codex --model`: both `--help`).
     static let startsWithPrompt: Set<AgentKind> = [.claudeCode, .codex]
 
     /// The agents installed under `home` (their config folder is there), in Calm's order.

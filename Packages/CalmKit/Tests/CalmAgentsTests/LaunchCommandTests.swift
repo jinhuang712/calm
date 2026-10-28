@@ -21,6 +21,20 @@ struct LaunchCommandTests {
         #expect(codex.newSessionCommand(settings: CalmSettings(text: ""), inGitRepository: true, prompt: "go") == "codex 'go'")
     }
 
+    @Test func `calm new --model comes after config's flags and before the prompt`() throws {
+        let claude = try #require(Agents.adapter(for: .claudeCode))
+        let codex = try #require(Agents.adapter(for: .codex))
+        let settings = CalmSettings(text: "[agents.claude-code]\nflags = \"--model opus\"\nskip-permissions = true\n")
+        #expect(
+            claude.newSessionCommand(settings: settings, inGitRepository: true, prompt: "go", model: "haiku")
+                == "claude --model opus --dangerously-skip-permissions --model 'haiku' 'go'",
+        )
+        #expect(
+            codex.newSessionCommand(settings: CalmSettings(text: ""), inGitRepository: true, prompt: "go", model: "gpt-5 mini")
+                == "codex --model 'gpt-5 mini' 'go'",
+        )
+    }
+
     @Test func `calm new refuses an agent whose prompt isn't checked`() throws {
         for kind in [AgentKind.pi, .openCode] {
             let adapter = try #require(Agents.adapter(for: kind))

@@ -71,11 +71,12 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 - Prints the new session's full id, which `calm show` takes to tell how the fork went. Fails outside Calm, for a missing folder, or with no conversation: "No conversation to fork here." Never starts Calm.
   A fork cannot fork: "A fork can't fork: calm fork started this session." So an agent cannot start a chain. Right-click → Fork still works. A relaunch resets the rule.
 
-### `calm new "<prompt>" [--background] [--in <folder>]`
+### `calm new "<prompt>" [--background] [--in <folder>] [--model <name>]`
 
 - Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (specs/FEATURES.md → F15), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
 - Needs no session, so it works from outside Calm, in a script or a launchd job with an empty environment. It starts Calm in the background when Calm isn't running, as `calm list` does.
 - Goes to the new session. With `--background`, the user stays and the session waits in the sidebar, already running at its display size.
+- `--model <name>` starts the agent with `--model <name>` for this session only, after the `flags` in config.toml, so it wins over a `--model` there. Calm doesn't check the name: the agent says if it doesn't know it. It is for a job that wants a cheaper or stronger model than ⌘N's default (specs/FEATURES.md → F15, *Chips are plain on/off flags*: the picker stays out of the UI). Fails for an empty name or one that starts with `-`.
 - Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
 - Prints the new session's full id, which `calm show` takes. Fails for a missing folder or an empty message.
 

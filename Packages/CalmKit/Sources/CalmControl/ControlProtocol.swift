@@ -67,6 +67,8 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var query: String?
     /// For `fork`: stay where you are, the fork waiting in the sidebar.
     public var background: Bool?
+    /// For `new`: the model its agent starts with (`--model <model>`); nil keeps the agent's own default.
+    public var model: String?
 
     public init(
         cmd: Command,
@@ -85,6 +87,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         activityGroup: String? = nil,
         query: String? = nil,
         background: Bool? = nil,
+        model: String? = nil,
     ) {
         v = ControlProtocol.version
         self.cmd = cmd
@@ -103,6 +106,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.activityGroup = activityGroup
         self.query = query
         self.background = background
+        self.model = model
     }
 }
 

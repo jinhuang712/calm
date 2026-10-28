@@ -322,6 +322,10 @@ final class ControlServer {
     private func newSession(_ request: ControlRequest) -> ControlResponse {
         guard let prompt = request.message, !prompt.isEmpty else { return .failure("Give a first message.") }
         guard let path = request.path else { return .failure("Give a folder.") }
+        // A model that starts with "-" would reach the agent as another option.
+        if let model = request.model, model.isEmpty || model.hasPrefix("-") {
+            return .failure("Give a model name.")
+        }
         let folder = WorkspacePath.standardize(path)
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder, isDirectory: &isDirectory), isDirectory.boolValue else {
@@ -333,8 +337,9 @@ final class ControlServer {
             return .failure("No agent to start: install Claude Code or Codex, or choose one in Settings → Agents.")
         }
         let inGit = GitRoot.find(folder) != nil
-        guard let command = adapter.newSessionCommand(settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt)
-        else {
+        guard let command = adapter.newSessionCommand(
+            settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt, model: request.model,
+        ) else {
             return .failure("\(kind.displayName) can't start with a first message.")
         }
         let controller = TerminalWindowManager.shared.openMainWindow()

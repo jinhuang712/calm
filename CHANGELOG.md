@@ -5,6 +5,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 ## Unreleased
 
 ### Agents
+- `calm new --model <name>` starts the new session with that model, for a script that wants a cheaper or stronger one than ⌘N's default.
 - `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
 
 ### Fixes

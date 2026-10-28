@@ -298,7 +298,7 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 - While Claude Code **compacts**, the session stays **working** and the card says "Compacting", then a bar shows what was kept ("968k → 13k"). A typed `/compact` ends as **done**. A plain shell command that ran 10 seconds or more shows **done** or **failed** until the user moves on.
 - Only **needs you** escalates: the row highlights, and when the user is not looking, a macOS notification arrives at the next natural pause. A **needs you** is never dropped.
 - A notification shows a state mark and the session name (✋ needs you, ✅ done, ⚠️ failed), then one or two Markdown-free lines of the agent's words. A click jumps to the session. **⌘⇧A** jumps to the one that has waited longest.
-- **The first launch asks for every permission once:** notifications, then Documents, Desktop and Downloads. Removable and network volumes and Full Disk Access cannot be asked in advance.
+- **The first launch of each build asks for every permission once:** notifications, then Documents, Desktop and Downloads. An update is a new build, and macOS forgets the old build's answers, so the first launch after an install asks again, all together. Removable and network volumes and Full Disk Access cannot be asked in advance.
 - **done** and **failed** notify only when the user opts in (Settings → Agents). They stay in the sidebar until the user goes to another session or leaves Calm (another app with a Dock icon), then settle to idle.
 - **Settings → Agents** (**Calm → Agents…**) shows how each agent connects. Claude Code uses hooks, on by default, as a plugin loaded only in Calm's shells. Calm writes nothing to Claude's settings. Codex uses its own notifications.
 - pi and OpenCode connect through an extension or plugin that **Connect** adds and **Disconnect** removes. It reports needs you, turn events and the conversation, and applies Calm's theme (F11). Unconnected, OpenCode settles from its files.
@@ -338,7 +338,7 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 - **Instead of:** the one that submits.
 - **Why:** the submitting binding did nothing while a `/` or `@` menu was open (since 2026-10-07).
 
-#### Notifications ask once, at the first launch (decided 2026-10-12)
+#### Notifications ask once per build, at its first launch (decided 2026-10-12, per build 2026-10-29)
 
 - **Instead of:** asking when first needed.
 - **Why:** no prompt then arrives in the middle of work. Reading a guarded folder is what makes macOS ask, so Calm reads them in turn. Tests and headless runs never ask.

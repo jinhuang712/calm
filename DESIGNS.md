@@ -379,10 +379,10 @@ Calm has no server and no account. It holds the user's conversations, folders an
 - **Instead of:** writing the caller's file from the app.
 - **Why:** macOS gives each process its own folder permissions. `calm screenshot` returns the PNG over the socket and the CLI writes the file.
 
-### The first launch asks for every permission once
+### Each build's first launch asks for every permission once
 
 - **Instead of:** asking when a feature first needs one (decided 2026-10-12).
-- **Why:** no prompt then arrives in the middle of work. Reading a guarded folder is what makes macOS ask, so Calm reads Documents, Desktop and Downloads one after another and records that it asked. Afterwards guarded folders are read only when the user opens them.
+- **Why:** no prompt then arrives in the middle of work. Reading a guarded folder is what makes macOS ask, so Calm reads Documents, Desktop and Downloads one after another and records which build it asked. Calm is signed ad hoc, so each build has a new code hash and macOS drops the old grants (see the next section). Asking once for a flag meant the first install asked and every update surprised the user later. Afterwards, until the next build, guarded folders are read only when the user opens them. Screen Recording is not asked: Calm never captures the screen, and a program run in a shell that does asks as Calm when it runs.
 
 ### The update installer is the install script
 

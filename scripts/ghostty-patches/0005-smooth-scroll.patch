@@ -1,8 +1,8 @@
 diff --git a/src/Surface.zig b/src/Surface.zig
-index 977227c9e..9efcc3acd 100644
+index 2cfcd7458..0850e25a1 100644
 --- a/src/Surface.zig
 +++ b/src/Surface.zig
-@@ -323,6 +323,7 @@ const DerivedConfig = struct {
+@@ -325,6 +325,7 @@ const DerivedConfig = struct {
      mouse_reporting: bool,
      mouse_scroll_multiplier: configpkg.MouseScrollMultiplier,
      mouse_shift_capture: configpkg.MouseShiftCapture,
@@ -10,7 +10,7 @@ index 977227c9e..9efcc3acd 100644
      fullscreen: configpkg.Fullscreen,
      macos_non_native_fullscreen: configpkg.NonNativeFullscreen,
      macos_option_as_alt: ?input.OptionAsAlt,
-@@ -404,6 +405,7 @@ const DerivedConfig = struct {
+@@ -406,6 +407,7 @@ const DerivedConfig = struct {
              .mouse_reporting = config.@"mouse-reporting",
              .mouse_scroll_multiplier = config.@"mouse-scroll-multiplier",
              .mouse_shift_capture = config.@"mouse-shift-capture",
@@ -18,7 +18,7 @@ index 977227c9e..9efcc3acd 100644
              .fullscreen = config.fullscreen,
              .macos_non_native_fullscreen = config.@"macos-non-native-fullscreen",
              .macos_option_as_alt = config.@"macos-option-as-alt",
-@@ -1224,12 +1226,12 @@ fn selectionScrollTick(self: *Surface) !void {
+@@ -1258,12 +1260,12 @@ fn selectionScrollTick(self: *Surface) !void {
      }
  
      const pos = try self.rt_surface.getCursorPos();
@@ -32,12 +32,20 @@ index 977227c9e..9efcc3acd 100644
  
      const selection = self.mouse.selection_gesture.autoscrollTick(t, .{
          .viewport = pos_vp,
-@@ -2197,10 +2199,14 @@ fn resolvePathForOpening(
+@@ -2231,17 +2233,21 @@ fn resolvePathForOpening(
  
  /// Returns the x/y coordinate of where the IME (Input Method Editor)
  /// keyboard should be rendered.
 -pub fn imePoint(self: *const Surface) apprt.IMEPos {
 +pub fn imePoint(self: *Surface) apprt.IMEPos {
+     const content_scale = self.rt_surface.getContentScale() catch .{ .x = 1, .y = 1 };
+     return self.imePointScaled(content_scale);
+ }
+ 
+ /// Same as `imePoint`, but divides our sizes by the given scale instead
+ /// of the content scale.
+-pub fn imePointScaled(self: *const Surface, scale: apprt.ContentScale) apprt.IMEPos {
++pub fn imePointScaled(self: *Surface, scale: apprt.ContentScale) apprt.IMEPos {
      self.renderer_state.mutex.lockUncancelable(global.io());
      const cursor = self.renderer_state.terminal.screens.active.cursor;
      const preedit_width: usize = if (self.renderer_state.preedit) |preedit| preedit.width() else 0;
@@ -48,7 +56,7 @@ index 977227c9e..9efcc3acd 100644
      self.renderer_state.mutex.unlock(global.io());
  
      // TODO: need to handle when scrolling and the cursor is not
-@@ -2229,6 +2235,9 @@ pub fn imePoint(self: *const Surface) apprt.IMEPos {
+@@ -2269,6 +2275,9 @@ pub fn imePointScaled(self: *const Surface, scale: apprt.ContentScale) apprt.IME
          // We want the bottom
          y += @floatFromInt(self.size.cell.height);
  
@@ -56,9 +64,9 @@ index 977227c9e..9efcc3acd 100644
 +        y += shift;
 +
          // And scale it
-         y /= content_scale.y;
+         y /= scale.y;
  
-@@ -3620,14 +3629,18 @@ pub fn scrollCallback(
+@@ -3660,14 +3669,18 @@ pub fn scrollCallback(
              break :y .{};
          }
  
@@ -79,7 +87,7 @@ index 977227c9e..9efcc3acd 100644
  
          break :y .{ .delta = delta };
      };
-@@ -3734,6 +3747,18 @@ pub fn scrollCallback(
+@@ -3774,6 +3787,18 @@ pub fn scrollCallback(
              // is negative down but our viewport is positive down.
              self.io.terminal.scrollViewport(.{ .delta = y.delta * -1 });
          }
@@ -98,7 +106,7 @@ index 977227c9e..9efcc3acd 100644
      }
  
      try self.queueRender();
-@@ -3832,7 +3857,7 @@ fn mouseReport(
+@@ -3872,7 +3897,7 @@ fn mouseReport(
          .mods = mods,
          .pos = .{
              .x = pos.x,
@@ -107,7 +115,7 @@ index 977227c9e..9efcc3acd 100644
          },
      }, encoding_opts) catch |err| switch (err) {
          error.WriteFailed => {
-@@ -3974,13 +3999,10 @@ pub fn mouseButtonCallback(
+@@ -4014,13 +4039,10 @@ pub fn mouseButtonCallback(
          // If we can't map the release position to a cell, pass null so the
          // gesture can conservatively treat the release as having moved away
          // from the pressed cell.
@@ -125,7 +133,7 @@ index 977227c9e..9efcc3acd 100644
          self.mouse.selection_gesture.release(
              self.renderer_state.terminal,
              .{ .pin = release_pin },
-@@ -4078,26 +4100,15 @@ pub fn mouseButtonCallback(
+@@ -4118,26 +4140,15 @@ pub fn mouseButtonCallback(
          self.renderer_state.mutex.lockUncancelable(global.io());
          defer self.renderer_state.mutex.unlock(global.io());
          const t: *terminal.Terminal = self.renderer_state.terminal;
@@ -159,7 +167,7 @@ index 977227c9e..9efcc3acd 100644
          };
  
          var press_selection = try self.mouse.selection_gesture.press(t, .{
-@@ -4181,19 +4192,9 @@ pub fn mouseButtonCallback(
+@@ -4221,19 +4232,9 @@ pub fn mouseButtonCallback(
          // Get our viewport pin
          const screen: *terminal.Screen = self.renderer_state.terminal.screens.active;
          const pos = try self.rt_surface.getCursorPos();
@@ -182,7 +190,7 @@ index 977227c9e..9efcc3acd 100644
          };
  
          switch (self.config.right_click_action) {
-@@ -4684,9 +4685,6 @@ pub fn cursorPosCallback(
+@@ -4742,9 +4743,6 @@ pub fn cursorPosCallback(
      // Update our modifiers if they changed
      if (mods) |v| self.modsChanged(v);
  
@@ -192,7 +200,7 @@ index 977227c9e..9efcc3acd 100644
      // We always reset the over link status because it will be reprocessed
      // below. But we need the old value to know if we need to undo mouse
      // shape changes.
-@@ -4697,6 +4695,9 @@ pub fn cursorPosCallback(
+@@ -4755,6 +4753,9 @@ pub fn cursorPosCallback(
      self.renderer_state.mutex.lockUncancelable(global.io());
      defer self.renderer_state.mutex.unlock(global.io());
  
@@ -202,7 +210,7 @@ index 977227c9e..9efcc3acd 100644
      // Update our mouse state. We set this to null initially because we only
      // want to set it when we're not selecting or doing any other mouse
      // event.
-@@ -4780,13 +4781,7 @@ pub fn cursorPosCallback(
+@@ -4838,13 +4839,7 @@ pub fn cursorPosCallback(
          try self.queueRender();
  
          // Convert to points
@@ -217,7 +225,7 @@ index 977227c9e..9efcc3acd 100644
              if (comptime std.debug.runtime_safety) unreachable;
              return;
          };
-@@ -4850,13 +4845,135 @@ pub fn colorSchemeCallback(self: *Surface, scheme: apprt.ColorScheme) !void {
+@@ -4908,13 +4903,135 @@ pub fn colorSchemeCallback(self: *Surface, scheme: apprt.ColorScheme) !void {
      self.queueIo(.{ .color_scheme_report = .{ .force = false } }, .unlocked);
  }
  
@@ -356,7 +364,7 @@ index 977227c9e..9efcc3acd 100644
  ///
  /// Precondition: the render_state mutex must be held.
 diff --git a/src/config/Config.zig b/src/config/Config.zig
-index 176305814..071bb1fbe 100644
+index b4ca8f74f..521454063 100644
 --- a/src/config/Config.zig
 +++ b/src/config/Config.zig
 @@ -999,6 +999,25 @@ palette: Palette = .{},
@@ -386,10 +394,10 @@ index 176305814..071bb1fbe 100644
  /// 1 is fully opaque and a value of 0 is fully transparent. A value less than 0
  /// or greater than 1 will be clamped to the nearest valid value.
 diff --git a/src/renderer/Metal.zig b/src/renderer/Metal.zig
-index 0458b2dc1..1f74e47be 100644
+index 581b0ce37..440af56a3 100644
 --- a/src/renderer/Metal.zig
 +++ b/src/renderer/Metal.zig
-@@ -249,6 +249,20 @@ pub fn initTarget(self: *const Metal, width: usize, height: usize) !Target {
+@@ -233,6 +233,20 @@ pub fn initTarget(self: *const Metal, width: usize, height: usize) !Target {
      });
  }
  
@@ -428,10 +436,10 @@ index 3314db29f..dc03a9995 100644
      // If we are in preedit, then we always show the block cursor. We do
      // this even if the cursor is explicitly not visible because it shows
 diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
-index 3951cee42..88bfcd18c 100644
+index c2e71ee50..dde312a56 100644
 --- a/src/renderer/generic.zig
 +++ b/src/renderer/generic.zig
-@@ -45,6 +45,98 @@ const DisplayLink = switch (builtin.os.tag) {
+@@ -48,6 +48,98 @@ const DisplayLink = switch (builtin.target.os.tag) {
  
  const log = std.log.scoped(.generic_renderer);
  
@@ -530,9 +538,9 @@ index 3951cee42..88bfcd18c 100644
  /// Create a renderer type with the provided graphics API wrapper.
  ///
  /// The graphics API wrapper must provide the interface outlined below.
-@@ -176,6 +268,28 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
-         /// cells for the draw call.
-         cells_rebuilt: bool = false,
+@@ -185,6 +277,28 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+         /// when a program places an image.
+         images_rebuilt: bool = false,
  
 +        /// Region scroll animations in flight (see `RegionAnim`), the
 +        /// scrolls drained from the terminal that they have yet to take
@@ -559,7 +567,7 @@ index 3951cee42..88bfcd18c 100644
          /// The current GPU uniform values.
          uniforms: shaderpkg.Uniforms,
  
-@@ -608,6 +722,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -623,6 +737,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              blending: configpkg.Config.AlphaBlending,
              background_blur: configpkg.Config.BackgroundBlur,
              scroll_to_bottom_on_output: bool,
@@ -567,7 +575,7 @@ index 3951cee42..88bfcd18c 100644
              custom_shader_animation: configpkg.CustomShaderAnimation,
  
              pub fn init(
-@@ -684,6 +799,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -699,6 +814,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                      .blending = config.@"alpha-blending",
                      .background_blur = config.@"background-blur",
                      .scroll_to_bottom_on_output = config.@"scroll-to-bottom".output,
@@ -575,7 +583,7 @@ index 3951cee42..88bfcd18c 100644
                      .custom_shader_animation = config.@"custom-shader-animation",
                      .arena = arena,
                  };
-@@ -742,6 +858,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -761,6 +877,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  // Render state
                  .cells = .{},
                  .uniforms = .{
@@ -583,7 +591,7 @@ index 3951cee42..88bfcd18c 100644
                      .projection_matrix = undefined,
                      .cell_size = undefined,
                      .grid_size = undefined,
-@@ -841,6 +958,12 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -865,6 +982,12 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              }
  
              self.cells.deinit(self.alloc);
@@ -596,7 +604,7 @@ index 3951cee42..88bfcd18c 100644
  
              self.font_shaper.deinit();
              self.font_shaper_cache.deinit(self.alloc);
-@@ -1069,6 +1192,66 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -1106,6 +1229,66 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              self.syncDisplayLink(id, draw_now);
          }
  
@@ -663,7 +671,7 @@ index 3951cee42..88bfcd18c 100644
          /// The cadence of continuous (draw-only) animation wakes,
          /// i.e. 120fps, and the floor for any animation wake delay.
          pub const draw_interval_ms: u64 = 8;
-@@ -1127,18 +1310,318 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -1164,18 +1347,318 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  break :kitty @max(next -| now_ms, draw_interval_ms);
              };
  
@@ -981,10 +989,10 @@ index 3951cee42..88bfcd18c 100644
 +            self.presented_regions.present(global.io(), slot);
 +        }
 +
-         /// True if our renderer is using vsync. If true, the renderer or apprt
-         /// is responsible for triggering draw_now calls to the render thread.
-         /// That is the only way to trigger a drawFrame.
-@@ -1416,11 +1899,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+         /// Returns true if the display link is running, meaning frames
+         /// are paced by display refresh. In that case the render thread
+         /// must only draw when the display link wakes it through
+@@ -1483,11 +1966,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  // denormalization) is deferred to the endUpdate call
                  // outside of this critical section, keeping our lock
                  // hold time as short as possible.
@@ -1017,7 +1025,7 @@ index 3951cee42..88bfcd18c 100644
                  // If our terminal state is dirty at all we need to redo
                  // the viewport search.
                  if (self.terminal_state.dirty != .false) {
-@@ -1844,10 +2347,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -1884,10 +2387,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              // Update per-frame custom shader uniforms.
              try self.updateCustomShaderUniformsForFrame();
  
@@ -1052,7 +1060,7 @@ index 3951cee42..88bfcd18c 100644
  
              // If our background image buffer has changed, sync it.
              if (frame.bg_image_buffer_modified != self.bg_image_buffer_modified) {
-@@ -1878,6 +2402,17 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -1918,6 +2442,17 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              var frame_ctx = try self.api.beginFrame(self, &frame.target);
              defer frame_ctx.complete(sync);
  
@@ -1070,7 +1078,7 @@ index 3951cee42..88bfcd18c 100644
              {
                  var pass = frame_ctx.renderPass(&.{.{
                      .target = if (frame.custom_shader_state) |state|
-@@ -2449,10 +2984,14 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2489,10 +3024,14 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                      cursor.grid_pos[0] * cell.width + padding.left,
                  );
                  // Top edge, relative to the top of the
@@ -1086,7 +1094,7 @@ index 3951cee42..88bfcd18c 100644
  
                  // If +Y is up in our shaders, we need to flip the coordinate
                  // so that it's instead the top edge of the cell relative to
-@@ -2590,6 +3129,30 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2630,6 +3169,30 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              cp_offset: usize,
          };
  
@@ -1117,7 +1125,7 @@ index 3951cee42..88bfcd18c 100644
          /// Convert the terminal state to GPU cells stored in CPU memory. These
          /// are then synced to the GPU in the next frame. This only updates CPU
          /// memory and doesn't touch the GPU.
-@@ -2605,13 +3168,21 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2645,13 +3208,21 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
          ) Allocator.Error!void {
              const state: *terminal.RenderState = &self.terminal_state;
  
@@ -1141,7 +1149,7 @@ index 3951cee42..88bfcd18c 100644
                  new_size.columns = state.cols;
                  try self.cells.resize(self.alloc, new_size);
  
-@@ -2620,6 +3191,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2660,6 +3231,31 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  self.uniforms.grid_size = .{ new_size.columns, new_size.rows };
              }
  
@@ -1173,7 +1181,7 @@ index 3951cee42..88bfcd18c 100644
              const rebuild = state.dirty == .full or grid_size_diff;
              if (rebuild) {
                  // If we are doing a full rebuild, then we clear the entire cell buffer.
-@@ -2646,20 +3242,21 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2686,20 +3282,21 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              // working terminal state, even if incorrect.
              errdefer comptime unreachable;
  
@@ -1202,7 +1210,7 @@ index 3951cee42..88bfcd18c 100644
                  self.cells.size.rows,
              );
  
-@@ -2667,9 +3264,9 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2707,9 +3304,9 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              // here because we will render the preedit separately.
              const preedit_range: ?PreeditRange = if (preedit) |preedit_v| preedit: {
                  // We base the preedit on the position of the cursor in the
@@ -1215,7 +1223,7 @@ index 3951cee42..88bfcd18c 100644
                      break :preedit null;
  
                  // If our preedit row isn't dirty then we don't need the
-@@ -2736,13 +3333,13 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2776,13 +3373,13 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                      std.math.maxInt(u16),
                  };
  
@@ -1235,7 +1243,7 @@ index 3951cee42..88bfcd18c 100644
                      break :cursor_style if (cell.raw.hasStyling())
                          cell.style
                      else
-@@ -2940,6 +3537,12 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2980,6 +3577,12 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  },
              }
  
@@ -1248,7 +1256,7 @@ index 3951cee42..88bfcd18c 100644
              // Iterator of runs for shaping.
              var run_iter_opts: font.shape.RunOptions = .{
                  .grid = self.font_grid,
-@@ -2949,7 +3552,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -2989,7 +3592,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  // We want to do font shaping as long as the cursor is
                  // visible on this viewport.
                  .cursor_x = cursor_x: {
@@ -1257,7 +1265,7 @@ index 3951cee42..88bfcd18c 100644
                      if (vp.y != y) break :cursor_x null;
                      break :cursor_x vp.x;
                  },
-@@ -3216,9 +3819,9 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -3256,9 +3859,9 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  // an underline, in which case use a double underline to
                  // distinguish them.
                  const underline: terminal.Attribute.Underline = underline: {
@@ -1269,7 +1277,7 @@ index 3951cee42..88bfcd18c 100644
                      })) {
                          break :underline if (style.flags.underline == .single)
                              .double
-@@ -3512,7 +4115,8 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -3552,7 +4155,8 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              cursor_style: renderer.CursorStyle,
              cursor_color: terminal.color.RGB,
          ) void {
@@ -1279,7 +1287,7 @@ index 3951cee42..88bfcd18c 100644
  
              // Add the cursor. We render the cursor over the wide character if
              // we're on the wide character tail.
-@@ -3661,3 +4265,67 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
+@@ -3701,3 +4305,67 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
          }
      };
  }
@@ -1369,7 +1377,7 @@ index 388b4f9ed..cebbf8a85 100644
  
      block.renderer.frameCompleted(health);
 diff --git a/src/renderer/metal/shaders.zig b/src/renderer/metal/shaders.zig
-index 84d536c41..5cbf69dea 100644
+index b14068f96..56658278a 100644
 --- a/src/renderer/metal/shaders.zig
 +++ b/src/renderer/metal/shaders.zig
 @@ -213,6 +213,19 @@ pub const Uniforms = extern struct {
@@ -1417,7 +1425,7 @@ index 84d536c41..5cbf69dea 100644
          left: bool = false,
          right: bool = false,
 diff --git a/src/renderer/opengl/shaders.zig b/src/renderer/opengl/shaders.zig
-index 2155e289b..d24b69343 100644
+index b268b1f13..ae8f3560c 100644
 --- a/src/renderer/opengl/shaders.zig
 +++ b/src/renderer/opengl/shaders.zig
 @@ -178,6 +178,19 @@ pub const Uniforms = extern struct {
@@ -1945,7 +1953,7 @@ index 4e02b6336..3f54f8daf 100644
        uniforms.projection_matrix * float4(image_pos.x, image_pos.y, 0.0f, 1.0f);
    out.tex_coord = tex_coord;
 diff --git a/src/terminal/Screen.zig b/src/terminal/Screen.zig
-index 37e762420..7a4d658d4 100644
+index 03757563d..3ff73c354 100644
 --- a/src/terminal/Screen.zig
 +++ b/src/terminal/Screen.zig
 @@ -61,6 +61,25 @@ saved_cursor: ?SavedCursor = null,
@@ -2031,7 +2039,7 @@ index 37e762420..7a4d658d4 100644
  pub const SavedCursor = struct {
      x: size.CellCountInt,
      y: size.CellCountInt,
-@@ -1626,6 +1695,10 @@ pub const Scroll = union(enum) {
+@@ -1686,6 +1755,10 @@ pub const Scroll = union(enum) {
  pub inline fn scroll(self: *Screen, behavior: Scroll) void {
      defer self.assertIntegrity();
  
@@ -2043,10 +2051,10 @@ index 37e762420..7a4d658d4 100644
          // No matter what, scrolling marks our image state as dirty since
          // it could move placements. If there are no placements or no images
 diff --git a/src/terminal/Terminal.zig b/src/terminal/Terminal.zig
-index 69733661a..eff19e764 100644
+index 713e9bcc0..9d4c346df 100644
 --- a/src/terminal/Terminal.zig
 +++ b/src/terminal/Terminal.zig
-@@ -2412,6 +2412,10 @@ pub fn index(self: *Terminal) !void {
+@@ -2446,6 +2446,10 @@ pub fn index(self: *Terminal) !void {
              // present case is handled out of line so this hot path
              // only pays a count check (a load from a cache line we
              // already write, above).
@@ -2057,7 +2065,7 @@ index 69733661a..eff19e764 100644
              if (comptime build_options.kitty_graphics) {
                  if (screen.kitty_images.placements.count() != 0) {
                      @branchHint(.unlikely);
-@@ -2433,6 +2437,8 @@ pub fn index(self: *Terminal) !void {
+@@ -2467,6 +2471,8 @@ pub fn index(self: *Terminal) !void {
              return;
          }
  
@@ -2066,7 +2074,7 @@ index 69733661a..eff19e764 100644
          // Kitty image placements may need adjusting around the scroll;
          // handled out of line like the scrollback path above.
          if (comptime build_options.kitty_graphics) {
-@@ -2635,8 +2641,29 @@ pub fn setLeftAndRightMargin(self: *Terminal, left_req: usize, right_req: usize)
+@@ -2709,8 +2715,29 @@ pub fn setLeftAndRightMargin(self: *Terminal, left_req: usize, right_req: usize)
      self.setCursorPos(1, 1);
  }
  
@@ -2096,7 +2104,7 @@ index 69733661a..eff19e764 100644
      // Preserve our x/y to restore.
      const old_x = self.screens.active.cursor.x;
      const old_y = self.screens.active.cursor.y;
-@@ -2677,6 +2704,8 @@ pub fn scrollDown(self: *Terminal, count: usize) void {
+@@ -2751,6 +2778,8 @@ pub fn scrollDown(self: *Terminal, count: usize) void {
  ///
  /// Does not change the (absolute) cursor position.
  pub fn scrollUp(self: *Terminal, count: usize) !void {
@@ -2105,7 +2113,7 @@ index 69733661a..eff19e764 100644
      // Preserve our x/y to restore.
      const old_x = self.screens.active.cursor.x;
      const old_y = self.screens.active.cursor.y;
-@@ -8781,6 +8810,49 @@ test "Terminal: insertLines left/right scroll region" {
+@@ -9236,6 +9265,49 @@ test "Terminal: insertLines left/right scroll region" {
      }
  }
  
@@ -2156,10 +2164,10 @@ index 69733661a..eff19e764 100644
      const alloc = testing.allocator;
      const io_impl = testing.io;
 diff --git a/src/terminal/render.zig b/src/terminal/render.zig
-index 668cb08df..a148d94fc 100644
+index 17a4ca04b..ed8c78332 100644
 --- a/src/terminal/render.zig
 +++ b/src/terminal/render.zig
-@@ -184,6 +184,25 @@ pub const RenderState = struct {
+@@ -355,6 +355,25 @@ pub const RenderState = struct {
      /// This is set by the update and should not be modified.
      overscan: Overscan = .{},
  
@@ -2185,7 +2193,7 @@ index 668cb08df..a148d94fc 100644
      /// The cached selection so we can avoid expensive selection calculations
      /// if possible.
      selection_cache: ?SelectionCache = null,
-@@ -242,6 +261,14 @@ pub const RenderState = struct {
+@@ -417,6 +436,14 @@ pub const RenderState = struct {
          /// may be null if the cursor is not visible within the viewport.
          viewport: ?Viewport,
  
@@ -2200,7 +2208,7 @@ index 668cb08df..a148d94fc 100644
          /// The cell data for the cursor position. Managed memory is not
          /// safe to access from this.
          cell: page.Cell,
-@@ -487,6 +514,56 @@ pub const RenderState = struct {
+@@ -914,6 +941,56 @@ pub const RenderState = struct {
          self.endUpdate();
      }
  
@@ -2257,7 +2265,7 @@ index 668cb08df..a148d94fc 100644
      /// Begin an update of the render state to the latest terminal
      /// state. Every begin must be completed with an `endUpdate` call
      /// before the render state is read.
-@@ -612,6 +689,7 @@ pub const RenderState = struct {
+@@ -1039,6 +1116,7 @@ pub const RenderState = struct {
          // probably cache this by comparing the cursor pin and viewport pin
          // but may not be worth it.
          self.cursor.viewport = null;
@@ -2265,7 +2273,7 @@ index 668cb08df..a148d94fc 100644
  
          // Colors.
          self.colors.cursor = t.colors.cursor.get();
-@@ -739,15 +817,25 @@ pub const RenderState = struct {
+@@ -1170,15 +1248,25 @@ pub const RenderState = struct {
              // Find our cursor if we haven't found it yet. We do this even
              // if rows are not dirty because the cursor is unrelated. We
              // can check the chunk bounds once rather than every row.
@@ -2293,7 +2301,7 @@ index 668cb08df..a148d94fc 100644
                  const vp_start = self.viewportStart();
                  if (idx < vp_start or idx >= vp_start + self.rows) break :cursor;
                  self.cursor.viewport = .{
-@@ -756,10 +844,7 @@ pub const RenderState = struct {
+@@ -1187,10 +1275,7 @@ pub const RenderState = struct {
  
                      // Future: we should use our own state here to look this
                      // up rather than calling this.
@@ -2305,7 +2313,7 @@ index 668cb08df..a148d94fc 100644
                  };
              }
  
-@@ -1006,6 +1091,289 @@ pub const RenderState = struct {
+@@ -1470,6 +1555,289 @@ pub const RenderState = struct {
          self.pending_styles.clearRetainingCapacity();
      }
  
@@ -2595,9 +2603,9 @@ index 668cb08df..a148d94fc 100644
      /// Mark all render-state data as consumed by the renderer.
      ///
      /// This clears both the global dirty state and every per-row dirty flag.
-@@ -3031,3 +3399,535 @@ test "overscan selection on overscan rows" {
-     );
-     try testing.expect(sels[vp + state.rows - 2] == null);
+@@ -6034,3 +6402,535 @@ test "placements_generation: changes on a region scroll that moves a fixed place
+     try testing.expectEqual(2, (try testOnlyPlacement(&state)).y);
+     try testing.expect(generation != state.imagePlacementsGeneration());
  }
 +
 +fn testShiftedUpdate(

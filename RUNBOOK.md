@@ -17,7 +17,7 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 | Read the trace | `calm trace`, or `/usr/bin/log show --last 5m --predicate 'subsystem == "com.jinhuang.calm" AND category == "trace"'` (plain `log` is a zsh builtin) |
 
 - `Calm.xcodeproj` is generated from `project.yml`. Never edit it by hand.
-- Building needs Xcode 26 with its Metal Toolchain (`xcodegen` and Zig are pinned in `mise.toml`).
+- Building needs Xcode 26 with its Metal Toolchain (`xcodegen` and Zig are pinned in `mise.toml`). A new Xcode can come without it: the engine build stops at "missing Metal Toolchain", and `xcodebuild -downloadComponent MetalToolchain` installs it (seen with Xcode 27, 2026-10-29).
 - `mise run test` runs the package's tests, then the app's, even when the first fails.
 - A new worktree has an untrusted `mise.toml`. Prefix each mise command with `MISE_TRUSTED_CONFIG_PATHS=<the worktree's absolute path>`.
 

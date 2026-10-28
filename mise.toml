@@ -2,7 +2,7 @@
 # Versions are pinned so local builds and CI agree.
 
 [tools]
-zig = "0.16.0"          # must match Ghostty's minimum_zig_version for the pinned Ghostty
+zig = "0.17.0"         # must match Ghostty's minimum_zig_version for the pinned Ghostty
 xcodegen = "2.45.4"
 swiftformat = "0.63.0"
 swiftlint = "0.65.1"

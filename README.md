@@ -24,7 +24,7 @@
 Calm is a terminal for days spent supervising CLI coding agents such as Claude Code, Codex, OpenCode and pi. It interrupts you for one thing only: an agent that needs you. Calm stays a terminal, so the agents keep their own interfaces.
 
 > **Note**
-> Version [0.1.4](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges.
+> Version [0.1.5](CHANGELOG.md), a public preview. Only the author has used it, since 2026-09-29, so expect rough edges.
 
 ## 🔔 One look tells you who needs you
 

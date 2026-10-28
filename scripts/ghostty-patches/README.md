@@ -14,11 +14,11 @@ fork's author's work. See `NOTICE`.
 | `0005-smooth-scroll.patch` | The `smooth-scroll` config key. Trackpad scrolling moves scrollback by pixels; a program on the alternate screen that scrolls a region of its screen by rows (Claude Code's full-screen renderer, `less`, editors) has the region's content slide into place instead of jumping; a resize moves the content by pixels too. Clicks, selection, mouse reports and the IME position use the rows as drawn. |
 | `0006-custom-shader-cursor-hidden-offscreen.patch` | A custom shader's `iCursorVisible` is 0 while the cursor is scrolled out of view or in the off phase of a blink, so Calm's cursor glide never smears from a stale position. |
 
-Source: `thdxg/ghostty@6dffca46e3b7728fde24c61ada60c5a06c250e2d`, whose parent is upstream
-`4406075a09c8ca0d83f30e8aaa710b9315ec428a`, the commit in `scripts/ghostty.env`.
+Source: `thdxg/ghostty@7a63e10672fe864f7c9ab37dba44b78a9ed02fc2`, whose parent is upstream
+`6ba144158577d033ccb6ed4b574e4013957c9161`, the commit in `scripts/ghostty.env`.
 
 ```
-bcd807059b18de3027528513e9952beba586be1bf0a72f8da20abafa1ac41e56  0005-smooth-scroll.patch
+056c7a6db6e07f36fac6eddb686a97ee0b0e51a572572ba6e6af7ecc5a4a7b4f  0005-smooth-scroll.patch
 62a234b11f2b4482ec503c058adf19f690c3403750e4802b808d5bb82ea80ad7  0006-custom-shader-cursor-hidden-offscreen.patch
 ```
 
@@ -46,7 +46,9 @@ says why in its header, and is worth offering to the fork or upstream; drop it o
 | `0021-surface-synchronized-update.patch` | `ghostty_surface_synchronized_update` says whether the program is in the middle of a synchronized update (mode 2026). The pty's output reaches the terminal a kilobyte at a time, each piece under the renderer's lock, so a frame of several kilobytes is on the screen half drawn between pieces; the renderer waits for the update to end, and an app reading the text couldn't tell. Calm's find keeps what a full-screen program shows by reading its screen a few times a second, and waits for the end of an update first, so a half-drawn frame isn't kept as a view of its own. A read of the mode under the renderer's lock, as `ghostty_surface_alternate_screen` reads the screen. |
 
 After moving to a newer Ghostty, re-check that these still apply; one that doesn't is updated
-here, by hand, against the new 0005.
+here, by hand, against the new 0005. Moving to 6ba14415 (Ghostty 1.4) changed three: 0016 and
+0018 (upstream added `images_rebuilt` and `ghostty_surface_paste_text` beside their hunks) and
+0015's test (Zig 0.17 has no `" " ** n`; `@splat`). 0019 and 0021 only followed 0018's header line.
 
 ## Moving to a newer Ghostty
 

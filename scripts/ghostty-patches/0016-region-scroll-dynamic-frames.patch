@@ -36,12 +36,10 @@ Zig tests: `zig build test -Dtest-filter=regionAnimStepSeconds`.
 diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 --- a/src/renderer/generic.zig
 +++ b/src/renderer/generic.zig
-@@ -65,6 +65,22 @@
-         .cursor => focused and
-             (if (ms_since_cursor_change) |ms| ms < cursor_animation_ms else false),
+@@ -70,6 +70,22 @@ fn shaderAnimates(
      };
-+}
-+
+ }
+ 
 +/// A region scroll draws its next frame once its content has moved this many
 +/// pixels since the last one, and always the frame it comes to rest in. Its
 +/// ease slows below a pixel a frame for the second half of its way, where a
@@ -56,10 +54,12 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +    if (left < 0.5) return 0;
 +    const next = @max(left - region_anim_step_px, 0.499);
 +    return tau * @log(left / next);
- }
- 
++}
++
  /// Where the frame on screen draws each animating region, for the surface
-@@ -2150,15 +2166,7 @@
+ /// to undo when it turns a pointer into a row: the offsets each frame in
+ /// the swap chain was drawn with, and those of the frame presented last,
+@@ -2187,15 +2203,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              // Custom shaders animate by redrawing on a fixed cadence,
              // gated by configuration, focus and (for `cursor`) how
              // recently the cursor or the focus changed.
@@ -76,7 +76,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
  
              // Kitty animations tick during updateFrame; between
              // updates the deadline is absolute on the animation
-@@ -2177,11 +2185,16 @@
+@@ -2214,11 +2222,16 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  break :kitty @max(next -| now_ms, draw_interval_ms);
              };
  
@@ -98,12 +98,10 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
              else
                  shader_delay;
  
-@@ -2195,6 +2208,53 @@
-             if (draw_delay) |s| return .{ .delay_ms = s, .kind = .draw };
- 
+@@ -2234,6 +2247,53 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              return null;
-+        }
-+
+         }
+ 
 +        /// Whether a custom shader animates now: by configuration, focus
 +        /// and (for `cursor`) how recently the cursor or the focus changed.
 +        fn shaderAnimating(self: *const Self) bool {
@@ -149,27 +147,27 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +            if (self.shaderAnimating() or self.kitty_animation_next_ms != null) return true;
 +            const due = self.regionAnimDueIn() orelse return false;
 +            return due <= region_anim_slack_s;
-         }
- 
++        }
++
          /// How long ago the cursor or the focus last changed, in
-@@ -2324,6 +2384,11 @@
-                 }
+         /// milliseconds, or null if neither has yet.
+         fn msSinceCursorChange(self: *const Self) ?u64 {
+@@ -2362,6 +2422,11 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  if (self.region_anims.items.len == 0) self.region_anim_tick = null;
              }
-+
+ 
 +            // A scroll that joins an animation in flight starts its ease now,
 +            // not at the last drawn frame, which in a slow tail can be 50 ms
 +            // ago (see `region_anim_step_px`).
 +            if (self.pending_region_scrolls.items.len > 0) self.catchUpRegionAnims();
- 
++
              const cell_h: f64 = @floatFromInt(self.grid_metrics.cell_height);
              const cols: usize = self.cells.size.columns;
-@@ -2483,6 +2548,18 @@
-                     break;
-                 }
+             for (self.pending_region_scrolls.items) |pending| {
+@@ -2522,6 +2587,18 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              }
-+        }
-+
+         }
+ 
 +        /// Move the region scroll animations in flight to where they are
 +        /// now, without drawing; the next drawn frame takes them on from
 +        /// here.
@@ -180,10 +178,12 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +            const dt_ns: f64 = @floatFromInt(@max(last.durationTo(now).nanoseconds, 0));
 +            const factor = @exp(-(dt_ns / std.time.ns_per_s) / region_anim_tau_s);
 +            for (self.region_anims.items) |*anim| anim.shift *= factor;
-         }
- 
++        }
++
          /// Advance the region scroll animations to now. Called once per
-@@ -2514,7 +2591,12 @@
+         /// drawn frame, before the uniforms are uploaded.
+         fn tickRegionAnims(self: *Self) void {
+@@ -2551,7 +2628,12 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              if (self.region_anims.items.len == 0) self.region_anim_tick = null;
  
              self.pruneGhosts();
@@ -196,19 +196,19 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
          }
  
          /// Write the animations into the uniforms and rebuild the ghost
-@@ -2770,8 +2852,9 @@
-             const should_run =
+@@ -2812,9 +2894,10 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                  // Non-visible windows never vsync
                  self.visible and
--                // Only vsync if we have cell changes or animation
--                (self.cells_rebuilt or self.animationWake() != null);
-+                // Only vsync if we have cell changes or animation that
-+                // needs every refresh (a slowing region scroll doesn't)
-+                (self.cells_rebuilt or self.animationWantsVsync());
+                 // Only vsync if we have cell or image changes or animation
++                // that needs every refresh (a slowing region scroll doesn't)
+                 (self.cells_rebuilt or
+                     self.images_rebuilt or
+-                    self.animationWake() != null);
++                    self.animationWantsVsync());
  
-             if (should_run) {
-                 if (!display_link.isRunning()) {
-@@ -3309,13 +3392,15 @@
+             display_link.setRunning(should_run);
+         }
+@@ -3347,14 +3430,16 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
              // Conditions under which we need to draw the frame, otherwise we
              // don't need to since the previous frame should be identical.
              //
@@ -222,12 +222,13 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
                  size_changed or
                  swap_chain_rebuilt or
                  self.cells_rebuilt or
+                 self.images_rebuilt or
 -                self.animationWake() != null or
 +                self.animationFrameDue() or
                  sync;
  
              if (!needs_redraw) {
-@@ -6216,3 +6301,44 @@
+@@ -6256,3 +6341,44 @@ test "shaderAnimates: the other modes don't look at the cursor" {
      try testing.expect(shaderAnimates(.always, false, null));
      try testing.expect(!shaderAnimates(.false, true, 0));
  }

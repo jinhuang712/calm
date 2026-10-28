@@ -11,35 +11,18 @@ Calm's own patch (not from thdxg/ghostty); applies on top of 0017.
 diff --git a/include/ghostty.h b/include/ghostty.h
 --- a/include/ghostty.h
 +++ b/include/ghostty.h
-@@ -1206,6 +1206,7 @@
- GHOSTTY_API void ghostty_surface_text(ghostty_surface_t, const char*, uintptr_t);
+@@ -1207,6 +1207,7 @@ GHOSTTY_API void ghostty_surface_text(ghostty_surface_t, const char*, uintptr_t)
+ GHOSTTY_API void ghostty_surface_paste_text(ghostty_surface_t, const char*, uintptr_t);
  GHOSTTY_API void ghostty_surface_preedit(ghostty_surface_t, const char*, uintptr_t);
  GHOSTTY_API bool ghostty_surface_mouse_captured(ghostty_surface_t);
 +GHOSTTY_API bool ghostty_surface_alternate_screen(ghostty_surface_t);
  GHOSTTY_API bool ghostty_surface_mouse_button(ghostty_surface_t,
                                                   ghostty_input_mouse_state_e,
                                                   ghostty_input_mouse_button_e,
-diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
---- a/src/apprt/embedded.zig
-+++ b/src/apprt/embedded.zig
-@@ -2114,6 +2114,13 @@
-         return surface.core_surface.mouseCaptured();
-     }
- 
-+    /// Whether the terminal shows its alternate screen, the one a
-+    /// full-screen program (an editor, a pager, an agent's full-screen
-+    /// view) draws on, which keeps no scrollback.
-+    export fn ghostty_surface_alternate_screen(surface: *Surface) bool {
-+        return surface.core_surface.alternateScreen();
-+    }
-+
-     /// Tell the surface that it needs to schedule a render
-     export fn ghostty_surface_mouse_button(
-         surface: *Surface,
 diff --git a/src/Surface.zig b/src/Surface.zig
 --- a/src/Surface.zig
 +++ b/src/Surface.zig
-@@ -3903,6 +3903,13 @@
+@@ -3943,6 +3943,13 @@ pub fn mouseCaptured(self: *Surface) bool {
      return self.io.terminal.flags.mouse_event != .none;
  }
  
@@ -53,3 +36,20 @@ diff --git a/src/Surface.zig b/src/Surface.zig
  /// Called for mouse button press/release events. This will return true
  /// if the mouse event was consumed in some way (i.e. the program is capturing
  /// mouse events). If the event was not consumed, then false is returned.
+diff --git a/src/apprt/embedded.zig b/src/apprt/embedded.zig
+--- a/src/apprt/embedded.zig
++++ b/src/apprt/embedded.zig
+@@ -2167,6 +2167,13 @@ pub const CAPI = struct {
+         return surface.core_surface.mouseCaptured();
+     }
+ 
++    /// Whether the terminal shows its alternate screen, the one a
++    /// full-screen program (an editor, a pager, an agent's full-screen
++    /// view) draws on, which keeps no scrollback.
++    export fn ghostty_surface_alternate_screen(surface: *Surface) bool {
++        return surface.core_surface.alternateScreen();
++    }
++
+     /// Tell the surface that it needs to schedule a render
+     export fn ghostty_surface_mouse_button(
+         surface: *Surface,

@@ -1037,7 +1037,7 @@ diff --git a/src/renderer/generic.zig b/src/renderer/generic.zig
 +    }
 +
 +    fn draw(self: TestOpenCode, stream: anytype, buf: []u8, first: usize, thumb: usize, glyph: []const u8) !void {
-+        const spaces = " " ** (width + sidebar_width);
++        const spaces: [width + sidebar_width]u8 = @splat(' ');
 +        const all = spaces[0..self.cols()];
 +        stream.nextSlice("\x1b[?2026h");
 +        for (0..self.rows) |row| {

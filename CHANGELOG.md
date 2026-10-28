@@ -2,11 +2,18 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
-## Unreleased
+## 0.1.5 — 2026-10-29
+
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.4. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).
+
+**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
 
 ### Agents
 - `calm new --model <name>` starts the new session with that model, for a script that wants a cheaper or stronger one than ⌘N's default.
 - `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
+
+### Engine
+- The terminal engine is Ghostty 1.4 (upstream commit 6ba14415, nine fixes after the 1.4.0 tag), built with Zig 0.17. Ghostty's release notes say it compresses scrollback that is off screen while a terminal is idle; in Calm the process footprint with 8,000 or 200,000 lines of scrollback was the same as before (245 and 247 MB, against 243 and 246 MB; 2026-10-29), so expect no saving there. Smooth scrolling moves as before (a 3-row region scroll is 102 px in both) and Calm's own budgets hold (`mise run perf`).
 
 ### Fixes
 - A long first message (about 800 bytes, or 270 Chinese characters) in `calm new` or `calm fork` is no longer cut off in the middle of a character and left unsent. Calm types a short `source` line and the whole command comes from a private file that removes itself.

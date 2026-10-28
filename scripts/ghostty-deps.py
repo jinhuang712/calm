@@ -23,6 +23,7 @@ Usage: ghostty-deps.py <ghostty-src-dir> <download-dir>
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -35,12 +36,38 @@ def zig_cache_has(src: Path, hash_key: str) -> bool:
     return (src / "zig-pkg" / hash_key).exists()
 
 
+def place_in_project(src: Path, hash_key: str, archive: Path) -> None:
+    """Unpack a fetched package into the project's zig-pkg, the way Zig 0.16 did.
+
+    0.17's `zig fetch` keeps the archive in its global cache, and its `zig build` unpacks it again
+    into zig-pkg. On this setup (macOS 27, 0.17.0) that unpacking fails ("failed to delete
+    temporary directory ... DirNotEmpty") and leaves the archive's top folder in place, so the
+    package hashes to something else and the build stops with "hash mismatch ... N-V-__8AA…".
+    Zig takes a package that is already in zig-pkg as it is. `zig build --system` would read
+    the cache instead but crashes the 0.17.0 compiler ("reached unreachable code").
+    A single top folder is dropped, as Zig does.
+    """
+    target = src / "zig-pkg" / hash_key
+    if target.exists():
+        return
+    staging = src / "zig-pkg" / f".unpack-{hash_key}"
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    if subprocess.run(["tar", "-xf", str(archive), "-C", str(staging)]).returncode != 0:
+        shutil.rmtree(staging, ignore_errors=True)
+        return
+    entries = list(staging.iterdir())
+    root = entries[0] if len(entries) == 1 and entries[0].is_dir() else staging
+    root.rename(target)
+    shutil.rmtree(staging, ignore_errors=True)
+
+
 def tarball_url(url: str) -> str:
-    """Turn git+https://github.com/o/r#commit into a GitHub archive URL."""
-    m = re.match(r"git\+https://github\.com/([^/]+)/([^#?]+?)(?:\.git)?(?:\?[^#]*)?#([0-9a-f]{7,40})$", url)
+    """Turn git+https://github.com/o/r#commit into a GitHub archive URL (Codeberg's has the same shape)."""
+    m = re.match(r"git\+https://(github\.com|codeberg\.org)/([^/]+)/([^#?]+?)(?:\.git)?(?:\?[^#]*)?#([0-9a-f]{7,40})$", url)
     if m:
-        owner, repo, commit = m.groups()
-        return f"https://github.com/{owner}/{repo}/archive/{commit}.tar.gz"
+        host, owner, repo, commit = m.groups()
+        return f"https://{host}/{owner}/{repo}/archive/{commit}.tar.gz"
     return url
 
 
@@ -83,6 +110,8 @@ def main() -> int:
         got = result.stdout.strip()
         if result.returncode != 0 or got != hash_key:
             failed.append((dep["name"], f"expected {hash_key}, got {got or result.stderr.strip()}"))
+        else:
+            place_in_project(src, hash_key, target)
     for name, url in unreachable:
         print(f"  could not download {name} from {url}; zig build will try again if it needs it", file=sys.stderr)
     for name, why in failed:

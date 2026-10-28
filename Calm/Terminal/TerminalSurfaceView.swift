@@ -1,4 +1,5 @@
 import AppKit
+import CalmAgents
 import CalmControl
 import CalmModel
 import GhosttyKit
@@ -396,6 +397,8 @@ final class TerminalSurfaceView: NSView {
     /// an agent session). Text sent before the prompt is ready waits in the shell's input.
     func run(_ command: String) {
         guard let surface else { return }
+        // A long command would be cut by the terminal's line limit before the shell reads it.
+        let command = LongCommand.typed(command, in: FileManager.default.temporaryDirectory.appending(path: "calm-commands"))
         command.withCString { ghostty_surface_text(surface, $0, UInt(command.utf8.count)) }
         var key = ghostty_input_key_s()
         key.action = GHOSTTY_ACTION_PRESS

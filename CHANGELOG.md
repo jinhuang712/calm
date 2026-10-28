@@ -9,6 +9,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 - `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
 
 ### Fixes
+- A long first message (about 800 bytes, or 270 Chinese characters) in `calm new` or `calm fork` is no longer cut off in the middle of a character and left unsent. Calm types a short `source` line and the whole command comes from a private file that removes itself.
 - A permission prompt you answered no longer keeps the card on "Needs you" while Claude Code works. The card returns to Working when Claude's status says it is busy.
 - A relative path in a link opens the file in the agent's git worktree first, then in the session's folder.
 

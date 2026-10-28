@@ -78,6 +78,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 - Goes to the new session. With `--background`, the user stays and the session waits in the sidebar, already running at its display size.
 - `--model <name>` starts the agent with `--model <name>` for this session only, after the `flags` in config.toml, so it wins over a `--model` there. Calm doesn't check the name: the agent says if it doesn't know it. It is for a job that wants a cheaper or stronger model than ⌘N's default (specs/FEATURES.md → F15, *Chips are plain on/off flags*: the picker stays out of the UI). Fails for an empty name or one that starts with `-`.
 - Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
+- A command over 800 bytes is not typed as it is. The shell is not at its prompt yet, and the terminal keeps 1023 bytes of a line and drops the rest, Return included (seen 2026-10-29: a 1.2 KB message cut mid-character, never run). Calm writes the command to a private file in the temporary folder and types `source '<file>'`, so the same interactive shell runs it. The file removes itself as it starts. This holds for every command Calm types, `calm fork` included.
 - Prints the new session's full id, which `calm show` takes. Fails for a missing folder or an empty message.
 
 ### `calm notify <message>`

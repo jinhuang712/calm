@@ -106,9 +106,12 @@ final class TerminalSurfaceView: NSView {
     var keyTextAccumulator: [String]?
     var lastPerformKeyEventTimestamp: TimeInterval?
     var pendingLeadSurrogate: UInt16?
+    /// See `TerminalSurfaceOptions.marksPrompts`.
+    let marksPrompts: Bool
 
     init(id: UUID = UUID(), options: TerminalSurfaceOptions) {
         self.id = id
+        marksPrompts = options.marksPrompts
         // A non-zero frame so the renderer's layer starts with real bounds.
         super.init(frame: NSRect(origin: .zero, size: options.size ?? NSSize(width: 800, height: 600)))
         installEventMonitor()
@@ -393,28 +396,6 @@ final class TerminalSurfaceView: NSView {
         }
     }
 
-    /// Types a command into the shell and presses Return, as if from the keyboard (e.g. resuming
-    /// an agent session). Text sent before the prompt is ready waits in the shell's input.
-    func run(_ command: String) {
-        guard let surface else { return }
-        // A long command would be cut by the terminal's line limit before the shell reads it.
-        let command = LongCommand.typed(command, in: FileManager.default.temporaryDirectory.appending(path: "calm-commands"))
-        command.withCString { ghostty_surface_text(surface, $0, UInt(command.utf8.count)) }
-        var key = ghostty_input_key_s()
-        key.action = GHOSTTY_ACTION_PRESS
-        key.keycode = 36 // Return
-        key.mods = GHOSTTY_MODS_NONE
-        key.consumed_mods = GHOSTTY_MODS_NONE
-        key.unshifted_codepoint = 13
-        "\r".withCString { pointer in
-            key.text = pointer
-            _ = ghostty_surface_key(surface, key)
-        }
-        key.action = GHOSTTY_ACTION_RELEASE
-        key.text = nil
-        _ = ghostty_surface_key(surface, key)
-    }
-
     /// Hidden panes (in layouts not on screen) stop rendering until shown again.
     func setVisible(_ visible: Bool) {
         updateVisibility { $0.isShown = visible }
@@ -687,6 +668,7 @@ final class TerminalSurfaceView: NSView {
         perform("select_all")
     }
 
+    /// With `confirm-close-surface` at its default, whether the cursor is away from a shell prompt.
     var needsConfirmQuit: Bool {
         guard let surface else { return false }
         return ghostty_surface_needs_confirm_quit(surface)

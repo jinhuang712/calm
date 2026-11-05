@@ -49,6 +49,32 @@ enum ShellIntegration {
         }
     }
 
+    /// A persistent session's environment, and what its shell can tell the engine.
+    @MainActor
+    static func prepare(_ options: inout TerminalSurfaceOptions) {
+        let process = ProcessInfo.processInfo.environment
+        let integration = environment(
+            shell: process["SHELL"],
+            mode: TerminalEngine.shared.config?.string("shell-integration"),
+            resourcesDirectory: process["GHOSTTY_RESOURCES_DIR"],
+            inherited: process,
+            calmZsh: preparedZshDirectory,
+        )
+        options.environment = PersistentShell.environment.merging(integration) { current, _ in current }
+        options.marksPrompts = marksPrompts(
+            integration: integration,
+            confirmClose: TerminalEngine.shared.config?.string("confirm-close-surface"),
+        )
+    }
+
+    /// Whether the engine can tell a new shell is at its prompt: zsh with the integration on writes
+    /// the prompt marks, which `ghostty_surface_needs_confirm_quit` reads unless the user's
+    /// `confirm-close-surface` makes it answer the same every time. Only zsh is checked (2026-11-05):
+    /// a shell that wrote no marks would hold every command for the whole wait.
+    static func marksPrompts(integration: [String: String], confirmClose: String?) -> Bool {
+        integration["ZDOTDIR"] != nil && (confirmClose ?? "true") == "true"
+    }
+
     /// Where Calm's zsh startup file goes, beside its Ghostty defaults (Application Support, or the
     /// self-test's own folder).
     static var zshDirectory: URL {

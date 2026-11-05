@@ -5,6 +5,18 @@ import Testing
 struct ShellIntegrationTests {
     let resources = "/Calm.app/Contents/Resources/ghostty"
 
+    @Test func `a command waits for the prompt only where the engine can see one`() {
+        let zsh = ShellIntegration.environment(shell: "/bin/zsh", mode: "detect", resourcesDirectory: resources, inherited: [:])
+        let fish = ShellIntegration.environment(shell: "/opt/fish", mode: "detect", resourcesDirectory: resources, inherited: [:])
+        let off = ShellIntegration.environment(shell: "/bin/zsh", mode: "none", resourcesDirectory: resources, inherited: [:])
+        #expect(ShellIntegration.marksPrompts(integration: zsh, confirmClose: nil))
+        #expect(ShellIntegration.marksPrompts(integration: zsh, confirmClose: "true"))
+        #expect(!ShellIntegration.marksPrompts(integration: zsh, confirmClose: "false"))
+        #expect(!ShellIntegration.marksPrompts(integration: zsh, confirmClose: "always"))
+        #expect(!ShellIntegration.marksPrompts(integration: fish, confirmClose: "true"))
+        #expect(!ShellIntegration.marksPrompts(integration: off, confirmClose: "true"))
+    }
+
     @Test func `zsh points ZDOTDIR at the integration and keeps the user's own`() {
         let plain = ShellIntegration.environment(shell: "/bin/zsh", mode: "detect", resourcesDirectory: resources, inherited: [:])
         #expect(plain == ["ZDOTDIR": "\(resources)/shell-integration/zsh"])

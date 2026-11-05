@@ -175,8 +175,7 @@ extension SessionManager {
 
     /// A session whose shell went with an agent in it (the Mac restarted) resumes the
     /// conversation as it first opens (specs/FEATURES.md → F3). The surface exists from the pane's
-    /// start, so the command waits in the terminal's input until the new shell reads it, as
-    /// ⌘⇧T's does.
+    /// start, so the command waits for the new shell (`TerminalSurfaceView.run`), as ⌘⇧T's does.
     func resumeIfShellWasLost(_ id: Session.ID) {
         var conversation: AgentConversation?
         changeWorkspace { conversation = $0.takeConversationToResume(id) }

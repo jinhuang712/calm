@@ -7,6 +7,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 ### Agents
 - `calm new --command "<command>"` starts a session that runs the command as written, for one session with its own start options, such as a system prompt, when `flags` in config.toml would change every session.
 
+### Fixes
+- A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.
+
 ## 0.1.5 — 2026-10-29
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.4. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).

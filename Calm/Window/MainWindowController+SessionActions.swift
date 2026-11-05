@@ -219,10 +219,11 @@ extension MainWindowController {
     }
 
     /// Types an agent's command into a pane. Headless self-tests log it instead: it would start
-    /// the user's real agent, on their account.
+    /// the user's real agent, on their account. `CALM_SELFTEST_RUN_COMMANDS=1` types it, for a test
+    /// that chose a harmless command (`calm new --command "echo …"`).
     func runAgentCommand(_ command: String, in pane: TerminalSurfaceView?) {
         guard let pane else { return }
-        if Headless.isOn {
+        if Headless.isOn, ProcessInfo.processInfo.environment["CALM_SELFTEST_RUN_COMMANDS"] != "1" {
             FileHandle.standardError.write(Data("calm-selftest: would run in \(pane.id): \(command)\n".utf8))
             return
         }

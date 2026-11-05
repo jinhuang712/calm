@@ -19,6 +19,8 @@ struct TerminalSurfaceOptions {
     /// later (engine patch 0013). A program reattached through zmx redrew for both and lost
     /// its footer.
     var size: NSSize?
+    /// Whether `needsConfirmQuit` tells when the shell is at its prompt (`ShellIntegration.marksPrompts`).
+    var marksPrompts = false
 
     /// Starts from the parent's settings (font size, working directory), as libghostty computes them.
     @MainActor

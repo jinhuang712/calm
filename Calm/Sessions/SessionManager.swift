@@ -211,14 +211,7 @@ final class SessionManager {
         options.workingDirectory = session.workingDirectory
         if persistenceEnabled, let command = PersistentShell.attachCommand(name: session.persistentName) {
             options.command = command
-            let process = ProcessInfo.processInfo.environment
-            options.environment = PersistentShell.environment.merging(ShellIntegration.environment(
-                shell: process["SHELL"],
-                mode: TerminalEngine.shared.config?.string("shell-integration"),
-                resourcesDirectory: process["GHOSTTY_RESOURCES_DIR"],
-                inherited: process,
-                calmZsh: ShellIntegration.preparedZshDirectory,
-            )) { current, _ in current }
+            ShellIntegration.prepare(&options)
         }
         options.environment.merge(AgentIntegrations.environment(settings: settings)) { current, _ in current }
         let pane = TerminalSurfaceView(id: session.id, options: options)

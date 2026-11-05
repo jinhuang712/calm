@@ -317,30 +317,43 @@ final class ControlServer {
         return .success(sessions: [sessionInfo(forked)])
     }
 
-    /// `calm new` (specs/CLI.md): a clean session in a folder, running ⌘N's agent with a first prompt.
-    /// Needs no session to start from, so it works from outside Calm.
+    /// `calm new` (specs/CLI.md): a clean session in a folder, running ⌘N's agent with a first prompt,
+    /// or a command as written. Needs no session to start from, so it works from outside Calm.
     private func newSession(_ request: ControlRequest) -> ControlResponse {
-        guard let prompt = request.message, !prompt.isEmpty else { return .failure("Give a first message.") }
-        guard let path = request.path else { return .failure("Give a folder.") }
-        // A model that starts with "-" would reach the agent as another option.
-        if let model = request.model, model.isEmpty || model.hasPrefix("-") {
-            return .failure("Give a model name.")
+        if let command = request.command {
+            guard !NewArguments.isBlank(command) else { return .failure("Give a command.") }
+            guard request.message == nil, request.model == nil else {
+                return .failure("A command runs as written: put the message and the model in it.")
+            }
+        } else {
+            guard let prompt = request.message, !prompt.isEmpty else { return .failure("Give a first message.") }
+            // A model that starts with "-" would reach the agent as another option.
+            if let model = request.model, model.isEmpty || model.hasPrefix("-") {
+                return .failure("Give a model name.")
+            }
         }
+        guard let path = request.path else { return .failure("Give a folder.") }
         let folder = WorkspacePath.standardize(path)
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folder, isDirectory: &isDirectory), isDirectory.boolValue else {
             return .failure("No such folder: \(folder)")
         }
-        guard let kind = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings),
-              let adapter = Agents.adapter(for: kind)
-        else {
-            return .failure("No agent to start: install Claude Code or Codex, or choose one in Settings → Agents.")
-        }
-        let inGit = GitRoot.find(folder) != nil
-        guard let command = adapter.newSessionCommand(
-            settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: prompt, model: request.model,
-        ) else {
-            return .failure("\(kind.displayName) can't start with a first message.")
+        let command: String
+        if let written = request.command {
+            command = written
+        } else {
+            guard let kind = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings),
+                  let adapter = Agents.adapter(for: kind)
+            else {
+                return .failure("No agent to start: install Claude Code or Codex, or choose one in Settings → Agents.")
+            }
+            let inGit = GitRoot.find(folder) != nil
+            guard let started = adapter.newSessionCommand(
+                settings: SessionManager.shared.settings, inGitRepository: inGit, prompt: request.message ?? "", model: request.model,
+            ) else {
+                return .failure("\(kind.displayName) can't start with a first message.")
+            }
+            command = started
         }
         let controller = TerminalWindowManager.shared.openMainWindow()
         let created = controller.newForCLI(command: command, in: folder, background: request.background == true)

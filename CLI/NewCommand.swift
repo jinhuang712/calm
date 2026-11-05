@@ -1,42 +1,24 @@
 import CalmControl
 import Foundation
 
-/// `calm new "<prompt>" [--in <folder>] [--model <name>] [--background]`: a clean session in a folder, running ⌘N's
-/// agent with `prompt` as its first message, and prints its id (specs/CLI.md). It needs no session, so
-/// it works from a script outside Calm. It starts Calm when Calm isn't running, as `calm list` does.
+/// `calm new "<prompt>"` or `calm new --command "<command>"`: a clean session in a folder, running
+/// ⌘N's agent with `prompt` as its first message, or `command` as written, and prints its id
+/// (specs/CLI.md). It needs no session, so it works from a script outside Calm. It starts Calm when
+/// Calm isn't running, as `calm list` does.
 enum NewCommand {
-    static let usage = #"calm new "<prompt>" [--in <folder>] [--model <name>] [--background]"#
-
     static func run(_ words: [String]) -> Never {
-        var background = false
-        var folder = FileManager.default.currentDirectoryPath
-        var model: String?
-        var prompt: [String] = []
-        var iterator = words.makeIterator()
-        while let word = iterator.next() {
-            switch word {
-            case "--background":
-                background = true
-            case "--in":
-                guard let value = iterator.next() else { fail(usage, code: 64) }
-                folder = value.hasPrefix("/") || value.hasPrefix("~")
-                    ? value
-                    : (FileManager.default.currentDirectoryPath as NSString).appendingPathComponent(value)
-            case "--model":
-                guard let value = iterator.next(), !value.isEmpty, !value.hasPrefix("-") else { fail(usage, code: 64) }
-                model = value
-            default:
-                guard !word.hasPrefix("--") else { fail("unknown option '\(word)'\n\(usage)", code: 64) }
-                prompt.append(word)
-            }
+        let parsed: NewArguments
+        switch NewArguments.parse(words, currentFolder: FileManager.default.currentDirectoryPath) {
+        case let .success(arguments): parsed = arguments
+        case let .failure(wrong): fail(wrong.reason, code: 64)
         }
-        guard !prompt.isEmpty else { fail("give a first message\n\(usage)", code: 64) }
         let response = send(ControlRequest(
             cmd: .new,
-            path: folder,
-            message: prompt.joined(separator: " "),
-            background: background,
-            model: model,
+            path: parsed.folder,
+            message: parsed.message,
+            background: parsed.background,
+            model: parsed.model,
+            command: parsed.command,
         ))
         guard response.ok, let created = response.sessions?.first else {
             fail(response.error ?? "Calm didn't start it")

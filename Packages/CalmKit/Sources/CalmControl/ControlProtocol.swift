@@ -34,8 +34,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         /// Fork `session`'s conversation into a new session (`calm fork`): `message` is the fork's
         /// first prompt, `path` its folder, `background` keeps the user where they are.
         case fork
-        /// A new session running ⌘N's agent (`calm new`): `message` is its first prompt, `path` its
-        /// folder, `background` keeps the user where they are. Needs no `session`.
+        /// A new session (`calm new`) running ⌘N's agent with `message` as its first prompt, or
+        /// `command` as written. `path` is its folder, `background` keeps the user where they are.
+        /// Needs no `session`.
         case new
         /// A PNG of Calm's main window, in `ControlResponse.image` (`calm screenshot`).
         case screenshot
@@ -69,6 +70,9 @@ public struct ControlRequest: Codable, Sendable, Equatable {
     public var background: Bool?
     /// For `new`: the model its agent starts with (`--model <model>`); nil keeps the agent's own default.
     public var model: String?
+    /// For `new`: the whole command to run, in place of ⌘N's agent, `message` and `model`.
+    /// A Calm that predates it sees no first message and refuses, so nothing else starts.
+    public var command: String?
 
     public init(
         cmd: Command,
@@ -88,6 +92,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         query: String? = nil,
         background: Bool? = nil,
         model: String? = nil,
+        command: String? = nil,
     ) {
         v = ControlProtocol.version
         self.cmd = cmd
@@ -107,6 +112,7 @@ public struct ControlRequest: Codable, Sendable, Equatable {
         self.query = query
         self.background = background
         self.model = model
+        self.command = command
     }
 }
 

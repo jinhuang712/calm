@@ -131,6 +131,19 @@ struct AgentRestartTests {
 
     // MARK: Resume and fork
 
+    /// `calm new --command`: what a session was started with survives its restart, without the
+    /// first message.
+    @Test func `a written command keeps its options and leaves its message out`() {
+        let options = Agents.adapter(for: .claudeCode)?.resumeOptions(commandLine: [
+            "claude", "--system-prompt-file", "./p.md", "--setting-sources", "project,local", "--strict-mcp-config",
+            "--plugin-dir", "/plugins/novel", "开始写第三章",
+        ])
+        #expect(options == [
+            "--system-prompt-file", "./p.md", "--setting-sources", "project,local", "--strict-mcp-config",
+            "--plugin-dir", "/plugins/novel",
+        ])
+    }
+
     /// A conversation as Calm keeps it once its agent exits: the options are read from the command
     /// line while the process runs (`AgentRun.options`).
     private func ended(_ kind: AgentKind, _ commandLine: [String], id: String? = nil, transcript: String? = nil) -> AgentConversation {

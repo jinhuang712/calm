@@ -71,7 +71,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 - Prints the new session's full id, which `calm show` takes to tell how the fork went. Fails outside Calm, for a missing folder, or with no conversation: "No conversation to fork here." Never starts Calm.
   A fork cannot fork: "A fork can't fork: calm fork started this session." So an agent cannot start a chain. Right-click → Fork still works. A relaunch resets the rule.
 
-### `calm new "<prompt>" [--background] [--in <folder>] [--model <name>]`
+### `calm new "<prompt>" [--background] [--in <folder>] [--model <name>]`, `calm new --command "<command>" [--background] [--in <folder>]`
 
 - Starts a clean session in `--in <folder>` (default: the current folder), with no old conversation: ⌘N's agent with its start options (specs/FEATURES.md → F15), and the words that are not options as its first message. It is the scripted ⌘N, for a job that starts an agent each morning.
 - Needs no session, so it works from outside Calm, in a script or a launchd job with an empty environment. It starts Calm in the background when Calm isn't running, as `calm list` does.
@@ -79,6 +79,7 @@ Agents learn these commands from Calm's `calm` skill, which all four agents get 
 - `--model <name>` starts the agent with `--model <name>` for this session only, after the `flags` in config.toml, so it wins over a `--model` there. Calm doesn't check the name: the agent says if it doesn't know it. It is for a job that wants a cheaper or stronger model than ⌘N's default (specs/FEATURES.md → F15, *Chips are plain on/off flags*: the picker stays out of the UI). Fails for an empty name or one that starts with `-`.
 - Claude Code and Codex take the message (`claude <options> '<prompt>'`, `codex <options> '<prompt>'`). pi and OpenCode are not checked, so ⌘N's agent being one of them fails: "pi can't start with a first message." With no agent installed it fails too.
 - A command over 800 bytes is not typed as it is. The shell is not at its prompt yet, and the terminal keeps 1023 bytes of a line and drops the rest, Return included (seen 2026-10-29: a 1.2 KB message cut mid-character, never run). Calm writes the command to a private file in the temporary folder and types `source '<file>'`, so the same interactive shell runs it. The file removes itself as it starts. This holds for every command Calm types, `calm fork` included.
+- `--command "<command>"` runs that command as written in the new session, in place of ⌘N's agent, for one session that needs its own start options (a system prompt, `--setting-sources`, `--plugin-dir`) when `flags` and `command` in config.toml would change every session. It is typed into the shell as a `command` in config.toml is, so ⌘N's flags and chips are left out, the quoting is yours, and any agent or program can run. Calm's hooks reach the agent as in any session of Calm's. Fails for an empty command, and with a message or `--model`: those go in the command. `--command` is an option because a first word can't tell a command from a message that starts with "claude" (decided 2026-11-05, after `--` passing extra options to the agent, which left Calm placing the message after options that take several values).
 - Prints the new session's full id, which `calm show` takes. Fails for a missing folder or an empty message.
 
 ### `calm notify <message>`

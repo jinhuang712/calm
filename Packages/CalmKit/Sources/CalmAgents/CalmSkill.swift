@@ -80,6 +80,9 @@ public enum CalmSkill {
 
     - Always pass `--background`, as for a fork. It prints the new session's id.
     - Start one only when the user asks. Use a fork instead when the new session needs this conversation.
+    - For a session with its own start options, such as a system prompt, use `calm new --background --in <folder> \
+    --command "claude --system-prompt-file <file> '<first message>'"`. The command runs as written: ⌘N's flags and \
+    its Skip permissions switch are left out.
 
     ## Sessions and settings
 

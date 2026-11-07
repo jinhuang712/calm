@@ -55,9 +55,6 @@ struct SessionRow: View {
                 .calmFont(size: 14, weight: isSelected ? .medium : .regular)
                 .foregroundStyle(isSelected ? style.primary : style.secondary)
             Spacer(minLength: 4)
-            if pinnedIn != nil {
-                PinGlyph(style: style)
-            }
             if session.state != .idle {
                 StateMark(state: session.state, style: style)
             }

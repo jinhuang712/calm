@@ -81,7 +81,8 @@ private struct PinnedGroupHeader: View {
 }
 
 /// The line above a pinned card's title: the project it belongs to, since the card has left it.
-/// Its mark sits in the agent mark's column and its name starts with the title.
+/// Its mark sits in the agent mark's column, its name starts with the title, and the pin closes the
+/// line in the card's top-right corner.
 struct PinnedProjectLine: View {
     let project: Project
     let style: SidebarStyle
@@ -97,13 +98,15 @@ struct PinnedProjectLine: View {
                 .foregroundStyle(style.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            Spacer(minLength: 4)
+            PinGlyph(style: style)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Pinned, in \(project.name)")
     }
 }
 
-/// The mark beside a pinned card's time. It says what the card is and does nothing: the session
+/// The mark in a pinned card's top-right corner. It says what the card is and does nothing: the session
 /// menu and ⌘P pin and unpin (specs/UIUX.md → Session cards).
 struct PinGlyph: View {
     let style: SidebarStyle

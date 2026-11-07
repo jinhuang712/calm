@@ -127,7 +127,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 - **Shrink cards to fit** (off by default): the chosen size becomes the largest the cards get. When the sessions do not fit without scrolling, every card that is not pinned steps down a size, and steps up when there is room. Pinned cards keep the chosen size and the list scrolls. They step down only when Pinned alone is taller than the sidebar. See `TieredCardFit`.
 - The fit avoids flipping: a step down remembers how short the estimate was, holds for 30 s, and a size drawn too tall is not retried until the sessions or room change. At launch it settles without motion.
 
-**A pinned card** adds a line above the title: the project's mark in the agent mark's column, and its name where the title starts. It shows at every card size. A mark like a pin stands before the time, and a shell row ends with one. The mark is not a button. The **PINNED** header is drawn like Scratch's, with a pin for its mark. Cards glide to a new place in 0.3 s, and stay still while the pointer moves over the group.
+**A pinned card** adds a line above the title: the project's mark in the agent mark's column, and its name where the title starts. It shows at every card size. A mark like a pin ends that line, in the top-right corner, on a shell row too. The mark is not a button. The **PINNED** header is drawn like Scratch's, with a pin for its mark. Cards glide to a new place in 0.3 s, and stay still while the pointer moves over the group.
 
 **A folded group** keeps one line that shows what goes on inside, in the cards' own state marks, most urgent first: needs you (amber dot), failed (×), done (sage check), working (blue ring). See `GroupSummary`.
 

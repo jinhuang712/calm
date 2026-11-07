@@ -169,7 +169,7 @@ The sidebar groups sessions in this order: Pinned, Scratch, Projects, Folders. *
 #### Pin and Unpin are in the menus only (decided 2026-11-07)
 
 - **Instead of:** a button on the card.
-- **Why:** agent cards have no controls of their own, and a pin is changed rarely. The pin beside the card's time is a mark, not a button.
+- **Why:** agent cards have no controls of their own, and a pin is changed rarely. The pin in the card's corner is a mark, not a button.
 
 #### A pin ends with its session (decided 2026-11-07)
 

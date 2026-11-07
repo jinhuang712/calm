@@ -43,9 +43,6 @@ struct SessionCard: View {
                     .calmFont(size: 14.5, weight: .medium)
                     .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
                 Spacer(minLength: 4)
-                if pinnedIn != nil {
-                    PinGlyph(style: style)
-                }
                 if showsStateMarkByTime {
                     StateMark(state: session.state, style: style, compact: true)
                 }

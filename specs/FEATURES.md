@@ -248,7 +248,7 @@ Quitting Calm detaches shells and does not kill them. **Settings:** none.
 
 **Settings:** none. Right-click a card, or use ⋯ at the title strip's right, for one menu with agent actions as tiles (specs/UIUX.md → The session menu).
 
-- **Rename…** edits in place (return keeps, esc cancels, empty restores the title). The name wins everywhere and survives relaunch. **Resume:** after the agent exits, Resume *Agent* Conversation continues it in the same shell with its start options. A closed session resumes from ⌘K with ⌘N's options.
+- **Rename…** edits in place: the card stays, its title becomes the field, underlined in the accent where the time was (return keeps, esc cancels, empty restores the title). The name wins everywhere and survives relaunch. **Resume:** after the agent exits, Resume *Agent* Conversation continues it in the same shell with its start options. A closed session resumes from ⌘K with ⌘N's options.
 - **Restart** a running agent on its conversation: Restart *Agent* in the menu and ⌘P, Restart All *Agent* Sessions in ⌘P only, or a click on the update hint. While the agent works or waits, it reads Restart After This Turn, then Don't Restart. Calm quits the agent cleanly and types the start command with the same options, without the prompt.
 
 | Agent | Quit | Restart and Resume | Fork |

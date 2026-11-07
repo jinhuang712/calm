@@ -50,7 +50,7 @@ final class SidebarCardFit {
     }
 
     func measured(
-        _ geometry: Geometry, manager: SessionManager, renaming: Session.ID?, largest: CalmSettings.SessionCardSize, fitting: Bool,
+        _ geometry: Geometry, manager: SessionManager, largest: CalmSettings.SessionCardSize, fitting: Bool,
     ) {
         self.geometry = geometry
         if settling == nil {
@@ -60,10 +60,10 @@ final class SidebarCardFit {
                 self?.settled = true
             }
         }
-        refit(manager: manager, renaming: renaming, largest: largest, fitting: fitting)
+        refit(manager: manager, largest: largest, fitting: fitting)
     }
 
-    func refit(manager: SessionManager, renaming: Session.ID?, largest: CalmSettings.SessionCardSize, fitting: Bool) {
+    func refit(manager: SessionManager, largest: CalmSettings.SessionCardSize, fitting: Bool) {
         guard fitting else {
             model = nil
             recheck?.cancel()
@@ -75,7 +75,7 @@ final class SidebarCardFit {
         let open = workspace.sidebarProjects.filter { !$0.isCollapsed }
         let pinned = workspace.pinnedIsCollapsed == true ? [] : workspace.pinnedSessions
         let rows = pinned + open.flatMap { workspace.unpinnedSessions(in: $0.id) }
-        let cards = rows.filter { $0.agent != nil && $0.id != renaming }
+        let cards = rows.filter { $0.agent != nil }
         let scale = Double(InterfaceScale.shared.factor)
         let now = ProcessInfo.processInfo.systemUptime
         var model = model ?? TieredCardFit(size: largest)
@@ -98,7 +98,7 @@ final class SidebarCardFit {
             recheck = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(at - now + 0.1))
                 guard !Task.isCancelled else { return }
-                self?.refit(manager: manager, renaming: renaming, largest: largest, fitting: fitting)
+                self?.refit(manager: manager, largest: largest, fitting: fitting)
             }
         }
         if (model.otherSize, model.pinnedSize) != before {
@@ -145,7 +145,7 @@ final class SidebarCardFit {
     /// the groups and the interface size. A size drawn with the same contents is as tall again.
     private static func contents(rows: [Session], cards: [Session], groups: Int, open: Int, scale: Double) -> Int {
         var hasher = Hasher()
-        // Shell rows and a card being renamed are rows of their own height.
+        // Shell rows are one height at every size.
         for row in rows {
             hasher.combine(row.id)
         }

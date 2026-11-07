@@ -169,7 +169,7 @@ struct SidebarView: View {
     }
 
     private func refit() {
-        fitting.refit(manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
+        fitting.refit(manager: manager, largest: cardSize, fitting: fitsCards)
     }
 
     private var selectedSessionID: Session.ID? {
@@ -229,7 +229,7 @@ struct SidebarView: View {
             .coordinateSpace(.named(Self.viewportSpace))
             .scrollDriver(projectDrag.scrollDriver)
             .onScrollChange(of: SidebarCardFit.Geometry.init) { geometry in
-                fitting.measured(geometry, manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
+                fitting.measured(geometry, manager: manager, largest: cardSize, fitting: fitsCards)
             }
             .onScrollChange(
                 of: { ProjectDragModel.Scroll(offset: $0.offset, visible: $0.viewport, content: $0.content) },
@@ -299,13 +299,15 @@ struct SidebarView: View {
             .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
-    /// The inline name field that stands in for a session's card while it's renamed: return keeps
-    /// the name, esc keeps the old one, and an empty name gives the session back its own title.
+    /// The inline name field that takes the title's place while a session is renamed, underlined to
+    /// the row's right edge: return keeps the name, esc keeps the old one, and an empty name gives
+    /// the session back its own title.
     private func nameField(_ session: Session) -> some View {
         TextField("Name", text: $draftName, prompt: Text(session.title(agentTitle: session.agent?.tail?.title)))
             .textFieldStyle(.plain)
-            .calmFont(size: 14.5, weight: .medium)
+            .calmFont(size: session.agent == nil ? 14 : 14.5, weight: .medium)
             .foregroundStyle(style.primary)
+            .tint(style.accent)
             .focused($nameFieldFocused)
             .onSubmit { actions.rename(session.id, draftName) }
             .onExitCommand { editing.renamingSessionID = nil }
@@ -314,10 +316,10 @@ struct SidebarView: View {
                     actions.rename(session.id, draftName)
                 }
             }
-            .padding(.horizontal, 12.scaled)
-            .frame(height: 40.scaled)
-            .background(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).fill(style.selection))
-            .overlay(RoundedRectangle(cornerRadius: 10.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+            .frame(maxWidth: .infinity, minHeight: 26.scaled, maxHeight: 26.scaled)
+            .overlay(alignment: .bottom) {
+                Capsule().fill(style.accent).frame(height: 1.5).offset(y: 1)
+            }
             .onAppear {
                 // Also where the title's ⋯ menu starts a rename, which only sets `editing`.
                 draftName = session.customName ?? session.title(agentTitle: session.agent?.tail?.title)
@@ -329,9 +331,8 @@ struct SidebarView: View {
     @ViewBuilder
     private func sessionView(_ session: Session) -> some View {
         let pinnedIn = session.pinnedAt == nil ? nil : manager.workspace.project(session.projectID)
-        if editing.renamingSessionID == session.id {
-            nameField(session)
-        } else if let agent = session.agent?.kind {
+        let nameEditor = editing.renamingSessionID == session.id ? AnyView(nameField(session)) : nil
+        if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
                 size: session.cardSize(others: shownCardSize, pinned: shownPinnedCardSize), pinnedIn: pinnedIn,
@@ -340,12 +341,14 @@ struct SidebarView: View {
                 inView: manager.workspace.sessionsInView.contains(session.id),
                 restart: manager.restarts[session.id],
                 live: manager.liveLine(for: session.id),
+                nameEditor: nameEditor,
             )
         } else {
             SessionRow(
                 session: session, isSelected: session.id == selectedSessionID, style: style,
                 pinnedIn: pinnedIn, isHovered: hoveredSessionID == session.id,
                 inView: manager.workspace.sessionsInView.contains(session.id),
+                nameEditor: nameEditor,
             )
         }
     }

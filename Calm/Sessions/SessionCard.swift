@@ -29,6 +29,9 @@ struct SessionCard: View {
     /// What the agent is doing this moment (`LiveLineBox`): observed here alone, so a tool call
     /// redraws this card and nothing else.
     var live: LiveLineBox?
+    /// The name field while the session is renamed. It takes the title's place and the room of
+    /// what ends the line, and the card stays as it is, so renaming moves nothing.
+    var nameEditor: AnyView?
     /// The clock the compaction bar is read against: moved on when a drained bar is due to go.
     @State private var now = Date()
 
@@ -39,17 +42,21 @@ struct SessionCard: View {
             }
             HStack(spacing: 10.scaled) {
                 AgentLogo(agent: agent, state: markState, style: style)
-                ScrollingTitle(text: title, isHovered: isHovered)
-                    .calmFont(size: 14.5, weight: .medium)
-                    .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
-                Spacer(minLength: 4)
-                if showsStateMarkByTime {
-                    StateMark(state: session.state, style: style, compact: true)
-                }
-                if let date = session.cornerDate {
-                    RelativeTimeText(date: date)
-                        .calmFont(size: 12, weight: timeColor == nil ? nil : .medium)
-                        .foregroundStyle(timeColor ?? style.tertiary)
+                if let nameEditor {
+                    nameEditor
+                } else {
+                    ScrollingTitle(text: title, isHovered: isHovered)
+                        .calmFont(size: 14.5, weight: .medium)
+                        .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
+                    Spacer(minLength: 4)
+                    if showsStateMarkByTime {
+                        StateMark(state: session.state, style: style, compact: true)
+                    }
+                    if let date = session.cornerDate {
+                        RelativeTimeText(date: date)
+                            .calmFont(size: 12, weight: timeColor == nil ? nil : .medium)
+                            .foregroundStyle(timeColor ?? style.tertiary)
+                    }
                 }
             }
             detail
@@ -98,7 +105,8 @@ struct SessionCard: View {
             }
             Motion.animate(.easeInOut(duration: 0.25)) { now = .now }
         }
-        .accessibilityElement(children: .combine)
+        // Combined, the card would hide the field inside it.
+        .accessibilityElement(children: nameEditor == nil ? .combine : .contain)
         .accessibilityLabel(accessibilityText)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

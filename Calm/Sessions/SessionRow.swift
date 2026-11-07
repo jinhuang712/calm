@@ -14,6 +14,8 @@ struct SessionRow: View {
     /// On screen beside the session you're in, in a split: lifted like the selected row, with no
     /// ring (specs/UIUX.md → Split panes).
     var inView = false
+    /// The name field while the session is renamed, in the title's place (`SessionCard.nameEditor`).
+    var nameEditor: AnyView?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2.scaled) {
@@ -36,7 +38,8 @@ struct SessionRow: View {
         .contentShape(Rectangle())
         // A scratch session's folder stays hidden.
         .help(session.lastReport?.message ?? (session.isScratch ? "" : session.workingDirectory))
-        .accessibilityElement(children: .combine)
+        // Combined, the row would hide the field inside it.
+        .accessibilityElement(children: nameEditor == nil ? .combine : .contain)
         .accessibilityLabel(
             [session.displayTitle, session.state == .idle ? nil : session.state.label]
                 .compactMap(\.self).joined(separator: ", "),
@@ -51,12 +54,16 @@ struct SessionRow: View {
                 .foregroundStyle(style.tertiary)
                 .frame(width: 26.scaled, height: 26.scaled)
                 .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
-            ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
-                .calmFont(size: 14, weight: isSelected ? .medium : .regular)
-                .foregroundStyle(isSelected ? style.primary : style.secondary)
-            Spacer(minLength: 4)
-            if session.state != .idle {
-                StateMark(state: session.state, style: style)
+            if let nameEditor {
+                nameEditor
+            } else {
+                ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
+                    .calmFont(size: 14, weight: isSelected ? .medium : .regular)
+                    .foregroundStyle(isSelected ? style.primary : style.secondary)
+                Spacer(minLength: 4)
+                if session.state != .idle {
+                    StateMark(state: session.state, style: style)
+                }
             }
         }
     }

@@ -98,6 +98,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 - Claude Code's stand-in replies ("API Error: …", "No response requested.") are never the message, except an error that ended the newest turn.
 - When the last turn left shells running, a done or idle card adds "2 shells running", because a shell that ends wakes the agent.
 - Plain shells are one compact line: the shell's title, plus the state mark when a long command finished.
+- **Renaming:** the card or row stays as it is. The title becomes the field at the same place, and a 1.5 pt accent line runs under it to the right edge, in the room of the time or state mark.
 - *Working* tints the card soft blue, *needs you* amber, *done* sage until the user moves on. An idle card recedes: gray mark, dimmer name, one line of recap.
 - **The selected card** has a ring in the text color, the same in every state, and a surface lifted *lighter* than its neighbours in both themes. Color tells the state and the ring tells the selection, so a state's own edge is faint.
 - Sessions shown together in a split are lifted too, without the ring. The agent mark is the agent's logo in a neutral tile (a letter stands in when it cannot be drawn).

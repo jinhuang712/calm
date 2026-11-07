@@ -124,7 +124,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 
 - At the smaller sizes, a card that waits for the user grows a line until the agent works again or the user moves on. The worktree line shows only at Full. A smaller card's tooltip holds what it leaves out.
 - With Differentiate Without Color on, Minimal puts the state mark back before the time.
-- **Shrink cards to fit** (off by default): the chosen size becomes the largest the cards get. When the sessions do not fit without scrolling, every card that is not pinned steps down a size, and steps up when there is room. Pinned cards keep the chosen size. See `SessionCardFit`.
+- **Shrink cards to fit** (off by default): the chosen size becomes the largest the cards get. When the sessions do not fit without scrolling, every card that is not pinned steps down a size, and steps up when there is room. Pinned cards step down only when the others are at Minimal, and grow back first. See `TieredCardFit`.
 - The fit avoids flipping: a step down remembers how short the estimate was, holds for 30 s, and a size drawn too tall is not retried until the sessions or room change. At launch it settles without motion.
 
 **A pinned card** adds a line above the title: the project's mark in the agent mark's column, and its name where the title starts. It shows at every card size. A mark like a pin stands before the time, and a shell row ends with one. The mark is not a button. The **PINNED** header is drawn like Scratch's, with a pin for its mark. Cards glide to a new place in 0.3 s, and stay still while the pointer moves over the group.

@@ -139,7 +139,7 @@ The sidebar groups sessions in this order: Pinned, Scratch, Projects, Folders. *
 - **Pinned:** **Pin** in the session menu or ⌘P moves a session to a group at the top of the sidebar. It works for agents, shells and scratch sessions. **Unpin** sends it back to its place in its group, and nothing about the session changes. The group has no settings and goes with its last pin.
 - A pinned card names its project above the title, and ⌘1…9 and ⌃Tab count pinned sessions first, by their place on screen, so ⌘1 is the top card. A group with all its sessions pinned stays if the user made it, and is not drawn otherwise. Pinned folds like a group.
 - Pinned sorts itself: needs you, failed, done, working, idle, and the latest change first within a state. The order holds still while the pointer moves over the group, and until it rests for 1.5 s.
-- A pin moves the card. The session shows once, in Pinned, and its old group no longer shows or counts it. Shrink cards to fit leaves pinned cards at the chosen size and shrinks the others.
+- A pin moves the card. The session shows once, in Pinned, and its old group no longer shows or counts it. Shrink cards to fit shrinks pinned cards last, when the others are at Minimal and still do not fit.
 - A session on screen opens the folded group it lands in. Another session goes in folded, and its state shows on the group's line.
 - **Folders:** other sessions group by git repository root, or by folder outside git, and move when the shell runs `cd`. A line under the name shows the parent (`~/dev/apps`).
 - A session inside a project's folder joins the project. **Make Project** in a group's **⋯** keeps the group. On hover a header shows the **agent's mark**, which starts ⌘N's agent there, and **>_**, which starts a shell.

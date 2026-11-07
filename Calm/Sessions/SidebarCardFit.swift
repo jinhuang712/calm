@@ -12,10 +12,12 @@ final class SidebarCardFit {
     /// The size the cards are drawn at while fitting. The only observed state, so the sidebar
     /// redraws when the size changes and not on every measurement.
     private(set) var shown = CalmSettings.SessionCardSize.full
+    /// The same for pinned cards, which step down last.
+    private(set) var shownPinned = CalmSettings.SessionCardSize.full
     /// Everything the fit keeps between measurements (how tall each size was drawn, how short
     /// guesses were, when and in what room it stepped down). Kept after every measurement,
     /// whether or not the size changed.
-    @ObservationIgnored private var model: SessionCardFit?
+    @ObservationIgnored private var model: TieredCardFit?
     /// The list's height and the room it has, as last laid out.
     @ObservationIgnored private var geometry: Geometry?
     /// For its first moment the sidebar settles without motion, so a launch with many sessions
@@ -41,6 +43,12 @@ final class SidebarCardFit {
         return shown
     }
 
+    /// The size to draw pinned cards at.
+    func pinnedSize(largest: CalmSettings.SessionCardSize, fitting: Bool) -> CalmSettings.SessionCardSize {
+        guard fitting, shownPinned.rank > largest.rank else { return largest }
+        return shownPinned
+    }
+
     func measured(
         _ geometry: Geometry, manager: SessionManager, renaming: Session.ID?, largest: CalmSettings.SessionCardSize, fitting: Bool,
     ) {
@@ -59,7 +67,7 @@ final class SidebarCardFit {
         guard fitting else {
             model = nil
             recheck?.cancel()
-            show(largest)
+            show(largest, pinned: largest)
             return
         }
         guard let geometry, geometry.list > 0, geometry.room > 0 else { return }
@@ -70,12 +78,12 @@ final class SidebarCardFit {
         let cards = rows.filter { $0.agent != nil && $0.id != renaming }
         let scale = Double(InterfaceScale.shared.factor)
         let now = ProcessInfo.processInfo.systemUptime
-        var model = model ?? SessionCardFit(size: largest)
-        let before = model.size
+        var model = model ?? TieredCardFit(size: largest)
+        let before = (model.otherSize, model.pinnedSize)
         model.update(
             largest: largest, measured: Double(geometry.list), room: Double(geometry.room),
-            cards: { size in
-                scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: $1.cardSize(fitted: size, chosen: largest)) }
+            cards: { others, pinned in
+                scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: $1.cardSize(others: others, pinned: pinned)) }
             },
             contents: Self.contents(
                 rows: rows, cards: cards, groups: workspace.sidebarProjects.count + (workspace.pinnedSessions.isEmpty ? 0 : 1),
@@ -92,20 +100,27 @@ final class SidebarCardFit {
                 self?.refit(manager: manager, renaming: renaming, largest: largest, fitting: fitting)
             }
         }
-        if model.size != before {
-            Trace.note("cards fit: \(before.rawValue) → \(model.size.rawValue), list \(Int(geometry.list)) in \(Int(geometry.room))")
+        if (model.otherSize, model.pinnedSize) != before {
+            Trace.note(
+                "cards fit: \(before.0.rawValue)/\(before.1.rawValue) → \(model.otherSize.rawValue)/\(model.pinnedSize.rawValue), "
+                    + "list \(Int(geometry.list)) in \(Int(geometry.room))",
+            )
         }
-        show(model.size)
+        show(model.otherSize, pinned: model.pinnedSize)
     }
 
-    private func show(_ size: CalmSettings.SessionCardSize) {
-        guard size != shown else { return }
+    private func show(_ size: CalmSettings.SessionCardSize, pinned: CalmSettings.SessionCardSize) {
+        guard size != shown || pinned != shownPinned else { return }
         if settled {
             shown = size
+            shownPinned = pinned
         } else {
             var quiet = Transaction()
             quiet.disablesAnimations = true
-            withTransaction(quiet) { shown = size }
+            withTransaction(quiet) {
+                shown = size
+                shownPinned = pinned
+            }
         }
     }
 

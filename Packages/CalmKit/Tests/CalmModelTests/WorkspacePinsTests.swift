@@ -148,12 +148,12 @@ struct WorkspacePinsTests {
     }
 
     @Test
-    func `shrinking to fit leaves a pinned card at the chosen size`() {
+    func `a pinned card takes the pinned size`() {
         var session = Session(projectID: UUID(), workingDirectory: "/code/calm")
-        #expect(session.cardSize(fitted: .minimal, chosen: .full) == .minimal)
+        #expect(session.cardSize(others: .minimal, pinned: .full) == .minimal)
 
         session.pinnedAt = .now
-        #expect(session.cardSize(fitted: .minimal, chosen: .full) == .full)
+        #expect(session.cardSize(others: .minimal, pinned: .full) == .full)
     }
 
     @Test

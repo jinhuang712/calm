@@ -19,12 +19,11 @@ extension Session {
 }
 
 public extension Session {
-    /// The size this card is drawn at while the sidebar shrinks cards to fit: the ones the user
-    /// singled out keep the chosen size, and the others give up the room.
+    /// The size this card is drawn at, of the two `TieredCardFit` keeps.
     func cardSize(
-        fitted: CalmSettings.SessionCardSize, chosen: CalmSettings.SessionCardSize,
+        others: CalmSettings.SessionCardSize, pinned: CalmSettings.SessionCardSize,
     ) -> CalmSettings.SessionCardSize {
-        pinnedAt == nil ? fitted : chosen
+        pinnedAt == nil ? others : pinned
     }
 }
 

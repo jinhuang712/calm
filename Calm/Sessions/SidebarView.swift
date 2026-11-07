@@ -164,6 +164,10 @@ struct SidebarView: View {
         fitting.size(largest: cardSize, fitting: fitsCards)
     }
 
+    private var shownPinnedCardSize: CalmSettings.SessionCardSize {
+        fitting.pinnedSize(largest: cardSize, fitting: fitsCards)
+    }
+
     private func refit() {
         fitting.refit(manager: manager, renaming: editing.renamingSessionID, largest: cardSize, fitting: fitsCards)
     }
@@ -219,6 +223,7 @@ struct SidebarView: View {
                 // bottom edge when it's hidden, is the gap.
                 // A new card size eases every card to its height.
                 .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownCardSize)
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownPinnedCardSize)
             }
             .scrollIndicators(.never)
             .coordinateSpace(.named(Self.viewportSpace))
@@ -329,7 +334,7 @@ struct SidebarView: View {
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                size: session.cardSize(fitted: shownCardSize, chosen: cardSize), pinnedIn: pinnedIn,
+                size: session.cardSize(others: shownCardSize, pinned: shownPinnedCardSize), pinnedIn: pinnedIn,
                 isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
                 inView: manager.workspace.sessionsInView.contains(session.id),

@@ -27,8 +27,8 @@ struct WorkspacePinsTests {
         workspace.setPin(folder.id, true, at: Date(timeIntervalSince1970: 10))
         workspace.setPin(two.id, true, at: Date(timeIntervalSince1970: 20))
 
-        #expect(workspace.pinnedSessions.map(\.id) == [folder.id, two.id])
-        #expect(workspace.sidebarSessions.map(\.id) == [folder.id, two.id, one.id])
+        #expect(workspace.pinnedSessions.map(\.id) == [two.id, folder.id])
+        #expect(workspace.sidebarSessions().map(\.id) == [two.id, folder.id, one.id])
         #expect(workspace.unpinnedSessions(in: calm.id).map(\.id) == [one.id])
         #expect(workspace.session(two.id)?.projectID == calm.id)
     }
@@ -50,7 +50,7 @@ struct WorkspacePinsTests {
         workspace.setPin(folder.id, true, at: Date(timeIntervalSince1970: 20))
         workspace.setPin(two.id, true, at: Date(timeIntervalSince1970: 30))
 
-        #expect(workspace.pinnedSessions.map(\.id) == [two.id, folder.id])
+        #expect(workspace.pinnedSessions.map(\.id) == [folder.id, two.id])
     }
 
     @Test
@@ -103,6 +103,48 @@ struct WorkspacePinsTests {
         workspace.reveal(one.id)
         #expect(workspace.pinnedIsCollapsed == nil)
         #expect(workspace.project(calm.id)?.isCollapsed == true)
+    }
+
+    /// Three pinned sessions, in the given states, changed in that order.
+    private func pinned(_ states: [SessionState]) -> (Workspace, [Session.ID]) {
+        var workspace = Workspace()
+        let project = workspace.addProject(path: "/code/calm")
+        let sessions = states.enumerated().map { index, state in
+            var session = Session(projectID: project.id, workingDirectory: "/code/calm", state: state)
+            session.pinnedAt = Date(timeIntervalSince1970: 1)
+            session.stateSince = Date(timeIntervalSince1970: Double(index))
+            return session
+        }
+        workspace.sessions = sessions
+        return (workspace, sessions.map(\.id))
+    }
+
+    @Test
+    func `what wants the user comes first and idle last`() {
+        let (workspace, ids) = pinned([.idle, .working, .done, .failed, .needsYou])
+        #expect(workspace.pinnedSessions.map(\.id) == ids.reversed())
+    }
+
+    @Test
+    func `within a state the latest change comes first`() {
+        let (workspace, ids) = pinned([.done, .done])
+        #expect(workspace.pinnedSessions.map(\.id) == [ids[1], ids[0]])
+    }
+
+    @Test
+    func `a held order stays as it was, and takes in new pins last`() {
+        var (workspace, ids) = pinned([.idle, .needsYou])
+        let held = [ids[0], ids[1]]
+        #expect(workspace.pinnedSessions(heldIn: held).map(\.id) == held)
+        #expect(workspace.sidebarSessions(heldIn: held).map(\.id) == held)
+
+        var new = Session(projectID: workspace.sessions[0].projectID, workingDirectory: "/code/calm", state: .needsYou)
+        new.pinnedAt = .now
+        workspace.sessions.append(new)
+        #expect(workspace.pinnedSessions(heldIn: held).map(\.id) == held + [new.id])
+
+        workspace.sessions.removeAll { $0.id == ids[0] }
+        #expect(workspace.pinnedSessions(heldIn: held).map(\.id) == [ids[1], new.id])
     }
 
     @Test

@@ -1,5 +1,23 @@
 import Foundation
 
+extension Session {
+    /// Where the state puts a pinned card: needs you, failed, done, working, idle.
+    var pinnedRank: Int {
+        switch state {
+        case .needsYou: 0
+        case .failed: 1
+        case .done: 2
+        case .working: 3
+        case .idle: 4
+        }
+    }
+
+    /// When the state last changed, else when the session was pinned.
+    var pinnedActivity: Date {
+        stateSince ?? pinnedAt ?? .distantPast
+    }
+}
+
 public extension Session {
     /// The size this card is drawn at while the sidebar shrinks cards to fit: the ones the user
     /// singled out keep the chosen size, and the others give up the room.
@@ -15,9 +33,27 @@ public extension Session {
 /// project). It places the card and nothing else: the session keeps its project, and closing it
 /// ends the pin, because a closed session is found again through search and the project's home.
 public extension Workspace {
-    /// The pinned sessions, first pinned on top, so a new pin moves nobody.
+    /// The pinned sessions, what wants the user first and the latest change first within a state.
+    /// The one place rows reorder when states change (specs/FEATURES.md → F2).
     var pinnedSessions: [Session] {
-        sessions.filter { $0.pinnedAt != nil }.sorted { ($0.pinnedAt ?? .distantPast) < ($1.pinnedAt ?? .distantPast) }
+        sessions.filter { $0.pinnedAt != nil }.sorted { first, second in
+            if first.pinnedRank != second.pinnedRank {
+                return first.pinnedRank < second.pinnedRank
+            }
+            if first.pinnedActivity != second.pinnedActivity {
+                return first.pinnedActivity > second.pinnedActivity
+            }
+            return first.id.uuidString < second.id.uuidString
+        }
+    }
+
+    /// `pinnedSessions` kept in `order` while the pointer holds it still. A session pinned since
+    /// goes last, and one that left is dropped.
+    func pinnedSessions(heldIn order: [Session.ID]?) -> [Session] {
+        let sorted = pinnedSessions
+        guard let order else { return sorted }
+        let held = order.compactMap { id in sorted.first { $0.id == id } }
+        return held + sorted.filter { !order.contains($0.id) }
     }
 
     /// What a group shows: its sessions without the pinned ones, whose cards sit in Pinned.
@@ -31,9 +67,10 @@ public extension Workspace {
         orderedProjects.filter { !$0.isAutomatic || !unpinnedSessions(in: $0.id).isEmpty }
     }
 
-    /// Every session in the sidebar's order, pinned ones first: ⌘1…9 and ⌃Tab count these.
-    var sidebarSessions: [Session] {
-        pinnedSessions + sidebarProjects.flatMap { unpinnedSessions(in: $0.id) }
+    /// Every session in the sidebar's order, pinned ones first: ⌘1…9 and ⌃Tab count these, so
+    /// a number always means the place on screen.
+    func sidebarSessions(heldIn order: [Session.ID]? = nil) -> [Session] {
+        pinnedSessions(heldIn: order) + sidebarProjects.flatMap { unpinnedSessions(in: $0.id) }
     }
 
     /// Pins or unpins `id`. A session on screen is never out of sight in the sidebar, so if its

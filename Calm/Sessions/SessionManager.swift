@@ -24,6 +24,9 @@ final class SessionManager {
         didSet { tellPanesWhoWorks() }
     }
 
+    /// Holds Pinned's order still under the pointer. The sidebar and the ⌘ numbers both read it.
+    let pinnedHold = PinnedOrderHold()
+
     @ObservationIgnored private let store: WorkspaceStore
     @ObservationIgnored private(set) var panes: [Session.ID: TerminalSurfaceView] = [:]
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -651,7 +654,7 @@ final class SessionManager {
 
     /// Sessions in sidebar order, for ⌘1…9 and the ⌃Tab switcher.
     var orderedSessions: [Session] {
-        workspace.sidebarSessions
+        workspace.sidebarSessions(heldIn: pinnedHold.order)
     }
 
     // MARK: Saving

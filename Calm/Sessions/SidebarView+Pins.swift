@@ -5,7 +5,7 @@ import SwiftUI
 extension SidebarView {
     @ViewBuilder
     var pinnedSection: some View {
-        let sessions = manager.workspace.pinnedSessions
+        let sessions = manager.workspace.pinnedSessions(heldIn: manager.pinnedHold.order)
         if !sessions.isEmpty {
             let isCollapsed = manager.workspace.pinnedIsCollapsed == true
             VStack(alignment: .leading, spacing: 6.scaled) {
@@ -17,6 +17,15 @@ extension SidebarView {
                     ForEach(sessions) { session in
                         sessionRow(session)
                     }
+                }
+            }
+            .animation(Motion.isReduced ? nil : .smooth(duration: 0.3), value: sessions.map(\.id))
+            .onContinuousHover { phase in
+                switch phase {
+                case .active:
+                    manager.pinnedHold.pointerMoved(current: manager.workspace.pinnedSessions.map(\.id))
+                case .ended:
+                    manager.pinnedHold.pointerLeft()
                 }
             }
         }

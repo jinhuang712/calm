@@ -161,7 +161,7 @@ extension MainWindowController {
             CopyToast.show("No such file", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
             return
         }
-        if case let .file(path, line, _) = link, LinkOpener.prefersViewer, showFile(path, line: line) {
+        if case let .file(path, line, _) = link, LinkOpener.opensInViewer(path), showFile(path, line: line) {
             return
         }
         LinkOpener.openOutside(link)
@@ -183,7 +183,7 @@ extension MainWindowController {
             CopyToast.show("Image not found", at: NSPoint(x: container.bounds.midX, y: container.bounds.midY), in: container)
             return
         }
-        if LinkOpener.prefersViewer, showFile(image.path) {
+        if LinkOpener.opensInViewer(image.path), showFile(image.path) {
             return
         }
         LinkOpener.openOutside(.file(path: image.path, line: nil, column: nil))

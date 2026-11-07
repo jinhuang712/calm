@@ -2,16 +2,23 @@ import AppKit
 import CalmModel
 import OSLog
 
-/// Opens ⌘-clicked links (specs/FEATURES.md → F8): URLs in the browser, files in Calm's viewer (the
-/// default for viewable files) or the user's editor at the line. Relative paths resolve against
+/// Opens ⌘-clicked links (specs/FEATURES.md → F8): URLs in the browser, files in Calm's viewer, the
+/// default app or the user's editor at the line, as each kind of file is set. Relative paths resolve against
 /// the agent's folder, the session's, then its project's (agents often print repository-relative paths).
 @MainActor
 enum LinkOpener {
     private static let log = Logger(subsystem: "com.jinhuang.calm", category: "links")
 
-    /// Whether viewable files open in Calm's viewer (`files.open-in = "viewer"`, the default) or the editor.
-    static var prefersViewer: Bool {
-        SessionManager.shared.settings.string("files.open-in")?.lowercased() != "editor"
+    /// Where a file opens (`files.open-markdown`, `open-html` and so on). A file the viewer doesn't
+    /// show goes to the editor.
+    static func opener(for path: String) -> CalmSettings.FileOpener {
+        guard let kind = ViewableKind.of(path) else { return .editor }
+        return SessionManager.shared.settings.opener(for: kind.fileKind)
+    }
+
+    /// Whether this file opens in Calm's viewer.
+    static func opensInViewer(_ path: String) -> Bool {
+        ViewableKind.of(path) != nil && opener(for: path) == .calm
     }
 
     /// What a link points at, trying the project's folder for a relative path that isn't in the
@@ -63,9 +70,9 @@ enum LinkOpener {
                 return .folder(path: path, home: home)
             }
             let kind = ViewableKind.of(path)
-            let destination: LinkPreview.Destination = if prefersViewer, kind != nil {
+            let destination: LinkPreview.Destination = if opensInViewer(path) {
                 .viewer
-            } else if let target = EditorLocator.find() {
+            } else if opener(for: path) == .editor, let target = EditorLocator.find() {
                 .editor(target.name)
             } else {
                 .defaultApp
@@ -83,6 +90,8 @@ enum LinkOpener {
             FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
             if isDirectory.boolValue {
                 perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+            } else if opener(for: path) == .system {
+                openInDefaultApp(path)
             } else {
                 openInEditor(path, line: line, column: column)
             }
@@ -110,7 +119,7 @@ enum LinkOpener {
         }
     }
 
-    /// A picture or a PDF from the viewer: the app macOS opens it with, not the code editor.
+    /// The app macOS opens the file with (a picture or a PDF from the viewer, or a kind set to Default).
     static func openInDefaultApp(_ path: String) {
         perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
     }

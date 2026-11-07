@@ -73,6 +73,37 @@ public struct CalmSettings: Equatable, Sendable {
         bool("updates.check", default: true)
     }
 
+    /// What a file opens as, one setting each (specs/FEATURES.md → F8). Pictures include SVG; code includes
+    /// any other text file.
+    public enum FileKind: String, Sendable, CaseIterable {
+        case markdown, html, images, pdf, code
+
+        /// The key under `[files]`: `open-markdown`, `open-html` and so on.
+        public var key: String {
+            "files.open-" + rawValue
+        }
+    }
+
+    /// Where a file opens: Calm's viewer, the app macOS picks for it (a browser for a web page), or the editor.
+    public enum FileOpener: String, Sendable, CaseIterable {
+        case calm
+        case system = "default"
+        case editor
+    }
+
+    /// Where a file of this kind opens. Web pages open in the system's app unless asked otherwise; the
+    /// rest open in Calm. An older config's `files.open-in = "editor"` still sends every kind that
+    /// isn't set to the editor.
+    public func opener(for kind: FileKind) -> FileOpener {
+        if let value = values[kind.key]?.lowercased(), let opener = FileOpener(rawValue: value) {
+            return opener
+        }
+        if values["files.open-in"]?.lowercased() == "editor" {
+            return .editor
+        }
+        return kind == .html ? .system : .calm
+    }
+
     public enum MotionLevel: String, Sendable, CaseIterable {
         case full, reduced, off
     }

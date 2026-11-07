@@ -431,7 +431,7 @@ Looks: specs/UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** 
 
 **Gap:** OSC 8 links get no mark. A tag from before `/clear` shows nothing. After `claude` restarts in a session, an old tag can show the new conversation's image, because Calm does not know which run drew a row. Calm does not join some links that a program cut across lines.
 
-**Settings:** 2. Editor: auto-detected (VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode), or Settings → General → Choose Application…, or `editor = "…"` under `[files]`. Another application opens the file but not at the line. Where paths open: viewer (default) or `open-in = "editor"` under `[files]`.
+**Settings:** 2. Editor: auto-detected (VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode), or Settings → General → Choose Application…, or `editor = "…"` under `[files]`. Another application opens the file but not at the line. Where a path opens is set per kind of file: Markdown, web pages, images, PDF and code, each **Calm** (the viewer), **Default** (the app macOS picks, a browser for a web page) or **Editor**, as `open-markdown`, `open-html`, `open-images`, `open-pdf` and `open-code` under `[files]`. Web pages default to **Default**, the rest to **Calm**. An older `open-in = "editor"` still sends every kind that is not set to the editor. The files column and `calm open` always use the viewer.
 
 #### Plain ⌘ works in programs that take the mouse
 
@@ -516,7 +516,7 @@ A quick, read-only look at the repository without leaving Calm. **Settings:** no
 
 #### The viewer covers the main area, and the session keeps running under it
 
-- **Instead of:** leaving Calm for the editor (the default for `open-in`).
+- **Instead of:** leaving Calm for the editor (the default, except for web pages).
 - **Why:** Esc returns to the session as it was. Going to another session leaves the file, as it leaves Settings, so the title strip always names the session behind the file.
 
 #### The size control is a quiet readout at rest (decided 2026-10-11 from mockups)
@@ -602,7 +602,7 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 ⌘, turns the window into Settings (specs/UIUX.md → Settings screen). ⌘, again, esc or going to a session leaves it. Sections: **Appearance** (window miniature, themes, window options, F11), **Agents**, **General**, **Shortcuts**.
 
 - **Agents:** **⌘N starts**, a row per installed agent (mark, name, a chip per start option, Connect / Set Up… / Disconnect), which states notify, and sound.
-- **General:** editor and where paths open (F8), auto-grouping (F2), update checks (F17), config files with Open. **Shortcuts:** Calm's shortcuts. Change keys in the Ghostty config, where a keybinding wins.
+- **General:** editor and where each kind of file opens (F8), auto-grouping (F2), update checks (F17), config files with Open. **Shortcuts:** Calm's shortcuts. Change keys in the Ghostty config, where a keybinding wins.
 - After a hand edit, Calm → Reload Configuration updates the page. Every change saves to `config.toml` at once, keeping comments and unknown keys. A default removes its key, except the theme, which stays so it wins over the user's Ghostty colors.
 - One file: `~/.config/calm/config.toml` (`CALM_CONFIG_FILE` overrides it).
 
@@ -611,7 +611,7 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 | top level | `theme`, `motion`, `ui-size` |
 | `[window]` | `background`, `layout` |
 | `[sidebar]` | `cards`, `cards-fit`, `footer`, `auto-grouping` |
-| `[files]` | `editor`, `open-in` |
+| `[files]` | `editor`, `open-markdown`, `open-html`, `open-images`, `open-pdf`, `open-code` |
 | `[agents]` | `notify`, `sound`, `send-with-cmd-return`, `new-session` |
 | `[agents.<agent>]` (`claude-code`, `codex`, `opencode`, `pi`) | `hooks` (Claude Code), `skip-permissions`, `worktree`, `trust-project-files`, `flags`, `command` |
 | `[updates]` | `check` |

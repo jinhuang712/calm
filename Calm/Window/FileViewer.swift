@@ -14,6 +14,17 @@ enum ViewableKind: Equatable {
     case code(language: String?)
     case text
 
+    /// The setting that decides where this kind opens (`files.open-<kind>`).
+    var fileKind: CalmSettings.FileKind {
+        switch self {
+        case .markdown: .markdown
+        case .html: .html
+        case .pdf: .pdf
+        case .image: .images
+        case .code, .text: .code
+        }
+    }
+
     /// Files bigger than this open outside Calm instead.
     static let maximumTextSize = 5_000_000
 

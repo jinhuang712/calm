@@ -110,10 +110,34 @@ public extension CalmSettings {
             about: "The editor files open in",
         ),
         Key(
-            name: "files.open-in",
-            kind: .choice(["viewer", "editor"]),
-            defaultValue: "viewer",
-            about: "Where ⌘-clicked files open: Calm's viewer, or the editor",
+            name: "files.open-markdown",
+            kind: .choice(["calm", "default", "editor"]),
+            defaultValue: "calm",
+            about: "Where ⌘-clicked Markdown files open: Calm's viewer, the default app, or the editor",
+        ),
+        Key(
+            name: "files.open-html",
+            kind: .choice(["calm", "default", "editor"]),
+            defaultValue: "default",
+            about: "Where ⌘-clicked web pages open: Calm's viewer, the default app, or the editor",
+        ),
+        Key(
+            name: "files.open-images",
+            kind: .choice(["calm", "default", "editor"]),
+            defaultValue: "calm",
+            about: "Where ⌘-clicked pictures open: Calm's viewer, the default app, or the editor",
+        ),
+        Key(
+            name: "files.open-pdf",
+            kind: .choice(["calm", "default", "editor"]),
+            defaultValue: "calm",
+            about: "Where ⌘-clicked PDFs open: Calm's viewer, the default app, or the editor",
+        ),
+        Key(
+            name: "files.open-code",
+            kind: .choice(["calm", "default", "editor"]),
+            defaultValue: "calm",
+            about: "Where ⌘-clicked code and text files open: Calm's viewer, the default app, or the editor",
         ),
         Key(
             name: "agents.notify",

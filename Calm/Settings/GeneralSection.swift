@@ -11,7 +11,8 @@ final class GeneralSettingsModel {
     /// Automatic is the first installed editor (LinkOpener's order).
     private(set) var editor = EditorSetting.automatic
     private(set) var installed: [Editor] = []
-    private(set) var opensInViewer = true
+    /// Where each kind of file opens (`files.open-<kind>`).
+    private(set) var openers: [CalmSettings.FileKind: CalmSettings.FileOpener] = [:]
     private(set) var autoGrouping = true
     private(set) var checksForUpdates = true
     /// config.toml's lines Calm couldn't read ("line 12: expected key = value").
@@ -23,7 +24,7 @@ final class GeneralSettingsModel {
         let settings = SessionManager.shared.settings
         installed = EditorLocator.installed
         editor = EditorSetting(configured: settings.string("files.editor"))
-        opensInViewer = LinkOpener.prefersViewer
+        openers = Dictionary(uniqueKeysWithValues: CalmSettings.FileKind.allCases.map { ($0, settings.opener(for: $0)) })
         autoGrouping = settings.autoGrouping
         checksForUpdates = settings.checksForUpdates
         problems = settings.problems
@@ -55,9 +56,11 @@ final class GeneralSettingsModel {
         return "Opens the file, not at the line."
     }
 
-    func setOpensInViewer(_ value: Bool) {
-        opensInViewer = value
-        save("files.open-in", value ? nil : "editor")
+    func setOpener(_ value: CalmSettings.FileOpener, for kind: CalmSettings.FileKind) {
+        openers[kind] = value
+        // Written even when it is the default: an older config's `open-in = "editor"` would otherwise
+        // still win over an unset key.
+        save(kind.key, value.rawValue)
     }
 
     func setAutoGrouping(_ value: Bool) {
@@ -75,7 +78,11 @@ final class GeneralSettingsModel {
         switch key {
         case "editor": setEditor(value == "automatic" ? .automatic : EditorSetting(configured: value))
         case "editor-app": setEditorApplication(URL(filePath: value)) // what the picker hands back
-        case "open-in": setOpensInViewer(value != "editor")
+        case let name where name.hasPrefix("open-"):
+            if let kind = CalmSettings.FileKind(rawValue: String(name.dropFirst(5))),
+               let opener = CalmSettings.FileOpener(rawValue: value) {
+                setOpener(opener, for: kind)
+            }
         case "auto-grouping": setAutoGrouping(value != "false")
         case "updates": setChecksForUpdates(value != "false")
         default: break
@@ -108,11 +115,24 @@ struct GeneralSection: View {
                     ) { model.setEditor($0) }
                 }
                 RowDivider(style: style)
-                SettingsRow(title: "Markdown, images and code", symbol: "doc.richtext", style: style) {
-                    SettingsMenu(
-                        title: "Markdown, images and code", options: [(true, "Open in Calm"), (false, "Open in the editor")],
-                        selection: model.opensInViewer, style: style,
-                    ) { model.setOpensInViewer($0) }
+                SettingsRow(title: "Markdown", symbol: "doc.richtext", style: style) {
+                    openerPicker(.markdown, title: "Markdown")
+                }
+                RowDivider(style: style)
+                SettingsRow(title: "Web pages", symbol: "globe", style: style) {
+                    openerPicker(.html, title: "Web pages")
+                }
+                RowDivider(style: style)
+                SettingsRow(title: "Images", symbol: "photo", style: style) {
+                    openerPicker(.images, title: "Images")
+                }
+                RowDivider(style: style)
+                SettingsRow(title: "PDF", symbol: "doc", style: style) {
+                    openerPicker(.pdf, title: "PDF")
+                }
+                RowDivider(style: style)
+                SettingsRow(title: "Code", symbol: "curlybraces", style: style) {
+                    openerPicker(.code, title: "Code")
                 }
             }
             GroupHeading(title: "Sessions", style: style)
@@ -171,6 +191,14 @@ struct GeneralSection: View {
     }
 
     /// A file or folder, and any line of it Calm couldn't read.
+    private func openerPicker(_ kind: CalmSettings.FileKind, title: String) -> some View {
+        CalmSegmented(
+            title: title,
+            options: [(CalmSettings.FileOpener.calm, "Calm"), (.system, "Default"), (.editor, "Editor")],
+            selection: model.openers[kind] ?? .calm, segmentWidth: 76, style: style,
+        ) { model.setOpener($0, for: kind) }
+    }
+
     private func fileRow(_ title: String, symbol: String, problems: [String], open: @escaping () -> Void) -> some View {
         HStack(spacing: 16.scaled) {
             SettingsIcon(symbol: symbol, style: style)

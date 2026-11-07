@@ -22,6 +22,10 @@ struct CalmSettingsKeysTests {
         #expect(try key("updates.check").defaultValue == String(empty.checksForUpdates))
         #expect(try key("agents.sound").defaultValue == String(empty.notificationSound))
         #expect(try key("agents.send-with-cmd-return").defaultValue == String(empty.sendWithCommandReturn))
+        for kind in CalmSettings.FileKind.allCases {
+            #expect(try key(kind.key).defaultValue == empty.opener(for: kind).rawValue)
+            #expect(try key(kind.key).kind == .choice(CalmSettings.FileOpener.allCases.map(\.rawValue)))
+        }
         #expect(try key("motion").kind == .choice(CalmSettings.MotionLevel.allCases.map(\.rawValue)))
     }
 
@@ -73,5 +77,15 @@ struct CalmSettingsKeysTests {
         #expect(try settings.value(of: key("ui-size")) == "standard")
         // An unset theme has no value (the Ghostty config's colors, else Calm): a script reads "".
         #expect(try settings.value(of: key("theme")).isEmpty)
+    }
+
+    @Test func `web pages open in the default app, the rest in Calm, and an old open-in applies to what isn't set`() {
+        let empty = CalmSettings()
+        #expect(empty.opener(for: .html) == .system)
+        #expect(CalmSettings.FileKind.allCases.filter { $0 != .html }.allSatisfy { empty.opener(for: $0) == .calm })
+        let old = CalmSettings(text: "[files]\nopen-in = \"editor\"\nopen-html = \"calm\"\n")
+        #expect(old.opener(for: .html) == .calm)
+        #expect(old.opener(for: .markdown) == .editor)
+        #expect(CalmSettings(text: "[files]\nopen-pdf = \"nonsense\"\n").opener(for: .pdf) == .calm)
     }
 }

@@ -300,7 +300,7 @@
             case let option where option.hasPrefix("set:"):
                 // set:<key>=<value>, as a click in Settings, by the key's last part (Appearance:
                 // background, layout, motion, ui-size, cards, cards-fit; General: editor, editor-app,
-                // open-in, auto-grouping)
+                // open-html and the other open-<kind> keys, auto-grouping)
                 let parts = option.dropFirst(4).split(separator: "=").map(String.init)
                 if parts.count == 2 {
                     settingsPage.windowOptions.set(parts[0], parts[1])

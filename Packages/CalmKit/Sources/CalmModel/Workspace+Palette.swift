@@ -7,6 +7,7 @@ public extension Workspace {
         for index in projects.indices {
             projects[index].isCollapsed = collapsed
         }
+        pinnedIsCollapsed = collapsed ? true : nil
     }
 
     /// Chooses no session, as closing the one in front does: the main area shows what waits for a

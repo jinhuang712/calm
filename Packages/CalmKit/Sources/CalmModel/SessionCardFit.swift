@@ -149,7 +149,17 @@ public extension SessionCardLayout {
     /// sidebar would rather stay a size too small than scroll.
     static func nominalHeight(
         size: CalmSettings.SessionCardSize, state: SessionState, hasRecap: Bool, hasProgress: Bool, hasWorktree: Bool,
-        shellsRunning: Bool = false,
+        shellsRunning: Bool = false, isPinned: Bool = false,
+    ) -> Double {
+        // A pinned card names its project on a line above the title, at every size.
+        let projectLine = isPinned ? (size == .full ? 6 : 4) + 16.0 : 0
+        return projectLine + unpinnedHeight(
+            size: size, state: state, hasRecap: hasRecap, hasProgress: hasProgress, hasWorktree: hasWorktree, shellsRunning: shellsRunning,
+        )
+    }
+
+    private static func unpinnedHeight(
+        size: CalmSettings.SessionCardSize, state: SessionState, hasRecap: Bool, hasProgress: Bool, hasWorktree: Bool, shellsRunning: Bool,
     ) -> Double {
         let title = 26.0
         let line = 17.0

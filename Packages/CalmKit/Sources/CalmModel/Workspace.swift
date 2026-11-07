@@ -105,6 +105,9 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
     /// from it. Saved, so a restart doesn't start the count over. (What the agent is doing this
     /// moment, `LiveLine`, is the app's, kept apart from the workspace.)
     public var turnStartedAt: Date?
+    /// When the user pinned the session to the top of the sidebar, nil if they didn't (`WorkspacePins`).
+    /// Not `isPinned`, which keeps a session in its project.
+    public var pinnedAt: Date?
 
     public var isScratch: Bool {
         scratchFolder != nil
@@ -227,7 +230,7 @@ public struct Session: Identifiable, Codable, Hashable, Sendable {
 extension Session {
     private enum CodingKeys: String, CodingKey {
         case id, projectID, title, workingDirectory, isPinned, state, stateSince, lastReport, agent, createdAt
-        case customName, lastConversation, scratchFolder, resumesWhenOpened, turnStartedAt
+        case customName, lastConversation, scratchFolder, resumesWhenOpened, turnStartedAt, pinnedAt
     }
 
     /// Decodes as the compiler would, except for the agent fields: a state file that names an
@@ -251,6 +254,7 @@ extension Session {
         scratchFolder = try container.decodeIfPresent(String.self, forKey: .scratchFolder)
         resumesWhenOpened = try container.decodeIfPresent(Bool.self, forKey: .resumesWhenOpened)
         turnStartedAt = try container.decodeIfPresent(Date.self, forKey: .turnStartedAt)
+        pinnedAt = try container.decodeIfPresent(Date.self, forKey: .pinnedAt)
     }
 }
 
@@ -288,6 +292,8 @@ public struct Workspace: Codable, Hashable, Sendable {
     /// `windowFilled`: the window under full screen may be filled too, and leaving full screen
     /// goes back to it (specs/FEATURES.md → F1).
     public var windowFullScreen: Bool?
+    /// True while the sidebar's Pinned group is folded, nil otherwise.
+    public var pinnedIsCollapsed: Bool?
 
     public init() {}
 

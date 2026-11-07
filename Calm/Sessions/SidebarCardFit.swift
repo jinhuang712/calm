@@ -85,6 +85,7 @@ final class SidebarCardFit {
             cards: { others, pinned in
                 scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: $1.cardSize(others: others, pinned: pinned)) }
             },
+            pinnedHeight: { size in scale * Self.pinnedHeight(of: pinned, at: size) },
             contents: Self.contents(
                 rows: rows, cards: cards, groups: workspace.sidebarProjects.count + (workspace.pinnedSessions.isEmpty ? 0 : 1),
                 open: open.count + (pinned.isEmpty ? 0 : 1), scale: scale,
@@ -130,6 +131,14 @@ final class SidebarCardFit {
             hasProgress: (session.agent?.tail?.progress?.total ?? 0) > 0, hasWorktree: session.worktreeName != nil,
             shellsRunning: session.shellsStillRunning > 0, isPinned: session.pinnedAt != nil,
         )
+    }
+
+    /// About how tall Pinned is: its header and its rows. Shell rows are the same at every size.
+    private static func pinnedHeight(of sessions: [Session], at size: CalmSettings.SessionCardSize) -> Double {
+        guard !sessions.isEmpty else { return 0 }
+        let rowGap = 6.0
+        let rows = sessions.reduce(0) { $0 + rowGap + ($1.agent == nil ? 58 : nominalHeight(of: $1, at: size)) }
+        return 26 + rows
     }
 
     /// What the list's height depends on besides the card size: the rows, what the cards hold,

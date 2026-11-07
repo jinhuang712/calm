@@ -1,5 +1,15 @@
 import Foundation
 
+public extension Session {
+    /// The size this card is drawn at while the sidebar shrinks cards to fit: the ones the user
+    /// singled out keep the chosen size, and the others give up the room.
+    func cardSize(
+        fitted: CalmSettings.SessionCardSize, chosen: CalmSettings.SessionCardSize,
+    ) -> CalmSettings.SessionCardSize {
+        pinnedAt == nil ? fitted : chosen
+    }
+}
+
 /// Sessions the user pinned to the top of the sidebar (specs/FEATURES.md → F2). A pin is
 /// `Session.pinnedAt`, which has nothing to do with `Session.isPinned` (a session that stays in its
 /// project). It places the card and nothing else: the session keeps its project, and closing it

@@ -57,7 +57,7 @@ The user supervises many agents, so the thing Calm models is not a tab but a con
 ### Grouping follows the folder, and a project the user made wins
 
 - **Instead of:** grouping by a directory that contains the folder.
-- **Why:** containment let a home-folder group swallow every session under `~`. A session that is not pinned goes to the most specific project the user made that contains its folder, else to the group keyed by its git root, or by the folder outside a repository. A group matches its key exactly. Sessions started in a project or a scratch folder are pinned.
+- **Why:** containment let a home-folder group swallow every session under `~`. A session not held in a project goes to the most specific project the user made that contains its folder, else to the group keyed by its git root, or by the folder outside a repository. A group matches its key exactly. Sessions started in a project or a scratch folder are held there.
 
 ### One focus: the first responder and the model are the same pane
 

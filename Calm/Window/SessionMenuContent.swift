@@ -10,7 +10,7 @@ import Foundation
 struct SessionMenuContent: Equatable {
     enum Action: Hashable {
         case restart, cancelRestart, resume, forkSplit, forkTab
-        case rename, copy(SessionCopy), openFolder, keepScratch, moveTo(Project.ID), followFolder, close
+        case rename, togglePin, copy(SessionCopy), openFolder, keepScratch, moveTo(Project.ID), followFolder, close
     }
 
     /// The agent the tiles belong to, and the version running, when its path names one.
@@ -124,7 +124,12 @@ extension SessionMenuContent {
             content.header = Header(agent: kind, version: session.agent == nil ? nil : runningVersion)
         }
 
-        content.groups.append(Group(rows: [Row(action: .rename, title: "Rename…", symbol: "pencil")]))
+        content.groups.append(Group(rows: [
+            Row(action: .rename, title: "Rename…", symbol: "pencil"),
+            session.pinnedAt == nil
+                ? Row(action: .togglePin, title: "Pin", symbol: "pin")
+                : Row(action: .togglePin, title: "Unpin", symbol: "pin.slash"),
+        ]))
 
         // The agent's copies make a group of their own; a plain shell's one copy needs no label.
         if available.copies.contains(where: { $0 != .folderPath }) {

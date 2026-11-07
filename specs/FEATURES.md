@@ -20,6 +20,7 @@ Each feature lists its settings. The budget is at most two per feature ([GOALS.m
 | Paste | Files paste as paths, images as a path to a PNG | F1 | ✅ |
 | Projects and folders | Sessions group by project, then by folder | F2 | 🚧 |
 | Scratch sessions | ⌘⇧N starts a throwaway session in a new empty folder | F2 | ✅ |
+| Pin a session | Keep a session in a group of its own at the top of the sidebar | F2 | ✅ |
 | Welcome page | A search and lists when no session is open | F2 | ✅ |
 | Persistent sessions | Quit Calm and every shell, scrollback and running agent returns | F3 | ✅ |
 | Start an agent | ⌘N starts the chosen agent with chosen options | F15 | ✅ |
@@ -95,7 +96,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 | Group | Rows |
 |---|---|
 | Agent conversation | Fork into New Split / New Tab · Resume · Restart or Don't Restart *Agent* (F12) · Copy Last Reply (Claude Code, Codex, pi) · Copy Session ID · Copy Resume Command · Open Transcript · Restart All *Agent* Sessions · Mark All Done as Seen |
-| Session and layout | New *Agent* Session per agent · Rename Session · Keep Scratch Session as Project… · Jump to Waiting Session ⌘⇧A · Unsplit |
+| Session and layout | New *Agent* Session per agent · Rename Session · Pin Session or Unpin Session · Keep Scratch Session as Project… · Jump to Waiting Session ⌘⇧A · Unsplit |
 | View, folder, look | Show / Hide File Tree ⌘\ · Go to Welcome Page ⌘⇧H · Fold / Unfold All Groups · Open Folder in Finder · Copy Folder Path · Randomize Theme |
 | Calm, terminal | Restart Calm · Agents Settings… · Dump Logs (writes `~/Library/Logs/Calm/calm-diagnostics-<time>.txt`: ids, states and counts only) · Reset Terminal · Toggle Mouse Reporting |
 
@@ -126,7 +127,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 
 The session is the unit of work: a conversation with a goal, a folder, an agent and a history. Tabs and panes only show a session.
 
-The sidebar groups sessions in this order: Scratch, Projects, Folders. **Settings:** 1, `auto-grouping = false` under `[sidebar]` in `~/.config/calm/config.toml` (Settings → General). Off, sessions stay in their first group. ⌘⇧, reloads it.
+The sidebar groups sessions in this order: Pinned, Scratch, Projects, Folders. **Settings:** 1, `auto-grouping = false` under `[sidebar]` in `~/.config/calm/config.toml` (Settings → General). Off, sessions stay in their first group. ⌘⇧, reloads it.
 
 - **Scratch:** **⌘⇧N** or **New Scratch Session** starts a session in a new empty folder under `~/.local/share/calm/scratch`. It runs ⌘N's agent (F15), or a shell with no agent.
 - Only ⌘⇧N makes one: ⌘T or a split from it opens a normal session in the home folder. Calm marks the scratch root as trusted in `~/.claude.json`, so Claude Code does not ask.
@@ -135,6 +136,10 @@ The sidebar groups sessions in this order: Scratch, Projects, Folders. **Setting
 - The home shows the project's mark, name, folder and branch, and **⌘N** *your agent* ⌄ and **⌘T** Shell, which start there while it is up.
 - **Earlier in *project*** lists the last six closed sessions from its folder. A click, or ↑ ↓ and ↵, resumes one. Esc leaves the home. A click on a project header shows its home, and the chevron folds it. **Drag a header** to reorder projects. ⌘1…9, ⌃Tab and Move to Project follow the order.
 - A session started in a project stays in it, also after `cd`, and so do ⌘T and splits from it. Right-click a session: **Move to Project** (not scratch), **Let It Follow Its Folder**. A project's **⋯** has **Remove Project**: sessions stay open and regroup by folder.
+- **Pinned:** **Pin** in the session menu or ⌘P moves a session to a group at the top of the sidebar, first pinned on top. It works for agents, shells and scratch sessions. **Unpin** sends it back to its place in its group, and nothing about the session changes. The group has no settings and goes with its last pin.
+- A pinned card names its project above the title, and ⌘1…9 and ⌃Tab count pinned sessions first. A group with all its sessions pinned stays if the user made it, and is not drawn otherwise. Pinned folds like a group.
+- A pin moves the card. The session shows once, in Pinned, and its old group no longer shows or counts it. Shrink cards to fit leaves pinned cards at the chosen size and shrinks the others.
+- A session on screen opens the folded group it lands in. Another session goes in folded, and its state shows on the group's line.
 - **Folders:** other sessions group by git repository root, or by folder outside git, and move when the shell runs `cd`. A line under the name shows the parent (`~/dev/apps`).
 - A session inside a project's folder joins the project. **Make Project** in a group's **⋯** keeps the group. On hover a header shows the **agent's mark**, which starts ⌘N's agent there, and **>_**, which starts a shell.
 - A project's mark is a pattern made from its name. It is the same on every launch.
@@ -153,6 +158,16 @@ The sidebar groups sessions in this order: Scratch, Projects, Folders. **Setting
 - The folder comes from Ghostty's shell integration (zsh, fish, elvish), else from the shell process every couple of seconds.
 
 **Gap:** the old file marked this feature 🚧 and named no gap. Name the gap, or mark it ✅.
+
+#### Pin and Unpin are in the menus only (decided 2026-11-07)
+
+- **Instead of:** a button on the card.
+- **Why:** agent cards have no controls of their own, and a pin is changed rarely. The pin beside the card's time is a mark, not a button.
+
+#### A pin ends with its session (decided 2026-11-07)
+
+- **Instead of:** keeping a closed session's card in Pinned, or asking before closing.
+- **Why:** ⌘W means the work is done. A closed card would need a state of its own and manual cleaning. ⌘K and the project's **Earlier** list find the conversation, and a reopened session comes back unpinned.
 
 #### Opening a project starts nothing
 

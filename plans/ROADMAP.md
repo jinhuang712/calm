@@ -133,7 +133,7 @@ Not yet used in real life: the OpenCode plugin has run only against a fake conte
 
 | Feature | Depends on | Discussed |
 |---|---|---|
-| Sidebar ordering beyond dragging a project's header | What to order: projects automatically, sessions inside a project, or a pinned area | ⬜ not yet |
+| Sidebar ordering beyond dragging a project's header | What to order: projects automatically, or sessions inside a project | ⬜ not yet |
 | Reaching a session from another device (`calm attach`, `calm watch`) | Whether a second client of another size breaks Calm's pane (not checked) | ⬜ not yet |
 | Telling a nested pi or OpenCode from the session's own | `calm status --agent …` sends no process ancestors, so a nested agent of the same kind is not told apart | ⬜ not yet |
 | Whether a subagent's tool calls fire the parent's hooks | The live line shows the parent's steps. A real check with Claude Code is needed | ⬜ not yet |

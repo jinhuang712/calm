@@ -13,6 +13,8 @@ struct SessionCard: View {
     let style: SidebarStyle
     /// How much the card shows: every line, the state and recap on one line, or the title.
     var size = CalmSettings.SessionCardSize.full
+    /// The project of a pinned card, which names it above the title, since the card has left it.
+    var pinnedIn: Project?
     /// The pointer rests on the card: a long title glides to its end.
     var isHovered = false
     /// The saved row is still being checked against the running agent (only when that takes
@@ -32,12 +34,18 @@ struct SessionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: (size == .full ? 6 : 4).scaled) {
+            if let pinnedIn {
+                PinnedProjectLine(project: pinnedIn, style: style)
+            }
             HStack(spacing: 10.scaled) {
                 AgentLogo(agent: agent, state: markState, style: style)
                 ScrollingTitle(text: title, isHovered: isHovered)
                     .calmFont(size: 14.5, weight: .medium)
                     .foregroundStyle(isAsleep || isConfirming ? style.secondary : style.primary)
                 Spacer(minLength: 4)
+                if pinnedIn != nil {
+                    PinGlyph(style: style)
+                }
                 if showsStateMarkByTime {
                     StateMark(state: session.state, style: style, compact: true)
                 }

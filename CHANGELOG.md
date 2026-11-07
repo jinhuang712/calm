@@ -4,6 +4,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ## Unreleased
 
+### Sidebar
+- **Pin** a session from its menu or ⌘P to keep it in a Pinned group at the top of the sidebar. Its card names its project, and ⌘1…9 and ⌃Tab count it first. **Unpin** sends it back to its group, and closing it ends the pin.
+
 ### Agents
 - `calm new --command "<command>"` starts a session that runs the command as written, for one session with its own start options, such as a system prompt, when `flags` in config.toml would change every session.
 

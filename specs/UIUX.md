@@ -124,8 +124,10 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 
 - At the smaller sizes, a card that waits for the user grows a line until the agent works again or the user moves on. The worktree line shows only at Full. A smaller card's tooltip holds what it leaves out.
 - With Differentiate Without Color on, Minimal puts the state mark back before the time.
-- **Shrink cards to fit** (off by default): the chosen size becomes the largest the cards get. When the sessions do not fit without scrolling, every card steps down a size, and steps up when there is room. See `SessionCardFit`.
+- **Shrink cards to fit** (off by default): the chosen size becomes the largest the cards get. When the sessions do not fit without scrolling, every card that is not pinned steps down a size, and steps up when there is room. Pinned cards keep the chosen size. See `SessionCardFit`.
 - The fit avoids flipping: a step down remembers how short the estimate was, holds for 30 s, and a size drawn too tall is not retried until the sessions or room change. At launch it settles without motion.
+
+**A pinned card** adds a line above the title: the project's mark in the agent mark's column, and its name where the title starts. It shows at every card size. A mark like a pin stands before the time, and a shell row ends with one. The mark is not a button. The **PINNED** header is drawn like Scratch's, with a pin for its mark.
 
 **A folded group** keeps one line that shows what goes on inside, in the cards' own state marks, most urgent first: needs you (amber dot), failed (×), done (sage check), working (blue ring). See `GroupSummary`.
 
@@ -135,7 +137,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 **The session menu.** Right-click a card or shell row (or ⌃-click), or click the **⋯ button** in the title strip. All three open the same menu, drawn by Calm in the theme's colors (`SessionMenuView`).
 
 - At the top: the agent's mark, name and running version, then up to three action tiles: **Restart** (now, after the turn, or "↑ 2.1.291" in amber when a newer version is installed), **Don't Restart**, **Restarting…**, **Resume** (after the agent exits) and **Fork** (new split, new tab).
-- Rows, in groups: Rename…; under **COPY**, Session ID, Resume Command and Folder Path; Open in Finder, Move to Project ›, Let It Follow Its Folder or Keep as Project…; Close Session (with ⌘W where it closes this session).
+- Rows, in groups: Rename…, Pin or Unpin; under **COPY**, Session ID, Resume Command and Folder Path; Open in Finder, Move to Project ›, Let It Follow Its Folder or Keep as Project…; Close Session (with ⌘W where it closes this session).
 - A plain shell has no name and no tiles. ↑ ↓ move, ← → move along the tiles and open or close Move to Project's list, a letter jumps, ↵ chooses, Esc closes. Its keys never reach the terminal.
 
 ## Links

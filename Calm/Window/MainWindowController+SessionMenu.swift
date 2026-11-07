@@ -43,6 +43,7 @@ extension MainWindowController {
         case .forkSplit: forkConversation(of: id, into: .split)
         case .forkTab: forkConversation(of: id, into: .tab)
         case .rename: beginRename(id)
+        case .togglePin: manager.togglePin(id)
         case let .copy(copy): self.copy(copy, of: id)
         case .openFolder: openFolder(of: id)
         case .keepScratch: keepScratchAsProject(id)

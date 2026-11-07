@@ -64,8 +64,9 @@ final class SidebarCardFit {
         }
         guard let geometry, geometry.list > 0, geometry.room > 0 else { return }
         let workspace = manager.workspace
-        let open = workspace.orderedProjects.filter { !$0.isCollapsed }
-        let rows = open.flatMap { workspace.sessions(in: $0.id) }
+        let open = workspace.sidebarProjects.filter { !$0.isCollapsed }
+        let pinned = workspace.pinnedIsCollapsed == true ? [] : workspace.pinnedSessions
+        let rows = pinned + open.flatMap { workspace.unpinnedSessions(in: $0.id) }
         let cards = rows.filter { $0.agent != nil && $0.id != renaming }
         let scale = Double(InterfaceScale.shared.factor)
         let now = ProcessInfo.processInfo.systemUptime
@@ -73,9 +74,12 @@ final class SidebarCardFit {
         let before = model.size
         model.update(
             largest: largest, measured: Double(geometry.list), room: Double(geometry.room),
-            cards: { size in scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: size) } },
+            cards: { size in
+                scale * cards.reduce(0) { $0 + Self.nominalHeight(of: $1, at: $1.cardSize(fitted: size, chosen: largest)) }
+            },
             contents: Self.contents(
-                rows: rows, cards: cards, groups: workspace.orderedProjects.count, open: open.count, scale: scale,
+                rows: rows, cards: cards, groups: workspace.sidebarProjects.count + (workspace.pinnedSessions.isEmpty ? 0 : 1),
+                open: open.count + (pinned.isEmpty ? 0 : 1), scale: scale,
             ),
             now: now,
         )
@@ -109,7 +113,7 @@ final class SidebarCardFit {
         SessionCardLayout.nominalHeight(
             size: size, state: session.state, hasRecap: session.recap != nil,
             hasProgress: (session.agent?.tail?.progress?.total ?? 0) > 0, hasWorktree: session.worktreeName != nil,
-            shellsRunning: session.shellsStillRunning > 0,
+            shellsRunning: session.shellsStillRunning > 0, isPinned: session.pinnedAt != nil,
         )
     }
 

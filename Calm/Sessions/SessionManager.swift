@@ -651,7 +651,7 @@ final class SessionManager {
 
     /// Sessions in sidebar order, for ⌘1…9 and the ⌃Tab switcher.
     var orderedSessions: [Session] {
-        workspace.orderedProjects.flatMap { workspace.sessions(in: $0.id) }
+        workspace.sidebarSessions
     }
 
     // MARK: Saving

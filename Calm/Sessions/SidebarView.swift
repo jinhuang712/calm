@@ -206,8 +206,9 @@ struct SidebarView: View {
             ScrollView {
                 // Not lazy: a row moving between projects needs both ends laid out to glide.
                 VStack(alignment: .leading, spacing: Self.groupSpacing) {
+                    pinnedSection
                     // Scratch sessions on top, then projects the user made, then directory groups.
-                    ForEach(manager.workspace.orderedProjects) { project in
+                    ForEach(manager.workspace.sidebarProjects) { project in
                         projectSection(project)
                             .modifier(ReorderableSection(id: project.id, model: projectDrag, style: style))
                     }
@@ -262,7 +263,8 @@ struct SidebarView: View {
     // MARK: Sections
 
     private func projectSection(_ project: Project) -> some View {
-        let sessions = manager.workspace.sessions(in: project.id)
+        // Pinned sessions show in Pinned, and count there.
+        let sessions = manager.workspace.unpinnedSessions(in: project.id)
         let summary = GroupSummary(sessions.map(\.state))
         return VStack(alignment: .leading, spacing: 6.scaled) {
             SidebarGroupHeader(
@@ -275,16 +277,21 @@ struct SidebarView: View {
 
             if !project.isCollapsed {
                 ForEach(sessions) { session in
-                    sessionView(session)
-                        .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
-                        .onTapGesture { onSelect(session.id) }
-                        .dragSession(session.id, enabled: editing.renamingSessionID != session.id)
-                        .onRightClick { point in actions.showMenu(session.id, point) }
-                        .matchedGeometryEffect(id: session.id, in: rows)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    sessionRow(session)
                 }
             }
         }
+    }
+
+    /// A session's row in any group. The same `rows` id everywhere, so a row glides between them.
+    func sessionRow(_ session: Session) -> some View {
+        sessionView(session)
+            .onHover { hoveredSessionID = $0 ? session.id : (hoveredSessionID == session.id ? nil : hoveredSessionID) }
+            .onTapGesture { onSelect(session.id) }
+            .dragSession(session.id, enabled: editing.renamingSessionID != session.id)
+            .onRightClick { point in actions.showMenu(session.id, point) }
+            .matchedGeometryEffect(id: session.id, in: rows)
+            .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     /// The inline name field that stands in for a session's card while it's renamed: return keeps
@@ -316,12 +323,14 @@ struct SidebarView: View {
     /// Agent sessions get a card; plain shells stay one compact line (specs/UIUX.md → Session cards).
     @ViewBuilder
     private func sessionView(_ session: Session) -> some View {
+        let pinnedIn = session.pinnedAt == nil ? nil : manager.workspace.project(session.projectID)
         if editing.renamingSessionID == session.id {
             nameField(session)
         } else if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                size: shownCardSize, isHovered: hoveredSessionID == session.id,
+                size: session.cardSize(fitted: shownCardSize, chosen: cardSize), pinnedIn: pinnedIn,
+                isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
                 inView: manager.workspace.sessionsInView.contains(session.id),
                 restart: manager.restarts[session.id],
@@ -330,7 +339,7 @@ struct SidebarView: View {
         } else {
             SessionRow(
                 session: session, isSelected: session.id == selectedSessionID, style: style,
-                isHovered: hoveredSessionID == session.id,
+                pinnedIn: pinnedIn, isHovered: hoveredSessionID == session.id,
                 inView: manager.workspace.sessionsInView.contains(session.id),
             )
         }

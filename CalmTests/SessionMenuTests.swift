@@ -32,7 +32,7 @@ struct SessionMenuTests {
         #expect(content.tiles.map(\.detail) == ["now", "new split", "new tab"])
         #expect(content.groups.map(\.label) == [nil, "COPY", nil, nil])
         #expect(content.rows.map(\.title) == [
-            "Rename…", "Session ID", "Resume Command", "Folder Path", "Open in Finder", "Move to Project", "Close Session",
+            "Rename…", "Pin", "Session ID", "Resume Command", "Folder Path", "Open in Finder", "Move to Project", "Close Session",
         ])
         #expect(content.projects.map(\.name) == ["web"])
     }
@@ -83,14 +83,23 @@ struct SessionMenuTests {
         let content = menu(Session(projectID: home.id, workingDirectory: "/tmp/app"))
         #expect(content.header == nil)
         #expect(content.tiles.isEmpty)
-        #expect(content.rows.map(\.title) == ["Rename…", "Copy Folder Path", "Open in Finder", "Move to Project", "Close Session"])
+        #expect(content.rows.map(\.title) == ["Rename…", "Pin", "Copy Folder Path", "Open in Finder", "Move to Project", "Close Session"])
         #expect(content.groups.allSatisfy { $0.label == nil })
+    }
+
+    @Test func `a pinned session offers Unpin in Pin's place`() {
+        var session = Session(projectID: home.id, workingDirectory: "/tmp/app")
+        session.pinnedAt = .now
+        let rows = menu(session).rows
+        #expect(rows.map(\.title).contains("Unpin"))
+        #expect(!rows.map(\.title).contains("Pin"))
+        #expect(rows.first { $0.title == "Unpin" }?.action == .togglePin)
     }
 
     @Test func `a scratch session is kept as a project, and has no folder to give`() {
         var session = Session(projectID: home.id, workingDirectory: "/tmp/scratch")
         session.scratchFolder = "/tmp/scratch"
-        #expect(menu(session).rows.map(\.title) == ["Rename…", "Keep as Project…", "Close Session"])
+        #expect(menu(session).rows.map(\.title) == ["Rename…", "Pin", "Keep as Project…", "Close Session"])
     }
 
     @Test func `⌘W shows only where it closes this session`() {
@@ -117,7 +126,7 @@ struct SessionMenuTests {
         let content = menu(running())
         #expect(content.item(startingWith: "f", after: nil) == 1)
         #expect(content.item(startingWith: "f", after: 1) == 2)
-        #expect(content.item(startingWith: "f", after: 2) == 6)
+        #expect(content.item(startingWith: "f", after: 2) == 7)
         #expect(content.item(startingWith: "z", after: nil) == nil)
     }
 

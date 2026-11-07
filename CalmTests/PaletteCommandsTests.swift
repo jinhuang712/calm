@@ -80,15 +80,38 @@ struct PaletteCommandsTests {
     @Test func `a plain shell can be renamed, and its folder opened and copied`() {
         let shown = rows(for: Session(projectID: UUID(), workingDirectory: "/tmp/app"))
         #expect(shown.agent.isEmpty)
-        #expect(shown.session.map(\.title) == ["Rename Session"])
+        #expect(shown.session.map(\.title) == ["Rename Session", "Pin Session"])
         #expect(shown.folder.map(\.title) == ["Open Folder in Finder", "Copy Folder Path"])
+    }
+
+    @Test func `a session is pinned and unpinned through the menu's action`() {
+        var pinned: [UUID] = []
+        var session = Session(projectID: UUID(), workingDirectory: "/tmp/app")
+        var menu = SidebarActions(
+            rename: { _, _ in }, resume: { _ in }, fork: { _, _ in }, newScratchSession: {},
+            newAgentSession: { _ in }, chooseNewSessionAgent: {},
+            showFooter: { _ in }, search: {}, toggleFiles: {}, newSessionIn: { _ in }, addProjects: { _ in }, makeProject: { _ in },
+            removeProject: { _ in }, move: { _, _ in }, followFolder: { _ in }, keepScratch: { _ in },
+            copy: { _, _ in }, openFolder: { _ in }, takeOut: { _ in },
+        )
+        menu.togglePin = { pinned.append($0) }
+        let palette = PaletteSessionActions(rename: {}, copyLastReply: { _ in }, openTranscript: { _ in })
+
+        let pin = PaletteCommand.session(session, menu: menu, palette: palette).session.first { $0.id == PaletteRow.pin.rawValue }
+        pin?.run()
+        #expect(pinned == [session.id])
+
+        session.pinnedAt = .now
+        let rows = PaletteCommand.session(session, menu: menu, palette: palette).session
+        #expect(rows.contains { $0.id == PaletteRow.unpin.rawValue })
+        #expect(!rows.contains { $0.id == PaletteRow.pin.rawValue })
     }
 
     @Test func `a scratch session can be kept, and shows no folder`() {
         var session = Session(projectID: UUID(), workingDirectory: "/tmp/scratch")
         session.scratchFolder = "/tmp/scratch"
         let shown = rows(for: session)
-        #expect(shown.session.map(\.title) == ["Rename Session", "Keep Scratch Session as Project…"])
+        #expect(shown.session.map(\.title) == ["Rename Session", "Pin Session", "Keep Scratch Session as Project…"])
         #expect(shown.folder.isEmpty)
     }
 
@@ -214,7 +237,7 @@ struct PaletteCommandsTests {
 
     @Test func `every one of Calm's rows has a short description of its own`() {
         let lines = PaletteRow.allCases.map(\.help)
-        #expect(lines.count == 25)
+        #expect(lines.count == 27)
         #expect(Set(lines).count == lines.count)
         for row in PaletteRow.allCases {
             // One line in the footer, at the largest interface size too: about 70 characters fit.

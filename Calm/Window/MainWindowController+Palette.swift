@@ -139,12 +139,14 @@ extension MainWindowController {
             rows.append(PaletteCommand(.welcome, title: "Go to Welcome Page", trailing: "⌘⇧H") { [weak self] in self?.goToWelcomePage() })
         }
         let groups = manager.workspace.projects
-        if groups.contains(where: { !$0.isCollapsed }) {
+        let hasPins = !manager.workspace.pinnedSessions.isEmpty
+        let pinsFolded = manager.workspace.pinnedIsCollapsed == true
+        if groups.contains(where: { !$0.isCollapsed }) || (hasPins && !pinsFolded) {
             rows.append(PaletteCommand(.foldAll, title: "Fold All Groups") { [weak self] in
                 self?.manager.setAllCollapsed(true)
             })
         }
-        if groups.contains(where: \.isCollapsed) {
+        if groups.contains(where: \.isCollapsed) || (hasPins && pinsFolded) {
             rows.append(PaletteCommand(.unfoldAll, title: "Unfold All Groups") { [weak self] in
                 self?.manager.setAllCollapsed(false)
             })

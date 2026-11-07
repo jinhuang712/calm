@@ -43,6 +43,8 @@ enum PaletteRow: String, CaseIterable {
     case openTranscript = "open-transcript"
     case markDoneSeen = "mark-done-seen"
     case rename
+    case pin
+    case unpin
     case keepScratch = "keep-scratch"
     case jumpWaiting = "jump-waiting"
     case unsplit
@@ -72,6 +74,8 @@ enum PaletteRow: String, CaseIterable {
         case .openTranscript: "Open the conversation's file in your editor."
         case .markDoneSeen: "Clear the finished sessions you haven't opened yet."
         case .rename: "Give this session a name of your own."
+        case .pin: "Keep this session at the top of the sidebar."
+        case .unpin: "Send this session back to its group."
         case .keepScratch: "Move this scratch folder somewhere and make it a project."
         case .jumpWaiting: "Go to the session that has waited longest for you."
         case .unsplit: "Give each pane a session of its own. Nothing closes."
@@ -148,6 +152,11 @@ extension PaletteCommand {
         }
 
         rows.session.append(PaletteCommand(.rename, title: "Rename Session", run: palette.rename))
+        rows.session.append(
+            session.pinnedAt == nil
+                ? PaletteCommand(.pin, title: "Pin Session") { menu.togglePin(id) }
+                : PaletteCommand(.unpin, title: "Unpin Session") { menu.togglePin(id) },
+        )
         if available.keepsAsProject {
             rows.session.append(PaletteCommand(.keepScratch, title: "Keep Scratch Session as Project…") { menu.keepScratch(id) })
         }

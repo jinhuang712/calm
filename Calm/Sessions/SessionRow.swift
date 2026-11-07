@@ -7,6 +7,8 @@ struct SessionRow: View {
     let session: Session
     let isSelected: Bool
     let style: SidebarStyle
+    /// The project of a pinned row, which names it above the title, since the row has left it.
+    var pinnedIn: Project?
     /// The pointer rests on the row: a long name glides to its end.
     var isHovered = false
     /// On screen beside the session you're in, in a split: lifted like the selected row, with no
@@ -14,22 +16,14 @@ struct SessionRow: View {
     var inView = false
 
     var body: some View {
-        HStack(spacing: 10.scaled) {
-            Image(systemName: "chevron.right")
-                .calmFont(size: 10, weight: .semibold)
-                .foregroundStyle(style.tertiary)
-                .frame(width: 26.scaled, height: 26.scaled)
-                .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
-            ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
-                .calmFont(size: 14, weight: isSelected ? .medium : .regular)
-                .foregroundStyle(isSelected ? style.primary : style.secondary)
-            Spacer(minLength: 4)
-            if session.state != .idle {
-                StateMark(state: session.state, style: style)
+        VStack(alignment: .leading, spacing: 2.scaled) {
+            if let pinnedIn {
+                PinnedProjectLine(project: pinnedIn, style: style)
             }
+            line
         }
         .padding(.horizontal, 12.scaled)
-        .frame(height: 40.scaled)
+        .frame(height: (pinnedIn == nil ? 40 : 58).scaled)
         .background(
             RoundedRectangle(cornerRadius: 10.scaled, style: .continuous)
                 .fill(session.state == .needsYou ? style.attention.opacity(0.14) : isSelected ? style.selection : .clear),
@@ -48,5 +42,25 @@ struct SessionRow: View {
                 .compactMap(\.self).joined(separator: ", "),
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var line: some View {
+        HStack(spacing: 10.scaled) {
+            Image(systemName: "chevron.right")
+                .calmFont(size: 10, weight: .semibold)
+                .foregroundStyle(style.tertiary)
+                .frame(width: 26.scaled, height: 26.scaled)
+                .background(RoundedRectangle(cornerRadius: 8.scaled, style: .continuous).strokeBorder(style.tertiary.opacity(0.4)))
+            ScrollingTitle(text: session.displayTitle, isHovered: isHovered)
+                .calmFont(size: 14, weight: isSelected ? .medium : .regular)
+                .foregroundStyle(isSelected ? style.primary : style.secondary)
+            Spacer(minLength: 4)
+            if pinnedIn != nil {
+                PinGlyph(style: style)
+            }
+            if session.state != .idle {
+                StateMark(state: session.state, style: style)
+            }
+        }
     }
 }

@@ -84,6 +84,9 @@ targets:
         LSMinimumSystemVersion: "14.5"
         LSApplicationCategoryType: public.app-category.developer-tools
         NSHighResolutionCapable: true
+        # macOS 26 offers one-time codes from Messages and Mail in every app that takes text. A terminal
+        # has no code field, so the menu would only cover the prompt.
+        NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true
         NSPrincipalClass: NSApplication
         NSHumanReadableCopyright: "Copyright © 2026 Jin Huang. Apache-2.0."
         # Tells libghostty it was launched from the desktop, so new shells start in the home folder.

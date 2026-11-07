@@ -103,6 +103,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 - One text size applies to all sessions. ⌘+ and ⌘− resize them, ⌘0 returns to the config's `font-size`, and Calm keeps it. While a file is open, these keys size the file (F10).
 - ⌘V pastes text as text and copied files as escaped paths. Any other image becomes a PNG in the temporary folder and its path is pasted, so Claude Code attaches it.
 - Input methods, dictation and the emoji picker work. Committed text goes to the program as typed keys, never as a paste.
+- macOS's one-time code menu stays out of Calm: codes from Messages and Mail are not offered at the cursor (not yet verified with a real code).
 - A double-click on the title strip does what System Settings → Desktop & Dock says. The window is square-cornered while it fills the screen.
 - The window returns as left: size, place, filled or full screen. The narrowest window is the shown panels plus 400 pt, never wider than the screen.
 

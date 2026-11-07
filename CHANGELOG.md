@@ -15,6 +15,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 - Web pages (HTML) open in the default app, a browser, instead of Calm's viewer. Settings → General → Opening files sets Markdown, web pages, images, PDF and code each to Calm, Default or Editor. An older `open-in = "editor"` keeps working for the kinds you have not set.
 
 ### Fixes
+- macOS no longer offers one-time codes from Messages and Mail at the cursor in Calm.
 - A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.
 - A card says "1 shell running" and keeps its mark moving only for a real shell. Claude Code's other background work, such as the watch on an Artifact's comments, used to count as one.
 

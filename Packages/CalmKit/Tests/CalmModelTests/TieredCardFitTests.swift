@@ -58,6 +58,37 @@ struct TieredCardFitTests {
         #expect(fit.otherSize == .full)
     }
 
+    /// Idle cards are one line at Compact and at Minimal, so that step draws the same list and
+    /// no new measurement follows it. The sidebar measures only when the list's height changes.
+    @Test func `a step that changes no height goes straight on to the next one`() {
+        func idle(_ others: Size, _ pinned: Size) -> Double {
+            func other(_ size: Size) -> Double {
+                size == .full ? 65 : 40
+            }
+            func card(_ size: Size) -> Double {
+                switch size {
+                case .full: 100
+                case .compact: 60
+                case .minimal: 40
+                }
+            }
+            return 6 * other(others) + 2 * card(pinned)
+        }
+        var fit = TieredCardFit()
+        var drawn = idle(fit.otherSize, fit.pinnedSize)
+        // As the sidebar does it: a new measurement only when the height changed.
+        for _ in 0 ..< 8 {
+            fit.update(largest: .full, measured: drawn, room: 300, cards: idle, contents: 1, now: 0)
+            let now = idle(fit.otherSize, fit.pinnedSize)
+            if now == drawn {
+                break
+            }
+            drawn = now
+        }
+        #expect(fit.otherSize == .minimal)
+        #expect(fit.pinnedSize == .minimal)
+    }
+
     @Test func `the chosen size is the largest for both`() {
         var fit = TieredCardFit()
         settle(&fit, in: 2000, largest: .compact, at: 0)

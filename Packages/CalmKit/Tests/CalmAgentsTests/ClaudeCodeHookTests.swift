@@ -97,12 +97,20 @@ struct ClaudeCodeHookTests {
         #expect(report.state == .working)
     }
 
-    @Test func `shells are counted, a monitor and a kind nobody knows too`() throws {
+    @Test func `a shell-backed Monitor counts as a shell`() throws {
         let monitor = #"{"id":"m1","type":"shell","status":"running"}"#
-        let other = #"{"id":"w1","type":"something-new","status":"running"}"#
-        let report = try #require(adapter.hookReport(from: stop(tasks: [shell, monitor, other])))
+        let report = try #require(adapter.hookReport(from: stop(tasks: [shell, monitor])))
         #expect(report.state == .done)
-        #expect(report.backgroundShells == 3)
+        #expect(report.backgroundShells == 2)
+    }
+
+    /// An Artifact's comment watch arrives as a "monitor", with no process behind it (2.1.319).
+    @Test func `only shells are counted, not a comment watch or a kind nobody knows`() throws {
+        let watch = #"{"id":"m2","type":"monitor","status":"running","description":"Comments"}"#
+        let other = #"{"id":"w1","type":"something-new","status":"running"}"#
+        let report = try #require(adapter.hookReport(from: stop(tasks: [shell, watch, other])))
+        #expect(report.state == .done)
+        #expect(report.backgroundShells == 1)
     }
 
     @Test func `tasks that already ended are not running`() throws {

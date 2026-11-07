@@ -315,7 +315,7 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 
 - State comes from each agent's hooks or notifications. Terminal signals (bell, progress, desktop notifications) are the fallback, and alone work for Claude Code and Codex. Only the foreground agent speaks for a session.
 - Codex, and OpenCode until connected, have no working hook. Calm reads their conversation files: an open turn is **working**, an ended one **done** (**failed** for OpenCode). An agent's hook outranks this guess.
-- A Claude Code turn that ends with its own background agent running stays **working**. Background *shells* do not hold the state: the turn is **done** and the card adds "· 2 shells running". The count survives a Calm restart.
+- A Claude Code turn that ends with its own background agent running stays **working**. Background *shells* do not hold the state: the turn is **done** and the card adds "· 2 shells running". Only shells count, so other background work, such as the watch on an Artifact's comments, leaves the card plain. The count survives a Calm restart.
 - While Claude Code **compacts**, the session stays **working** and the card says "Compacting", then a bar shows what was kept ("968k → 13k"). A typed `/compact` ends as **done**. A plain shell command that ran 10 seconds or more shows **done** or **failed** until the user moves on.
 - Only **needs you** escalates: the row highlights, and when the user is not looking, a macOS notification arrives at the next natural pause. A **needs you** is never dropped.
 - A notification shows a state mark and the session name (✋ needs you, ✅ done, ⚠️ failed), then one or two Markdown-free lines of the agent's words. A click jumps to the session. **⌘⇧A** jumps to the one that has waited longest.

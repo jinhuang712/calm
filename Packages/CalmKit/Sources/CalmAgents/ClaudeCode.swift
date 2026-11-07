@@ -92,7 +92,9 @@ extension ClaudeCodeAdapter: HookReporting {
         }
 
         /// `id`, `description` and `command` are not read. Seen in captured payloads:
-        /// `type` "shell" (a Monitor arrives as one too) and "subagent".
+        /// `type` "shell" (a Monitor arrives as one too) and "subagent". Claude Code 2.1.319 also
+        /// declares "monitor" (an Artifact's comment watch among them), "workflow", "MCP task" and
+        /// others, and falls back to a raw name for a kind it hasn't labelled.
         struct BackgroundTask: Decodable {
             var type: String?
             var status: String?
@@ -104,11 +106,17 @@ extension ClaudeCodeAdapter: HookReporting {
                 return status == "running" || status == "pending"
             }
 
-            /// Claude's own work, which ends and wakes it. Any other kind, including one Calm
-            /// hasn't seen, counts as a shell: if that's wrong, the card says done, never
-            /// a blue card that never clears.
+            /// Claude's own work, which ends and wakes it. Any other kind leaves the turn done:
+            /// if that's wrong, the card says done, never a blue card that never clears.
             var isAgent: Bool {
                 type?.lowercased() == "subagent"
+            }
+
+            /// A process the card can say is running. Only the named kind counts: a comment watch
+            /// has no process and lasts as long as the session, so counting every other kind left
+            /// "1 shell running" and a moving mark on a session with no shell.
+            var isShell: Bool {
+                type?.lowercased() == "shell"
             }
         }
     }
@@ -179,7 +187,7 @@ extension ClaudeCodeAdapter: HookReporting {
             if running.contains(where: \.isAgent) {
                 return report(.working, hook.lastAssistantMessage, prose: true)
             }
-            return report(.done, hook.lastAssistantMessage, prose: true, shells: running.count)
+            return report(.done, hook.lastAssistantMessage, prose: true, shells: running.count(where: \.isShell))
         case "StopFailure":
             return report(.failed, hook.errorDetails ?? hook.error)
         case "PreCompact":

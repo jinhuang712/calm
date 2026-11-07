@@ -16,6 +16,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ### Fixes
 - A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.
+- A card says "1 shell running" and keeps its mark moving only for a real shell. Claude Code's other background work, such as the watch on an Artifact's comments, used to count as one.
 
 ## 0.1.5 — 2026-10-29
 

@@ -18,6 +18,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 - Choose Application… saves the app's bundle ID, and `editor = "dev.gloss.Gloss"` works in config.toml, so a moved app still opens.
 
 ### Fixes
+- A file ⌘-clicked into an app that is already running (an editor chosen with Choose Application…, or the file's default app) can come forward. Calm used to keep the front.
 - macOS no longer offers one-time codes from Messages and Mail at the cursor in Calm.
 - A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.
 - A card says "1 shell running" and keeps its mark moving only for a real shell. Claude Code's other background work, such as the watch on an Artifact's comments, used to count as one.

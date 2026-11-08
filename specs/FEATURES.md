@@ -444,7 +444,7 @@ Looks: specs/UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** 
 
 ### F8 — Smart links 🚧
 
-- **⌘-click** opens a URL in the browser, or a file path in Calm's viewer (F10) or the user's editor. Relative paths resolve against the agent's folder (a git worktree it moved into while the shell stayed behind), then the session's folder, then the project's. `path:line` and `path:line:column` open at that position.
+- **⌘-click** opens a URL in the browser, or a file path in Calm's viewer (F10) or the user's editor. Relative paths resolve against the agent's folder (a git worktree it moved into while the shell stayed behind), then the session's folder, then the project's. `path:line` and `path:line:column` open at that position. Calm gives way to the app that gets the file, so it can come forward.
 - A path ending a sentence opens without the final full stop, comma or `?`. A path that is nowhere gives a small note.
 - **At rest** every openable link has a faint dotted line, also a wrapped one. Changing rows lose marks until the text holds still. Programs that take the mouse (vim, htop, agent full-screen views) get none.
 - **A link cut across lines** by a full-screen agent view opens whole. Calm joins a row that reaches the right edge to the next, indented row, only when the joined text leads somewhere. Cuts at `-` or `/`, or after a border (`│`, `⎿`), are not joined.

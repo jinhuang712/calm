@@ -109,7 +109,7 @@ enum LinkOpener {
     static func openInEditor(_ path: String, line: Int?, column: Int?) {
         switch EditorLocator.find() {
         case nil:
-            perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+            openInDefaultApp(path)
         case let .tool(editor, executable):
             let arguments = editor.arguments(file: path, line: line, column: column)
             perform("\(editor.rawValue) \(arguments.joined(separator: " "))") {
@@ -121,14 +121,29 @@ enum LinkOpener {
         case let .application(app):
             // An app Calm has no command line for: it gets the file, not the line.
             perform("open -a \(app.lastPathComponent) \(path)") {
-                NSWorkspace.shared.open([URL(filePath: path)], withApplicationAt: app, configuration: .init())
+                yieldFocus(to: app)
+                NSWorkspace.shared.open([URL(filePath: path)], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
             }
         }
     }
 
+    /// Lets the app that gets the file come forward. Since macOS 14 activation is cooperative: an
+    /// app asking to come forward is refused unless the active app (Calm, on a ⌘-click) yields to it
+    /// first. A file handed to a running editor stayed behind Calm without this (2026-11-09).
+    static func yieldFocus(to app: URL) {
+        guard let id = Bundle(url: app)?.bundleIdentifier else { return }
+        NSApp.yieldActivation(toApplicationWithBundleIdentifier: id)
+    }
+
     /// The app macOS opens the file with (a picture or a PDF from the viewer, or a kind set to Default).
     static func openInDefaultApp(_ path: String) {
-        perform("open \(path)") { NSWorkspace.shared.open(URL(filePath: path)) }
+        perform("open \(path)") {
+            let url = URL(filePath: path)
+            if let app = NSWorkspace.shared.urlForApplication(toOpen: url) {
+                yieldFocus(to: app)
+            }
+            NSWorkspace.shared.open(url)
+        }
     }
 
     /// Headless self-tests never open other apps: they log what would be opened.

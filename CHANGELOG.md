@@ -14,6 +14,8 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ### Files
 - Web pages (HTML) open in the default app, a browser, instead of Calm's viewer. Settings → General → Opening files sets Markdown, web pages, images, PDF and code each to Calm, Default or Editor. An older `open-in = "editor"` keeps working for the kinds you have not set.
+- An editor set in Settings that is gone is named: the ⌘ tag reads "Gloss not found · Open in VS Code", and Settings → General says it under Editor. It used to fall back in silence.
+- Choose Application… saves the app's bundle ID, and `editor = "dev.gloss.Gloss"` works in config.toml, so a moved app still opens.
 
 ### Fixes
 - macOS no longer offers one-time codes from Messages and Mail at the cursor in Calm.

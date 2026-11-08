@@ -21,6 +21,17 @@ struct LinkPreviewTests {
             == LinkPreview(kind: .image, title: "shot.png", detail: "~", action: "Open"))
     }
 
+    @Test func `an editor that is gone is named before where the file goes instead`() {
+        let toCode = LinkPreview.file(
+            path: "/etc/hosts", line: nil, isImage: false, destination: .missingEditor("Gloss", fallback: "VS Code"), home: home,
+        )
+        #expect(toCode.action == "Gloss not found · Open in VS Code")
+        let toDefault = LinkPreview.file(
+            path: "/etc/hosts", line: nil, isImage: false, destination: .missingEditor("Gloss", fallback: nil), home: home,
+        )
+        #expect(toDefault.action == "Gloss not found · Open")
+    }
+
     @Test func `a web link shows its site and path`() throws {
         #expect(try LinkPreview.url(#require(URL(string: "https://playwright.dev/docs/test-assertions")))
             == LinkPreview(kind: .web, title: "playwright.dev", detail: "/docs/test-assertions", action: "Open in browser"))

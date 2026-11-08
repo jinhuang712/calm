@@ -133,11 +133,13 @@ public enum Editor: String, CaseIterable, Sendable {
 }
 
 /// The `files.editor` setting: left to Calm, one of the known editors by name, or an application the
-/// user chose (its `.app` path). Anything else in config.toml (a path to a tool) reads as automatic.
+/// user chose (its `.app` path, or its bundle ID such as `dev.gloss.Gloss`, which survives the app
+/// moving). Anything else in config.toml (a path to a tool) reads as automatic.
 public enum EditorSetting: Hashable, Sendable {
     case automatic
     case editor(Editor)
     case application(path: String)
+    case applicationID(String)
 
     public init(configured: String?) {
         guard let configured, !configured.isEmpty else {
@@ -148,9 +150,18 @@ public enum EditorSetting: Hashable, Sendable {
             self = .application(path: configured)
         } else if let editor = Editor(rawValue: (configured as NSString).lastPathComponent) {
             self = .editor(editor)
+        } else if Self.isBundleID(configured) {
+            self = .applicationID(configured)
         } else {
             self = .automatic
         }
+    }
+
+    /// `dev.gloss.Gloss`: dotted, with no slash or space. Editors' names (`code`, `subl`) have no dot.
+    public static func isBundleID(_ text: String) -> Bool {
+        let parts = text.split(separator: ".", omittingEmptySubsequences: false)
+        return parts.count >= 2 && parts.allSatisfy { !$0.isEmpty }
+            && !text.contains("/") && !text.contains(where: \.isWhitespace)
     }
 
     /// What config.toml holds; nil (automatic) removes the key.
@@ -159,6 +170,7 @@ public enum EditorSetting: Hashable, Sendable {
         case .automatic: nil
         case let .editor(editor): editor.rawValue
         case let .application(path): path
+        case let .applicationID(id): id
         }
     }
 

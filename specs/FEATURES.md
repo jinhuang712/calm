@@ -453,7 +453,7 @@ Looks: specs/UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** 
 
 **Gap:** OSC 8 links get no mark. A tag from before `/clear` shows nothing. After `claude` restarts in a session, an old tag can show the new conversation's image, because Calm does not know which run drew a row. Calm does not join some links that a program cut across lines.
 
-**Settings:** 2. Editor: auto-detected (VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode), or Settings → General → Choose Application…, or `editor = "…"` under `[files]`. Another application opens the file but not at the line. Where a path opens is set per kind of file: Markdown, web pages, images, PDF and code, each **Calm** (the viewer), **Default** (the app macOS picks, a browser for a web page) or **Editor**, as `open-markdown`, `open-html`, `open-images`, `open-pdf` and `open-code` under `[files]`. Web pages default to **Default**, the rest to **Calm**. An older `open-in = "editor"` still sends every kind that is not set to the editor. The files column and `calm open` always use the viewer.
+**Settings:** 2. Editor: auto-detected (VS Code, Cursor, Trae, Windsurf, Zed, Sublime Text, IntelliJ IDEA, Xcode), or Settings → General → Choose Application…, or `editor = "…"` under `[files]` (a name such as `cursor`, a path, an `.app` path or a bundle ID such as `dev.gloss.Gloss`). Choose Application… saves the bundle ID when macOS finds that same app by it, so the setting survives the app moving. Another application opens the file but not at the line. A set editor that is not found falls back to automatic, and says so: the ⌘ tag reads "Gloss not found · Open in VS Code", and Settings → General notes it under Editor. Where a path opens is set per kind of file: Markdown, web pages, images, PDF and code, each **Calm** (the viewer), **Default** (the app macOS picks, a browser for a web page) or **Editor**, as `open-markdown`, `open-html`, `open-images`, `open-pdf` and `open-code` under `[files]`. Web pages default to **Default**, the rest to **Calm**. An older `open-in = "editor"` still sends every kind that is not set to the editor. The files column and `calm open` always use the viewer.
 
 #### Plain ⌘ works in programs that take the mouse
 
@@ -469,6 +469,16 @@ Looks: specs/UIUX.md → Find. Plan: plans/ROADMAP.md → M8, M9. **Settings:** 
 
 - **Instead of:** joining every row that reaches the edge.
 - **Why:** words that end at the edge would glue together.
+
+#### A missing editor is named, then skipped
+
+- **Instead of:** falling back in silence, or refusing to open.
+- **Why:** a deleted `.app` sent files to another editor for weeks with no sign why (2026-11-08). The file still opens.
+
+#### An app is saved by bundle ID
+
+- **Instead of:** its path only.
+- **Why:** apps move and get rebuilt. A path stays for a copy macOS would not pick by ID (a dev build beside the installed one).
 
 #### Xcode is the editor last
 

@@ -16,6 +16,9 @@ public struct LinkPreview: Equatable, Sendable {
         case viewer
         case editor(String)
         case defaultApp
+        /// The editor set in Settings is gone: named, then the file goes to `fallback` (an editor
+        /// found automatically), or to its default app when that is nil.
+        case missingEditor(String, fallback: String?)
     }
 
     public var kind: Kind
@@ -55,6 +58,7 @@ public struct LinkPreview: Equatable, Sendable {
         case .viewer: "Open in viewer"
         case let .editor(editor): "Open in \(editor)"
         case .defaultApp: "Open"
+        case let .missingEditor(missing, fallback): "\(missing) not found · " + (fallback.map { "Open in \($0)" } ?? "Open")
         }
         return LinkPreview(
             kind: isImage ? .image : .file,

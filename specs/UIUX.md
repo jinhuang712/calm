@@ -146,7 +146,7 @@ An agent session is a card of up to five lines. Sizes and heights are in `Sessio
 - **At rest:** a faint dotted line runs under each link that opens, so a mark always means a ⌘-click works. Marks fade in once the text holds still (`LinkMarksView`).
 - **Holding ⌘:** libghostty underlines the link and shows the pointing hand. A tag appears under the link with an icon, the name, what a click does and the folder or URL path (`LinkTag`). It takes no clicks.
 - A link a program cut across rows looks whole under ⌘: one tag and a solid underline on every row.
-- **Images:** the tag shows Quick Look's thumbnail. An agent's pasted image (`[Image #4]`) shows large. A missing file dims the name and reads "Not found".
+- **Images:** the tag shows Quick Look's thumbnail. An agent's pasted image (`[Image #4]`) shows large. A missing file dims the name and reads "Not found". An editor set in Settings that is gone leads the action: "Gloss not found · Open in VS Code".
 - **Programs that take the mouse:** under ⌘ a link behaves the same, but there are no resting marks, because such a screen redraws too often.
 - **Table cells, holding ⌥** (Copy Cell): the cell under the pointer gets a dotted outline. An ⌥-click copies it ("Cell copied"). An ⌥-drag selects text inside the cell ("Copied").
 

@@ -50,4 +50,28 @@ struct LinkOpenerTests {
         #expect(LinkOpener.preview(of: .file(path: folder.path + "/src", line: nil, column: nil), text: "src").kind == .folder)
         #expect(try LinkOpener.preview(of: .url(#require(URL(string: "https://ghostty.org/docs"))), text: "").action == "Open in browser")
     }
+
+    @Test func `a set editor that is gone is named and the file still goes somewhere`() {
+        let gone = EditorLocator.choice(configured: "/Users/me/deleted/build/Gloss.app")
+        #expect(gone.missing == "Gloss")
+        #expect(gone.target?.name == EditorLocator.choice(configured: nil).target?.name)
+        #expect(EditorLocator.choice(configured: "dev.calm.no-such-app.\(UUID().uuidString)").missing != nil)
+        #expect(EditorLocator.choice(configured: "/no/such/bin/code").missing == "Visual Studio Code")
+        #expect(EditorLocator.choice(configured: nil).missing == nil)
+    }
+
+    @Test func `an application is found by its bundle ID`() {
+        // Finder is on every Mac, wherever macOS keeps it.
+        let finder = EditorLocator.choice(configured: "com.apple.finder")
+        #expect(finder.missing == nil)
+        #expect(finder.target?.name == "Finder")
+    }
+
+    @Test func `a missing editor leads the tag`() {
+        #expect(LinkOpener.editorDestination(.init(target: nil, missing: "Gloss")) == .missingEditor("Gloss", fallback: nil))
+        #expect(LinkOpener.editorDestination(.init(target: nil, missing: nil)) == .defaultApp)
+        #expect(EditorLocator.missingName("dev.gloss.Gloss") == "Gloss")
+        #expect(EditorLocator.missingName("~/Applications/Nova.app") == "Nova")
+        #expect(EditorLocator.missingName("cursor") == "Cursor")
+    }
 }

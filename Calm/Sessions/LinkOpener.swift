@@ -72,13 +72,20 @@ enum LinkOpener {
             let kind = ViewableKind.of(path)
             let destination: LinkPreview.Destination = if opensInViewer(path) {
                 .viewer
-            } else if opener(for: path) == .editor, let target = EditorLocator.find() {
-                .editor(target.name)
+            } else if opener(for: path) == .editor {
+                editorDestination(EditorLocator.choice())
             } else {
                 .defaultApp
             }
             return .file(path: path, line: line, isImage: kind == .image, destination: destination, home: home)
         }
+    }
+
+    static func editorDestination(_ choice: EditorLocator.Choice) -> LinkPreview.Destination {
+        if let missing = choice.missing {
+            return .missingEditor(missing, fallback: choice.target?.name)
+        }
+        return choice.target.map { .editor($0.name) } ?? .defaultApp
     }
 
     static func openOutside(_ link: Link) {
@@ -149,32 +156,85 @@ enum EditorTarget {
     }
 }
 
-/// Finds the user's editor: the `files.editor` setting (a name such as `cursor`, a path, or an
-/// application chosen in Settings), else the first installed in `Editor`'s order (VS Code and its
-/// forks, Zed, Sublime Text, IntelliJ IDEA, then Xcode). A GUI app's PATH is minimal, so known
-/// install locations are checked directly.
+/// Finds the user's editor: the `files.editor` setting (a name such as `cursor`, a path, an
+/// application chosen in Settings by its `.app` path or bundle ID), else the first installed in
+/// `Editor`'s order (VS Code and its forks, Zed, Sublime Text, IntelliJ IDEA, then Xcode). A GUI app's
+/// PATH is minimal, so known install locations are checked directly.
 enum EditorLocator {
+    private static let log = Logger(subsystem: "com.jinhuang.calm", category: "links")
+
+    /// What the setting comes to: the editor files go to, and the one set but not found, by name.
+    struct Choice {
+        var target: EditorTarget?
+        var missing: String?
+    }
+
     @MainActor
     static func find() -> EditorTarget? {
-        if let configured = SessionManager.shared.settings.string("files.editor"), !configured.isEmpty {
-            let path = (configured as NSString).expandingTildeInPath
-            if configured.hasSuffix(".app") {
-                // An app that has since been deleted falls through to automatic.
-                if FileManager.default.fileExists(atPath: path) {
-                    let app = URL(filePath: path)
-                    return tool(inApplication: app).map { .tool($0.0, $0.1) } ?? .application(app)
-                }
-            } else {
-                let name = (configured as NSString).lastPathComponent
-                let editor = Editor(rawValue: name) ?? .vscode
-                if configured.contains("/") {
-                    return .tool(editor, URL(filePath: path))
-                }
-                if let editor = Editor(rawValue: name), let url = locations(for: editor).first(where: isExecutable) {
-                    return .tool(editor, url)
-                }
-            }
+        choice().target
+    }
+
+    /// A set editor that is gone falls back to automatic, and is named so the ⌘ tag and Settings
+    /// can say so (specs/FEATURES.md → A missing editor is named, then skipped).
+    @MainActor
+    static func choice() -> Choice {
+        choice(configured: SessionManager.shared.settings.string("files.editor"))
+    }
+
+    static func choice(configured: String?) -> Choice {
+        guard let configured, !configured.isEmpty else { return Choice(target: automatic()) }
+        if let target = target(configured: configured) {
+            return Choice(target: target)
         }
+        let missing = missingName(configured)
+        log.notice("editor \(configured, privacy: .public) not found, using automatic")
+        return Choice(target: automatic(), missing: missing)
+    }
+
+    private static func target(configured: String) -> EditorTarget? {
+        let path = (configured as NSString).expandingTildeInPath
+        if configured.hasSuffix(".app") {
+            return FileManager.default.fileExists(atPath: path) ? target(application: URL(filePath: path)) : nil
+        }
+        let name = (configured as NSString).lastPathComponent
+        if configured.contains("/") {
+            // A tool given by path: run as the editor its name says, else with VS Code's arguments.
+            return isExecutable(URL(filePath: path)) ? .tool(Editor(rawValue: name) ?? .vscode, URL(filePath: path)) : nil
+        }
+        if let editor = Editor(rawValue: name) {
+            return locations(for: editor).first(where: isExecutable).map { .tool(editor, $0) }
+        }
+        if EditorSetting.isBundleID(configured) {
+            return application(bundleID: configured).map(target(application:))
+        }
+        return nil
+    }
+
+    private static func target(application app: URL) -> EditorTarget {
+        tool(inApplication: app).map { .tool($0.0, $0.1) } ?? .application(app)
+    }
+
+    /// The application macOS knows by this bundle ID, wherever it is now.
+    static func application(bundleID: String) -> URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+    }
+
+    /// The set editor as people know it: "Gloss" for `/Applications/Gloss.app` or `dev.gloss.Gloss`.
+    static func missingName(_ configured: String) -> String {
+        if configured.hasSuffix(".app") {
+            return EditorSetting.applicationName(path: configured)
+        }
+        let name = (configured as NSString).lastPathComponent
+        if let editor = Editor(rawValue: name) {
+            return editor.displayName
+        }
+        if !configured.contains("/"), EditorSetting.isBundleID(configured), let last = configured.split(separator: ".").last {
+            return String(last)
+        }
+        return name
+    }
+
+    private static func automatic() -> EditorTarget? {
         for editor in Editor.allCases {
             if let url = locations(for: editor).first(where: isExecutable) {
                 return .tool(editor, url)

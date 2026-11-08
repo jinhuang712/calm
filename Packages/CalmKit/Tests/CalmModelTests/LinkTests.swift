@@ -80,13 +80,24 @@ struct LinkTests {
         #expect(EditorSetting(configured: "/opt/homebrew/bin/code") == .editor(.vscode))
         #expect(EditorSetting(configured: "/Applications/Typora.app") == .application(path: "/Applications/Typora.app"))
         #expect(EditorSetting(configured: "nvim") == .automatic)
+        #expect(EditorSetting(configured: "dev.gloss.Gloss") == .applicationID("dev.gloss.Gloss"))
+        #expect(EditorSetting(configured: "com.microsoft.VSCode") == .applicationID("com.microsoft.VSCode"))
+    }
+
+    @Test func `only a dotted word without slashes or spaces is a bundle ID`() {
+        #expect(EditorSetting.isBundleID("dev.gloss.Gloss"))
+        #expect(!EditorSetting.isBundleID("code"))
+        #expect(!EditorSetting.isBundleID("dev..Gloss"))
+        #expect(!EditorSetting.isBundleID(".Gloss"))
+        #expect(!EditorSetting.isBundleID("./bin/edit.sh"))
+        #expect(!EditorSetting.isBundleID("my editor.v2"))
     }
 
     @Test func `the editor setting is written as it was read`() {
         #expect(EditorSetting.automatic.configured == nil)
         #expect(EditorSetting.editor(.sublime).configured == "subl")
         #expect(EditorSetting.application(path: "/Applications/Typora.app").configured == "/Applications/Typora.app")
-        for configured in ["subl", "/Users/me/Applications/Nova.app"] {
+        for configured in ["subl", "/Users/me/Applications/Nova.app", "dev.gloss.Gloss"] {
             #expect(EditorSetting(configured: configured).configured == configured)
         }
     }

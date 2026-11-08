@@ -11,6 +11,8 @@ final class GeneralSettingsModel {
     /// Automatic is the first installed editor (LinkOpener's order).
     private(set) var editor = EditorSetting.automatic
     private(set) var installed: [Editor] = []
+    /// The set editor that isn't found, and where files go instead.
+    private(set) var editorChoice = EditorLocator.Choice()
     /// Where each kind of file opens (`files.open-<kind>`).
     private(set) var openers: [CalmSettings.FileKind: CalmSettings.FileOpener] = [:]
     private(set) var autoGrouping = true
@@ -24,6 +26,7 @@ final class GeneralSettingsModel {
         let settings = SessionManager.shared.settings
         installed = EditorLocator.installed
         editor = EditorSetting(configured: settings.string("files.editor"))
+        editorChoice = EditorLocator.choice()
         openers = Dictionary(uniqueKeysWithValues: CalmSettings.FileKind.allCases.map { ($0, settings.opener(for: $0)) })
         autoGrouping = settings.autoGrouping
         checksForUpdates = settings.checksForUpdates
@@ -34,6 +37,7 @@ final class GeneralSettingsModel {
     func setEditor(_ value: EditorSetting) {
         editor = value
         save("files.editor", value.configured)
+        editorChoice = EditorLocator.choice()
     }
 
     /// "Choose Application…": the system's file picker, on /Applications.
@@ -45,15 +49,37 @@ final class GeneralSettingsModel {
         // A known editor at its usual place is the plain choice, by name, so it isn't listed twice.
         if let (editor, tool) = EditorLocator.tool(inApplication: app), EditorLocator.locations(for: editor).contains(tool) {
             setEditor(.editor(editor))
+        } else if let id = Bundle(url: app)?.bundleIdentifier, EditorSetting.isBundleID(id),
+                  EditorLocator.application(bundleID: id)?.standardizedFileURL.path == app.standardizedFileURL.path {
+            // By ID, so the setting survives the app moving. Only when macOS picks this same copy by
+            // it: a dev build beside the installed app stays a path.
+            setEditor(.applicationID(id))
         } else {
             setEditor(.application(path: app.path))
         }
     }
 
-    /// Said under the row only when the chosen app can't open a file at a line.
+    /// Said under the row when the set editor is gone, or when the chosen app can't open a file at
+    /// a line.
     var editorNote: String? {
-        guard case let .application(path) = editor, EditorLocator.tool(inApplication: URL(filePath: path)) == nil else { return nil }
+        if let missing = editorChoice.missing {
+            return "\(missing) isn't found. Files open in \(editorChoice.target?.name ?? "their default app")."
+        }
+        // A known editor's bundle resolves to its tool, so `.application` is one with no command line.
+        guard case .application = editorChoice.target else { return nil }
         return "Opens the file, not at the line."
+    }
+
+    /// An application's name in the menu: by its bundle when found, else as the setting names it.
+    static func applicationLabel(_ setting: EditorSetting) -> String? {
+        switch setting {
+        case let .application(path):
+            EditorSetting.applicationName(path: path)
+        case let .applicationID(id):
+            EditorLocator.application(bundleID: id).map { EditorSetting.applicationName(path: $0.path) } ?? EditorLocator.missingName(id)
+        case .automatic, .editor:
+            nil
+        }
     }
 
     func setOpener(_ value: CalmSettings.FileOpener, for kind: CalmSettings.FileKind) {
@@ -184,8 +210,8 @@ struct GeneralSection: View {
         var options: [(value: EditorSetting, label: String)] = [(value: .automatic, label: automatic)]
         options += model.installed.map { (value: EditorSetting.editor($0), label: $0.displayName) }
         // An app chosen with "Choose Application…" stays listed (and ticked) beside the editors found.
-        if case let .application(path) = model.editor {
-            options.append((value: .application(path: path), label: EditorSetting.applicationName(path: path)))
+        if let label = GeneralSettingsModel.applicationLabel(model.editor) {
+            options.append((value: model.editor, label: label))
         }
         return options
     }

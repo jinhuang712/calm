@@ -25,8 +25,10 @@ Calm is not a service, but it has a pipeline that someone must keep working: the
 
 1. Bump the version in `project.yml` and `CLI/main.swift`, and run `xcodegen generate`. `VersionTests` fails when they disagree.
 2. Give the version a section in CHANGELOG.md headed `## X.Y.Z — <date>`. Put each paragraph and item on one line, because a release's notes break lines wherever the text does.
-3. Land it on `main`.
+3. Land it on `main` as one commit.
 4. When CI on `main` is green, push the tag on that commit: `git tag vX.Y.Z <sha>`, `git push origin vX.Y.Z`.
+
+- **Bump only to release, and tag the same day.** Every build reads its version as the release it follows, and the update notice compares versions only. 0.1.5 sat untagged on `main` for eleven days (2026-10-29 to 11-09): each edge and local build in that time called itself 0.1.5, so the real 0.1.5 read as up to date on them.
 
 `.github/workflows/release.yml` does the rest. It checks the tag, builds from source with no cache (so a release proves a fresh clone builds), tests, makes and checks a disk image (`scripts/disk-image.sh`), and publishes. Then it starts `homebrew.yml` and `get.yml`, and restarts the edge build.
 

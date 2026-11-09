@@ -27,6 +27,7 @@ A public preview for macOS 14.5 and later on Apple silicon. These changes follow
 - The terminal engine is Ghostty 1.4 (upstream commit 6ba14415, nine fixes after the 1.4.0 tag), built with Zig 0.17. Ghostty's release notes say it compresses scrollback that is off screen while a terminal is idle; in Calm the process footprint with 8,000 or 200,000 lines of scrollback was the same as before (245 and 247 MB, against 243 and 246 MB; 2026-10-29), so expect no saving there. Smooth scrolling moves as before (a 3-row region scroll is 102 px in both) and Calm's own budgets hold (`mise run perf`).
 
 ### Fixes
+- On macOS 27, a window that fills the screen gets square corners, as on macOS 26. macOS 27 renamed a method Calm relies on, so they stayed round.
 - A file ⌘-clicked into an app that is already running (an editor chosen with Choose Application…, or the file's default app) can come forward. Calm used to keep the front.
 - macOS no longer offers one-time codes from Messages and Mail at the cursor in Calm.
 - A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.

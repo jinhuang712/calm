@@ -9,8 +9,8 @@ import OSLog
 /// window's frame and gives the window server its shape: for a `CalmWindow` that asks for square
 /// corners they answer none, and for every other window they ask AppKit's own.
 ///
-/// Checked on macOS 26.5 by reading `_cornerMask`, the shape the window server is handed: square
-/// for the window that asks, round for another window at the same time, round again after
+/// Checked on macOS 26.5 and 27.0.1 by reading `_cornerMask`, the shape the window server is handed:
+/// square for the window that asks, round for another window at the same time, round again after
 /// (CalmWindowTests); no test sees the screen itself. A macOS without these methods, or with
 /// other types for them, gets nothing overridden, and its corners stay round.
 @MainActor
@@ -21,7 +21,9 @@ enum SquareCorners {
     private typealias RadiusMethod = @convention(c) (AnyObject, Selector) -> Double
     private typealias SizeMethod = @convention(c) (AnyObject, Selector) -> CGSize
 
-    private static let radiusMethods = ["_cornerRadius", "_getCachedWindowCornerRadius"]
+    /// macOS 27 renamed the cached radius (`_getCachedWindowCornerRadius` on 26), so whichever the
+    /// frame has is the second radius method.
+    private static let cachedRadiusNames = ["_getCachedWindowCornerRadius", "_getCachedDefaultWindowCornerRadius"]
     private static let sizeMethods = ["_topCornerSize", "_bottomCornerSize"]
 
     /// Overrides the methods once, for the whole app; all four or none.
@@ -32,6 +34,10 @@ enum SquareCorners {
             log.info("no NSThemeFrame: window corners stay round")
             return
         }
+        let cachedRadius = cachedRadiusNames.first {
+            class_getInstanceMethod(frameClass, NSSelectorFromString($0)) != nil
+        } ?? cachedRadiusNames[0]
+        let radiusMethods = ["_cornerRadius", cachedRadius]
         let expected = radiusMethods.map { ($0, "d16@0:8") } + sizeMethods.map { ($0, "{CGSize=dd}16@0:8") }
         var methods: [String: Method] = [:]
         for (name, types) in expected {

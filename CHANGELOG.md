@@ -2,7 +2,11 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
-## Unreleased
+## 0.1.5 — 2026-11-09
+
+A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.4. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).
+
+**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
 
 ### Sidebar
 - **Pin** a session from its menu or ⌘P to keep it in a Pinned group at the top of the sidebar. Its card names its project, and ⌘1…9 and ⌃Tab count it first. **Unpin** sends it back to its group, and closing it ends the pin.
@@ -11,32 +15,22 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ### Agents
 - `calm new --command "<command>"` starts a session that runs the command as written, for one session with its own start options, such as a system prompt, when `flags` in config.toml would change every session.
+- `calm new --model <name>` starts the new session with that model, for a script that wants a cheaper or stronger one than ⌘N's default.
+- `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
 
 ### Files
 - Web pages (HTML) open in the default app, a browser, instead of Calm's viewer. Settings → General → Opening files sets Markdown, web pages, images, PDF and code each to Calm, Default or Editor. An older `open-in = "editor"` keeps working for the kinds you have not set.
 - An editor set in Settings that is gone is named: the ⌘ tag reads "Gloss not found · Open in VS Code", and Settings → General says it under Editor. It used to fall back in silence.
 - Choose Application… saves the app's bundle ID, and `editor = "dev.gloss.Gloss"` works in config.toml, so a moved app still opens.
 
+### Engine
+- The terminal engine is Ghostty 1.4 (upstream commit 6ba14415, nine fixes after the 1.4.0 tag), built with Zig 0.17. Ghostty's release notes say it compresses scrollback that is off screen while a terminal is idle; in Calm the process footprint with 8,000 or 200,000 lines of scrollback was the same as before (245 and 247 MB, against 243 and 246 MB; 2026-10-29), so expect no saving there. Smooth scrolling moves as before (a 3-row region scroll is 102 px in both) and Calm's own budgets hold (`mise run perf`).
+
 ### Fixes
 - A file ⌘-clicked into an app that is already running (an editor chosen with Choose Application…, or the file's default app) can come forward. Calm used to keep the front.
 - macOS no longer offers one-time codes from Messages and Mail at the cursor in Calm.
 - A command Calm starts a session with (⌘N, a resume, a fork, `calm new`) shows once in zsh. It used to show twice, the first time above the shell's login line.
 - A card says "1 shell running" and keeps its mark moving only for a real shell. Claude Code's other background work, such as the watch on an Artifact's comments, used to count as one.
-
-## 0.1.5 — 2026-10-29
-
-A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.4. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).
-
-**Update** with **Update and Restart** in the sidebar's update notice, or run `curl -fsSL https://raw.githubusercontent.com/jinhuang712/calm/main/get.sh | bash` again and choose Calm → Restart Calm. Your shells keep running. Restart soon after installing: until then, the old Calm's shells can lose access to Desktop, Documents and Downloads.
-
-### Agents
-- `calm new --model <name>` starts the new session with that model, for a script that wants a cheaper or stronger one than ⌘N's default.
-- `calm doctor --report` prints a redacted Markdown bug report (the checks and the last minutes of the trace) that an agent can show you and, once you agree, file as an issue. Calm uploads nothing.
-
-### Engine
-- The terminal engine is Ghostty 1.4 (upstream commit 6ba14415, nine fixes after the 1.4.0 tag), built with Zig 0.17. Ghostty's release notes say it compresses scrollback that is off screen while a terminal is idle; in Calm the process footprint with 8,000 or 200,000 lines of scrollback was the same as before (245 and 247 MB, against 243 and 246 MB; 2026-10-29), so expect no saving there. Smooth scrolling moves as before (a 3-row region scroll is 102 px in both) and Calm's own budgets hold (`mise run perf`).
-
-### Fixes
 - A long first message (about 800 bytes, or 270 Chinese characters) in `calm new` or `calm fork` is no longer cut off in the middle of a character and left unsent. Calm types a short `source` line and the whole command comes from a private file that removes itself.
 - A permission prompt you answered no longer keeps the card on "Needs you" while Claude Code works. The card returns to Working when Claude's status says it is busy.
 - A relative path in a link opens the file in the agent's git worktree first, then in the session's folder.

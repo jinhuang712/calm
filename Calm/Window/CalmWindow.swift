@@ -87,37 +87,6 @@ final class CalmWindow: NSWindow {
         screen.map { Self.isFilled(frame: frame, in: $0.visibleFrame) } ?? false
     }
 
-    // MARK: Corners
-
-    /// Square while the window fills the screen, where its rounded corners would let the desktop
-    /// show through against the menu bar and the screen's edges (SquareCorners). Full screen has
-    /// square corners of its own.
-    private(set) var hasSquareCorners = false
-
-    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing: NSWindow.BackingStoreType, defer flag: Bool) {
-        super.init(contentRect: contentRect, styleMask: style, backing: backing, defer: flag)
-        SquareCorners.install()
-        let center = NotificationCenter.default
-        for name in [
-            NSWindow.didResizeNotification, NSWindow.didMoveNotification, NSWindow.didChangeScreenNotification,
-            NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification,
-        ] {
-            center.addObserver(self, selector: #selector(updateCorners), name: name, object: self)
-        }
-        // The Dock showing or hiding changes the screen's usable area.
-        center.addObserver(self, selector: #selector(updateCorners), name: NSApplication.didChangeScreenParametersNotification, object: nil)
-    }
-
-    @objc func updateCorners() {
-        setSquareCorners(isFilled && !styleMask.contains(.fullScreen))
-    }
-
-    func setSquareCorners(_ square: Bool) {
-        guard square != hasSquareCorners else { return }
-        hasSquareCorners = square
-        SquareCorners.refresh(self)
-    }
-
     /// Fills the screen again on a relaunch, from the frame the window has now (AppKit's saved,
     /// windowed one; a zoomed window leaves it as it was). A window that opened already filled
     /// has no size for Zoom or Fill to go back to: `zoom` records it for Zoom, and

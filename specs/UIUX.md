@@ -70,7 +70,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - **Files column:** an optional column for the focused session's project, one surface with the sidebar. The footer's Show Files row and the title strip's readout lead the user to it. See `FilesColumn`.
 - Its header shows the project, the branch and the line totals (added in *done*'s sage, removed in *failed*'s muted red). **CHANGES** lists changed files with their lines. **FILES** is the tree.
 - **Narrowest window:** the shown panels plus 400 pt for the main area, never wider than the screen. At the default sidebar, 720 pt, so two windows tile on a 13-inch screen. A panel opened in a window too narrow for it widens the window.
-- **Corners:** square while the window fills the screen. Otherwise rounded as macOS draws them. Where Calm cannot change them (a macOS that no longer has the private methods it relies on), they stay rounded. See `SquareCorners`.
+- **Corners:** rounded as macOS draws them, also while the window fills the screen (specs/FEATURES.md → The window keeps macOS's rounded corners).
 
 **Title bar:** there is no visible title bar. A strip at the top stands in for it. The window's hidden title carries the session's name, or "Calm" with no session. A double-click on the strip does what System Settings → Desktop & Dock says.
 

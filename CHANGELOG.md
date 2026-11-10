@@ -4,6 +4,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ## Unreleased
 
+### Window
+- A window that fills the screen keeps macOS's rounded corners. Calm used to make them square.
+
 ### Sidebar
 - Shrink cards to fit folds idle cards first. Working cards, cards that wait for you and idle cards with shells running keep their size longest. Every card in a group used to step down together.
 

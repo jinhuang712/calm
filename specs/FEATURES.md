@@ -104,7 +104,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 - ⌘V pastes text as text and copied files as escaped paths. Any other image becomes a PNG in the temporary folder and its path is pasted, so Claude Code attaches it.
 - Input methods, dictation and the emoji picker work. Committed text goes to the program as typed keys, never as a paste.
 - macOS's one-time code menu stays out of Calm: codes from Messages and Mail are not offered at the cursor (not yet verified with a real code).
-- A double-click on the title strip does what System Settings → Desktop & Dock says. The window is square-cornered while it fills the screen.
+- A double-click on the title strip does what System Settings → Desktop & Dock says.
 - The window returns as left: size, place, filled or full screen. The narrowest window is the shown panels plus 400 pt, never wider than the screen.
 
 **Gap:** once in six test launches the window came back filled, not full screen. The cause is not known.
@@ -123,6 +123,11 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 
 - **Instead of:** pasting image data.
 - **Why:** a terminal cannot carry image data, but agents attach an image from its path. Screenshots are saved as PNGs in the temporary folder, so macOS clears old pastes.
+
+#### The window keeps macOS's rounded corners (decided 2026-11-11)
+
+- **Instead of:** square corners while the window fills the screen (0.1.0 to 0.1.5).
+- **Why:** the user finds the rounded corners better looking, and a sliver of desktop at each corner of a filled window is a small price. Square corners took overrides of four private AppKit methods, which macOS 27 already broke once.
 
 ### F2 — Projects and auto-grouping 🚧
 

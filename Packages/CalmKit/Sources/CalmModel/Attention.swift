@@ -122,7 +122,9 @@ public extension Workspace {
     ///   *needs you* takes it back.
     /// - *Done* and *failed* stay put even where the user is looking; the session settles when
     ///   they leave it (`Workspace.select`, `settle`).
-    /// - A compaction's start and end are kept on the session for its card (`Compaction`).
+    /// - A compaction's start and end are kept on the session for its card (`Compaction`). One
+    ///   the agent begins on a card at rest shows as *working* while it runs, then puts the card
+    ///   back as it was (`Compaction.resting`).
     /// - `newTurn` (a prompt came in) starts the turn over even from *needs you*: a question left
     ///   unanswered (Esc sends no hook) isn't part of the next turn.
     @discardableResult
@@ -137,6 +139,17 @@ public extension Workspace {
         let isFocused = id == focusedSessionID
         let newState = report.state
         noteCompaction(index, report)
+        // The agent's own compaction ending ends no turn, and starts none: one it began at rest
+        // puts the card back as it was, and one heard of only at its end leaves a card at rest be.
+        if case .ended(.auto) = report.compaction {
+            if let resting = sessions[index].compaction?.resting, previous.state == .working {
+                restoreRest(index, resting)
+                return .none
+            }
+            if previous.state != .working {
+                return .none
+            }
+        }
         if report.compaction == nil, previous.state == newState, previous.lastReport?.message == report.message,
            previous.lastReport?.source == report.source,
            (previous.lastReport?.backgroundShells ?? 0) == report.backgroundShells {

@@ -197,8 +197,10 @@ extension ClaudeCodeAdapter: HookReporting {
             return report(.working, compaction: .started(trigger))
         case "PostCompact":
             // A `/compact` you typed is over and waits for your next prompt (no Stop follows it);
-            // one Claude began on its own goes back to the turn, whose Stop comes later. Esc
-            // cancels a compaction with neither (the transcript tells, `Workspace`).
+            // one Claude began on its own goes back to the turn, whose Stop comes later, or, begun
+            // after the turn ended (idle compaction, 2.1.322: the same "auto"), to the card it
+            // found (`Compaction.resting`). Esc cancels a compaction with neither (the transcript
+            // tells, `Workspace`).
             if trigger == .manual {
                 return report(.done, "Conversation compacted.", compaction: .ended(.manual))
             }

@@ -20,6 +20,19 @@ public struct Compaction: Hashable, Sendable {
     public var tokensBefore: Int?
     /// What it kept, once the transcript says.
     public var tokensAfter: Int?
+    /// The card it found at rest, when the agent began it on its own after the turn was over
+    /// (Claude Code's idle compaction, seen in 2.1.322): its end puts the card back as it was,
+    /// because no turn follows and no Stop comes. Nil inside a turn, for a `/compact`, and once
+    /// the agent speaks of anything else while it runs (a prompt, a tool): that is a turn now.
+    public var resting: Resting?
+
+    /// A card's state as an idle compaction found it.
+    public struct Resting: Hashable, Sendable {
+        public var state: SessionState
+        public var stateSince: Date?
+        public var lastReport: StatusReport?
+        public var turnStartedAt: Date?
+    }
 
     public init(trigger: Trigger, startedAt: Date, endedAt: Date? = nil, tokensBefore: Int? = nil, tokensAfter: Int? = nil) {
         self.trigger = trigger
@@ -159,9 +172,17 @@ extension Workspace {
     mutating func noteCompaction(_ index: Int, _ report: StatusReport) {
         switch report.compaction {
         case let .started(trigger):
-            sessions[index].compaction = Compaction(
-                trigger: trigger, startedAt: report.date, tokensBefore: sessions[index].agent?.tail?.contextTokens,
-            )
+            let session = sessions[index]
+            var compaction = Compaction(trigger: trigger, startedAt: report.date, tokensBefore: session.agent?.tail?.contextTokens)
+            // Inside a turn the card already works: the prompt's hook comes before the
+            // compaction's. One the agent begins on a card at rest is its own housekeeping.
+            if trigger == .auto, session.state != .working {
+                compaction.resting = Compaction.Resting(
+                    state: session.state, stateSince: session.stateSince, lastReport: session.lastReport,
+                    turnStartedAt: session.turnStartedAt,
+                )
+            }
+            sessions[index].compaction = compaction
         case let .ended(trigger):
             var compaction = sessions[index].compaction ?? Compaction(
                 trigger: trigger, startedAt: report.date, tokensBefore: sessions[index].agent?.tail?.contextTokens,
@@ -173,12 +194,26 @@ extension Workspace {
                 noteCompactionRecord(index, recorded)
             }
         case nil:
+            guard report.source == .hook, sessions[index].compaction?.endedAt == nil else { return }
             // The agent moved on without saying the compaction ended; a report that isn't
-            // *working* can't be one made while it compacts.
-            if sessions[index].compaction?.endedAt == nil, report.source == .hook, report.state != .working {
+            // *working* can't be one made while it compacts. One that is (a prompt, a tool) makes
+            // an idle compaction part of a turn, which its own Stop ends.
+            if report.state != .working {
                 sessions[index].compaction = nil
+            } else {
+                sessions[index].compaction?.resting = nil
             }
         }
+    }
+
+    /// Puts back the card an idle compaction found (`Compaction.resting`), keeping the
+    /// compaction itself for its bar.
+    mutating func restoreRest(_ index: Int, _ resting: Compaction.Resting) {
+        sessions[index].state = resting.state
+        sessions[index].stateSince = resting.stateSince
+        sessions[index].lastReport = resting.lastReport
+        sessions[index].turnStartedAt = resting.turnStartedAt
+        sessions[index].compaction?.resting = nil
     }
 
     /// The transcript recorded a compaction: if it's the session's, its sizes, and its end
@@ -195,7 +230,8 @@ extension Workspace {
     /// after it began with no record of it ending. Esc cancels a compaction with no hook at all,
     /// and leaves only a message (Claude Code 2.1.291); while one runs, the transcript gains
     /// bookkeeping (a queued prompt, a link), never a message. A `/compact` cancelled goes back
-    /// to idle; one Claude began on its own was mid-turn, and the turn's interruption settles it.
+    /// to idle, and one Claude began at rest to the card it found; one Claude began mid-turn is
+    /// settled by the turn's interruption.
     mutating func noteCompactionInTranscript(_ index: Int, _ tail: TranscriptTail, readAt date: Date) {
         guard let compaction = sessions[index].compaction else { return }
         if let recorded = tail.lastCompaction, compaction.isRecorded(by: recorded) {
@@ -206,7 +242,9 @@ extension Workspace {
             return
         }
         sessions[index].compaction = nil
-        if compaction.trigger == .manual, sessions[index].state == .working {
+        if let resting = compaction.resting, sessions[index].state == .working {
+            restoreRest(index, resting)
+        } else if compaction.trigger == .manual, sessions[index].state == .working {
             sessions[index].state = .idle
             sessions[index].lastReport = StatusReport(state: .idle, message: nil, source: .hook, date: date)
         }

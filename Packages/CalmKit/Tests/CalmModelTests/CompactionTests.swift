@@ -118,10 +118,65 @@ struct CompactionTests {
         workspace.updateTranscriptTail(id, recorded(at: 99))
         workspace.report(id, hook(.working, at: 100), focusedSessionID: nil)
         #expect(workspace.session(id)?.compactionBar(now: start + 100) == .drained(from: 968_495, to: 13000))
-        // Heard of first at its end, on a card at rest: the turn it starts keeps it.
+        // Heard of first at its end, on a card at rest: the card stays at rest, with the bar.
         var (resting, restingID) = self.workspace(state: .idle)
         resting.report(restingID, hook(.working, nil, .ended(.auto), at: 99), focusedSessionID: nil)
+        #expect(resting.session(restingID)?.state == .idle)
         #expect(resting.session(restingID)?.compaction?.endedAt == start + 99)
+    }
+
+    // Claude Code 2.1.322 compacts on its own after a turn, before the prompt cache expires: the
+    // same PreCompact and PostCompact ("auto"), then nothing (Calm's trace, 2026-11-10).
+
+    @Test func `an idle compaction shows as working, then puts the done card back as it was`() {
+        var (workspace, id) = workspace(state: .idle)
+        workspace.report(id, hook(.done, "Restyled the diff page.", at: -60), focusedSessionID: nil)
+        let before = workspace.session(id)
+        workspace.report(id, hook(.working, nil, .started(.auto), at: 0), focusedSessionID: nil)
+        #expect(workspace.session(id)?.state == .working)
+        #expect(workspace.session(id)?.liveWords(nil, at: start + 30) == "Compacting")
+        let effect = workspace.report(id, hook(.working, nil, .ended(.auto), at: 77), focusedSessionID: nil)
+        #expect(effect == AttentionEffect.none)
+        workspace.updateTranscriptTail(id, recorded(at: 77))
+        let session = workspace.session(id)
+        #expect(session?.state == .done)
+        #expect(session?.lastReport?.message == "Restyled the diff page.")
+        #expect(session?.lastReport == before?.lastReport)
+        #expect(session?.stateSince == before?.stateSince)
+        #expect(session?.turnStartedAt == nil)
+        // The bar drains and goes, as after a compaction mid-turn.
+        #expect(session?.compactionBar(now: start + 78) == .drained(from: 968_495, to: 13000))
+        #expect(session?.compactionBar(now: start + 82) == nil)
+    }
+
+    @Test func `an idle compaction on a card you read puts it back to idle`() {
+        var (workspace, id) = workspace(state: .idle)
+        workspace.report(id, hook(.working, nil, .started(.auto), at: 0), focusedSessionID: nil)
+        workspace.report(id, hook(.working, nil, .ended(.auto), at: 77), focusedSessionID: nil)
+        #expect(workspace.session(id)?.state == .idle)
+    }
+
+    @Test func `a prompt during an idle compaction makes it the turn's, which its Stop ends`() {
+        var (workspace, id) = workspace(state: .idle)
+        workspace.report(id, hook(.done, "Restyled the diff page.", at: -60), focusedSessionID: nil)
+        workspace.report(id, hook(.working, nil, .started(.auto), at: 0), focusedSessionID: nil)
+        workspace.report(id, hook(.working, at: 10), focusedSessionID: nil, newTurn: true)
+        workspace.report(id, hook(.working, nil, .ended(.auto), at: 77), focusedSessionID: nil)
+        #expect(workspace.session(id)?.state == .working)
+        workspace.report(id, hook(.done, "Added the tests.", at: 300), focusedSessionID: nil)
+        #expect(workspace.session(id)?.state == .done)
+        #expect(workspace.session(id)?.lastReport?.message == "Added the tests.")
+    }
+
+    @Test func `an idle compaction cancelled with no hook puts the card back too`() {
+        var (workspace, id) = workspace(state: .idle)
+        workspace.report(id, hook(.done, "Restyled the diff page.", at: -60), focusedSessionID: nil)
+        workspace.report(id, hook(.working, nil, .started(.auto), at: 0), focusedSessionID: nil)
+        let tail = TranscriptTail(lastMessage: "Running the suite before the docs.", contextTokens: 968_495, newestMessageAt: start + 5)
+        workspace.updateTranscriptTail(id, tail, readAt: start + 6)
+        #expect(workspace.session(id)?.compaction == nil)
+        #expect(workspace.session(id)?.state == .done)
+        #expect(workspace.session(id)?.lastReport?.message == "Restyled the diff page.")
     }
 
     @Test func `a starting compaction isn't taken for a repeat of the working it already was`() {

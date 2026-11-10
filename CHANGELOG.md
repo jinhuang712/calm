@@ -2,6 +2,11 @@
 
 What changed in each release of Calm Terminal. Before 1.0 anything may change between versions.
 
+## Unreleased
+
+### Fixes
+- When Claude Code compacts on its own after a turn ("Compacted while idle"), the card says Working · Compacting while it runs, then goes back to Done or Idle. It used to stay on Working until the next prompt, and a restart waiting for the turn to end never ran.
+
 ## 0.1.5 — 2026-11-09
 
 A public preview for macOS 14.5 and later on Apple silicon. These changes follow 0.1.4. Exact behavior is in [FEATURES.md](specs/FEATURES.md) and [CLI.md](specs/CLI.md).

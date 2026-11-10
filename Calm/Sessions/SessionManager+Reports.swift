@@ -25,8 +25,10 @@ extension SessionManager {
         Trace.reported(id, report, before: previous, after: workspace.session(id)?.state)
         AttentionCenter.shared.apply(effect, for: id)
         // Opted in (Agents panel): a turn finishing or failing where you aren't looking notifies too.
+        // The end of the agent's own compaction is no turn's: a card it puts back at *done* has
+        // told you already.
         if settings.notifyStates == .all, let state = workspace.session(id)?.state, state != previous,
-           state == .done || state == .failed, id != lookingAtSessionID {
+           state == .done || state == .failed, id != lookingAtSessionID, report.compaction != .ended(.auto) {
             AttentionCenter.shared.notify(report.message, state: state, for: id)
         }
         // A restart that waited for this turn to end can go now.

@@ -317,7 +317,7 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 - State comes from each agent's hooks or notifications. Terminal signals (bell, progress, desktop notifications) are the fallback, and alone work for Claude Code and Codex. Only the foreground agent speaks for a session.
 - Codex, and OpenCode until connected, have no working hook. Calm reads their conversation files: an open turn is **working**, an ended one **done** (**failed** for OpenCode). An agent's hook outranks this guess.
 - A Claude Code turn that ends with its own background agent running stays **working**. Background *shells* do not hold the state: the turn is **done** and the card adds "· 2 shells running". Only shells count, so other background work, such as the watch on an Artifact's comments, leaves the card plain. The count survives a Calm restart.
-- While Claude Code **compacts**, the session stays **working** and the card says "Compacting", then a bar shows what was kept ("968k → 13k"). A typed `/compact` ends as **done**. A plain shell command that ran 10 seconds or more shows **done** or **failed** until the user moves on.
+- While Claude Code **compacts**, the session stays **working** and the card says "Compacting", then a bar shows what was kept ("968k → 13k"). A typed `/compact` ends as **done**. One Claude Code starts on its own after a turn (idle compaction) shows **working** while it runs, then puts the card back as it was. A plain shell command that ran 10 seconds or more shows **done** or **failed** until the user moves on.
 - Only **needs you** escalates: the row highlights, and when the user is not looking, a macOS notification arrives at the next natural pause. A **needs you** is never dropped.
 - A notification shows a state mark and the session name (✋ needs you, ✅ done, ⚠️ failed), then one or two Markdown-free lines of the agent's words. A click jumps to the session. **⌘⇧A** jumps to the one that has waited longest.
 - **The first launch of each build asks for every permission once:** notifications, then Documents, Desktop and Downloads. An update is a new build, and macOS forgets the old build's answers, so the first launch after an install asks again, all together. Removable and network volumes and Full Disk Access cannot be asked in advance.
@@ -344,6 +344,11 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 
 - **Instead of:** treating it as a finished turn.
 - **Why:** a card showed the old step through a compaction that takes a minute or two. An automatic compaction stays *working*, and a typed `/compact` ends as *done* with the bar kept until the next turn.
+
+#### An idle compaction puts the card back (since 2026-11-10)
+
+- **Instead of:** staying *working* until a Stop, or leaving the card at rest while it runs.
+- **Why:** Claude Code 2.1.322 compacts after a turn, before the prompt cache expires, with the same hooks as one mid-turn (trigger "auto") and no Stop after. The card stayed *working* for hours, and a restart waiting for the turn never ran. Showing it while it runs was the user's pick. A prompt or a tool call during it makes it part of that turn.
 
 #### The live line comes from hooks Calm already hears (since 2026-10-09)
 

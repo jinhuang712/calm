@@ -632,7 +632,7 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 #### Shrink to fit steps down exactly and up with a margin
 
 - **Instead of:** a size that follows every change.
-- **Why:** working agents change the contents every few seconds, and the size flipped at every state change. A step down waits 30 seconds before the next step up.
+- **Why:** working agents change the contents every few seconds, and the size flipped at every state change. A step down waits 30 seconds before the next step up. Pinned had one line for both ways and no wait, and folded and grew back 66 times in three hours (2026-11-11), so it now goes by the same rules.
 
 #### Shrink to fit folds idle cards first
 

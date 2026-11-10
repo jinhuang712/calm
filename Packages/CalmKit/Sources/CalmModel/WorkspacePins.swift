@@ -19,11 +19,9 @@ extension Session {
 }
 
 public extension Session {
-    /// The size this card is drawn at, of the two `TieredCardFit` keeps.
-    func cardSize(
-        others: CalmSettings.SessionCardSize, pinned: CalmSettings.SessionCardSize,
-    ) -> CalmSettings.SessionCardSize {
-        pinnedAt == nil ? others : pinned
+    /// The size this card is drawn at, from the two folds `TieredCardFit` keeps.
+    func cardSize(others: CardFold, pinned: CardFold) -> CalmSettings.SessionCardSize {
+        (pinnedAt == nil ? others : pinned).size(state: state, shellsRunning: shellsStillRunning > 0)
     }
 }
 

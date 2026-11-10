@@ -1,34 +1,35 @@
 /// Settings → Appearance → Session cards → Shrink to fit (specs/UIUX.md → Session cards): the cards
-/// take the largest size, up to the one chosen, at which the sidebar's sessions fit without
-/// scrolling. The list steps down a size when what's drawn is taller than its room, and back up
-/// when the larger size is expected to fit again.
+/// take the largest step, from the size chosen down, at which the sidebar's sessions fit without
+/// scrolling. The list steps down when what's drawn is taller than its room, and back up when the
+/// larger step is expected to fit again. A step is a size for every card, or a `CardFold`, which
+/// takes the quiet cards down before the busy ones.
 ///
-/// Stepping down trusts what was drawn. Stepping up can't draw the larger size first, so it
+/// Stepping down trusts what was drawn. Stepping up can't draw the larger step first, so it
 /// guesses from `SessionCardLayout.nominalHeight`, and three things keep a guess that's a
 /// little short from making the list flip back and forth (it did, by 4 to 12 pt, while agents
 /// worked and their states kept changing):
-/// - each step down measures how short the guess for the larger size was, and later guesses
+/// - each step down measures how short the guess for the larger step was, and later guesses
 ///   for it add that;
-/// - after a step down the cards stay down for `settle` seconds, so a sidebar near the edge
-///   doesn't change shape with every state change;
-/// - a size drawn taller than the room isn't tried again until the sessions change or the room
-///   is as tall as it was drawn, and growing keeps `margin` spare.
+/// - after a step down the cards stay down for `CardFit.settle` seconds, so a sidebar near the
+///   edge doesn't change shape with every state change;
+/// - a step drawn taller than the room isn't tried again until the sessions change or the room
+///   is as tall as it was drawn, and growing keeps `CardFit.margin` spare.
 ///
 /// When the room grows past the one the cards stepped down in, what they stepped down for is
-/// gone: they don't wait, and a size already drawn with the same sessions goes by its drawn
+/// gone: they don't wait, and a step already drawn with the same sessions goes by its drawn
 /// height, without the margin. A launch once laid the sidebar out in the window's saved frame
 /// before the window filled the screen again, and Full, stepped down there, never came back in
 /// the whole window (998 pt of 1001: less than the margin spare).
-public struct SessionCardFit: Equatable, Sendable {
+public struct SessionCardFit<Step: CardFitStep>: Equatable, Sendable {
     public typealias Size = CalmSettings.SessionCardSize
 
-    /// The size the cards are drawn at.
-    public private(set) var size: Size
-    /// How tall each size was last drawn, with the contents it was drawn with.
-    private var drawn: [Size: Drawn] = [:]
-    /// How much taller each size came out than the guess for it, as last measured.
-    private var shortfall: [Size: Double] = [:]
-    /// A step down whose smaller size hasn't been measured yet: from that, how short the guess
+    /// The step the cards are drawn at.
+    public private(set) var step: Step
+    /// How tall each step was last drawn, with the contents it was drawn with.
+    private var drawn: [Step: Drawn] = [:]
+    /// How much taller each step came out than the guess for it, as last measured.
+    private var shortfall: [Step: Double] = [:]
+    /// A step down whose smaller step hasn't been measured yet: from that, how short the guess
     /// for the larger one would have been.
     private var stepDown: StepDown?
     /// When the cards last stepped down.
@@ -42,61 +43,59 @@ public struct SessionCardFit: Equatable, Sendable {
     }
 
     private struct StepDown: Equatable, Sendable {
-        let from: Size
+        let from: Step
         let measured: Double
         let contents: Int
     }
 
-    /// Room kept free before growing.
-    public static let margin = 16.0
-    /// Seconds after a step down before the cards may step back up.
-    public static let settle = 30.0
-
-    public init(size: Size = .full) {
-        self.size = size
+    public init(step: Step) {
+        self.step = step
     }
 
-    /// Settles the size for what was just drawn. `measured` is the list's height at `size`,
-    /// `room` the height it has, `cards(size)` about how tall the cards would be at a size,
+    /// Settles the step for what was just drawn. `measured` is the list's height at `step`,
+    /// `room` the height it has, `cards(step)` about how tall the cards would be at a step,
     /// `contents` anything that identifies the sessions and what their cards hold (not the room,
-    /// which is `room`), and `now` a clock in seconds. Returns whether the size changed.
+    /// which is `room`), and `now` a clock in seconds. Returns whether the step changed.
     @discardableResult
     public mutating func update(
-        largest: Size, measured: Double, room: Double, cards: (Size) -> Double, contents: Int, now: Double,
+        largest: Size, measured: Double, room: Double, cards: (Step) -> Double, contents: Int, now: Double,
     ) -> Bool {
-        let before = size
-        learn(measured: measured, cards: cards, contents: contents)
-        drawn[size] = Drawn(height: measured, contents: contents)
-        if size.rank < largest.rank {
+        let before = step
+        let steps = Step.steps(from: largest)
+        learn(steps: steps, measured: measured, cards: cards, contents: contents)
+        drawn[step] = Drawn(height: measured, contents: contents)
+        guard let index = steps.firstIndex(of: step) else {
             // The chosen size went down: start from it.
-            size = largest
-        } else if measured > room + 0.5 {
-            if let smaller = size.smaller {
-                stepDown = StepDown(from: size, measured: measured, contents: contents)
+            step = steps[0]
+            return true
+        }
+        if measured > room + 0.5 {
+            if index + 1 < steps.count {
+                stepDown = StepDown(from: step, measured: measured, contents: contents)
                 steppedDownAt = now
                 steppedDownIn = room
-                size = smaller
+                step = steps[index + 1]
             }
         } else {
-            grow(largest: largest, measured: measured, room: room, cards: cards, contents: contents, now: now)
+            grow(larger: steps[..<index], measured: measured, room: room, cards: cards, contents: contents, now: now)
         }
-        return size != before
+        return step != before
     }
 
     /// While the cards are staying down after a step down, when they may step up again.
     public func growsAgain(after now: Double) -> Double? {
-        guard let steppedDownAt, now - steppedDownAt < Self.settle else { return nil }
-        return steppedDownAt + Self.settle
+        guard let steppedDownAt, now - steppedDownAt < CardFit.settle else { return nil }
+        return steppedDownAt + CardFit.settle
     }
 
-    /// Steps up to the largest size, up to `largest`, that's expected to fit.
+    /// Steps up to the largest of `larger` (largest first) that's expected to fit.
     private mutating func grow(
-        largest: Size, measured: Double, room: Double, cards: (Size) -> Double, contents: Int, now: Double,
+        larger: ArraySlice<Step>, measured: Double, room: Double, cards: (Step) -> Double, contents: Int, now: Double,
     ) {
         let roomGrew = steppedDownIn.map { room > $0 + 0.5 } ?? false
         guard roomGrew || growsAgain(after: now) == nil else { return }
-        let others = measured - cards(size)
-        for candidate in Size.allCases where candidate.rank >= largest.rank && candidate.rank < size.rank {
+        let others = measured - cards(step)
+        for candidate in larger {
             if let seen = drawn[candidate], seen.contents == contents {
                 // Drawn with these sessions and taller than the room: it won't fit now either.
                 if seen.height > room + 0.5 {
@@ -106,26 +105,50 @@ public struct SessionCardFit: Equatable, Sendable {
                 // the guess and its margin, because a recap growing a line changes a card without
                 // changing `contents`, and near the edge the cards would flip back and forth.
                 if roomGrew {
-                    size = candidate
+                    step = candidate
                     return
                 }
             }
-            if others + cards(candidate) + (shortfall[candidate] ?? 0) <= room - Self.margin {
-                size = candidate
+            if others + cards(candidate) + (shortfall[candidate] ?? 0) <= room - CardFit.margin {
+                step = candidate
                 return
             }
         }
     }
 
-    /// The first measurement after a step down: the larger size as drawn, against what the guess
+    /// The first measurement after a step down: the larger step as drawn, against what the guess
     /// from here would have said for it. Only for the same sessions: a card that changed in
     /// between would count as the guess's fault, and could keep the cards small for good.
-    private mutating func learn(measured: Double, cards: (Size) -> Double, contents: Int) {
-        guard let step = stepDown, step.from.rank < size.rank else { return }
+    private mutating func learn(steps: [Step], measured: Double, cards: (Step) -> Double, contents: Int) {
+        guard let down = stepDown, let from = steps.firstIndex(of: down.from), let at = steps.firstIndex(of: step),
+              from < at
+        else { return }
         stepDown = nil
-        guard step.contents == contents else { return }
-        let guess = measured - cards(size) + cards(step.from)
-        shortfall[step.from] = max(0, step.measured - guess)
+        guard down.contents == contents else { return }
+        let guess = measured - cards(step) + cards(down.from)
+        shortfall[down.from] = max(0, down.measured - guess)
+    }
+}
+
+/// What shrink to fit steps down through: one size for every card (`SessionCardSize`), or a fold
+/// that takes the quiet cards down first (`CardFold`).
+public protocol CardFitStep: Hashable, Sendable {
+    /// The steps from the chosen size down, largest first.
+    static func steps(from largest: CalmSettings.SessionCardSize) -> [Self]
+}
+
+/// The numbers shrink to fit keeps the cards steady with.
+public enum CardFit {
+    /// Room kept free before growing.
+    public static let margin = 16.0
+    /// Seconds after a step down before the cards may step back up.
+    public static let settle = 30.0
+}
+
+extension CalmSettings.SessionCardSize: CardFitStep {
+    /// The chosen size and every smaller one.
+    public static func steps(from largest: Self) -> [Self] {
+        allCases.filter { $0.rank >= largest.rank }
     }
 }
 

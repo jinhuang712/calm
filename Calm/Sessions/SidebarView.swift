@@ -159,13 +159,13 @@ struct SidebarView: View {
     /// Ties a session's row across projects, so a row that changes project glides there.
     @Namespace private var rows
 
-    /// The size the cards are drawn at, below `cardSize` while shrinking to fit.
-    private var shownCardSize: CalmSettings.SessionCardSize {
-        fitting.size(largest: cardSize, fitting: fitsCards)
+    /// The fold the cards are drawn at: every card at `cardSize`, or a step down while shrinking to fit.
+    private var shownFold: CardFold {
+        fitting.fold(largest: cardSize, fitting: fitsCards)
     }
 
-    private var shownPinnedCardSize: CalmSettings.SessionCardSize {
-        fitting.pinnedSize(largest: cardSize, fitting: fitsCards)
+    private var shownPinnedFold: CardFold {
+        fitting.pinnedFold(largest: cardSize, fitting: fitsCards)
     }
 
     private func refit() {
@@ -221,9 +221,9 @@ struct SidebarView: View {
                 .padding(.horizontal, 12.scaled)
                 // No room of its own at the foot: the footer's handle strip, or the strip along the
                 // bottom edge when it's hidden, is the gap.
-                // A new card size eases every card to its height.
-                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownCardSize)
-                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownPinnedCardSize)
+                // A new fold eases every card to its height.
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownFold)
+                .animation(Motion.isReduced ? nil : .easeInOut(duration: 0.25), value: shownPinnedFold)
             }
             .scrollIndicators(.never)
             .coordinateSpace(.named(Self.viewportSpace))
@@ -335,7 +335,7 @@ struct SidebarView: View {
         if let agent = session.agent?.kind {
             SessionCard(
                 session: session, agent: agent, isSelected: session.id == selectedSessionID, style: style,
-                size: session.cardSize(others: shownCardSize, pinned: shownPinnedCardSize), pinnedIn: pinnedIn,
+                size: session.cardSize(others: shownFold, pinned: shownPinnedFold), pinnedIn: pinnedIn,
                 isHovered: hoveredSessionID == session.id,
                 isConfirming: manager.confirming.contains(session.id),
                 inView: manager.workspace.sessionsInView.contains(session.id),

@@ -150,10 +150,20 @@ struct WorkspacePinsTests {
     @Test
     func `a pinned card takes the pinned size`() {
         var session = Session(projectID: UUID(), workingDirectory: "/code/calm")
-        #expect(session.cardSize(others: .minimal, pinned: .full) == .minimal)
+        #expect(session.cardSize(others: CardFold(.minimal), pinned: CardFold(.full)) == .minimal)
 
         session.pinnedAt = .now
-        #expect(session.cardSize(others: .minimal, pinned: .full) == .full)
+        #expect(session.cardSize(others: CardFold(.minimal), pinned: CardFold(.full)) == .full)
+    }
+
+    @Test
+    func `a card takes its fold's size for its state`() {
+        let fold = CardFold(quiet: .compact, busy: .full)
+        var session = Session(projectID: UUID(), workingDirectory: "/code/calm", state: .idle)
+        #expect(session.cardSize(others: fold, pinned: fold) == .compact)
+
+        session.state = .working
+        #expect(session.cardSize(others: fold, pinned: fold) == .full)
     }
 
     @Test

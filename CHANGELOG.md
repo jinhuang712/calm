@@ -4,6 +4,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 
 ## Unreleased
 
+### Sidebar
+- Shrink cards to fit folds idle cards first. Working cards, cards that wait for you and idle cards with shells running keep their size longest. Every card in a group used to step down together.
+
 ### Fixes
 - When Claude Code compacts on its own after a turn ("Compacted while idle"), the card says Working · Compacting while it runs, then goes back to Done or Idle. It used to stay on Working until the next prompt, and a restart waiting for the turn to end never ran.
 

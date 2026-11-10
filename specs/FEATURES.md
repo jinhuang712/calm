@@ -634,6 +634,11 @@ accent = "#…"           # optional: the chrome accent (else Calm's amber); nev
 - **Instead of:** a size that follows every change.
 - **Why:** working agents change the contents every few seconds, and the size flipped at every state change. A step down waits 30 seconds before the next step up.
 
+#### Shrink to fit folds idle cards first
+
+- **Instead of:** every card stepping down a size together.
+- **Why:** a group folding as one shrank its working cards with its idle ones (seen in Pinned, 2026-11-11). An idle card's recap line can go first. A working card, one that waits for the user and one with shells running keep their lines longest.
+
 ### F14 — Settings ✅
 
 ⌘, turns the window into Settings (specs/UIUX.md → Settings screen). ⌘, again, esc or going to a session leaves it. Sections: **Appearance** (window miniature, themes, window options, F11), **Agents**, **General**, **Shortcuts**.

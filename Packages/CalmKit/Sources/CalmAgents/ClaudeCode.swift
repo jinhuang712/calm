@@ -210,6 +210,28 @@ extension ClaudeCodeAdapter: HookReporting {
         }
     }
 
+    /// Claude Code says who runs it in `CLAUDE_CODE_ENTRYPOINT`, which its hooks inherit: `cli` for
+    /// `claude` in a terminal, `sdk-cli` for `claude -p`, `sdk-ts` and `sdk-py` for a program on the
+    /// Agent SDK, nothing until it sets one. An app sets its own name: `claude-desktop`,
+    /// `claude-vscode`, `local-agent` (read from 2.1.322's binary, 2026-11-11). Claude Desktop
+    /// opened from a Calm shell kept that shell's `CALM_SESSION_ID`, and its conversation turned
+    /// the card of a session whose `claude` had quit back to working (seen 2026-11-11).
+    public func runsInTerminal(environment: [String: String]) -> Bool {
+        guard let entrypoint = environment[Self.entrypointVariable], !entrypoint.isEmpty else { return true }
+        return entrypoint == "cli" || entrypoint.hasPrefix("sdk-")
+    }
+
+    /// Claude Code keeps an entrypoint it inherits, so a Calm started from an app's Claude Code
+    /// (its Bash tool running `calm open`) would hand `claude-desktop` to every `claude` in its
+    /// sessions, and none of their hooks would report (`runsInTerminal`). Claude Code tests the
+    /// variable for truth (2.1.322's binary), so an empty one has it name itself.
+    public func shellEnvironment(home _: URL, inherited: [String: String]) -> [String: String] {
+        guard let entrypoint = inherited[Self.entrypointVariable], !entrypoint.isEmpty else { return [:] }
+        return [Self.entrypointVariable: ""]
+    }
+
+    static let entrypointVariable = "CLAUDE_CODE_ENTRYPOINT"
+
     /// Where Calm writes the plugin, at each launch: its shells load it through
     /// `CLAUDE_CODE_PLUGIN_DIRS`, and `calm doctor` checks it's there. It lives in Calm's support
     /// folder, which a self-test moves (`CALM_SUPPORT_DIR`): when it didn't, every self-test of

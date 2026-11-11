@@ -232,6 +232,7 @@ They give up on the socket after 1 second (`scripts/cli-hook-check.sh`). `hook` 
 ### `calm hook <agent>`
 
 Reads an agent's hook payload on stdin and reports what it means. Calm's Claude Code plugin runs `calm hook claude-code` for every hook. An unknown agent does nothing.
+A Claude Code that an app runs does nothing either: its `CLAUDE_CODE_ENTRYPOINT` is neither `cli` nor `sdk-*` (Claude Desktop's is `claude-desktop`), and it carries a session id only because the app was opened from a Calm shell (specs/FEATURES.md → An app's Claude Code does not speak for a session).
 
 ## Connecting your own agent or script
 

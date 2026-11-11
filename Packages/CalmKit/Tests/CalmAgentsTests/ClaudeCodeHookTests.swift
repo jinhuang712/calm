@@ -224,4 +224,23 @@ struct ClaudeCodeHookTests {
         #expect(ClaudeCodeAdapter.hookEvents.contains("PreCompact"))
         #expect(ClaudeCodeAdapter.hookEvents.contains("PostCompact"))
     }
+
+    @Test func `a Claude Code in a terminal reports, one an app runs does not`() {
+        #expect(adapter.runsInTerminal(environment: [:]))
+        #expect(adapter.runsInTerminal(environment: ["CLAUDE_CODE_ENTRYPOINT": ""]))
+        for entrypoint in ["cli", "sdk-cli", "sdk-ts", "sdk-py"] {
+            #expect(adapter.runsInTerminal(environment: ["CLAUDE_CODE_ENTRYPOINT": entrypoint]), "\(entrypoint)")
+        }
+        for entrypoint in ["claude-desktop", "claude-desktop-3p", "claude-vscode", "local-agent", "remote"] {
+            #expect(!adapter.runsInTerminal(environment: ["CLAUDE_CODE_ENTRYPOINT": entrypoint]), "\(entrypoint)")
+        }
+    }
+
+    @Test func `shells clear an entrypoint that Calm inherited`() {
+        let home = URL(filePath: "/nonexistent")
+        let variable = "CLAUDE_CODE_ENTRYPOINT"
+        #expect(adapter.shellEnvironment(home: home, inherited: [:]).isEmpty)
+        #expect(adapter.shellEnvironment(home: home, inherited: [variable: ""]).isEmpty)
+        #expect(adapter.shellEnvironment(home: home, inherited: [variable: "claude-desktop"]) == [variable: ""])
+    }
 }

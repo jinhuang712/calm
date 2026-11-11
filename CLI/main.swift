@@ -149,6 +149,8 @@ case "hook":
     guard arguments.count > 1, let reporter = Agents.hookReporter(named: arguments[1]) else { exit(0) }
     let (session, _) = sessionAndWords([])
     guard let payload = HookInput.read(), let hook = reporter.hookReport(from: payload) else { exit(0) }
+    // Read the payload first, so the agent's write to stdin never fails.
+    guard reporter.runsInTerminal(environment: ProcessInfo.processInfo.environment) else { exit(0) }
     var words: (words: String?, group: String?) = (nil, nil)
     if case let .began(activity) = hook.activity {
         words = (activity.words, activity.group)

@@ -11,6 +11,7 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 - Shrink cards to fit folds idle cards first. Working cards, cards that wait for you and idle cards with shells running keep their size longest. Every card in a group used to step down together.
 
 ### Fixes
+- Claude Desktop opened from a Calm session no longer drives that session's card. Its conversation turned the card back to Working after `claude` had quit, over an empty prompt.
 - Pinned near the bottom of the sidebar no longer folds and grows back each time one of its cards changes state. Like the other groups, it now waits 30 seconds after folding, and grows back only with room to spare.
 - When Claude Code compacts on its own after a turn ("Compacted while idle"), the card says Working · Compacting while it runs, then goes back to Done or Idle. It used to stay on Working until the next prompt, and a restart waiting for the turn to end never ran.
 

@@ -319,7 +319,7 @@ None of these formats is a stable public contract. Each adapter has tests on fix
 
 Each agent session has one state: **working**, **needs you**, **done**, **failed** or **idle**.
 
-- State comes from each agent's hooks or notifications. Terminal signals (bell, progress, desktop notifications) are the fallback, and alone work for Claude Code and Codex. Only the foreground agent speaks for a session.
+- State comes from each agent's hooks or notifications. Terminal signals (bell, progress, desktop notifications) are the fallback, and alone work for Claude Code and Codex. Only the foreground agent speaks for a session, and only an agent in a terminal: a Claude Code that an app runs (Claude Desktop, VS Code) reports nothing.
 - Codex, and OpenCode until connected, have no working hook. Calm reads their conversation files: an open turn is **working**, an ended one **done** (**failed** for OpenCode). An agent's hook outranks this guess.
 - A Claude Code turn that ends with its own background agent running stays **working**. Background *shells* do not hold the state: the turn is **done** and the card adds "· 2 shells running". Only shells count, so other background work, such as the watch on an Artifact's comments, leaves the card plain. The count survives a Calm restart.
 - While Claude Code **compacts**, the session stays **working** and the card says "Compacting", then a bar shows what was kept ("968k → 13k"). A typed `/compact` ends as **done**. One Claude Code starts on its own after a turn (idle compaction) shows **working** while it runs, then puts the card back as it was. A plain shell command that ran 10 seconds or more shows **done** or **failed** until the user moves on.
@@ -339,6 +339,11 @@ Each agent session has one state: **working**, **needs you**, **done**, **failed
 
 - **Instead of:** staying *working* until every background task ends.
 - **Why:** a dev server or a watcher never ends. A Claude Code `Stop` with a subagent in flight stays *working*, because the subagent wakes Claude when it ends.
+
+#### An app's Claude Code does not speak for a session (since 2026-11-11)
+
+- **Instead of:** trusting every Claude Code hook that carries the session id.
+- **Why:** an app opened from a Calm shell inherits that shell's variables. Claude Desktop opened from a session went on with the same conversation after `claude` quit, and its hooks turned the card back to *working* over an empty prompt. Claude Code names who runs it in `CLAUDE_CODE_ENTRYPOINT`: `cli` and `sdk-*` are a terminal's, any other name is an app's. Calm's shells clear an entrypoint Calm itself inherited, because Claude Code keeps an inherited one.
 
 #### An answered permission prompt returns to *working* (since 2026-10-24)
 

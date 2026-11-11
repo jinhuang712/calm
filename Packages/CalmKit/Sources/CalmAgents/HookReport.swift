@@ -56,6 +56,16 @@ public protocol HookReporting: AgentAdapter {
     var hookName: String { get }
     /// Reads one hook payload; nil for events that don't change the session's state.
     func hookReport(from payload: Data) -> HookReport?
+    /// Whether the agent running this hook belongs to a terminal, read from the hook's own
+    /// environment. An app that runs the agent for itself, opened from a Calm shell, inherits that
+    /// session's `CALM_SESSION_ID` without being in it; then `calm hook` reports nothing.
+    func runsInTerminal(environment: [String: String]) -> Bool
+}
+
+public extension HookReporting {
+    func runsInTerminal(environment _: [String: String]) -> Bool {
+        true
+    }
 }
 
 public extension Agents {

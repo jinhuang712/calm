@@ -145,6 +145,7 @@
             default:
                 return performPaletteActionForTesting(action) || performSplitActionForTesting(action)
                     || performCompactionActionForTesting(action) || performProjectActionForTesting(action)
+                    || performRestartActionForTesting(action)
             }
         }
 

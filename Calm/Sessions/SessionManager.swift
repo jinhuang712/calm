@@ -65,7 +65,7 @@ final class SessionManager {
 
     /// Agents being restarted, or waiting for their turn to end to be (specs/FEATURES.md → F12,
     /// `SessionManager+Restart`). Not saved: a relaunch forgets a restart that hadn't begun.
-    var restarts: [Session.ID: RestartPhase] = [:]
+    var restarts = RestartTracker()
     /// Sessions whose agent runs an older version than the one installed (the title strip's
     /// update hint), from `checkAgentVersions`. Not saved.
     var agentUpdates: [Session.ID: AgentUpdate] = [:]
@@ -339,7 +339,7 @@ final class SessionManager {
         }
         panes[id]?.teardown()
         panes[id] = nil
-        restarts[id] = nil
+        restarts.end(id)
         agentUpdates[id] = nil
         runningVersions[id] = nil
         liveLines[id] = nil
@@ -507,9 +507,7 @@ final class SessionManager {
             }
             Trace.probed(id, "\(kind.rawValue) started (pid \(process.processID))", before: session, after: workspace.session(id))
             // A restart is over once the agent is back; a new process is checked afresh.
-            if restarts[id] == .restarting {
-                restarts[id] = nil
-            }
+            restarts.agentBack(id)
             agentUpdates[id] = nil
             runningVersions[id] = nil
         } else if let agent = session.agent, restarts[id] == .restarting {
@@ -525,9 +523,7 @@ final class SessionManager {
             }
             // The agent exited by itself: nothing is left to restart. (One being restarted exits
             // on purpose, and its command follows.)
-            if restarts[id] == .afterTurn {
-                restarts[id] = nil
-            }
+            restarts.agentExited(id)
             agentUpdates[id] = nil
             runningVersions[id] = nil
             Trace.probed(id, "\(agent.kind.rawValue) ended", before: session, after: workspace.session(id))

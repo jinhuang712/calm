@@ -3,20 +3,12 @@ import CalmModel
 import Darwin
 import Foundation
 
-/// Where a restart stands (specs/FEATURES.md → F12).
-enum RestartPhase: Equatable {
-    /// Waiting for the agent's turn to end: a restart now would cut the turn off, or drop the
-    /// question it is waiting on you for.
-    case afterTurn
-    /// Asked to quit; the command that starts it again follows once it has.
-    case restarting
-}
-
 /// Restarting an agent on its conversation (specs/FEATURES.md → F12, DESIGNS.md → An agent is quit in the way it quits cleanly):
 /// after an update, so the session runs the new version and carries on where it was. The agent
 /// is asked to quit with its adapter's signal; once its process is gone, the command that starts
 /// it again with the same options on the same conversation is typed into its shell. The session's
-/// menu, ⌘P and the title strip's update hint call it; nothing restarts by itself.
+/// menu, ⌘P and the title strip's update hint call it; nothing restarts by itself. Each session's
+/// phase is kept by `restarts` (`RestartTracker`), which this file and `foregroundChanged` drive.
 extension SessionManager {
     /// The agent that a restart would start again here: one running, whose conversation is known
     /// and whose adapter knows how to quit it.
@@ -36,11 +28,12 @@ extension SessionManager {
     @discardableResult
     func requestRestart(_ id: Session.ID) -> Bool {
         guard let session = workspace.session(id), Self.restartableAgent(session) != nil else { return false }
-        guard restarts[id] == nil else { return true }
-        if Self.isMidTurn(session.state) {
-            restarts[id] = .afterTurn
+        switch restarts.ask(id, midTurn: Self.isMidTurn(session.state)) {
+        case .underWay:
+            break
+        case .waitsForTurn:
             Trace.note("restart \(Trace.id(id)): after this turn")
-        } else {
+        case .startNow:
             beginRestart(id)
         }
         return true
@@ -48,9 +41,9 @@ extension SessionManager {
 
     /// Takes back a restart that is still waiting for the turn to end.
     func cancelRestart(_ id: Session.ID) {
-        guard restarts[id] == .afterTurn else { return }
-        restarts[id] = nil
-        Trace.note("restart \(Trace.id(id)): taken back")
+        if restarts.takeBack(id) {
+            Trace.note("restart \(Trace.id(id)): taken back")
+        }
     }
 
     /// The sessions a Restart All for `kind` would restart.
@@ -68,9 +61,9 @@ extension SessionManager {
     /// Starts the restarts whose turn has ended, and forgets those whose agent has gone. Called
     /// when a state changes and from the probe.
     func runDueRestarts() {
-        for (id, phase) in restarts where phase == .afterTurn {
+        for id in restarts.waiting {
             guard let session = workspace.session(id), session.agent != nil else {
-                restarts[id] = nil
+                restarts.end(id)
                 continue
             }
             if !Self.isMidTurn(session.state) {
@@ -88,11 +81,11 @@ extension SessionManager {
                   arguments: process.commandLine, agentSessionID: agent.agentSessionID, transcriptPath: agent.transcriptPath ?? "",
               )
         else {
-            restarts[id] = nil
+            restarts.end(id)
             Trace.note("restart \(Trace.id(id)): no agent process or command, nothing done")
             return
         }
-        restarts[id] = .restarting
+        restarts.quitting(id)
         let processID = process.processID
         Trace.note("restart \(Trace.id(id)): asking pid \(processID) to quit")
         var presses = 0
@@ -125,7 +118,7 @@ extension SessionManager {
     /// A restart that didn't bring the agent back: its run ends as if it had exited, so the card
     /// doesn't go on showing an agent that isn't there.
     func endRestart(_ id: Session.ID) {
-        restarts[id] = nil
+        restarts.end(id)
         guard let agent = workspace.session(id)?.agent, ProcessInspector.snapshot(of: agent.processID) == nil else { return }
         // `changeWorkspace` writes only a change, and ending a run is one, so this is the write it was.
         changeWorkspace(animation: .easeInOut(duration: 0.25)) { $0.endAgentRun(id) }

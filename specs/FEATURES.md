@@ -131,7 +131,7 @@ A fast, correct terminal on libghostty. **Settings:** none beyond the Ghostty co
 
 ### F2 — Projects and auto-grouping 🚧
 
-The session is the unit of work: a conversation with a goal, a folder, an agent and a history. Tabs and panes only show a session.
+The session is the unit of work: a conversation with a goal, a folder, an agent and a history. Tabs and panes only show a session. What an action touches (shell, folder, conversation) is in [DESIGNS.md → A session is a shell, a folder and a conversation](../DESIGNS.md#a-session-is-a-shell-a-folder-and-a-conversation).
 
 The sidebar groups sessions in this order: Pinned, Scratch, Projects, Folders. **Settings:** 1, `auto-grouping = false` under `[sidebar]` in `~/.config/calm/config.toml` (Settings → General). Off, sessions stay in their first group. ⌘⇧, reloads it.
 
@@ -268,6 +268,28 @@ Quitting Calm detaches shells and does not kill them. **Settings:** none.
 - In a split the question sits on the pane: Return closes, any other key keeps. An empty agent-made worktree goes with the session (F15).
 - **Reopen:** **⌘⇧T** reopens the last closed session, up to ten, with a new shell and the old folder, name, project and place. A running agent resumes. Scratch sessions do not reopen.
 - **Copy** has Session ID, Resume Command, Folder Path and Open in Finder. **Fork** starts a conversation copy in a new split or tab with the original's options.
+
+**What Restart does.** It is a Resume of a running agent: wait for the turn to end, ask the agent to quit as the table says, wait up to 5 s for its process to go, then type the resume command with the options it ran with. Nothing is typed if the process stays. The card keeps its place meanwhile, and after 10 s without the agent it stops showing one.
+
+| From | When | To |
+|---|---|---|
+| nothing | Restart, between turns | restarting |
+| nothing | Restart, the agent working or waiting on you | after this turn |
+| after this turn | the turn ends | restarting |
+| after this turn | Don't Restart, the agent exits by itself, or the session closes | nothing |
+| restarting | the agent is back | nothing |
+| restarting | the agent does not quit, does not come back within 10 s, or the session closes | nothing |
+
+**Where a command's options come from.** One builder makes every resume, fork and restart command. Only the source of the options differs.
+
+| Start | Options |
+|---|---|
+| Restart | the running process's command line, read just before it quits |
+| Resume, Fork, ⌘⇧T, a resume after the Mac restarted, `calm fork` | the command line saved when Calm saw the agent start |
+| ⌘K resume of a conversation Calm did not see, `calm show` | ⌘N's settings (F15) |
+| ⌘N and ⌘⇧N | ⌘N's settings: the `command` as written, else the agent, `flags` and the chips |
+
+The transitions are `RestartTracker`'s and have a test each. The quit and the wait are `AgentQuit.perform`'s, run on a clock the tests move.
 
 #### Calm draws the session menu
 

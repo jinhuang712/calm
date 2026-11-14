@@ -28,6 +28,26 @@ The user supervises many agents, so the thing Calm models is not a tab but a con
 - **Instead of:** tabs that hold panes, with sessions inside.
 - **Why:** the card, the notification and the state need one owner. Joining, taking out and unsplitting change which sessions share a layout, and touch no session and no shell. Calm has one window, and libghostty's requests for a new window become new sessions.
 
+### A session is a shell, a folder and a conversation
+
+- **Instead of:** one word for the card, the shell under it and the agent's conversation.
+- **Why:** an action touches some of the three, never all. Closing ends the shell and leaves the conversation, which ⌘K, ⌘⇧T and a project's Earlier list bring back in a new shell. Restart keeps the shell and replaces the agent's process. Scratch differs in one thing: its folder is Calm's, and may be deleted.
+- **The three:** the **shell** is kept by zmx and outlives Calm. The **folder** is a project's, a git root's or a scratch folder. The **conversation** is the agent's own transcript and id, which Calm reads and never owns (§2 → Agents' data is read, not owned).
+
+| Action | Shell | Folder | Conversation |
+|---|---|---|---|
+| ⌘T New Shell | new | current | none |
+| ⌘N New *Agent* Session | new | current | new |
+| ⌘⇧N New Scratch Session | new | new, temporary | new |
+| ⌘W Close | ends | scratch: asks | stays |
+| ⌘⇧T Reopen | new | the old one | resumes (scratch: not reopened) |
+| Resume | same | same | continues |
+| Restart *Agent* | same | same | quit, then resumed |
+| Fork | new | same | copied |
+| Restart Calm | kept | n/a | n/a |
+
+- **Read from** specs/FEATURES.md → F2, F3, F12 and F15; the table adds no behavior. A gap it shows is in plans/TODO.md.
+
 ### A session has one of five states
 
 - **Instead of:** a status string per agent.

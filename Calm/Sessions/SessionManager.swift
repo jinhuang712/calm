@@ -679,18 +679,3 @@ final class SessionManager {
         }
     }
 }
-
-/// Here for the workspace's private setter; the rest of restarting is in SessionManager+Restart.
-extension SessionManager {
-    /// A restart that didn't bring the agent back: its run ends as if it had exited, so the card
-    /// doesn't go on showing an agent that isn't there.
-    func endRestart(_ id: Session.ID) {
-        restarts[id] = nil
-        guard let agent = workspace.session(id)?.agent, ProcessInspector.snapshot(of: agent.processID) == nil else { return }
-        Motion.animate(.easeInOut(duration: 0.25)) {
-            workspace.endAgentRun(id)
-        }
-        Trace.note("restart \(Trace.id(id)): the agent didn't come back")
-        scheduleSave()
-    }
-}

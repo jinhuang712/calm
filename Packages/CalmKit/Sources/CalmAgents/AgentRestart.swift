@@ -5,16 +5,6 @@ import Foundation
 // options it was started with, so a restart after an update changes nothing but the version. The
 // same options are kept for a resume or a fork once the agent has exited (`AgentRun.options`).
 
-/// How Calm asks an agent to quit before starting it again. Each was checked against the real
-/// agent in a pty (2026-10-07): it exits and turns off every terminal mode it turned on.
-public enum AgentQuit: Sendable, Equatable {
-    /// A signal the agent handles by tidying up and exiting.
-    case signal(Int32)
-    /// ⌃C as the keyboard sends it, and again every half second while the agent hasn't quit, up to
-    /// `times`: for an agent that tidies up on its own quit key but dies untidily on any signal.
-    case controlC(times: Int)
-}
-
 /// A command line's options, read the way the agent's own parser reads them, so a restart or a
 /// resume can keep them and leave out what would start something else: a prompt (it would be sent
 /// again), and options that pick or create the conversation, which the resume names itself.

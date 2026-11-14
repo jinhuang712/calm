@@ -2,6 +2,7 @@ import CalmAgents
 import CalmModel
 import Darwin
 import Foundation
+import SwiftUI
 
 /// Restarting an agent on its conversation (specs/FEATURES.md → F12, DESIGNS.md → An agent is quit in the way it quits cleanly):
 /// after an update, so the session runs the new version and carries on where it was. The agent
@@ -10,6 +11,12 @@ import Foundation
 /// menu, ⌘P and the title strip's update hint call it; nothing restarts by itself. Each session's
 /// phase is kept by `restarts` (`RestartTracker`), which this file and `foregroundChanged` drive.
 extension SessionManager {
+    /// How long after its command is typed a restart waits to see the agent again, before it
+    /// gives the agent up as not coming back (`endRestart`).
+    private static let comeBackPatience = Duration.seconds(10)
+    /// The card's change when a run ends, as `foregroundChanged` makes it for an agent that exits.
+    private static let runEnds = Animation.easeInOut(duration: 0.25)
+
     /// The agent that a restart would start again here: one running, whose conversation is known
     /// and whose adapter knows how to quit it.
     nonisolated static func restartableAgent(_ session: Session) -> AgentKind? {
@@ -88,30 +95,15 @@ extension SessionManager {
         restarts.quitting(id)
         let processID = process.processID
         Trace.note("restart \(Trace.id(id)): asking pid \(processID) to quit")
-        var presses = 0
-        switch quit {
-        case let .signal(signal):
-            Darwin.kill(processID, signal)
-        case .controlC:
-            pressControlC(in: id)
-            presses = 1
-        }
         Task { [weak self] in
-            // The agents take under a second (Claude Code 0.3 s, Codex 0.5 s a press). One still
-            // there after 5 s isn't quitting: leave it be.
-            let started = ContinuousClock.now
-            var lastPress = started
-            while ProcessInspector.snapshot(of: processID) != nil, ContinuousClock.now < started + .seconds(5) {
-                try? await Task.sleep(for: .milliseconds(50))
-                // Again while it hasn't quit: a draft takes a press of its own.
-                if case let .controlC(times) = quit, presses < times, ContinuousClock.now - lastPress >= .milliseconds(500),
-                   ProcessInspector.snapshot(of: processID) != nil {
-                    self?.pressControlC(in: id)
-                    presses += 1
-                    lastPress = .now
-                }
-            }
-            self?.finishRestart(id, quit: ProcessInspector.snapshot(of: processID) == nil, command: command)
+            let didQuit = await quit.perform(
+                processID: processID,
+                isRunning: { ProcessInspector.snapshot(of: $0) != nil },
+                signal: { _ = Darwin.kill($0, $1) },
+                pressControlC: { self?.pressControlC(in: id) },
+                clock: ContinuousClock(),
+            )
+            self?.finishRestart(id, quit: didQuit, command: command)
         }
     }
 
@@ -121,7 +113,7 @@ extension SessionManager {
         restarts.end(id)
         guard let agent = workspace.session(id)?.agent, ProcessInspector.snapshot(of: agent.processID) == nil else { return }
         // `changeWorkspace` writes only a change, and ending a run is one, so this is the write it was.
-        changeWorkspace(animation: .easeInOut(duration: 0.25)) { $0.endAgentRun(id) }
+        changeWorkspace(animation: Self.runEnds) { $0.endAgentRun(id) }
         Trace.note("restart \(Trace.id(id)): the agent didn't come back")
         scheduleSave()
     }
@@ -153,7 +145,7 @@ extension SessionManager {
         // The probe ends the phase when it sees the agent again. A command that failed (the agent
         // printed an error and exited) mustn't leave the strip saying "Restarting…".
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(10))
+            try? await Task.sleep(for: Self.comeBackPatience)
             if self?.restarts[id] == .restarting {
                 self?.endRestart(id)
             }

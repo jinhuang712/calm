@@ -24,9 +24,9 @@ struct HintLine: View {
                     action: { actions.newAgentSession(nil) },
                     menu: { OtherAgentsMenu(actions: actions) },
                 )
-                HintButton(keys: "⌘T", title: "Shell", help: "New Session (⌘T)", style: style, action: actions.newSession)
+                HintButton(keys: "⌘T", title: "Shell", help: "New Shell (⌘T)", style: style, action: actions.newSession)
             } else {
-                HintButton(keys: "⌘T", title: "New session", help: "New Session (⌘T)", style: style, action: actions.newSession)
+                HintButton(keys: "⌘T", title: "Shell", help: "New Shell (⌘T)", style: style, action: actions.newSession)
             }
             HintButton(keys: "⌘⇧N", title: "Scratch", help: "New Scratch Session (⌘⇧N)", style: style, action: actions.newScratchSession)
             HintButton(keys: "⌘O", title: "New project…", help: "New Project (⌘O)", style: style, action: actions.newProject)

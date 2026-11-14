@@ -10,6 +10,9 @@ What changed in each release of Calm Terminal. Before 1.0 anything may change be
 ### Sidebar
 - Shrink cards to fit folds idle cards first. Working cards, cards that wait for you and idle cards with shells running keep their size longest. Every card in a group used to step down together.
 
+### Wording
+- ⌘T is called **New Shell** in the menu, the sidebar footer, the welcome page, a project's home and Settings. It always opened a shell, while ⌘N's rows open an agent, so the two were not both New Session.
+
 ### Fixes
 - Claude Desktop opened from a Calm session no longer drives that session's card. Its conversation turned the card back to Working after `claude` had quit, over an empty prompt.
 - Pinned near the bottom of the sidebar no longer folds and grows back each time one of its cards changes state. Like the other groups, it now waits 30 seconds after folding, and grows back only with room to spare.

@@ -63,7 +63,7 @@ enum MainMenu {
         let menu = NSMenu(title: "Shell")
         // Named for the agent it starts when the menu opens (`validateMenuItem`).
         menu.addItem(actionItem("New Agent Session", #selector(TerminalMenuTarget.newAgentSession(_:)), key: "n"))
-        menu.addItem(actionItem("New Session", #selector(TerminalMenuTarget.newSession(_:)), key: "t"))
+        menu.addItem(actionItem("New Shell", #selector(TerminalMenuTarget.newSession(_:)), key: "t"))
         menu.addItem(actionItem(
             "New Scratch Session",
             #selector(TerminalMenuTarget.newScratchSession(_:)),
@@ -328,7 +328,7 @@ extension TerminalMenuTarget: NSMenuItemValidation {
         if item.action == #selector(newAgentSession(_:)) {
             // With no agent to start, ⌘N opens a plain shell, as ⌘T does.
             let agent = MainWindowController.newSessionAgent(settings: SessionManager.shared.settings)
-            item.title = agent.map { "New \($0.displayName) Session" } ?? "New Session"
+            item.title = agent.map { "New \($0.displayName) Session" } ?? "New Shell"
         }
         let controller = TerminalWindowManager.shared.focusedController
         let viewing = controller?.fileViewer.isShowing == true

@@ -89,7 +89,7 @@ public extension CalmSettings {
             name: "sidebar.footer",
             kind: .bool,
             defaultValue: "true",
-            about: "The ways to start under the sidebar: ⌘N's agent, New Session, Scratch, New Project…, Show Files",
+            about: "The ways to start under the sidebar: ⌘N's agent, New Shell, Scratch, New Project…, Show Files",
         ),
         Key(
             name: "sidebar.auto-grouping",

@@ -152,9 +152,9 @@ The sidebar groups sessions in this order: Pinned, Scratch, Projects, Folders. *
 - A project's mark is a pattern made from its name. It is the same on every launch.
 - **Launch:** Calm starts where the user left off. With nothing open, a welcome page shows with no sidebar. Calm never opens a session nobody asked for.
 - The page has Calm's mark, a **search field** over past sessions and projects, **Recent sessions** beside **Projects** (last row **New project…**), and the start line **⌘N** *your agent* ⌄ · **⌘T** Shell · **⌘⇧N** Scratch · **⌘O** New project….
-- Typing filters both lists. ↑ ↓ move, ← → change list, ↵ opens, Esc clears, **⌘K** focuses the field. With no project, the page shows "Welcome to Calm" (first launch only) and the rows Start *your agent* ⌘N, Start a shell ⌘T, Try a scratch session ⌘⇧N, Open a project ⌘O. With no agent, ⌘T reads New session.
+- Typing filters both lists. ↑ ↓ move, ← → change list, ↵ opens, Esc clears, **⌘K** focuses the field. With no project, the page shows "Welcome to Calm" (first launch only) and the rows Start *your agent* ⌘N, Start a shell ⌘T, Try a scratch session ⌘⇧N, Open a project ⌘O. With no agent, the ⌘N row is left out.
 - **No session chosen:** after the session on screen closes, Calm picks none. With a session waiting, large cards show under **WAITING ON YOU**. With nothing waiting, the welcome search and lists fill the area.
-- **Footer:** **New *Agent* Session ⌘N** (⌄ under the pointer), **New Session ⌘T** (current session's folder), **New Scratch Session ⌘⇧N**, **New Project… ⌘O**, **Show Files ⌘\\**.
+- **Footer:** **New *Agent* Session ⌘N** (⌄ under the pointer), **New Shell ⌘T** (current session's folder), **New Scratch Session ⌘⇧N**, **New Project… ⌘O**, **Show Files ⌘\\**.
 - A chevron over the footer hides it, and the sidebar's bottom edge brings it back (`footer = false` under `[sidebar]`, no Settings row).
 - **⌘⌃S** hides and shows the sidebar, which peeks in at the left window edge. **⌘1…9** go to a session by place, **⌘⇧[** and **⌘⇧]** up or down, **⌃Tab** cycles over live previews (⌃⇧Tab up).
 - **Session card:** name, time since last activity (while working, turn length), state, a two-line plain-text recap of the agent's latest message, a todo line ("3 of 5 · Adding tests") and the git worktree name.

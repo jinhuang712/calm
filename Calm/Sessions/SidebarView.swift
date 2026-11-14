@@ -400,7 +400,7 @@ struct SidebarView: View {
                 if let agent = startAgents.chosen {
                     AgentFooterRow(agent: agent, agents: startAgents, style: style, actions: actions)
                 }
-                footerRow("New Session", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
+                footerRow("New Shell", symbol: "square.and.pencil", keys: ["⌘", "T"], action: onNewSession)
                 footerRow("New Scratch Session", symbol: "square.dashed", keys: ["⌘", "⇧", "N"], action: actions.newScratchSession)
                 footerRow("New Project…", symbol: "plus", keys: ["⌘", "O"], action: onNewProject)
                 footerRow(

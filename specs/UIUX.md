@@ -31,7 +31,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 │ │ C fix link marks 4m │ │ FILES            │   (the agent's own TUI,   │
 │ │   Running swift test│ │ ▾ docs         • │    untouched)             │
 │ └─────────────────────┘ │   plan.md      A │                           │
-│ ✳ New Claude Code Session ⌘N · ✎ New Session ⌘T · ▢ New Scratch ⌘⇧N   │
+│ ✳ New Claude Code Session ⌘N · ✎ New Shell ⌘T · ▢ New Scratch ⌘⇧N     │
 └─────────────────────────┴──────────────────┴───────────────────────────┘
   sidebar (periphery)       files (⌘\)         main area: the session, or a viewed file
 ```
@@ -41,7 +41,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - **Scratch rows** look like other rows and never show a folder. ⌘W or the right-click menu closes one.
 - **Project mark:** a 5×5 mirrored pixel pattern made from the project's name, in one of eight soft hues. A click on the mark crossfades to another mark and does not fold the group.
 - **Project header:** a click shows the project's home. Only the chevron folds a project. A click on a folder's or scratch's header folds it.
-- **Footer:** rows with an icon tile and key caps: New *Agent* Session ⌘N, New Session ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O, Show Files ⌘\\ (Hide Files while the column is up).
+- **Footer:** rows with an icon tile and key caps: New *Agent* Session ⌘N, New Shell ⌘T, New Scratch Session ⌘⇧N, New Project… ⌘O, Show Files ⌘\\ (Hide Files while the column is up).
 - Under the pointer, the ⌘N row shows a ⌄ that opens the other agents and Choose What ⌘N Starts…. With no agent installed, the row is absent.
 - A chevron above the footer's hairline folds the footer away. A thin strip along the bottom edge brings it back.
 - **Group header controls** replace the summary under the pointer: the ⌘N agent's mark starts that agent there, **>_** starts a plain shell, **⋯** is Make Project or Remove Project. Scratch has only **+**.
@@ -62,7 +62,7 @@ The window has up to three columns: the sidebar (the periphery, where status liv
 - No row is filled until the arrow keys move, because a filled first row looks chosen before the user has chosen. Once the user types, the top match is filled and ↵ opens it, as in ⌘K.
 - Typing filters both lists. A session shows the matching text under its title. A project matches its name or folder. Headers gain counts. Recent sessions leaves out sessions open in the sidebar.
 - ↑ ↓ move through rows. ← → change list. ↵ opens. Esc clears. With only one kind of item, it takes the page. Below 760 pt the lists stack.
-- **The way to start:** one line at the bottom, shortcut first: **⌘N *Agent* ⌄ · ⌘T Shell · ⌘⇧N Scratch · ⌘O New project…**. With no agent installed: ⌘T New session replaces the first two.
+- **The way to start:** one line at the bottom, shortcut first: **⌘N *Agent* ⌄ · ⌘T Shell · ⌘⇧N Scratch · ⌘O New project…**. With no agent installed, the ⌘N hint is left out.
 - **Welcome:** with no project and no past session (including the first launch), the page shows the mark, "Welcome to Calm" (first launch only), "A terminal that keeps you calm while your agents work." and the ways to start as rows. See `WelcomeContent`.
 - **Project home:** opening a project (⌘O, a dropped folder, `calm open`, a welcome row) or clicking its header shows it in the main area. The sidebar stays and the title strip is blank.
 - It shows the project's pixel mark, name, folder and branch, the start line **⌘N *Agent* ⌄ · ⌘T Shell**, and **EARLIER IN *PROJECT*** with up to six past sessions not open in the sidebar. See `ProjectHomeView`.
@@ -353,7 +353,7 @@ Motion is on by default, soft and never showy. Settings → Appearance holds one
 | ⌘F / ⌘G / ⌘⇧G / ⌘E | Find; the older / newer match; find the selected text |
 | ⌘P | Command palette |
 | ⌘N / ⌘⇧N | New session / new scratch session, running the agent chosen in Settings → Agents |
-| ⌘T / ⌘D / ⌘⇧D | New session / split right / split down |
+| ⌘T / ⌘D / ⌘⇧D | New shell / split right / split down |
 | ⌘⌥← → ↑ ↓ | Split left / right / up / down |
 | ⌘O | New project |
 | ⌘W | Close the session, or Settings, search or a viewed file in front of it |

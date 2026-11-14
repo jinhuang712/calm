@@ -273,7 +273,7 @@ struct ShortcutsSection: View {
             ]),
             Group(title: "New", rows: [
                 (["⌘", "N"], "New session running your agent"),
-                (["⌘", "T"], "New session"),
+                (["⌘", "T"], "New shell"),
                 (["⌘", "⇧", "N"], "New scratch session, running your agent"),
                 (["⌘", "O"], "New project"),
                 (["⌘", "⇧", "T"], "Reopen closed session"),

@@ -174,7 +174,7 @@ struct WelcomeView: View {
                     )
                 } else {
                     WelcomeActionRow(
-                        title: "Start a session", symbol: "square.and.pencil", keys: "⌘T",
+                        title: "Start a shell", symbol: "square.and.pencil", keys: "⌘T",
                         style: style, action: actions.newSession,
                     )
                 }

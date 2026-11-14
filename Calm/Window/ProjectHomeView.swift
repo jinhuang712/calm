@@ -106,9 +106,9 @@ struct ProjectHomeView: View {
                         )
                     },
                 )
-                HintButton(keys: "⌘T", title: "Shell", help: "New Session (⌘T)", style: style, action: actions.newShell)
+                HintButton(keys: "⌘T", title: "Shell", help: "New Shell (⌘T)", style: style, action: actions.newShell)
             } else {
-                HintButton(keys: "⌘T", title: "New session", help: "New Session (⌘T)", style: style, action: actions.newShell)
+                HintButton(keys: "⌘T", title: "Shell", help: "New Shell (⌘T)", style: style, action: actions.newShell)
             }
         }
     }
